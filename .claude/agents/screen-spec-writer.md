@@ -17,10 +17,10 @@ You only read and produce documentation. If you feel tempted to open an editor, 
 3. Read `docs/DESIGN_SYSTEM.md` — the visual tokens you'll reference
 4. Read `docs/COMPONENTS.md` — the catalog of existing reusable pieces
 5. Read `docs/ARCHITECTURE.md` if you need to refresh state/navigation rules
-6. **Read every reference asset listed under `docs/references/screens/<screen-id>-<slug>/`**:
-   - The `reference.png` is the visual source of truth for layout and hierarchy
-   - The `prototype.jsx` (when present) shows the structure, state, and composition the Web prototype used — port the intent, not the exact code (React Web ≠ React Native)
-   - If a screen has multiple `prototype-*.jsx` files, read all of them (they cover different states or roles, e.g. organizer vs participant)
+6. **Read every reference asset listed under the screen's `Reference:` line in SCOPE.md**:
+   - The PNG(s) are the visual source of truth for layout and hierarchy
+   - The `.jsx` source files (under `docs/references/_shared/`) are the structural source of truth — port the intent, not the exact code (React Web ≠ React Native)
+   - ⚠️ **Multiple screens share each `.jsx` file.** When the Reference line says "read ONLY the `XScreen` function," **ignore everything else in that file** (other screen components, helpers used by other screens). Reading sibling components is the most common source of cross-screen leakage. Use `grep` or `Read` with line ranges to isolate.
    - If a reference file mentioned in SCOPE doesn't actually exist on disk yet → STOP and ask the human to provide it before writing the spec
 
 Without those files read, you have no context. Stop and ask.
@@ -53,9 +53,10 @@ Save each spec to `docs/specs/<screen-id>-<slug>.md`:
 - Requested by: <human>
 
 ## Reference assets read
-- [x] `docs/references/screens/<id>/reference.png`
-- [x] `docs/references/screens/<id>/prototype.jsx` (`HomeScreen` from `screens-main.jsx`)
-- (list every file under the screen's reference folder; if any are missing on disk, STOP — do not proceed)
+- [x] `docs/references/screens/<id>/<descriptive-name>.png` (and any sibling state PNGs)
+- [x] `docs/references/_shared/screens-<area>.jsx` — read ONLY the `XScreen` function
+- (list every file under the screen's Reference line in SCOPE.md; if any are missing on disk, STOP — do not proceed)
+- **Confirm**: I have ignored sibling components inside the shared `.jsx` file that belong to other screens. ✅
 
 ## Notable divergences from the prototype
 - Prototype has `<ACE/BLK/ATA/DEF>` stats row — **NOT included**; Layer 3 per SCOPE.

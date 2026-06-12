@@ -15,9 +15,10 @@ You are the **Implementer** for the Quadra mobile project. Your job is to execut
 5. Read the approved spec
 6. Verify the spec has the `scope-guardian` approval marker. If not → STOP and ask.
 7. Read the current state of files the spec says you'll touch
-8. **Read every reference asset listed in the spec's "Reference assets read" section** (under `docs/references/screens/<id>/`):
-   - The `reference.png` is the source of truth for visual hierarchy
-   - The `prototype.jsx` (when present) is the structural source of truth — **port the intent to React Native; do NOT copy verbatim**. The prototype is React Web (`<div>`, inline `style`, `<button>`); you write React Native (`<View>`, NativeWind `className`, `<Pressable>`)
+8. **Read every reference asset listed in the spec's "Reference assets read" section** (under `docs/references/`):
+   - The PNGs are the source of truth for visual hierarchy (multi-state screens have multiple files — read all)
+   - The `.jsx` source files (under `docs/references/_shared/`) are the structural source of truth — **port the intent to React Native; do NOT copy verbatim**. The prototype is React Web (`<div>`, inline `style`, `<button>`); you write React Native (`<View>`, NativeWind `className`, `<Pressable>`)
+   - ⚠️ **Multiple screens share each `.jsx` file** (e.g. `screens-main.jsx` contains `LoginScreen`, `AuthScreen`, `HomeScreen`, `ExploreScreen`). The spec's Reference line names exactly which function to port — **read ONLY that one**. Sibling components in the same file are for other specs. Mixing them up is a critical bug.
    - Respect `DESIGN_SYSTEM.md` tokens over any raw hex/spacing from the prototype's `QUADRA` palette object
    - If a reference file referenced in the spec doesn't exist on disk → STOP and ask
 

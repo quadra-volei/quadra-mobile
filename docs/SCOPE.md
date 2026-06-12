@@ -16,12 +16,11 @@ Frontend MVP screens cover backend Layer 1 (Match Core) and Layer 2 (Retention).
 
 ## Reference assets (mandatory reading)
 
-Every screen has a reference folder under `docs/references/screens/<screen-id>-<slug>/` containing:
+Each screen has a folder under `docs/references/screens/<screen-id>-<slug>/` containing one or more **PNG screenshots** from the Claude Design prototype (named descriptively — e.g. `inicio.png`, `partida-time-automatico.png`). Multi-state screens have multiple files; the `Reference:` line per screen below lists them all.
 
-- **`reference.png`** — the visual reference (Claude Design prototype screenshot or brand mockup)
-- **`prototype.jsx`** — the React Web prototype component (when one exists)
+The **prototype source code** lives in `docs/references/_shared/screens-*.jsx` (e.g. `screens-main.jsx`, `screens-detail.jsx`). Each of these files contains **multiple screen components** (the prototype didn't split them per-file). The `Reference:` line tells the agent exactly which function to read — for example, "read ONLY the `LoginScreen` function" — and the agent must ignore the sibling components in the same file, which belong to other specs.
 
-Some screens have multiple files (e.g. `prototype-detail.jsx` + `prototype-manage.jsx`). Some screens (S1, S3) may have only a print and no `.jsx` — that's flagged per screen below.
+Shared prototype helpers — `ui.jsx`, `chrome.jsx`, `data.js`, `Identidade Visual.html` — also live in `_shared/` and are reference-only.
 
 The `screen-spec-writer` and `implementer` agents MUST read these files before producing a spec or writing code. The reference is the source of truth for **layout, visual hierarchy, and component composition**. SCOPE.md (this file) remains the source of truth for **behavior, backend dependencies, and what's in/out of MVP**.
 
@@ -32,7 +31,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 ## Screen catalog (MVP)
 
 ### S1 — Splash
-- **Reference**: `docs/references/screens/S1-splash/reference.png` *(no prototype .jsx — splash not implemented in the React Web prototype; brand mockup only)*
+- **Reference**: `docs/references/screens/S1-splash/splash.png` *(no prototype source — splash not implemented in the React Web prototype; brand mockup only)*
 - **Route**: `app/index.tsx` (or root with redirect logic)
 - **Backend deps**: none
 - **IN**: brand visual (blue blob + lime wave) per `DESIGN_SYSTEM.md`
@@ -42,7 +41,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **OUT**: any user interaction
 
 ### S2 — Login
-- **Reference**: `docs/references/screens/S2-login/reference.png` + `prototype.jsx` (`LoginScreen` from `screens-main.jsx`)
+- **Reference**: `docs/references/screens/S2-login/login.png` + `docs/references/_shared/screens-main.jsx` (read ONLY the `LoginScreen` function — the file also contains `AuthScreen`, `HomeScreen`, `ExploreScreen`; ignore them)
 - **Route**: `app/(auth)/login.tsx`
 - **Backend deps**: backend Auth module (FA.2, FA.3)
 - **IN**: phone number input with country selector default BR (+55)
@@ -54,7 +53,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **OUT**: signup-as-separate-screen (handled inline by phone flow)
 
 ### S3 — SMS Verification
-- **Reference**: `docs/references/screens/S3-sms-otp/reference.png` + `prototype.jsx` (`AuthScreen` from `screens-main.jsx`)
+- **Reference**: `docs/references/screens/S3-sms-otp/sms-otp.png` + `sms-otp-preenchido.png` (filled state) + `docs/references/_shared/screens-main.jsx` (read ONLY the `AuthScreen` function)
 - **Route**: `app/(auth)/sms-otp.tsx`
 - **Backend deps**: FA.3 (SMS OTP endpoint)
 - **IN**: 4 separate digit input boxes auto-advancing
@@ -64,7 +63,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **OUT**: codes longer than 4 digits (locked by Cognito config)
 
 ### S4 — Onboarding (post-signup, first time only)
-- **Reference**: `docs/references/screens/S4-onboarding/reference.png` (multi-step flow) + `prototype.jsx` (`OnboardingScreen` + `CadastroScreen` from `screens-onboarding.jsx`)
+- **Reference**: `docs/references/screens/S4-onboarding/dados-pessoais-cadastro.png`, `dados-modalidade-favorita-cadastro.png`, `dados-nivel-jogo-cadastro.png`, `dados-perfil-pronto.png` (multi-step flow) + `docs/references/_shared/screens-onboarding.jsx` (read ONLY `OnboardingScreen` + `CadastroScreen`)
 - **Route**: `app/(auth)/onboarding.tsx`
 - **Backend deps**: F2.1 (Player Profile creation)
 - **IN**: profile photo picker (optional, S3 upload)
@@ -77,7 +76,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **OUT**: contact sync (Layer 3)
 
 ### S5 — Home
-- **Reference**: `docs/references/screens/S5-home/reference.png` + `prototype.jsx` (`HomeScreen` + `NearbyCard` helper from `screens-main.jsx`)
+- **Reference**: `docs/references/screens/S5-home/inicio.png` + `docs/references/_shared/screens-main.jsx` (read ONLY the `HomeScreen` function + `NearbyCard` helper)
 - **Route**: `app/(tabs)/index.tsx`
 - **Backend deps**: F1.7 (nearby matches), F1.1/F1.6 (next matches list)
 - **IN**: header with avatar + greeting + notification bell
@@ -90,7 +89,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **OUT**: weather widget, ads, or anything not in the mockup
 
 ### S6 — Explore
-- **Reference**: `docs/references/screens/S6-explore/reference.png` + `prototype.jsx` (`ExploreScreen` + `ExploreMap` helper from `screens-main.jsx`)
+- **Reference**: `docs/references/screens/S6-explore/explorar.png` + `docs/references/_shared/screens-main.jsx` (read ONLY `ExploreScreen` + `ExploreMap` helper)
 - **Route**: `app/(tabs)/explore.tsx`
 - **Backend deps**: F1.7 (matches nearby), Profile (player search — Layer 3, so MOCK)
 - **IN**: search bar (free text)
@@ -102,7 +101,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **OUT**: arena detail screens (Layer 3)
 
 ### S7 — Network (placeholder for MVP)
-- **Reference**: `docs/references/screens/S7-network/reference.png` + `prototype.jsx` (`RedeScreen` from `screens-rede.jsx`) — ⚠️ **prototype shows the full feed, but MVP is placeholder only; use prototype only to understand what is NOT being built**
+- **Reference**: `docs/references/screens/S7-network/rede.png` + `docs/references/_shared/screens-rede.jsx` (read `RedeScreen`) — ⚠️ **prototype shows the full feed, but MVP is placeholder only; use prototype only to understand what is NOT being built**
 - **Route**: `app/(tabs)/network.tsx`
 - **Backend deps**: none
 - **IN**: empty state with message "Em breve: rede social de jogadores"
@@ -110,7 +109,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - *Justification*: tab is in the navbar mockup but feature is post-MVP. We ship the tab as placeholder.
 
 ### S8 — Profile
-- **Reference**: `docs/references/screens/S8-profile/reference.png` (header + middle + bottom) + `prototype.jsx` (`ProfileScreen` from `screens-profile.jsx`)
+- **Reference**: `docs/references/screens/S8-profile/perfil.png` (header + middle + bottom) + `docs/references/_shared/screens-profile.jsx` (read ONLY `ProfileScreen` — file also contains `CardScreen`, which is out-of-scope)
 - **Route**: `app/(tabs)/profile.tsx`
 - **Backend deps**: F2.1, F2.2, F2.3
 - **IN**: header with avatar, greeting, notification bell
@@ -123,7 +122,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **OUT**: editable fields inline (separate Settings screen, S10)
 
 ### S9 — Full Group Ranking
-- **Reference**: `docs/references/screens/S9-ranking/reference.png` + `prototype.jsx` (`RankingScreen` from `screens-game.jsx`)
+- **Reference**: `docs/references/screens/S9-ranking/amigos-ranking.png` + `docs/references/_shared/screens-game.jsx` (read ONLY the `RankingScreen` function — file also contains `GameScreen`, which is for S13.5/S14)
 - **Route**: `app/profile/ranking.tsx`
 - **Backend deps**: F2.3
 - **IN**: list of all players in the selected group with position number, avatar, name, score
@@ -132,7 +131,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **OUT**: city/global ranking (Layer 3)
 
 ### S10 — Settings (minimal MVP)
-- **Reference**: `docs/references/screens/S10-settings/reference.png` + `prototype.jsx` (`SettingsScreen` + `EditProfileScreen` from `screens-settings.jsx`)
+- **Reference**: `docs/references/screens/S10-settings/perfil-configuracoes.png` (settings list) + `perfil-editar.png` (edit profile) + `docs/references/_shared/screens-settings.jsx` (read ONLY `SettingsScreen` + `EditProfileScreen`)
 - **Route**: `app/profile/settings.tsx`
 - **Backend deps**: FA.* (Auth), F2.1 (Profile edit)
 - **IN**: edit profile (name, photo, positions)
@@ -142,7 +141,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **OUT**: granular notification settings per category (post-MVP)
 
 ### S11 — Create Match
-- **Reference**: `docs/references/screens/S11-create-match/reference.png` + `prototype.jsx` (`CreateScreen` from `screens-detail.jsx`)
+- **Reference**: `docs/references/screens/S11-create-match/partida-criar-formulario.png` (form) + `partida-criada.png` (success state) + `docs/references/_shared/screens-detail.jsx` (read ONLY the `CreateScreen` function — file also contains `DetailScreen`, which is S12)
 - **Route**: `app/matches/create.tsx`
 - **Backend deps**: F1.1
 - **IN**: form fields per F1.1 spec (name, location, date/time, type, maxPlayers, etc.)
@@ -154,7 +153,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **OUT**: payment processing
 
 ### S12 — Match Detail
-- **Reference**: `docs/references/screens/S12-match-detail/reference.png` (multiple states) + `prototype-detail.jsx` (`DetailScreen` from `screens-detail.jsx`) + `prototype-manage.jsx` (`ManageScreen` from `screens-manage.jsx` — organizer view)
+- **Reference**: `docs/references/screens/S12-match-detail/partida-visa-paricipante.png` (participant view) + `partida-visao-organizador.png` (organizer view) + `docs/references/_shared/screens-detail.jsx` (read ONLY `DetailScreen`) + `docs/references/_shared/screens-manage.jsx` (read `ManageScreen` — organizer-specific actions)
 - **Route**: `app/matches/[id].tsx`
 - **Backend deps**: F1.2, F1.3, F1.4, F1.5, F1.6
 - **IN**: match info card (venue photo, datetime, location)
@@ -166,7 +165,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **OUT**: chat (Layer 3)
 
 ### S13 — In-Game Teams
-- **Reference**: `docs/references/screens/S13-teams/reference.png` + `prototype-teams.jsx` (`TeamsScreen` from `screens-teams.jsx`) + `prototype-auto-result.jsx` (`AutoResultScreen` from `screens-teams.jsx`)
+- **Reference**: `docs/references/screens/S13-teams/partida-time-automatico.png` (auto draw) + `partida-time-manual.png` (manual adjust) + `docs/references/_shared/screens-teams.jsx` (read `TeamsScreen` + `AutoResultScreen`)
 - **Route**: tab inside S12 — `Times`
 - **Backend deps**: F1.3
 - **IN**: team A and team B displays with player avatars + positions
@@ -176,7 +175,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **OUT**: multiple team formats beyond 2 teams
 
 ### S13.5 — Set Team Picker (3+ teams only)
-- **Reference**: `docs/references/screens/S13.5-set-team-picker/reference.png` + `prototype.jsx` (the "Quem joga este set?" branch inside `GameScreen` from `screens-game.jsx` — extract only that initial conditional render, lines ~170–225)
+- **Reference**: `docs/references/screens/S13.5-set-team-picker/partida-quem-joga-set.png` + `docs/references/_shared/screens-game.jsx` (read ONLY the `picked.length < 2` conditional branch inside `GameScreen`, approx lines 170–225 — the rest of `GameScreen` is S14 territory)
 - **Route**: implemented as the initial state of S14 — same route as scoreboard, rendered conditionally when `teams.length >= 3 && picked.length < 2`
 - **Backend deps**: F1.3 (read teams), F1.4 (write set roster)
 - **IN**: dark hero header showing set number + "melhor de N"
@@ -188,7 +187,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **OUT**: anything related to 2-team matches — this screen is never shown when teams.length === 2
 
 ### S14 — In-Game Scoreboard
-- **Reference**: `docs/references/screens/S14-scoreboard/reference.png` (live + end-of-set states) + `prototype.jsx` (`GameScreen` from `screens-game.jsx`)
+- **Reference**: `docs/references/screens/S14-scoreboard/partida-placar.png` + `docs/references/_shared/screens-game.jsx` (read the `GameScreen` function — skip the initial `picked.length < 2` branch which belongs to S13.5)
 - **Route**: tab inside S12 — `Placar`
 - **Backend deps**: F1.4 + Realtime
 - **IN**: large set-by-set score display
@@ -198,7 +197,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **OUT**: stats per player per point (Layer 3)
 
 ### S15 — Post-Match MVP Vote
-- **Reference**: `docs/references/screens/S15-mvp-vote/reference.png` (selection + post-vote states) + `prototype.jsx` (`MVPScreen` from `screens-matchend.jsx`)
+- **Reference**: `docs/references/screens/S15-mvp-vote/partida-votacao-mvp.png` + `docs/references/_shared/screens-matchend.jsx` (read ONLY `MVPScreen` — file also contains `MatchEndScreen`, which is S16)
 - **Route**: `app/matches/[id]/mvp-vote.tsx`
 - **Backend deps**: F1.5
 - **IN**: list of players from the match (excluding self) with avatar + name
@@ -207,7 +206,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **OUT**: change vote after submitting (locked)
 
 ### S16 — Match Summary
-- **Reference**: `docs/references/screens/S16-match-summary/reference.png` + `prototype-match-end.jsx` (`MatchEndScreen` from `screens-matchend.jsx` — transition) + `prototype-match-result.jsx` (`MatchResultScreen` from `screens-matchresult.jsx` — summary)
+- **Reference**: `docs/references/screens/S16-match-summary/partida-resumo.png` (summary) + `partida-encerrar-estatisticas.png` (stats input transition) + `docs/references/_shared/screens-matchend.jsx` (read `MatchEndScreen` — transition) + `docs/references/_shared/screens-matchresult.jsx` (read `MatchResultScreen` — summary)
 - **Route**: tab inside S12 — `Resumo`
 - **Backend deps**: F1.6
 - **IN**: final score, duration, MVP highlighted
@@ -216,7 +215,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **OUT**: generated shareable image (post-MVP)
 
 ### S17 — Map of Nearby Matches
-- **Reference**: `docs/references/screens/S17-map/reference.png` + `prototype.jsx` (`ExploreMap` component from `screens-main.jsx` — extracted as a standalone function)
+- **Reference**: ⚠️ no dedicated screenshot in the prototype. Use `docs/references/screens/S6-explore/explorar.png` as visual reference for pin/card style. + `docs/references/_shared/screens-main.jsx` (read ONLY the `ExploreMap` helper function — it is embedded in the file)
 - **Route**: `app/explore/map.tsx`
 - **Backend deps**: F1.7
 - **IN**: full-screen map (react-native-maps)
