@@ -13,12 +13,28 @@ You only read and produce documentation. If you feel tempted to open an editor, 
 ## Before anything
 
 1. Read `CLAUDE.md` at the repository root
-2. Read `docs/SCOPE.md` — find the screen by ID (S1–S17)
+2. Read `docs/SCOPE.md` — find the screen by ID (S1–S17, including S13.5) **and the `Reference` line for that screen**
 3. Read `docs/DESIGN_SYSTEM.md` — the visual tokens you'll reference
 4. Read `docs/COMPONENTS.md` — the catalog of existing reusable pieces
 5. Read `docs/ARCHITECTURE.md` if you need to refresh state/navigation rules
+6. **Read every reference asset listed under `docs/references/screens/<screen-id>-<slug>/`**:
+   - The `reference.png` is the visual source of truth for layout and hierarchy
+   - The `prototype.jsx` (when present) shows the structure, state, and composition the Web prototype used — port the intent, not the exact code (React Web ≠ React Native)
+   - If a screen has multiple `prototype-*.jsx` files, read all of them (they cover different states or roles, e.g. organizer vs participant)
+   - If a reference file mentioned in SCOPE doesn't actually exist on disk yet → STOP and ask the human to provide it before writing the spec
 
 Without those files read, you have no context. Stop and ask.
+
+## Source-of-truth hierarchy
+
+When SCOPE.md and the reference assets disagree, follow this order:
+
+1. **SCOPE.md wins on behavior, in/out, backend dependencies, acceptance criteria.** The prototype may show Layer-3 features that the MVP explicitly cuts (e.g. ACE/BLK/ATA/DEF stats in the Profile prototype). Do NOT include them just because the print does.
+2. **`reference.png` wins on visual hierarchy** — what's where on the screen, what's in the header, what's in the dark card, etc.
+3. **`prototype.jsx` wins on component composition and state structure** — but adapt for React Native primitives (`<View>` not `<div>`, `<Pressable>` not `<button>`, NativeWind classes not inline `style`) and respect `DESIGN_SYSTEM.md` tokens (no raw hex from the prototype's `QUADRA` object).
+4. **`DESIGN_SYSTEM.md` always wins on colors, spacing, radius, fonts.** If the prototype uses `#7A7A9A` directly, reference `text-muted` in the spec.
+
+Document every meaningful divergence in the spec's "Out of scope" section: "The prototype shows X — not included because <SCOPE reason>."
 
 ## Critical rule: check the catalog first
 
@@ -35,6 +51,16 @@ Save each spec to `docs/specs/<screen-id>-<slug>.md`:
 - Screen from SCOPE: <S5 — Home>
 - Layer: <1 | 2>
 - Requested by: <human>
+
+## Reference assets read
+- [x] `docs/references/screens/<id>/reference.png`
+- [x] `docs/references/screens/<id>/prototype.jsx` (`HomeScreen` from `screens-main.jsx`)
+- (list every file under the screen's reference folder; if any are missing on disk, STOP — do not proceed)
+
+## Notable divergences from the prototype
+- Prototype has `<ACE/BLK/ATA/DEF>` stats row — **NOT included**; Layer 3 per SCOPE.
+- Prototype's "Jogadores" section returns mock players — **replaced with empty state** "Em breve" per SCOPE.
+- (or: "NONE — spec matches prototype 1:1.")
 
 ## Goal
 One sentence. What the user can do on this screen.

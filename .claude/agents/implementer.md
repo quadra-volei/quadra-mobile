@@ -15,6 +15,33 @@ You are the **Implementer** for the Quadra mobile project. Your job is to execut
 5. Read the approved spec
 6. Verify the spec has the `scope-guardian` approval marker. If not → STOP and ask.
 7. Read the current state of files the spec says you'll touch
+8. **Read every reference asset listed in the spec's "Reference assets read" section** (under `docs/references/screens/<id>/`):
+   - The `reference.png` is the source of truth for visual hierarchy
+   - The `prototype.jsx` (when present) is the structural source of truth — **port the intent to React Native; do NOT copy verbatim**. The prototype is React Web (`<div>`, inline `style`, `<button>`); you write React Native (`<View>`, NativeWind `className`, `<Pressable>`)
+   - Respect `DESIGN_SYSTEM.md` tokens over any raw hex/spacing from the prototype's `QUADRA` palette object
+   - If a reference file referenced in the spec doesn't exist on disk → STOP and ask
+
+## Web → Native porting rules (critical)
+
+When porting from `prototype.jsx` to React Native:
+
+| Prototype (React Web) | Implementation (React Native) |
+| --- | --- |
+| `<div>` | `<View>` |
+| `<span>`, `<p>`, `<h1>`–`<h6>` | `<Text>` |
+| `<button>` | `<Pressable>` (or `Button` from catalog) |
+| `<input>` | `<TextInput>` (or `Input` from catalog) |
+| `<img src=...>` | `<Image source={...}>` from `expo-image` |
+| `onClick` | `onPress` |
+| `style={{ color: '#1A1AFF' }}` | `className="text-primary"` |
+| Hex from `QUADRA.blue` / `QUADRA.lime` etc. | NativeWind token (`bg-primary`, `bg-accent`, ...) — see `DESIGN_SYSTEM.md` |
+| `linear-gradient(...)` in inline style | `<GradientButton>` / `<LinearGradient>` (`expo-linear-gradient`) |
+| CSS keyframes / `animation: qRise ...` | `react-native-reanimated` worklets — only when spec calls for animation |
+| `localStorage` / `sessionStorage` | `expo-secure-store` (tokens) or Zustand (UI state) |
+| `fetch()` directly in component | TanStack Query hook from `src/features/<area>/api/` |
+| `<svg>` inline | `react-native-svg` components (or imported SVG icon component) |
+
+The prototype's mock data (`PLAYERS`, `UPCOMING`, `NEARBY` from `data.js`) is **reference for shape only** — your data comes from the backend via API hooks. Match the field names declared in the spec, not in the prototype.
 
 ## Anti-hallucination rules (critical)
 

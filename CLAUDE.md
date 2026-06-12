@@ -32,8 +32,15 @@
 | Forms | react-hook-form | ^7.78.0 |
 | Validation | zod | ^3.25.76 |
 | Form resolvers | @hookform/resolvers | ^3.10.0 |
+| Fonts (local) | expo-font | ~56.0.x |
+| Fonts (Google — UI/body) | @expo-google-fonts/dm-sans | latest |
+| Fonts (Google — mono/labels) | @expo-google-fonts/dm-mono | latest |
+| Fonts (Google — numbers) | @expo-google-fonts/russo-one | latest |
+| Fonts (Google — wordmark only) | @expo-google-fonts/baloo-2 | latest |
 
 **Do not add packages not in this list without updating CLAUDE.md first.**
+
+> Added per `docs/DESIGN_SYSTEM.md` — Quadra's brand typography (Climate Crisis, Russo One, DM Sans, Baloo 2, DM Mono) replaces the previous system-font default. See "Custom fonts" below.
 
 ---
 ## Package management rules
@@ -44,6 +51,50 @@
 - Do NOT delete `.npmrc` or change `legacy-peer-deps` — it WILL break EAS Build.
 
 --- 
+
+## Custom fonts (brand typography)
+
+Quadra's identity uses 5 font families — **not** the system default. See `docs/DESIGN_SYSTEM.md` for the role of each.
+
+| Family | Source | Loaded via |
+| --- | --- | --- |
+| Climate Crisis | Local TTF asset | `expo-font` (`useFonts` with local `require()`) |
+| Russo One | Google Font | `@expo-google-fonts/russo-one` |
+| DM Sans | Google Font | `@expo-google-fonts/dm-sans` |
+| Baloo 2 | Google Font | `@expo-google-fonts/baloo-2` |
+| DM Mono | Google Font | `@expo-google-fonts/dm-mono` |
+
+### Asset location
+
+- Climate Crisis TTF: `assets/fonts/ClimateCrisis-Regular-VariableFont_YEAR.ttf` (copy from the Claude Design prototype's `uploads/` folder)
+
+### Loading pattern
+
+All fonts are loaded once in `app/_layout.tsx`, before rendering any screen (alongside the existing providers):
+
+```tsx
+import { useFonts } from 'expo-font';
+import { DMSans_400Regular, DMSans_600SemiBold, DMSans_700Bold, DMSans_800ExtraBold } from '@expo-google-fonts/dm-sans';
+import { DMMono_400Regular, DMMono_500Medium } from '@expo-google-fonts/dm-mono';
+import { RussoOne_400Regular } from '@expo-google-fonts/russo-one';
+import { Baloo2_600SemiBold } from '@expo-google-fonts/baloo-2';
+
+const [fontsLoaded] = useFonts({
+  'ClimateCrisis-Regular': require('@/assets/fonts/ClimateCrisis-Regular-VariableFont_YEAR.ttf'),
+  DMSans_400Regular, DMSans_600SemiBold, DMSans_700Bold, DMSans_800ExtraBold,
+  DMMono_400Regular, DMMono_500Medium,
+  RussoOne_400Regular,
+  Baloo2_600SemiBold,
+});
+```
+
+### Tailwind mapping
+
+Font families are exposed as NativeWind font tokens in `tailwind.config.js` (`font-display`, `font-num`, `font-body`, `font-word`, `font-mono`) per `docs/DESIGN_SYSTEM.md`. Screens reference these tokens — never inline `fontFamily` strings.
+
+> `Climate Crisis` is **display-only and always uppercase** — apply the `uppercase` className wherever `font-display` is used. `Baloo 2` is reserved for the "quadra" wordmark only — never for general UI text.
+
+---
 
 ## Architecture references
 
