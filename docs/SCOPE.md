@@ -48,7 +48,6 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **IN**: "Entrar na Quadra" gradient CTA → triggers SMS OTP flow
 - **IN**: "Entrar com Google" button → Google Sign-In native flow
 - **IN**: "Entrar com Apple" button (iOS only) → Apple Sign-In native flow
-- **IN**: "Esqueceu a senha?" link → Cognito-hosted reset flow (opens browser)
 - **OUT**: email/password form (Quadra is phone-first)
 - **OUT**: signup-as-separate-screen (handled inline by phone flow)
 
