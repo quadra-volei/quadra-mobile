@@ -3,6 +3,8 @@ import Svg, { Path } from 'react-native-svg';
 export type QuadraLogoProps = {
   /** Width in px. Height is derived from the brand mark's aspect ratio. */
   size?: number;
+  /** Optional testID forwarded to the root Svg element (used in tests). */
+  testID?: string;
 };
 
 const ASPECT = 162.81 / 168.45;
@@ -12,9 +14,9 @@ const ASPECT = 162.81 / 168.45;
  * three overlapping blocks in motion (blue + lime), per DESIGN_SYSTEM "Logo & wordmark".
  * Brand colors are fixed and must never be recolored, so they are intentionally not themeable.
  */
-export function QuadraLogo({ size = 40 }: QuadraLogoProps) {
+export function QuadraLogo({ size = 40, testID }: QuadraLogoProps) {
   return (
-    <Svg width={size} height={size * ASPECT} viewBox="0 0 169 163" fill="none">
+    <Svg testID={testID} width={size} height={size * ASPECT} viewBox="0 0 169 163" fill="none">
       <Path
         d="M47.9316 0.577696L98.0858 15.1204L60.4704 144.847L10.3162 130.304C2.72875 128.104 -1.64255 120.163 0.557503 112.575L30.2026 10.3364C32.4026 2.74895 40.3442 -1.62236 47.9316 0.577696Z"
         fill="#0032D1"

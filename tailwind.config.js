@@ -10,6 +10,8 @@ module.exports = {
         'primary-dark': '#0D0D9E',
         accent: '#AADD00',
         'accent-light': '#C6F135',
+        tertiary: '#FF6B00',
+        quaternary: '#6B1AFF',
 
         // Surfaces
         'bg-light': '#EFF3FC',
@@ -21,7 +23,8 @@ module.exports = {
         // Text
         'text-primary': '#1A1A2E',
         'text-on-dark': '#FFFFFF',
-        'text-muted': '#6B7280',
+        'text-muted': '#7A7A9A',
+        line: 'rgba(10,10,60,0.10)',
 
         // Semantic
         success: '#16A34A',
@@ -30,23 +33,38 @@ module.exports = {
         info: '#3B82F6',
       },
 
+      fontFamily: {
+        // font-display → Climate Crisis (loaded as 'ClimateCrisis-Regular')
+        display: ['ClimateCrisis-Regular'],
+        // font-num → Russo One
+        num: ['RussoOne_400Regular'],
+        // font-body → DM Sans
+        body: ['DMSans_400Regular'],
+        // font-word → Baloo 2 (wordmark only)
+        word: ['Baloo2_600SemiBold'],
+        // font-mono → DM Mono
+        mono: ['DMMono_500Medium'],
+      },
+
       borderRadius: {
-        sm: '6px',
-        md: '12px',
-        lg: '16px',
-        xl: '24px',
+        chip: '16px',
+        card: '20px',
+        btn: '18px',
+        pill: '24px',
         full: '9999px',
       },
 
       fontSize: {
-        display: ['32px', { lineHeight: '40px', fontWeight: '700' }],
-        h1: ['24px', { lineHeight: '32px', fontWeight: '700' }],
+        display: ['36px', { lineHeight: '44px', fontWeight: '400' }],
+        h1: ['21px', { lineHeight: '28px', fontWeight: '400' }],
         h2: ['20px', { lineHeight: '28px', fontWeight: '700' }],
-        h3: ['18px', { lineHeight: '24px', fontWeight: '600' }],
-        body: ['16px', { lineHeight: '24px', fontWeight: '400' }],
-        'body-bold': ['16px', { lineHeight: '24px', fontWeight: '600' }],
-        caption: ['13px', { lineHeight: '18px', fontWeight: '400' }],
-        mini: ['11px', { lineHeight: '14px', fontWeight: '500' }],
+        h3: ['17px', { lineHeight: '24px', fontWeight: '800' }],
+        body: ['15px', { lineHeight: '22px', fontWeight: '400' }],
+        'body-bold': ['15px', { lineHeight: '22px', fontWeight: '600' }],
+        eyebrow: ['11px', { lineHeight: '16px', fontWeight: '700' }],
+        caption: ['12px', { lineHeight: '16px', fontWeight: '400' }],
+        mono: ['11px', { lineHeight: '16px', fontWeight: '500' }],
+        num: ['32px', { lineHeight: '40px', fontWeight: '400' }],
       },
 
       spacing: {
@@ -65,9 +83,11 @@ module.exports = {
       },
 
       boxShadow: {
-        card: '0 2px 8px rgba(26, 26, 255, 0.08)',
-        fab: '0 4px 16px rgba(26, 26, 255, 0.24)',
-        modal: '0 -2px 24px rgba(0, 0, 0, 0.16)',
+        card: '0 2px 12px rgba(10,10,60,0.06)',
+        cta: '0 4px 16px rgba(170,221,0,0.30)',
+        primary: '0 4px 16px rgba(26,26,255,0.28)',
+        fab: '0 4px 16px rgba(26,26,255,0.28)',
+        modal: '0 -2px 24px rgba(0,0,0,0.16)',
       },
     },
   },
