@@ -21,7 +21,61 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { getAccessToken } from '@/lib/auth/getAccessToken';
+import { verifySession } from '@/lib/auth/verifySession';
+import { useAuthStore } from '@/stores/auth';
+
 SplashScreen.preventAutoHideAsync();
+
+const AUTH_BOOTSTRAP_TIMEOUT_MS = 2000;
+
+function timeout(ms: number): Promise<never> {
+  return new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('auth-bootstrap-timeout')), ms);
+  });
+}
+
+/**
+ * Runs the one-shot auth bootstrap: read the stored token, validate it against
+ * the backend, and resolve the auth store. Any failure (no token, invalid token,
+ * network error, or a >2s stall) falls through to the unauthenticated state so
+ * the splash can redirect to Login. Reports `ready` once the flow settles.
+ */
+async function runAuthBootstrap(): Promise<void> {
+  const { setAuth, clearAuth } = useAuthStore.getState();
+  try {
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      clearAuth();
+      return;
+    }
+    const session = await Promise.race([
+      verifySession(accessToken),
+      timeout(AUTH_BOOTSTRAP_TIMEOUT_MS),
+    ]);
+    setAuth({
+      userId: session.userId,
+      accessToken,
+      hasProfile: session.hasProfile,
+    });
+  } catch {
+    clearAuth();
+  }
+}
+
+let bootstrapPromise: Promise<void> | null = null;
+
+/**
+ * Returns the single shared auth-bootstrap promise, starting it on first call.
+ * The root layout triggers it once fonts are ready; the splash route (`index.tsx`)
+ * awaits the same promise to know when to redirect — the check never runs twice.
+ */
+export function getAuthBootstrap(): Promise<void> {
+  if (!bootstrapPromise) {
+    bootstrapPromise = runAuthBootstrap();
+  }
+  return bootstrapPromise;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -48,6 +102,9 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontsLoaded) {
       SplashScreen.hideAsync();
+      // Kick off the one-shot auth bootstrap; the splash route awaits the
+      // shared promise to drive its redirect.
+      void getAuthBootstrap();
     }
   }, [fontsLoaded]);
 

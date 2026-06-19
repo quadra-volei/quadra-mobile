@@ -41,6 +41,7 @@
     "@react-native/jest-preset": "^0.86.0",
     "@testing-library/jest-native": "^5.4.3",
     "@testing-library/react-native": "^14.0.0",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.2.2",
     "babel-plugin-module-resolver": "^5.0.3",
     "jest": "^29.7.0",
@@ -63,7 +64,8 @@
       "**/tests/**/*.test.[jt]s?(x)"
     ],
     "moduleNameMapper": {
-      "^@/(.*)$": "<rootDir>/src/$1"
+      "^@/(.*)$": "<rootDir>/src/$1",
+      "\\.(css)$": "<rootDir>/tests/__mocks__/styleMock.js"
     },
     "transformIgnorePatterns": [
       "node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@tanstack|zustand|msw|nativewind|test-renderer))"
