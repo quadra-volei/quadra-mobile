@@ -56,18 +56,18 @@ export default function Index() {
     };
   }, []);
 
-  // useEffect(() => {
-  //   if (!ready) {
-  //     return;
-  //   }
-  //   if (!isAuthenticated) {
-  //     router.replace('/(auth)/login');
-  //   } else if (!hasProfile) {
-  //     router.replace('/(auth)/onboarding');
-  //   } else {
-  //     router.replace('/(tabs)');
-  //   }
-  // }, [ready, isAuthenticated, hasProfile]);
+  useEffect(() => {
+    if (!ready) {
+      return;
+    }
+    if (!isAuthenticated) {
+      router.replace("/(auth)/login");
+    } else if (!hasProfile) {
+      router.replace("/(auth)/onboarding");
+    } else {
+      router.replace("/(tabs)");
+    }
+  }, [ready, isAuthenticated, hasProfile]);
 
   return (
     <View className="flex-1 bg-surface-dark">
@@ -86,7 +86,6 @@ export default function Index() {
               quadra
             </Text>
             <Text className="font-body  text-accent uppercase mt-3 tracking-[1.2px]">
-
               O JOGO COMEÇA AQUI
             </Text>
           </View>

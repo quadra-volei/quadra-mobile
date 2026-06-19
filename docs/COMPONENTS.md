@@ -40,12 +40,32 @@ Each entry follows this structure:
 
 ## UI primitives (`src/components/ui/`)
 
-*(empty — will be populated as screens are built)*
+### `Button`
+- **Path**: `src/components/ui/Button.tsx`
+- **Category**: ui
+- **Props**: `{ variant: 'grad' | 'primary' | 'outline' | 'outlineW' | 'ghost'; onPress: () => void; children: ReactNode; disabled?: boolean; loading?: boolean; leftIcon?: ReactNode; testID?: string }`
+- **Used in**: S2 Login
+- **Example**:
+  ```tsx
+  <Button variant="grad" onPress={openSheet}>Entrar e jogar</Button>
+  <Button variant="outline" onPress={onGoogle} leftIcon={<GoogleMark />}>Entrar com Google</Button>
+  ```
+- **Notes**: All five DESIGN_SYSTEM variants. `grad` (blue→lime) and `primary` (navy→blue) wrap `expo-linear-gradient` with `shadow-cta` / `shadow-primary`; when `disabled` or `loading` they render a muted `bg-bg-light-alt` fill (no shadow). `outline` / `outlineW` / `ghost` are transparent (50% opacity when disabled). `loading` swaps content for an `ActivityIndicator` and disables press. Tap height ~48px (`h-12`), `rounded-btn`. Exposes `accessibilityRole="button"` and `accessibilityState` (disabled/busy).
+
+### `PhoneInput`
+- **Path**: `src/components/ui/PhoneInput.tsx`
+- **Category**: ui
+- **Props**: `{ value: string; onChangeText: (value: string) => void; country?: 'BR'; error?: string; testID?: string }`
+- **Used in**: S2 Login
+- **Example**:
+  ```tsx
+  <PhoneInput value={value} onChangeText={onChange} country="BR" error={error?.message} />
+  ```
+- **Notes**: `value` and `onChangeText` deal in **national digits only** (mask stripped, max 11). Displays a BR `(11) 00000-0000` mask and a **display-only** "BR +55" pill (no multi-country selector in MVP). When `error` is set, the field border turns `border-danger` and the message renders below in the `danger` token — this is the sole error-surfacing path on the login screen (no toast).
 
 <!--
-Examples of components that WILL live here:
+More UI primitives will live here:
 
-### `Button`
 ### `GradientButton`
 ### `Input`
 ### `Card`
@@ -54,6 +74,22 @@ Examples of components that WILL live here:
 ### `Pill`
 ### `IconButton`
 -->
+
+---
+
+## Icons (`src/components/icons/`)
+
+### `QuadraLogo`
+- **Path**: `src/components/icons/QuadraLogo.tsx`
+- **Props**: `{ size?: number; testID?: string }`
+- **Used in**: S1 Splash, S2 Login
+- **Notes**: Official brand mark (three overlapping blocks, blue + lime). Colors are fixed — never recolor.
+
+### `GoogleMark`
+- **Path**: `src/components/icons/GoogleMark.tsx`
+- **Props**: `{ size?: number; testID?: string }`
+- **Used in**: S2 Login (as the `leftIcon` of the "Entrar com Google" button)
+- **Notes**: Google "G" brand SVG ported to `react-native-svg`. Purely visual; fixed brand colors (not themeable). Pulls in **no** Google SDK.
 
 ---
 
