@@ -15,18 +15,17 @@ You are the **Implementer** for the Quadra mobile project. Your job is to execut
 5. Read the approved spec
 6. Verify the spec has the `scope-guardian` approval marker. If not → STOP and ask.
 7. Read the current state of files the spec says you'll touch
-8. **Read every reference asset listed in the spec's "Reference assets read" section** (under `docs/references/`):
-   - The PNGs are the source of truth for visual hierarchy (multi-state screens have multiple files — read all)
-   - The `.jsx` source files (under `docs/references/_shared/`) are the structural source of truth — **port the intent to React Native; do NOT copy verbatim**. The prototype is React Web (`<div>`, inline `style`, `<button>`); you write React Native (`<View>`, NativeWind `className`, `<Pressable>`)
-   - ⚠️ **Multiple screens share each `.jsx` file** (e.g. `screens-main.jsx` contains `LoginScreen`, `AuthScreen`, `HomeScreen`, `ExploreScreen`). The spec's Reference line names exactly which function to port — **read ONLY that one**. Sibling components in the same file are for other specs. Mixing them up is a critical bug.
-   - Respect `DESIGN_SYSTEM.md` tokens over any raw hex/spacing from the prototype's `QUADRA` palette object
-   - If a reference file referenced in the spec doesn't exist on disk → STOP and ask
+8. **Read every reference asset (PNG screenshot) listed in the spec's "Reference assets read" section** (under `docs/references/`):
+   - The PNGs are the **only** source of truth for visual hierarchy (multi-state screens have multiple files — read all)
+   - Infer layout and component composition from the screenshot, then build it natively (`<View>`, NativeWind `className`, `<Pressable>`)
+   - Respect `DESIGN_SYSTEM.md` tokens over any raw hex/spacing sampled from the screenshot
+   - If a reference PNG referenced in the spec doesn't exist on disk → STOP and ask
 
-## Web → Native porting rules (critical)
+## Native building rules (critical)
 
-When porting from `prototype.jsx` to React Native:
+The screenshots are web-rendered mockups. Build the native equivalent — never reach for a web primitive:
 
-| Prototype (React Web) | Implementation (React Native) |
+| Web idiom (if you're tempted) | Implementation (React Native) |
 | --- | --- |
 | `<div>` | `<View>` |
 | `<span>`, `<p>`, `<h1>`–`<h6>` | `<Text>` |
@@ -35,7 +34,7 @@ When porting from `prototype.jsx` to React Native:
 | `<img src=...>` | `<Image source={...}>` from `expo-image` |
 | `onClick` | `onPress` |
 | `style={{ color: '#1A1AFF' }}` | `className="text-primary"` |
-| Hex from `QUADRA.blue` / `QUADRA.lime` etc. | NativeWind token (`bg-primary`, `bg-accent`, ...) — see `DESIGN_SYSTEM.md` |
+| A hex color read off the screenshot | NativeWind token (`bg-primary`, `bg-accent`, ...) — see `DESIGN_SYSTEM.md` |
 | `linear-gradient(...)` in inline style | `<GradientButton>` / `<LinearGradient>` (`expo-linear-gradient`) |
 | CSS keyframes / `animation: qRise ...` | `react-native-reanimated` worklets — only when spec calls for animation |
 | `localStorage` / `sessionStorage` | `expo-secure-store` (tokens) or Zustand (UI state) |

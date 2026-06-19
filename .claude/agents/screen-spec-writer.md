@@ -17,11 +17,9 @@ You only read and produce documentation. If you feel tempted to open an editor, 
 3. Read `docs/DESIGN_SYSTEM.md` — the visual tokens you'll reference
 4. Read `docs/COMPONENTS.md` — the catalog of existing reusable pieces
 5. Read `docs/ARCHITECTURE.md` if you need to refresh state/navigation rules
-6. **Read every reference asset listed under the screen's `Reference:` line in SCOPE.md**:
-   - The PNG(s) are the visual source of truth for layout and hierarchy
-   - The `.jsx` source files (under `docs/references/_shared/`) are the structural source of truth — port the intent, not the exact code (React Web ≠ React Native)
-   - ⚠️ **Multiple screens share each `.jsx` file.** When the Reference line says "read ONLY the `XScreen` function," **ignore everything else in that file** (other screen components, helpers used by other screens). Reading sibling components is the most common source of cross-screen leakage. Use `grep` or `Read` with line ranges to isolate.
-   - If a reference file mentioned in SCOPE doesn't actually exist on disk yet → STOP and ask the human to provide it before writing the spec
+6. **Read every reference asset (PNG screenshot) listed under the screen's `Reference:` line in SCOPE.md**:
+   - The PNG(s) are the **only** source of truth for layout and hierarchy — multi-state screens have multiple files; read all
+   - If a reference PNG mentioned in SCOPE doesn't actually exist on disk yet → STOP and ask the human to provide it before writing the spec
 
 Without those files read, you have no context. Stop and ask.
 
@@ -30,9 +28,8 @@ Without those files read, you have no context. Stop and ask.
 When SCOPE.md and the reference assets disagree, follow this order:
 
 1. **SCOPE.md wins on behavior, in/out, backend dependencies, acceptance criteria.** The prototype may show Layer-3 features that the MVP explicitly cuts (e.g. ACE/BLK/ATA/DEF stats in the Profile prototype). Do NOT include them just because the print does.
-2. **`reference.png` wins on visual hierarchy** — what's where on the screen, what's in the header, what's in the dark card, etc.
-3. **`prototype.jsx` wins on component composition and state structure** — but adapt for React Native primitives (`<View>` not `<div>`, `<Pressable>` not `<button>`, NativeWind classes not inline `style`) and respect `DESIGN_SYSTEM.md` tokens (no raw hex from the prototype's `QUADRA` object).
-4. **`DESIGN_SYSTEM.md` always wins on colors, spacing, radius, fonts.** If the prototype uses `#7A7A9A` directly, reference `text-muted` in the spec.
+2. **`reference.png` wins on visual hierarchy and component composition** — what's where on the screen, what's in the header, what's in the dark card, etc. Infer structure from the screenshot and express it with React Native primitives (`<View>`, `<Pressable>`) + NativeWind classes.
+3. **`DESIGN_SYSTEM.md` always wins on colors, spacing, radius, fonts.** Reference tokens (e.g. `text-muted`) — never raw hex sampled from the screenshot.
 
 Document every meaningful divergence in the spec's "Out of scope" section: "The prototype shows X — not included because <SCOPE reason>."
 
@@ -54,9 +51,7 @@ Save each spec to `docs/specs/<screen-id>-<slug>.md`:
 
 ## Reference assets read
 - [x] `docs/references/screens/<id>/<descriptive-name>.png` (and any sibling state PNGs)
-- [x] `docs/references/_shared/screens-<area>.jsx` — read ONLY the `XScreen` function
-- (list every file under the screen's Reference line in SCOPE.md; if any are missing on disk, STOP — do not proceed)
-- **Confirm**: I have ignored sibling components inside the shared `.jsx` file that belong to other screens. ✅
+- (list every PNG under the screen's Reference line in SCOPE.md; if any are missing on disk, STOP — do not proceed)
 
 ## Notable divergences from the prototype
 - Prototype has `<ACE/BLK/ATA/DEF>` stats row — **NOT included**; Layer 3 per SCOPE.
