@@ -11,8 +11,11 @@ import {
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Pressable, ScrollView, Text, View } from "react-native";
+import Animated, {
+  useAnimatedKeyboard,
+  useAnimatedStyle,
+} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
 import { Button } from "@/components/ui/Button";
 import { DateField } from "@/components/ui/DateField";
@@ -279,6 +282,13 @@ function PersonalDataStep({
   onBack,
   onContinue,
 }: PersonalDataStepProps) {
+  // Lift the white card with the keyboard so focused fields and the CTA stay
+  // visible (native resize is disabled app-wide by useAnimatedKeyboard).
+  const keyboard = useAnimatedKeyboard();
+  const cardStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -keyboard.height.value }],
+  }));
+
   return (
     <View className="flex-1 bg-surface-dark">
       <LinearGradient
@@ -300,22 +310,24 @@ function PersonalDataStep({
         </SafeAreaView>
       </LinearGradient>
 
-      <KeyboardAwareScrollView
+      <Animated.ScrollView
         className="absolute inset-x-0 bottom-0 bg-white"
-        style={{
-          // top-only radius (card token = 20px); bottom stays square against
-          // the screen edge so the blue background never shows through.
-          borderTopLeftRadius: 20,
-          borderTopRightRadius: 20,
-        }}
+        style={[
+          {
+            // top-only radius (card token = 20px); bottom stays square against
+            // the screen edge so the blue background never shows through.
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+          },
+          cardStyle,
+        ]}
         contentContainerStyle={{
           paddingHorizontal: 24, // px-6 — breathing room from the white card edges
           paddingTop: 24,
           paddingBottom: 32,
         }}
-        enableOnAndroid
-        extraScrollHeight={30}
         keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <View className="flex-row items-start gap-4">
           <View className="flex-1">
@@ -420,7 +432,7 @@ function PersonalDataStep({
         <Text className="mt-4 text-center font-body text-caption text-text-muted">
           Você poderá editar essas informações depois no seu perfil.
         </Text>
-      </KeyboardAwareScrollView>
+      </Animated.ScrollView>
     </View>
   );
 }

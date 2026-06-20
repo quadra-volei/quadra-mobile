@@ -40,6 +40,7 @@ jest.mock('react-native-reanimated', () => {
     withTiming: (to: number) => to,
     withSequence: (...args: number[]) => args[args.length - 1] ?? 0,
     useAnimatedStyle: (cb: () => object) => cb(),
+    useAnimatedKeyboard: () => ({ height: { value: 0 } }),
   };
 });
 

@@ -53,6 +53,7 @@ jest.mock('react-native-reanimated', () => {
     },
     runOnJS: (fn: (...args: any[]) => any) => fn,
     useAnimatedStyle: (cb: () => object) => cb(),
+    useAnimatedKeyboard: () => ({ height: { value: 0 } }),
   };
 });
 
