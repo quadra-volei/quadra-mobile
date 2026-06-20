@@ -1,0 +1,12 @@
+// Mirrors tailwind.config.js theme.extend.colors — one source of truth for
+// color values needed at runtime by non-NativeWind props (lucide `color`,
+// LinearGradient `colors`). Screens NEVER inline hex; they import from here.
+export const colors = {
+  surfaceDark: '#0A0A3C', // surface-dark
+  primary: '#1A1AFF', // primary
+  textOnDark: '#FFFFFF', // text-on-dark / white (icon on dark)
+  danger: '#DC2626', // danger
+} as const;
+
+// Navy → blue brand hero gradient, derived from the tokens above.
+export const HERO_GRADIENT = [colors.surfaceDark, colors.primary] as const;

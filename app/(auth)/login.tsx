@@ -22,9 +22,7 @@ import { PhoneInput } from "@/components/ui/PhoneInput";
 import { useGoogleSignIn } from "@/features/auth/api/googleSignIn";
 import { useRequestOtp } from "@/features/auth/api/requestOtp";
 import { useAuthStore } from "@/stores/auth";
-
-// Navy → blue brand hero gradient (surface-dark → primary), per DESIGN_SYSTEM "Dark hero areas".
-const HERO_GRADIENT = ["#0A0A3C", "#1A1AFF"] as const;
+import { colors, HERO_GRADIENT } from "@/theme/colors";
 
 const SWIPE_CLOSE_THRESHOLD = 120; // drag distance (px) past which a release closes the sheet
 
@@ -197,7 +195,7 @@ export default function LoginScreen() {
               className="ml-4 mt-2 h-10 w-10 rounded-full bg-surface-dark/40 items-center justify-center"
               testID="sheet-back"
             >
-              <ChevronLeft size={24} color="#FFFFFF" />
+              <ChevronLeft size={24} color={colors.textOnDark} />
             </Pressable>
           </SafeAreaView>
 
