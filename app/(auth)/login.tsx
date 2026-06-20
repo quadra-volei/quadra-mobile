@@ -8,6 +8,7 @@ import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { ChevronLeft } from "lucide-react-native";
 import Animated, {
   runOnJS,
+  useAnimatedKeyboard,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -27,12 +28,12 @@ import { colors, HERO_GRADIENT } from "@/theme/colors";
 const SWIPE_CLOSE_THRESHOLD = 120; // drag distance (px) past which a release closes the sheet
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
-const SHEET_MIN_HEIGHT = Math.round(SCREEN_HEIGHT * 0.7); // sheet occupies ~70% of the screen
+const SHEET_MIN_HEIGHT = Math.round(SCREEN_HEIGHT * 0.4); // sheet occupies ~40% of the screen
 const HERO_STRIP_HEIGHT = SCREEN_HEIGHT - SHEET_MIN_HEIGHT; // dark area above the sheet (~30%)
 const SHEET_HIDDEN_OFFSET = SHEET_MIN_HEIGHT + 100; // sheet parked fully below the screen when closed
 
 const loginPhoneSchema = z.object({
-  phone: z.string().regex(/^\d{10,11}$/, "Telefone inválido"), // BR national digits
+  phone: z.string().regex(/^\d{11}$/, "Telefone inválido"), // BR national digits
 });
 
 type LoginPhoneForm = z.infer<typeof loginPhoneSchema>;
@@ -132,8 +133,12 @@ export default function LoginScreen() {
       }
     });
 
+  // Lift the sheet by the keyboard height so the input, CTA and the options
+  // below it stay above the keyboard instead of being covered by it.
+  const keyboard = useAnimatedKeyboard();
+
   const sheetStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
+    transform: [{ translateY: translateY.value - keyboard.height.value }],
   }));
 
   return (
@@ -206,8 +211,14 @@ export default function LoginScreen() {
               className="absolute inset-x-0 bottom-0"
             >
               <View
-                className="bg-white rounded-card shadow-modal px-6 pt-6 pb-8"
-                style={{ minHeight: SHEET_MIN_HEIGHT }}
+                className="bg-white shadow-modal px-6 pt-6 pb-8"
+                style={{
+                  minHeight: SHEET_MIN_HEIGHT,
+                  // top-only radius (card token = 20px); bottom stays square so
+                  // the blue background never shows through rounded corners.
+                  borderTopLeftRadius: 20,
+                  borderTopRightRadius: 20,
+                }}
               >
                 {/* grab handle */}
                 <View className="self-center h-1 w-12 rounded-pill bg-line mb-4" />
@@ -233,7 +244,11 @@ export default function LoginScreen() {
                     }) => (
                       <PhoneInput
                         value={value}
-                        onChangeText={onChange}
+                        onChangeText={(text) => {
+                          const onlyDigits = text.replace(/\D/g, "");
+                          const limited = onlyDigits.slice(0, 11); // DDD + 9 onlyDigits
+                          onChange(limited);
+                        }}
                         country="BR"
                         error={error?.message}
                         testID="phone-input"

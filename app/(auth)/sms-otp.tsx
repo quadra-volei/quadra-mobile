@@ -1,28 +1,32 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, MessageSquare } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
-import { Dimensions, Pressable, Text, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { router, useLocalSearchParams } from "expo-router";
+import { ChevronLeft, MessageSquare } from "lucide-react-native";
+import { useEffect, useRef, useState } from "react";
+import { Dimensions, Pressable, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import Animated, {
+  useAnimatedKeyboard,
+  useAnimatedStyle,
+} from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { Button } from '@/components/ui/Button';
-import { OtpInput } from '@/components/ui/OtpInput';
-import { useResendOtp } from '@/features/auth/api/resendOtp';
-import { useVerifyOtp } from '@/features/auth/api/verifyOtp';
-import { useAuthStore } from '@/stores/auth';
-import { colors, HERO_GRADIENT } from '@/theme/colors';
+import { Button } from "@/components/ui/Button";
+import { OtpInput } from "@/components/ui/OtpInput";
+import { useResendOtp } from "@/features/auth/api/resendOtp";
+import { useVerifyOtp } from "@/features/auth/api/verifyOtp";
+import { useAuthStore } from "@/stores/auth";
+import { colors, HERO_GRADIENT } from "@/theme/colors";
 
-const SCREEN_HEIGHT = Dimensions.get('window').height;
-const SHEET_MIN_HEIGHT = Math.round(SCREEN_HEIGHT * 0.72); // card occupies ~72% of the screen
+const SCREEN_HEIGHT = Dimensions.get("window").height;
+const SHEET_MIN_HEIGHT = Math.round(SCREEN_HEIGHT * 0.4); // card occupies ~40% of the screen
 
 const OTP_LENGTH = 4;
 const RESEND_SECONDS = 30; // SCOPE: ~30s resend countdown
 
 /** Formats an E.164 BR number (e.g. "+5531231213312") as "+55 (31) 23121-3312". */
 function formatDisplayPhone(e164: string): string {
-  const digits = e164.replace(/\D/g, '');
+  const digits = e164.replace(/\D/g, "");
   // Strip the BR country code (55) when present.
-  const national = digits.startsWith('55') ? digits.slice(2) : digits;
+  const national = digits.startsWith("55") ? digits.slice(2) : digits;
   if (national.length === 0) {
     return e164;
   }
@@ -46,19 +50,19 @@ function formatCountdown(totalSeconds: number): string {
   const safe = Math.max(0, totalSeconds);
   const minutes = Math.floor(safe / 60);
   const seconds = safe % 60;
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 export default function SmsOtpScreen() {
   const params = useLocalSearchParams<{ phone?: string }>();
-  const phone = params.phone ?? '';
+  const phone = params.phone ?? "";
   const displayPhone = formatDisplayPhone(phone);
 
   const verifyOtp = useVerifyOtp();
   const resendOtp = useResendOtp();
   const setAuth = useAuthStore((s) => s.setAuth);
 
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
   const [isError, setIsError] = useState(false);
 
@@ -80,7 +84,7 @@ export default function SmsOtpScreen() {
     if (router.canGoBack()) {
       router.back();
     } else {
-      router.replace('/login');
+      router.replace("/login");
     }
   };
 
@@ -106,9 +110,9 @@ export default function SmsOtpScreen() {
             hasProfile: user.hasProfile,
           });
           if (user.hasProfile) {
-            router.replace('/(tabs)');
+            router.replace("/(tabs)");
           } else {
-            router.replace('/onboarding');
+            router.replace("/onboarding");
           }
         },
         onError: () => {
@@ -129,6 +133,13 @@ export default function SmsOtpScreen() {
     );
   };
 
+  // Lift the card by the keyboard height so the OTP boxes, the verify CTA and
+  // the resend/change actions below it stay above the keyboard.
+  const keyboard = useAnimatedKeyboard();
+  const cardStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -keyboard.height.value }],
+  }));
+
   return (
     <View className="flex-1 bg-surface-dark">
       <LinearGradient
@@ -148,26 +159,28 @@ export default function SmsOtpScreen() {
           >
             <ChevronLeft size={24} color={colors.textOnDark} />
           </Pressable>
-
-          {/* message glyph centered in the dark strip */}
-          <View className="items-center mt-2">
-            <View className="h-16 w-16 rounded-card bg-white/10 items-center justify-center">
-              <MessageSquare size={28} color={colors.textOnDark} />
-            </View>
-          </View>
         </SafeAreaView>
       </LinearGradient>
 
       {/* white card pulled up over the strip */}
-      <View
-        className="absolute inset-x-0 bottom-0 bg-white rounded-card shadow-modal px-6 pt-6 pb-8"
-        style={{ minHeight: SHEET_MIN_HEIGHT }}
+      <Animated.View
+        className="absolute inset-x-0 bottom-0 bg-white shadow-modal px-6 pt-6 pb-8"
+        style={[
+          {
+            minHeight: SHEET_MIN_HEIGHT,
+            // top-only radius (card token = 20px); bottom stays square so the
+            // blue background never shows through rounded bottom corners.
+            borderTopLeftRadius: 20,
+            borderTopRightRadius: 20,
+          },
+          cardStyle,
+        ]}
       >
         <Text className="font-display text-h1 text-text-primary uppercase">
           CONFIRME SEU NÚMERO
         </Text>
         <Text className="font-body text-body text-text-muted mt-2">
-          Enviamos um código de 4 dígitos por SMS para{' '}
+          Enviamos um código de 4 dígitos por SMS para{" "}
           <Text className="font-body text-body-bold text-text-primary">
             {displayPhone}
           </Text>
@@ -215,7 +228,7 @@ export default function SmsOtpScreen() {
               className="font-body text-body text-text-muted"
               accessibilityLiveRegion="polite"
             >
-              Não recebeu? Reenviar em{' '}
+              Não recebeu? Reenviar em{" "}
               <Text className="font-mono text-body-bold text-text-primary">
                 {formatCountdown(secondsLeft)}
               </Text>
@@ -234,11 +247,15 @@ export default function SmsOtpScreen() {
 
         {/* back to S2 */}
         <View className="items-center mt-2">
-          <Button variant="ghost" onPress={goBackToLogin} testID="change-number">
+          <Button
+            variant="ghost"
+            onPress={goBackToLogin}
+            testID="change-number"
+          >
             Usar outro número
           </Button>
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
 }

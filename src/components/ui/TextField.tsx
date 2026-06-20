@@ -40,10 +40,15 @@ export function TextField({
 }: TextFieldProps) {
   const hasError = Boolean(error);
 
+  // No `flex-1` here: inside a vertical ScrollView that would collapse the field
+  // to zero height. Callers that need side-by-side fields wrap them in `flex-1`.
   return (
-    <View className="flex-1">
-      <View className="flex-row items-center justify-between">
-        <Text className="font-body text-eyebrow text-text-primary uppercase">
+    <View>
+      <View className="flex-row items-center justify-between gap-2">
+        <Text
+          numberOfLines={1}
+          className="shrink font-body text-eyebrow text-text-primary uppercase"
+        >
           {label}
         </Text>
         {rightSlot}

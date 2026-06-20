@@ -4,9 +4,13 @@
 export const colors = {
   surfaceDark: '#0A0A3C', // surface-dark
   primary: '#1A1AFF', // primary
+  accent: '#AADD00', // accent (lime)
   textOnDark: '#FFFFFF', // text-on-dark / white (icon on dark)
   danger: '#DC2626', // danger
 } as const;
 
 // Navy → blue brand hero gradient, derived from the tokens above.
 export const HERO_GRADIENT = [colors.surfaceDark, colors.primary] as const;
+
+// Blue → lime brand CTA gradient (bg-gradient-cta), derived from the tokens.
+export const CTA_GRADIENT = [colors.primary, colors.accent] as const;

@@ -1,25 +1,32 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
-import { BarChart3, Check, ChevronLeft, ChevronRight, Globe } from 'lucide-react-native';
-import { useState } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import {
+  BarChart3,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  Globe,
+} from "lucide-react-native";
+import { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
 
-import { Button } from '@/components/ui/Button';
-import { DateField } from '@/components/ui/DateField';
-import { TextField } from '@/components/ui/TextField';
-import { useCreateProfile } from '@/features/profile/api/createProfile';
+import { Button } from "@/components/ui/Button";
+import { DateField } from "@/components/ui/DateField";
+import { TextField } from "@/components/ui/TextField";
+import { useCreateProfile } from "@/features/profile/api/createProfile";
 import {
   onboardingSchema,
   type Level,
   type Modality,
   type OnboardingProfileInput,
   type Position,
-} from '@/features/profile/schema/onboarding';
-import { useAuthStore } from '@/stores/auth';
-import { colors, HERO_GRADIENT } from '@/theme/colors';
+} from "@/features/profile/schema/onboarding";
+import { useAuthStore } from "@/stores/auth";
+import { colors, CTA_GRADIENT, HERO_GRADIENT } from "@/theme/colors";
 
 // 0 = personal data (step 0, no progress bar), 1 = position, 2 = level,
 // 3 = modality, 4 = completion. Ephemeral UI — not separate routes.
@@ -33,18 +40,35 @@ const POSITION_OPTIONS: {
   hint: string;
   star?: boolean;
 }[] = [
-  { code: 'LEV', name: 'Levantador', hint: 'Distribui e arma o jogo' },
-  { code: 'PON', name: 'Ponteiro', hint: 'Ataca e recebe pela ponta' },
-  { code: 'OPO', name: 'Oposto', hint: 'Potência de ataque na direita' },
-  { code: 'CEN', name: 'Central', hint: 'Bloqueio e jogadas de meio' },
-  { code: 'LIB', name: 'Líbero', hint: 'Especialista em defesa' },
-  { code: 'COR', name: 'Coringa', hint: 'Joga em qualquer posição', star: true },
+  { code: "LEV", name: "Levantador", hint: "Distribui e arma o jogo" },
+  { code: "PON", name: "Ponteiro", hint: "Ataca e recebe pela ponta" },
+  { code: "OPO", name: "Oposto", hint: "Potência de ataque na direita" },
+  { code: "CEN", name: "Central", hint: "Bloqueio e jogadas de meio" },
+  { code: "LIB", name: "Líbero", hint: "Especialista em defesa" },
+  {
+    code: "COR",
+    name: "Coringa",
+    hint: "Joga em qualquer posição",
+    star: true,
+  },
 ];
 
 const LEVEL_OPTIONS: { code: Level; name: string; hint: string }[] = [
-  { code: 'INICIANTE', name: 'Iniciante', hint: 'Ainda aprendendo as regras e fundamentos' },
-  { code: 'INTERMEDIARIO', name: 'Intermediário', hint: 'Joga bem, tem experiência em partidas' },
-  { code: 'AVANCADO', name: 'Avançado', hint: 'Alta performance, leva a sério' },
+  {
+    code: "INICIANTE",
+    name: "Iniciante",
+    hint: "Ainda aprendendo as regras e fundamentos",
+  },
+  {
+    code: "INTERMEDIARIO",
+    name: "Intermediário",
+    hint: "Joga bem, tem experiência em partidas",
+  },
+  {
+    code: "AVANCADO",
+    name: "Avançado",
+    hint: "Alta performance, leva a sério",
+  },
 ];
 
 const MODALITY_OPTIONS: {
@@ -55,44 +79,44 @@ const MODALITY_OPTIONS: {
   gradient: readonly [string, string];
 }[] = [
   {
-    code: 'INDOOR',
-    name: 'Vôlei de quadra',
-    hint: 'Clássico 6x6, na quadra coberta',
-    tag: 'QUADRA',
-    gradient: ['#1A1AFF', '#0A0A3C'], // navy → blue court art
+    code: "INDOOR",
+    name: "Vôlei de quadra",
+    hint: "Clássico 6x6, na quadra coberta",
+    tag: "QUADRA",
+    gradient: ["#1A1AFF", "#0A0A3C"], // navy → blue court art
   },
   {
-    code: 'BEACH',
-    name: 'Vôlei de praia',
-    hint: 'Dupla 2x2, no calor da areia',
-    tag: 'PRAIA',
-    gradient: ['#00B4D8', '#1A1AFF'], // cyan → blue beach art
+    code: "BEACH",
+    name: "Vôlei de praia",
+    hint: "Dupla 2x2, no calor da areia",
+    tag: "PRAIA",
+    gradient: ["#00B4D8", "#1A1AFF"], // cyan → blue beach art
   },
 ];
 
 // Per-step header copy (steps 1–3 only).
 const STEP_META: Record<1 | 2 | 3, { title: string; subtitle: string }> = {
   1: {
-    title: 'QUAL SUA POSIÇÃO?',
+    title: "QUAL SUA POSIÇÃO?",
     subtitle:
-      'Escolha onde você joga melhor. Isso equilibra os times nas partidas.',
+      "Escolha onde você joga melhor. Isso equilibra os times nas partidas.",
   },
   2: {
-    title: 'SEU NÍVEL DE JOGO',
-    subtitle: 'Seja sincero — é o que garante partidas justas e equilibradas.',
+    title: "SEU NÍVEL DE JOGO",
+    subtitle: "Seja sincero — é o que garante partidas justas e equilibradas.",
   },
   3: {
-    title: 'MODALIDADE FAVORITA',
-    subtitle: 'Onde você curte mais entrar em quadra?',
+    title: "MODALIDADE FAVORITA",
+    subtitle: "Onde você curte mais entrar em quadra?",
   },
 };
 
 // Which form fields each step must validate before advancing.
 const STEP_FIELDS: Record<Step, (keyof OnboardingProfileInput)[]> = {
-  0: ['firstName', 'lastName', 'birthDate', 'handle'],
-  1: ['position'],
-  2: ['level'],
-  3: ['modality'],
+  0: ["firstName", "lastName", "birthDate", "handle"],
+  1: ["position"],
+  2: ["level"],
+  3: ["modality"],
   4: [],
 };
 
@@ -109,12 +133,12 @@ export default function OnboardingScreen() {
     formState: { errors },
   } = useForm<OnboardingProfileInput>({
     resolver: zodResolver(onboardingSchema),
-    mode: 'onChange',
+    mode: "onChange",
     defaultValues: {
-      firstName: '',
-      lastName: '',
-      birthDate: '',
-      handle: '',
+      firstName: "",
+      lastName: "",
+      birthDate: "",
+      handle: "",
     },
   });
 
@@ -128,9 +152,9 @@ export default function OnboardingScreen() {
       case 0:
         return Boolean(
           values.firstName?.trim() &&
-            values.lastName?.trim() &&
-            values.birthDate?.length === 10 &&
-            values.handle?.trim(),
+          values.lastName?.trim() &&
+          values.birthDate?.length === 10 &&
+          values.handle?.trim(),
         );
       case 1:
         return Boolean(values.position);
@@ -148,7 +172,7 @@ export default function OnboardingScreen() {
       if (router.canGoBack()) {
         router.back();
       } else {
-        router.replace('/login');
+        router.replace("/login");
       }
       return;
     }
@@ -167,7 +191,7 @@ export default function OnboardingScreen() {
     createProfile.mutate(data, {
       onSuccess: () => {
         setHasProfile(true);
-        router.replace('/(tabs)');
+        router.replace("/(tabs)");
       },
     });
   };
@@ -239,10 +263,10 @@ export default function OnboardingScreen() {
 /* ---------------------------------------------------------------- Step 0 -- */
 
 type PersonalDataStepProps = {
-  control: ReturnType<typeof useForm<OnboardingProfileInput>>['control'];
+  control: ReturnType<typeof useForm<OnboardingProfileInput>>["control"];
   errors: ReturnType<
     typeof useForm<OnboardingProfileInput>
-  >['formState']['errors'];
+  >["formState"]["errors"];
   canContinue: boolean;
   onBack: () => void;
   onContinue: () => void;
@@ -276,42 +300,58 @@ function PersonalDataStep({
         </SafeAreaView>
       </LinearGradient>
 
-      <ScrollView
-        className="absolute inset-x-0 bottom-0 max-h-[78%] rounded-card bg-white shadow-modal"
-        contentContainerClassName="px-6 pb-8 pt-6"
+      <KeyboardAwareScrollView
+        className="absolute inset-x-0 bottom-0 bg-white"
+        style={{
+          // top-only radius (card token = 20px); bottom stays square against
+          // the screen edge so the blue background never shows through.
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
+        }}
+        contentContainerStyle={{
+          paddingHorizontal: 24, // px-6 — breathing room from the white card edges
+          paddingTop: 24,
+          paddingBottom: 32,
+        }}
+        enableOnAndroid
+        extraScrollHeight={30}
         keyboardShouldPersistTaps="handled"
       >
-        <View className="flex-row gap-4">
-          <Controller
-            control={control}
-            name="firstName"
-            render={({ field: { value, onChange } }) => (
-              <TextField
-                label="NOME"
-                value={value}
-                onChangeText={onChange}
-                placeholder="Renan"
-                autoCapitalize="words"
-                error={errors.firstName?.message}
-                testID="onboarding-first-name"
-              />
-            )}
-          />
-          <Controller
-            control={control}
-            name="lastName"
-            render={({ field: { value, onChange } }) => (
-              <TextField
-                label="SOBRENOME"
-                value={value}
-                onChangeText={onChange}
-                placeholder="Dias"
-                autoCapitalize="words"
-                error={errors.lastName?.message}
-                testID="onboarding-last-name"
-              />
-            )}
-          />
+        <View className="flex-row items-start gap-4">
+          <View className="flex-1">
+            <Controller
+              control={control}
+              name="firstName"
+              render={({ field: { value, onChange } }) => (
+                <TextField
+                  label="NOME"
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="Renan"
+                  autoCapitalize="words"
+                  error={errors.firstName?.message}
+                  testID="onboarding-first-name"
+                />
+              )}
+            />
+          </View>
+          <View className="flex-1">
+            <Controller
+              control={control}
+              name="lastName"
+              render={({ field: { value, onChange } }) => (
+                <TextField
+                  label="SOBRENOME"
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="Dias"
+                  autoCapitalize="words"
+                  error={errors.lastName?.message}
+                  testID="onboarding-last-name"
+                />
+              )}
+            />
+          </View>
         </View>
 
         <View className="mt-4">
@@ -349,8 +389,11 @@ function PersonalDataStep({
                   <Text className="font-num text-body text-primary">@</Text>
                 }
                 rightSlot={
-                  <View className="rounded-pill bg-accent px-3 py-1">
-                    <Text className="font-mono text-mono text-text-primary uppercase">
+                  <View className="shrink-0 rounded-pill bg-accent px-3 py-1">
+                    <Text
+                      numberOfLines={1}
+                      className="font-mono text-mono text-text-primary uppercase"
+                    >
                       SEU @ NA QUADRA
                     </Text>
                   </View>
@@ -377,7 +420,7 @@ function PersonalDataStep({
         <Text className="mt-4 text-center font-body text-caption text-text-muted">
           Você poderá editar essas informações depois no seu perfil.
         </Text>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
@@ -402,7 +445,10 @@ function WizardStep({
   const meta = STEP_META[step];
   return (
     <View className="flex-1 bg-bg-light">
-      <SafeAreaView className="flex-1" edges={['top', 'left', 'right']}>
+      <SafeAreaView
+        className="flex-1"
+        edges={["top", "left", "right", "bottom"]}
+      >
         <View className="flex-1 px-4">
           {/* Header row + progress bar */}
           <View className="mt-2 flex-row items-center justify-between">
@@ -428,13 +474,17 @@ function WizardStep({
               <View
                 key={segment}
                 className={`h-1.5 flex-1 rounded-pill ${
-                  segment <= step ? 'bg-primary' : 'bg-line'
+                  segment <= step ? "bg-primary" : "bg-line"
                 }`}
               />
             ))}
           </View>
 
-          <Text className="mt-6 font-display text-display text-text-primary uppercase">
+          <Text
+            className="mt-6 font-display text-display text-text-primary uppercase"
+            numberOfLines={2}
+            adjustsFontSizeToFit
+          >
             {meta.title}
           </Text>
           <Text className="mt-2 font-body text-body text-text-muted">
@@ -489,7 +539,7 @@ function PositionGrid({
             accessibilityState={{ selected }}
             testID={`position-${option.code}`}
             className={`w-[48%] rounded-card p-4 shadow-card ${
-              selected ? 'bg-accent' : 'bg-white'
+              selected ? "bg-accent" : "bg-white"
             }`}
           >
             <View className="flex-row items-center">
@@ -551,7 +601,7 @@ function LevelList({
             </View>
             <View
               className={`h-6 w-6 items-center justify-center rounded-full border-2 ${
-                selected ? 'border-primary bg-primary' : 'border-line'
+                selected ? "border-primary bg-primary" : "border-line"
               }`}
             >
               {selected ? <Check size={14} color={colors.textOnDark} /> : null}
@@ -584,15 +634,13 @@ function ModalityList({
             accessibilityLabel={option.name}
             accessibilityState={{ selected }}
             testID={`modality-${option.code}`}
-            className={`mt-4 overflow-hidden rounded-card bg-white shadow-card ${
-              selected ? 'border-2 border-primary' : ''
-            }`}
+            className="mt-4 overflow-hidden rounded-card bg-white shadow-card"
           >
             <LinearGradient
               colors={option.gradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={{ height: 120, justifyContent: 'flex-start' }}
+              style={{ height: 120, justifyContent: "flex-start" }}
             >
               <Text className="m-3 self-end font-mono text-mono text-text-on-dark uppercase">
                 {option.tag}
@@ -606,6 +654,15 @@ function ModalityList({
                 {option.hint}
               </Text>
             </View>
+
+            {/* selection ring drawn on top — keeps the card box/layout fixed so
+                the sibling card's gradient never repaints to white */}
+            {selected ? (
+              <View
+                pointerEvents="none"
+                className="absolute inset-0 rounded-card border-2 border-primary"
+              />
+            ) : null}
           </Pressable>
         );
       })}
@@ -653,19 +710,34 @@ function CompletionStep({
           </View>
 
           <View className="mt-2 flex-row gap-2">
-            {[1, 2, 3].map((segment) => (
-              <View
-                key={segment}
-                className="h-1.5 flex-1 rounded-pill bg-accent"
-              />
-            ))}
+            {[1, 2, 3].map((segment) =>
+              segment === 3 ? (
+                // Final segment filled with the brand CTA gradient (blue → lime).
+                <View
+                  key={segment}
+                  className="h-1.5 flex-1 overflow-hidden rounded-pill"
+                >
+                  <LinearGradient
+                    colors={CTA_GRADIENT}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{ flex: 1 }}
+                  />
+                </View>
+              ) : (
+                <View
+                  key={segment}
+                  className="h-1.5 flex-1 rounded-pill bg-accent"
+                />
+              ),
+            )}
           </View>
 
           <View className="mt-10 items-center">
             <View className="h-20 w-20 items-center justify-center rounded-full bg-accent">
               <Check size={40} color={colors.surfaceDark} />
             </View>
-            <Text className="mt-6 font-display text-display text-text-on-dark uppercase">
+            <Text className="mt-6 text-center font-display text-display text-text-on-dark uppercase">
               PERFIL PRONTO!
             </Text>
             <Text className="mt-2 text-center font-body text-body text-text-on-dark/70">
@@ -678,17 +750,17 @@ function CompletionStep({
           <View className="mt-8 gap-3">
             <SummaryRow
               label="Posição"
-              value={positionOption?.name ?? '—'}
+              value={positionOption?.name ?? "—"}
               badge={positionOption?.code}
             />
             <SummaryRow
               label="Nível"
-              value={levelOption?.name ?? '—'}
+              value={levelOption?.name ?? "—"}
               icon={<BarChart3 size={18} color={colors.textOnDark} />}
             />
             <SummaryRow
               label="Modalidade"
-              value={modalityOption?.name ?? '—'}
+              value={modalityOption?.name ?? "—"}
               icon={<Globe size={18} color={colors.textOnDark} />}
             />
           </View>
@@ -747,7 +819,9 @@ function SummaryRow({
         <Text className="font-mono text-mono text-text-on-dark/70 uppercase">
           {label}
         </Text>
-        <Text className="mt-1 font-body text-h3 text-text-on-dark">{value}</Text>
+        <Text className="mt-1 font-body text-h3 text-text-on-dark">
+          {value}
+        </Text>
       </View>
     </View>
   );
