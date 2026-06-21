@@ -149,11 +149,29 @@ More UI primitives will live here:
 
 ## Domain components (`src/components/domain/`)
 
-*(empty — will be populated)*
+### `MatchCard`
+- **Path**: `src/components/domain/MatchCard.tsx`
+- **Category**: domain
+- **Props**: `{ match: NearbyMatch; onPress: (id: string) => void; testID?: string }` where `NearbyMatch = { id: string; name: string; format: '2X2' | '4X4' | '6X6'; level: 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO'; distanceKm: number; confirmed: number; capacity: number; priceLabel: string }` (from `@/features/matches/types/match`)
+- **Used in**: S5 Home ("JOGOS PERTO DE VOCÊ" grid). Reused by S6 Explore grid and S17 map bottom sheet.
+- **Example**:
+  ```tsx
+  <MatchCard match={m} onPress={(id) => router.push({ pathname: '/matches/[id]', params: { id } })} />
+  ```
+- **Notes**: Dark, image-forward card on a navy `HERO_GRADIENT` (`expo-linear-gradient`) with `text-on-dark` copy. Top row: a translucent format mono pill + a lime `bg-accent` level pill; then a `MapPin` distance (`"1,2 km"`, comma decimal), the venue name (`text-h3`, single line), and a footer with a `Users` confirmed/capacity (`font-num`) and a lime `font-num` price. Single `accessibilityRole="button"` target announcing name + distance. Receives plain data via props; never fetches. No hardcoded hex — icon/gradient colors come from `src/theme/colors.ts`.
+
+### `MatchCardCompact`
+- **Path**: `src/components/domain/MatchCardCompact.tsx`
+- **Category**: domain
+- **Props**: `{ match: UpcomingMatch; onPress: (id: string) => void; testID?: string }` where `UpcomingMatch = { id: string; name: string; startsAt: string; category?: string; openSlots: number; priceLabel: string; avatarUrls: string[] }` (from `@/features/matches/types/match`)
+- **Used in**: S5 Home ("PRÓXIMAS PARTIDAS" horizontal scroll). Reused by S8 (recent matches strip).
+- **Example**:
+  ```tsx
+  <MatchCardCompact match={m} onPress={(id) => router.push({ pathname: '/matches/[id]', params: { id } })} />
+  ```
+- **Notes**: Light `bg-white rounded-card shadow-card` compact card (`w-64`). Navy cover strip with an optional category mono pill, then the match name (`text-h3`, single line), a `Clock` datetime rendered relatively (`"Hoje 19h30"` / `"Amanhã 20h00"` / `"20/06 19h30"` via a pure internal formatter), a confirmed-avatar stack (`expo-image`, max 3 + "+N" overflow), a `"N vagas"` label, and a lime price pill. Single `accessibilityRole="button"` target announcing name + datetime. Receives plain data via props; never fetches. No hardcoded hex — icon colors come from `src/theme/colors.ts`.
 
 <!--
-### `MatchCard`            — image-forward match card with venue, time, slots
-### `MatchCardCompact`     — horizontal scroll variant
 ### `PlayerAvatar`         — circular avatar with position-colored ring
 ### `ScoreBoard`           — live score display
 ### `StatBlock`            — labeled stat (e.g. ACE 30)
