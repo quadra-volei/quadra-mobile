@@ -104,6 +104,28 @@ Each entry follows this structure:
   ```
 - **Notes**: Masked `DD/MM/AAAA` date field with a leading lucide `Calendar` icon (`primary` color). Holds/raises the **masked string** (`DD/MM/AAAA`); masking is applied internally as the user types digits (`number-pad`, max 10 chars). It does NOT validate — the consuming Zod schema validates/parses the string into a real past date. No native date-picker dependency (the mockup shows a plain masked field). Error surfacing mirrors `TextField`/`PhoneInput` (`border-danger` + danger caption, `accessibilityLiveRegion="polite"`). Designed for reuse by S10 and S11.
 
+### `FilterChip`
+- **Path**: `src/components/ui/FilterChip.tsx`
+- **Category**: ui
+- **Props**: `{ label: string; selected: boolean; onPress: () => void; testID?: string }`
+- **Used in**: S6 Explore (filter row "Todos / Perto / Hoje / Iniciante / 6x6")
+- **Example**:
+  ```tsx
+  <FilterChip label="Perto" selected={activeFilter === 'perto'} onPress={() => setActiveFilter('perto')} />
+  ```
+- **Notes**: Selectable filter pill — controlled and purely presentational (holds no state, never fetches). `h-9 px-4 rounded-pill` with a `font-mono` `text-mono` uppercase label. Selected = `bg-primary` fill + `text-text-on-dark`; unselected = `bg-white border border-line` + `text-text-primary`. Single `accessibilityRole="button"` exposing `accessibilityState={{ selected }}`. Distinct from a static tag/pill (this is interactive single/multi-select chrome). Designed for reuse by S11 (date/format/level chips) and S9/S10 (scope/position chips).
+
+### `SearchField`
+- **Path**: `src/components/ui/SearchField.tsx`
+- **Category**: ui
+- **Props**: `{ value: string; onChangeText: (v: string) => void; placeholder?: string; onClear?: () => void; testID?: string }`
+- **Used in**: S6 Explore (match-list search)
+- **Example**:
+  ```tsx
+  <SearchField value={query} onChangeText={setQuery} placeholder="Buscar quadra, bairro ou horário..." onClear={() => setQuery('')} />
+  ```
+- **Notes**: Label-less search input — controlled and purely presentational (holds no state, never fetches). `h-12 px-4 rounded-pill bg-white shadow-card` container with a leading lucide `Search` (`text-muted`) and an optional trailing clear (`X`) shown only when `value` is non-empty and `onClear` is provided. Exposes `accessibilityLabel="Buscar partidas"`. Distinct from `TextField` (an RHF-controlled **labeled** form field with error caption/adornments) — `SearchField` is an ephemeral filter control, not a form input (no RHF/Zod). Designed for reuse by S11 ("Buscar quadra ou endereço") and S10.
+
 <!--
 More UI primitives will live here:
 
