@@ -120,6 +120,11 @@ import type { RankingRow } from '@/features/ranking/types/ranking';
 const PROFILE_FIXTURE: MyProfile = {
   id: 'me',
   firstName: 'Renan',
+  lastName: 'Dias',
+  handle: 'renan',
+  birthDate: '14/03/1998',
+  phone: '11984721130',
+  position: 'LEV',
   avatarUrl: 'https://example.com/me.png',
   overall: 68,
   level: 15,

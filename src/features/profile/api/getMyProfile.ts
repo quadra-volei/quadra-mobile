@@ -17,6 +17,11 @@ export const myProfileQueryKey = ['profile', 'me'] as const;
 const MOCK_PROFILE: MyProfile = {
   id: 'me',
   firstName: 'Renan',
+  lastName: 'Dias',
+  handle: 'renan',
+  birthDate: '14/03/1998',
+  phone: '11984721130',
+  position: 'LEV',
   avatarUrl: 'https://i.pravatar.cc/200?img=15',
   overall: 68,
   level: 15,
