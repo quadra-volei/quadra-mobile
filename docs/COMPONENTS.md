@@ -126,6 +126,18 @@ Each entry follows this structure:
   ```
 - **Notes**: Label-less search input — controlled and purely presentational (holds no state, never fetches). `h-12 px-4 rounded-pill bg-white shadow-card` container with a leading lucide `Search` (`text-muted`) and an optional trailing clear (`X`) shown only when `value` is non-empty and `onClear` is provided. Exposes `accessibilityLabel="Buscar partidas"`. Distinct from `TextField` (an RHF-controlled **labeled** form field with error caption/adornments) — `SearchField` is an ephemeral filter control, not a form input (no RHF/Zod). Designed for reuse by S11 ("Buscar quadra ou endereço") and S10.
 
+### `Avatar`
+- **Path**: `src/components/ui/Avatar.tsx`
+- **Category**: ui
+- **Props**: `{ uri?: string; name?: string; size?: 'sm' | 'md' | 'lg'; testID?: string }`
+- **Used in**: S8 Profile (header + ranking preview rows)
+- **Example**:
+  ```tsx
+  <Avatar uri={profile.avatarUrl} name={profile.firstName} size="md" />
+  <Avatar name={row.name} size="sm" />
+  ```
+- **Notes**: Circular avatar (`rounded-full`). Renders a cached `expo-image` when `uri` is present, otherwise a `bg-bg-light-alt` circle with the name's first letter (`font-num`, `text-muted`) as a fallback. Sizes: `sm` (`h-10 w-10`, ranking/header rows), `md` (`h-12 w-12`, header), `lg` (`h-16 w-16`, S9 podium). Exposes `accessibilityLabel` derived from `name`. Receives plain data via props; never fetches. Designed for reuse by S9/S10/S12/S15.
+
 <!--
 More UI primitives will live here:
 
@@ -186,12 +198,34 @@ More UI primitives will live here:
 - **Path**: `src/components/domain/MatchCardCompact.tsx`
 - **Category**: domain
 - **Props**: `{ match: UpcomingMatch; onPress: (id: string) => void; testID?: string }` where `UpcomingMatch = { id: string; name: string; startsAt: string; category?: string; openSlots: number; priceLabel: string; avatarUrls: string[] }` (from `@/features/matches/types/match`)
-- **Used in**: S5 Home ("PRÓXIMAS PARTIDAS" horizontal scroll). Reused by S8 (recent matches strip).
+- **Used in**: S5 Home ("PRÓXIMAS PARTIDAS" horizontal scroll). (Not used on S8 — the S8 "MINHAS PARTIDAS" rows are result rows, rendered by `MatchHistoryRow`, not compact cover cards.)
 - **Example**:
   ```tsx
   <MatchCardCompact match={m} onPress={(id) => router.push({ pathname: '/matches/[id]', params: { id } })} />
   ```
 - **Notes**: Light `bg-white rounded-card shadow-card` compact card (`w-64`). Navy cover strip with an optional category mono pill, then the match name (`text-h3`, single line), a `Clock` datetime rendered relatively (`"Hoje 19h30"` / `"Amanhã 20h00"` / `"20/06 19h30"` via a pure internal formatter), a confirmed-avatar stack (`expo-image`, max 3 + "+N" overflow), a `"N vagas"` label, and a lime price pill. Single `accessibilityRole="button"` target announcing name + datetime. Receives plain data via props; never fetches. No hardcoded hex — icon colors come from `src/theme/colors.ts`.
+
+### `LevelBar`
+- **Path**: `src/components/domain/LevelBar.tsx`
+- **Category**: domain
+- **Props**: `{ level: number; xp: number; xpToNext: number; testID?: string }`
+- **Used in**: S8 Profile ("Seu progresso" card)
+- **Example**:
+  ```tsx
+  <LevelBar level={profile.level} xp={profile.xp} xpToNext={profile.xpToNext} />
+  ```
+- **Notes**: Labeled XP progress bar — a "Level N" label (`font-num`), a track (`bg-bg-light-alt`) + fill (lime `bg-accent`) bar, and an "XP: a / b" caption (thousands formatted pt-BR, e.g. `2.450`). The fill width is the only inline style (a runtime percentage NativeWind can't express); no colors are inlined. The ratio is clamped to `[0, 1]`. Receives plain data via props; never fetches. Designed for reuse on profile/ranking surfaces.
+
+### `MatchHistoryRow`
+- **Path**: `src/components/domain/MatchHistoryRow.tsx`
+- **Category**: domain
+- **Props**: `{ match: RecentMatch; onPress: (id: string) => void; testID?: string }` where `RecentMatch = { id: string; name: string; playedAt: string; format: '2X2' | '4X4' | '6X6'; result: 'VITORIA' | 'DERROTA'; setScore: string }` (from `@/features/profile/types/profile`)
+- **Used in**: S8 Profile ("MINHAS PARTIDAS" recent-match list)
+- **Example**:
+  ```tsx
+  <MatchHistoryRow match={m} onPress={(id) => router.push({ pathname: '/matches/[id]', params: { id } })} />
+  ```
+- **Notes**: Slim recent-match result row (distinct from `MatchCardCompact`, which is a cover-strip *upcoming* card). A `Volleyball` icon in a `bg-bg-light-alt` circle, the match name + "date · format" subtitle (`playedAt` rendered relatively as `"Hoje · 19h30"` / `"Ontem · 19h30"` / `"20/06"` via a pure internal formatter), a right-aligned Vitória/Derrota label (`text-success` / `text-danger`) over the set score (`font-num`), and a trailing `ChevronRight`. Single `accessibilityRole="button"` target announcing name + result + score. Receives plain data via props; never fetches. No hardcoded hex — icon colors come from `src/theme/colors.ts`.
 
 <!--
 ### `PlayerAvatar`         — circular avatar with position-colored ring
