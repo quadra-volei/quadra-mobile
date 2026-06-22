@@ -7,7 +7,8 @@ export const colors = {
   accent: '#AADD00', // accent (lime)
   textOnDark: '#FFFFFF', // text-on-dark / white (icon on dark)
   textMuted: '#7A7A9A', // text-muted (muted lucide icons: clock, users)
-  danger: '#DC2626', // danger
+  success: '#16A34A', // success (trend-up arrow)
+  danger: '#DC2626', // danger (trend-down arrow)
 } as const;
 
 // Navy → blue brand hero gradient, derived from the tokens above.

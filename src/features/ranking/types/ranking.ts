@@ -20,4 +20,11 @@ export type RankingRow = {
   score: number;
   /** Mock-only convenience flag; screen prefers the userId match. */
   isMe?: boolean;
+  /**
+   * Movement since the previous ranking period. Absent → render "—" (flat).
+   * Additive/optional so the S8 preview (which doesn't render trend) is
+   * unaffected. The mock populates it for the S9 full list.
+   * TODO(real-api): F2.3 supplies the real trend semantics.
+   */
+  trend?: { direction: 'up' | 'down' | 'flat'; delta: number };
 };

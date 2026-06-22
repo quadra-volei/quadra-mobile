@@ -19,14 +19,24 @@ export const groupRankingQueryKey = (params: GroupRankingParams) =>
 
 // MOCK: fixed stub of the weekly group ranking. `isMe` flags the current user's
 // row for the highlight (the screen prefers the auth userId match in production).
+// Each `subtitle` follows the S9 `@handle · Posição` shape; `trend` carries the
+// movement-since-last-period indicator the S9 list renders (↑/↓/—).
 // TODO(real-api): the real F2.3 payload (group ranking) replaces this. Keep the
 // shape; swap only the body behind this hook signature.
-const MOCK_RANKING: RankingRow[] = [
-  { position: 1, playerId: 'p-guga', name: 'Guga', subtitle: 'Gustavo Lima', score: 81 },
-  { position: 2, playerId: 'p-pistache', name: 'Pistache', subtitle: 'André Souza', score: 79 },
-  { position: 3, playerId: 'p-cake', name: 'Cake', subtitle: 'Caio Keller', score: 74 },
-  { position: 4, playerId: 'me', name: 'Você', subtitle: 'Renan Dias', score: 68, isMe: true },
+const MOCK_RANKING_FULL: RankingRow[] = [
+  { position: 1, playerId: 'p-erica', name: 'Érica', subtitle: '@erica · Oposto', score: 2480, trend: { direction: 'up', delta: 1 } },
+  { position: 2, playerId: 'p-caio', name: 'Caio', subtitle: '@caio · Central', score: 2310, trend: { direction: 'flat', delta: 0 } },
+  { position: 3, playerId: 'p-manu', name: 'Manu', subtitle: '@manu · Líbero', score: 2180, trend: { direction: 'down', delta: 1 } },
+  { position: 4, playerId: 'me', name: 'Renan Dias', subtitle: '@renan · Levantador', score: 1995, isMe: true, trend: { direction: 'up', delta: 5 } },
+  { position: 5, playerId: 'p-duda', name: 'Duda Reis', subtitle: '@dudareis · Ponteiro', score: 1870, trend: { direction: 'flat', delta: 0 } },
+  { position: 6, playerId: 'p-bia', name: 'Bia Fontes', subtitle: '@biaf · Líbero', score: 1740, trend: { direction: 'up', delta: 2 } },
+  { position: 7, playerId: 'p-theo', name: 'Theo Nunes', subtitle: '@theon · Ponteiro', score: 1510, trend: { direction: 'down', delta: 2 } },
+  { position: 8, playerId: 'p-vini', name: 'Vini Sales', subtitle: '@vsales · Central', score: 1320, trend: { direction: 'up', delta: 1 } },
 ];
+
+// MOCK: the S8 short preview — the top rows plus the current user's row
+// (positions 1–4 of the full list).
+const MOCK_RANKING_PREVIEW: RankingRow[] = MOCK_RANKING_FULL.slice(0, 4);
 
 /**
  * Fetches the weekly group ranking.
@@ -43,12 +53,12 @@ async function getGroupRanking(
   params: GroupRankingParams,
   latencyMs: number,
 ): Promise<RankingRow[]> {
-  // MOCK: fixed-latency resolve, no network. `params.preview` is consumed by the
-  // real F2.3 call later (it would request the short vs full list).
-  void params;
+  // MOCK: fixed-latency resolve, no network. `params.preview` branches the stub
+  // (preview → S8 short list; full → S9 podium + position-4+ list). The real F2.3
+  // call later requests the short vs full list off the same flag.
   await new Promise((resolve) => setTimeout(resolve, latencyMs));
-  // MOCK: fixed stub array.
-  return MOCK_RANKING;
+  // MOCK: fixed stub array, branched on preview.
+  return params.preview ? MOCK_RANKING_PREVIEW : MOCK_RANKING_FULL;
 }
 
 export type UseGroupRankingOptions = {
