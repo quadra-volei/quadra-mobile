@@ -23,6 +23,7 @@ import { TextField } from "@/components/ui/TextField";
 import { useCreateProfile } from "@/features/profile/api/createProfile";
 import {
   onboardingSchema,
+  POSITION_OPTIONS,
   type Level,
   type Modality,
   type OnboardingProfileInput,
@@ -35,26 +36,8 @@ import { colors, CTA_GRADIENT, HERO_GRADIENT } from "@/theme/colors";
 // 3 = modality, 4 = completion. Ephemeral UI — not separate routes.
 type Step = 0 | 1 | 2 | 3 | 4;
 
-// Static option config (labels sampled from the reference PNGs; codes match the
-// Zod enums). One-off to this screen — not extracted per COMPONENTS.md decision log.
-const POSITION_OPTIONS: {
-  code: Position;
-  name: string;
-  hint: string;
-  star?: boolean;
-}[] = [
-  { code: "LEV", name: "Levantador", hint: "Distribui e arma o jogo" },
-  { code: "PON", name: "Ponteiro", hint: "Ataca e recebe pela ponta" },
-  { code: "OPO", name: "Oposto", hint: "Potência de ataque na direita" },
-  { code: "CEN", name: "Central", hint: "Bloqueio e jogadas de meio" },
-  { code: "LIB", name: "Líbero", hint: "Especialista em defesa" },
-  {
-    code: "COR",
-    name: "Coringa",
-    hint: "Joga em qualquer posição",
-    star: true,
-  },
-];
+// POSITION_OPTIONS is shared with S10 (edit profile) — imported from the schema
+// module so both screens reference one source of truth.
 
 const LEVEL_OPTIONS: { code: Level; name: string; hint: string }[] = [
   {

@@ -22,6 +22,12 @@ const MOCK_PROFILE: MyProfile = {
   level: 15,
   xp: 2450,
   xpToNext: 5000,
+  // Edit-profile fields (S10) — additive mock values.
+  lastName: 'Dias',
+  handle: 'renan',
+  birthDate: '14/03/1998',
+  phone: '11984721130',
+  position: 'LEV',
 };
 
 /**

@@ -5,6 +5,7 @@
 // No `any`.
 
 import type { MatchFormat } from '@/features/matches/types/match';
+import type { Position } from '@/features/profile/schema/onboarding';
 
 /**
  * The authenticated user's identity + progress snapshot.
@@ -25,6 +26,19 @@ export type MyProfile = {
   xp: number;
   /** XP needed to reach the next level ("XP 2.450 / 5.000"). */
   xpToNext: number;
+
+  // ── Edit-profile fields (S10) — additive; S8 reads only the fields above.
+  // Optional so existing S8 consumers stay unaffected; the mock populates them.
+  /** Family name, shown in S10's summary ("Renan Dias") + edit SOBRENOME. */
+  lastName?: string;
+  /** @handle without the leading '@' (e.g. "renan"). */
+  handle?: string;
+  /** Birth date as a `DD/MM/AAAA` masked string (matches DateField/onboarding). */
+  birthDate?: string;
+  /** Phone — national digits only (matches the PhoneInput contract). */
+  phone?: string;
+  /** Court position code (e.g. "LEV"); label resolved via positionLabel(). */
+  position?: Position;
 };
 
 /** Win/loss outcome of a played match. */

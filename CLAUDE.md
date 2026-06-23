@@ -18,6 +18,8 @@
 | Server state | @tanstack/react-query | ^5.101.0 |
 | Client state | zustand | ^5.0.14 |
 | Auth storage | expo-secure-store | ~56.0.4 |
+| Local prefs storage | @react-native-async-storage/async-storage | 2.2.0 |
+| Image picker | expo-image-picker | ~56.0.18 |
 | Realtime | @microsoft/signalr | ^8.0.17 |
 | Gestures | react-native-gesture-handler | ~2.31.1 |
 | Animation | react-native-reanimated | 4.3.1 |
@@ -41,6 +43,8 @@
 **Do not add packages not in this list without updating CLAUDE.md first.**
 
 > Added per `docs/DESIGN_SYSTEM.md` — Quadra's brand typography (Climate Crisis, Russo One, DM Sans, Baloo 2, DM Mono) replaces the previous system-font default. See "Custom fonts" below.
+
+> `@react-native-async-storage/async-storage` is for **non-secret UI preferences only** (e.g. appearance theme). Auth tokens stay in `expo-secure-store` — rule #3 below is unchanged. `expo-image-picker` was added for S10's "Trocar foto" (avatar selection).
 
 ---
 ## Package management rules
