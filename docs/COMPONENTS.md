@@ -284,6 +284,17 @@ More UI primitives will live here:
   ```
 - **Notes**: Rectangular match-cover banner (`h-40 rounded-card`) — distinct from the circular `Avatar`. With no `uri` it renders a navy `HERO_GRADIENT` (`expo-linear-gradient`) placeholder with a "CAPA DA PARTIDA" eyebrow, a dashed frame, and a pencil + "Trocar capa" affordance; once picked it shows the chosen image (`expo-image`, `contentFit="cover"`) with the same affordance overlaid. Presentational: the consuming screen owns the `expo-image-picker` invocation (passed via `onPress`); the component never touches the picker or fetches. Single `accessibilityRole="button"` announcing "Trocar capa da partida". No hardcoded hex — gradient/icon colors from `src/theme/colors.ts`.
 
+### `TeamRoster`
+- **Path**: `src/components/domain/TeamRoster.tsx`
+- **Category**: domain
+- **Props**: `{ teamId: string; teamName?: string; players: PresencePlayer[]; testID?: string }` where `PresencePlayer = { id: string; name: string; avatarUrl?: string; status: PresenceStatus; position?: PlayerPosition }` (from `@/features/matches/types/matchDetail`)
+- **Used in**: S13 In-Game Teams (team roster columns)
+- **Example**:
+  ```tsx
+  <TeamRoster teamId="team-1" teamName="Time 1" players={team.players} testID="team-roster-1" />
+  ```
+- **Notes**: Vertical team roster column — displays a team header (name/number), a vertical stack of player `<Avatar size="md" />`, and optional position badges (PON, LEV, etc. on a `primary` pill). Presentational: receives plain data via props, never fetches. Designed for S13 where N columns (2, 3, or 4) are rendered side-by-side in a `flex-row gap-4` layout.
+
 <!--
 ### `PlayerAvatar`         — circular avatar with position-colored ring
 ### `ScoreBoard`           — live score display
