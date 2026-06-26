@@ -1,12 +1,16 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
-import { useState } from 'react';
+import { ChevronLeft, Sun } from 'lucide-react-native';
+import React, { useState } from 'react';
 import { Pressable, ScrollView, Text, View, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
 import { useSelectTeamsForSet } from '@/features/matches/api/selectTeamsForSet';
+import { useCurrentSet } from '@/features/matches/api/getCurrentSet';
+import { useAddPointMutation } from '@/features/matches/api/mutations/addPoint';
+import { useUndoPointMutation } from '@/features/matches/api/mutations/undoPoint';
+import { useScoreSubscription } from '@/features/matches/realtime/useScoreSubscription';
 import type { Team } from '@/features/matches/types/team';
 import { getTeamBgColor } from '@/features/matches/lib/teamColors';
 import { colors } from '@/theme/colors';
@@ -274,16 +278,326 @@ export default function ScoreboardScreen() {
     );
   }
 
-  // ── S14: Scoreboard (placeholder for now) ──
+  // ── S14: Scoreboard ──
+  return <S14Scoreboard matchId={matchId} setNumber={setNumber} bestOf={bestOf} selectedTeamIds={selectedTeamIds} />;
+}
+
+/**
+ * S14 In-Game Scoreboard component.
+ *
+ * Renders a live scoreboard with:
+ * - Organizer: Full controls (+ ponto, Desfazer, Encerrar set)
+ * - Non-organizer: Read-only display, updates via SignalR subscription
+ * - Timer: Increments every 1s via useEffect
+ */
+function S14Scoreboard({
+  matchId,
+  setNumber,
+  bestOf,
+  selectedTeamIds,
+}: {
+  matchId: string;
+  setNumber: number;
+  bestOf: number;
+  selectedTeamIds: string[];
+}) {
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [displayScores, setDisplayScores] = useState<[number, number]>([0, 0]);
+  const [canUndo, setCanUndo] = useState(false);
+  const [isEndingSet, setIsEndingSet] = useState(false);
+
+  // ── Server state: current set ──
+  const setQuery = useCurrentSet(
+    matchId,
+    setNumber,
+    selectedTeamIds as [string, string],
+    { enabled: selectedTeamIds.length === 2 },
+  );
+  const currentSet = setQuery.data;
+
+  // ── Real-time subscription (non-organizers only) ──
+  useScoreSubscription(matchId, setNumber);
+
+  // ── Mutations (organizer only) ──
+  const addPointMutation = useAddPointMutation(matchId, setNumber);
+  const undoPointMutation = useUndoPointMutation(matchId, setNumber);
+
+  // ── Timer effect ──
+  React.useEffect(() => {
+    if (!currentSet) return;
+
+    const interval = setInterval(() => {
+      setElapsedSeconds((prev) => prev + 1);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [currentSet]);
+
+  // ── Sync display scores with query data ──
+  React.useEffect(() => {
+    if (currentSet?.scores) {
+      setDisplayScores(currentSet.scores);
+      setCanUndo(currentSet.pointsScoredCount > 0);
+    }
+  }, [currentSet]);
+
+  // ── Handlers ──
+  const handleAddPoint = async (teamId: string) => {
+    // Optimistic update (organizer only)
+    setDisplayScores(([s1, s2]) => {
+      const newScores: [number, number] = [s1, s2];
+      if (teamId === selectedTeamIds[1]) {
+        newScores[1]++;
+      } else {
+        newScores[0]++;
+      }
+      return newScores;
+    });
+
+    // Send mutation
+    try {
+      await addPointMutation.mutateAsync({
+        teamId,
+        currentScores: displayScores,
+      });
+    } catch (err) {
+      // On error, undo optimistic update
+      setDisplayScores(currentSet?.scores || [0, 0]);
+      Alert.alert('Erro ao registrar ponto', 'Tente novamente');
+    }
+  };
+
+  const handleUndo = async () => {
+    try {
+      await undoPointMutation.mutateAsync({
+        currentScores: displayScores,
+      });
+    } catch (err) {
+      Alert.alert('Erro ao desfazer', 'Tente novamente');
+    }
+  };
+
+  const handleEndSet = async () => {
+    setIsEndingSet(true);
+    try {
+      // MOCK: simulate ending the set
+      // TODO(real-api): POST to /api/v1/matches/{matchId}/sets/{setNumber}/end
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // On success, check match state and navigate
+      // MOCK: assume match is not over (would check response.matchOver in real)
+      // For now, navigate back to team picker if 3+ teams, or stay for 2-team match
+      if (selectedTeamIds.length === 2) {
+        // Reset for next set
+        setDisplayScores([0, 0]);
+        setElapsedSeconds(0);
+        setCanUndo(false);
+      } else {
+        // Navigate to S15 (or back to S13.5)
+        router.push({
+          pathname: '/matches/[id]/mvp-vote',
+          params: { id: matchId },
+        });
+      }
+    } catch (err) {
+      Alert.alert('Erro ao encerrar set', 'Tente novamente');
+    } finally {
+      setIsEndingSet(false);
+    }
+  };
+
+  const toggleTheme = () => {
+    // MOCK: theme toggle is a no-op for MVP (no dark mode backend yet)
+    // TODO: integrate with useThemeStore once dark tokens exist
+  };
+
+  // ── Formatting ──
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
+  // ── Loading state ──
+  if (setQuery.isPending) {
+    return (
+      <View className="flex-1 bg-surface-dark">
+        <SafeAreaView edges={['top']} className="flex-1 items-center justify-center">
+          <Text className="text-body text-text-on-dark">Carregando placar...</Text>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  // ── Error state ──
+  if (setQuery.isError || !currentSet) {
+    return (
+      <View className="flex-1 bg-surface-dark">
+        <SafeAreaView edges={['top']} className="flex-1 items-center justify-center px-6">
+          <Text className="text-center text-body text-text-muted mb-6">
+            Não foi possível carregar a partida
+          </Text>
+          <Button
+            variant="outline"
+            onPress={() => void setQuery.refetch()}
+            testID="retry-placar"
+          >
+            Tentar novamente
+          </Button>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  // ── Get team names ──
+  const team1Name = currentSet.teams[0]?.name ?? 'Time 1';
+  const team2Name = currentSet.teams[1]?.name ?? 'Time 2';
+  const team1Id = currentSet.teams[0]?.id ?? selectedTeamIds[0];
+  const team2Id = currentSet.teams[1]?.id ?? selectedTeamIds[1];
+
   return (
     <View className="flex-1 bg-surface-dark">
-      <SafeAreaView edges={['top']} className="flex-1 items-center justify-center">
-        <Text className="text-h1 text-text-on-dark uppercase">
-          Placar
-        </Text>
-        <Text className="text-body text-text-muted mt-4">
-          Set {setNumber} • Melhor de {bestOf}
-        </Text>
+      <SafeAreaView edges={['top']} className="flex-1">
+        {/* ── Header bar: back, AO VIVO badge + timer, theme toggle ── */}
+        <View className="flex-row items-center justify-between px-4 py-3 border-b border-line/10">
+          <Pressable
+            onPress={() => router.back()}
+            accessibilityRole="button"
+            accessibilityLabel="Voltar"
+            testID="scoreboard-back"
+          >
+            <ChevronLeft size={24} color={colors.textOnDark} />
+          </Pressable>
+
+          <View className="flex-col items-center">
+            <View className="flex-row items-center gap-1 mb-1">
+              <View className="h-2 w-2 rounded-full bg-danger" />
+              <Text className="text-eyebrow text-danger uppercase">AO VIVO</Text>
+              <Text className="text-caption text-text-muted ml-1">{formatTime(elapsedSeconds)}</Text>
+            </View>
+            <Text className="text-caption text-text-muted">
+              Sua partida · Set {setNumber} melhor de {bestOf}
+            </Text>
+          </View>
+
+          <Pressable
+            onPress={toggleTheme}
+            accessibilityRole="button"
+            accessibilityLabel="Alternar tema"
+            testID="theme-toggle"
+          >
+            <Sun size={24} color={colors.textOnDark} />
+          </Pressable>
+        </View>
+
+        {/* ── Main score display: two teams side by side ── */}
+        <View className="flex-1 flex-row gap-4 px-4 py-8">
+          {/* Team 1 */}
+          <View className="flex-1 flex-col items-center">
+            <Text className="text-h1 text-text-on-dark uppercase mb-4">
+              {team1Name}
+            </Text>
+
+            {/* Large score box */}
+            <View className="h-24 w-24 bg-white rounded-card flex items-center justify-center mb-4">
+              <Text className="font-num text-primary" style={{ fontSize: 40 }}>
+                {displayScores[0]}
+              </Text>
+            </View>
+
+            {/* Point control or indicator */}
+            {currentSet.isOrganizer ? (
+              <Pressable
+                onPress={() => {
+                  if (team1Id) handleAddPoint(team1Id);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Adicionar ponto para ${team1Name}`}
+                className="py-2"
+                disabled={isEndingSet || !team1Id}
+                testID="add-point-team1"
+              >
+                <Text className="text-body-bold text-accent">+ ponto</Text>
+              </Pressable>
+            ) : (
+              <View className="flex-col items-center gap-1">
+                <Text className="text-caption text-text-muted">
+                  ao vivo
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Center divider */}
+          <View className="flex items-center justify-center">
+            <Text className="text-body text-text-muted">vs</Text>
+          </View>
+
+          {/* Team 2 */}
+          <View className="flex-1 flex-col items-center">
+            <Text className="text-h1 text-text-on-dark uppercase mb-4">
+              {team2Name}
+            </Text>
+
+            {/* Large score box */}
+            <View className="h-24 w-24 bg-white rounded-card flex items-center justify-center mb-4">
+              <Text className="font-num text-primary" style={{ fontSize: 40 }}>
+                {displayScores[1]}
+              </Text>
+            </View>
+
+            {/* Point control or indicator */}
+            {currentSet.isOrganizer ? (
+              <Pressable
+                onPress={() => {
+                  if (team2Id) handleAddPoint(team2Id);
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Adicionar ponto para ${team2Name}`}
+                className="py-2"
+                disabled={isEndingSet || !team2Id}
+                testID="add-point-team2"
+              >
+                <Text className="text-body-bold text-accent">+ ponto</Text>
+              </Pressable>
+            ) : (
+              <View className="flex-col items-center gap-1">
+                <Text className="text-caption text-text-muted">
+                  ao vivo
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* ── Footer action buttons (organizer only) ── */}
+        {currentSet.isOrganizer && (
+          <View className="flex-row gap-3 px-4 pb-4">
+            <View className="flex-1">
+              <Button
+                variant="outline"
+                onPress={handleUndo}
+                disabled={!canUndo || isEndingSet}
+                testID="undo-button"
+              >
+                Desfazer
+              </Button>
+            </View>
+            <View className="flex-1">
+              <Button
+                variant="grad"
+                onPress={handleEndSet}
+                loading={isEndingSet}
+                testID="end-set-button"
+              >
+                Encerrar set
+              </Button>
+            </View>
+          </View>
+        )}
+
+        {/* ── Thin progress bar ── */}
+        <View className="h-1 bg-accent opacity-40" />
       </SafeAreaView>
     </View>
   );
