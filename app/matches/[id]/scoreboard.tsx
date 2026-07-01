@@ -14,6 +14,7 @@ import { useScoreSubscription } from '@/features/matches/realtime/useScoreSubscr
 import type { Team } from '@/features/matches/types/team';
 import { getTeamBgColor } from '@/features/matches/lib/teamColors';
 import { colors } from '@/theme/colors';
+import { useMatchStore } from '@/stores/matchStore';
 
 /**
  * S13.5 + S14 — Set Team Picker (3+ teams) → Scoreboard
@@ -33,6 +34,9 @@ import { colors } from '@/theme/colors';
  * This is a single component handling both states within the same route.
  */
 export default function ScoreboardScreen() {
+  // ── Global match state ──
+  const { selectTeamsForSet } = useMatchStore();
+
   const params = useLocalSearchParams<{
     id?: string;
     teamCount?: string;
@@ -101,6 +105,9 @@ export default function ScoreboardScreen() {
 
     try {
       await selectTeamsMutation.mutateAsync([team1, team2]);
+
+      // Persist selection to global store
+      selectTeamsForSet(selectedTeamIds);
 
       // On success, the conditional re-renders to S14 within the same component.
       // (selectedTeamIds stays in state, so showSetPicker becomes false)
@@ -301,6 +308,9 @@ function S14Scoreboard({
   bestOf: number;
   selectedTeamIds: string[];
 }) {
+  // ── Global match state ──
+  const { scores: storeScores, addPoint: storeAddPoint, undoPoint: storeUndoPoint, incrementElapsedTime } = useMatchStore();
+
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [displayScores, setDisplayScores] = useState<[number, number]>([0, 0]);
   const [canUndo, setCanUndo] = useState(false);
@@ -354,6 +364,9 @@ function S14Scoreboard({
       return newScores;
     });
 
+    // Persist to global store
+    storeAddPoint(teamId);
+
     // Send mutation
     try {
       await addPointMutation.mutateAsync({
@@ -363,11 +376,27 @@ function S14Scoreboard({
     } catch (err) {
       // On error, undo optimistic update
       setDisplayScores(currentSet?.scores || [0, 0]);
+      storeUndoPoint(teamId);
       Alert.alert('Erro ao registrar ponto', 'Tente novamente');
     }
   };
 
   const handleUndo = async () => {
+    // Undo from global store (undo the last point from the team that has more points)
+    const team1Id = selectedTeamIds[0];
+    const team2Id = selectedTeamIds[1];
+
+    if (team1Id && team2Id) {
+      const team1Score = storeScores[team1Id] || 0;
+      const team2Score = storeScores[team2Id] || 0;
+
+      if (team1Score > team2Score) {
+        storeUndoPoint(team1Id);
+      } else if (team2Score > 0) {
+        storeUndoPoint(team2Id);
+      }
+    }
+
     try {
       await undoPointMutation.mutateAsync({
         currentScores: displayScores,

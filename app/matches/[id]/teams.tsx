@@ -17,6 +17,7 @@ import { useDrawTeams, useDrawTeamsButton } from '@/features/matches/api/drawTea
 import type { DrawMode } from '@/features/matches/types/matchDetail';
 import type { Team } from '@/features/matches/types/team';
 import { colors } from '@/theme/colors';
+import { useMatchStore } from '@/stores/matchStore';
 
 /**
  * S13 — In-Game Teams
@@ -31,6 +32,9 @@ import { colors } from '@/theme/colors';
  * - "Começar partida" shows confirmation dialog, then navigates to scoreboard
  */
 export default function TeamsScreen() {
+  // ── Global match state ──
+  const { setTeams: storeSetTeams, initializeMatch } = useMatchStore();
+
   const params = useLocalSearchParams<{
     id?: string;
     teamCount?: string;
@@ -116,6 +120,8 @@ export default function TeamsScreen() {
       const result = await drawButton.refetch();
       if (result && 'teams' in result) {
         setTeams(result.teams);
+        // Persist to global store
+        storeSetTeams(result.teams);
       }
     } catch (err) {
       Alert.alert(
@@ -141,6 +147,13 @@ export default function TeamsScreen() {
           try {
             // MOCK: simulate latency for confirmation/persistence
             await new Promise((resolve) => setTimeout(resolve, 500));
+
+            // Persist match and teams to global store
+            initializeMatch({
+              matchId,
+              bestOf: 3,
+            });
+            storeSetTeams(teams);
 
             // TODO(real-api): POST final team assignments to F1.3 endpoint here if
             // teams were modified via drag-to-swap. For now, just navigate.

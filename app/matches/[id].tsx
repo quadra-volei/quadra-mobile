@@ -9,7 +9,7 @@ import {
   UserPlus,
   WandSparkles,
 } from 'lucide-react-native';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -162,6 +162,16 @@ export default function MatchDetailScreen() {
   const [drawMode, setDrawMode] = useState<DrawMode>('MANUAL');
   const [configSeeded, setConfigSeeded] = useState(false);
 
+  // Seed the team-config from the payload once (organizer view defaults).
+  useEffect(() => {
+    if (!configSeeded && matchQuery.data) {
+      setTeamCount(matchQuery.data.teamConfig.teamCount);
+      setPerTeam(matchQuery.data.teamConfig.perTeam);
+      setDrawMode(matchQuery.data.teamConfig.drawMode);
+      setConfigSeeded(true);
+    }
+  }, [matchQuery.data, configSeeded]);
+
   if (matchQuery.isPending) {
     return <MatchDetailSkeleton />;
   }
@@ -170,14 +180,6 @@ export default function MatchDetailScreen() {
   }
 
   const match = matchQuery.data;
-
-  // Seed the team-config from the payload once (organizer view defaults).
-  if (!configSeeded) {
-    setTeamCount(match.teamConfig.teamCount);
-    setPerTeam(match.teamConfig.perTeam);
-    setDrawMode(match.teamConfig.drawMode);
-    setConfigSeeded(true);
-  }
 
   const isOrganizer = match.organizerId === userId;
   const confirmedCount = match.players.filter(

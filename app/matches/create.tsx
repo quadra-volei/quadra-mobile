@@ -20,6 +20,8 @@ import {
   type CreateMatchInput,
 } from '@/features/matches/schema/createMatch';
 import { colors } from '@/theme/colors';
+import { useCreatedMatchesStore } from '@/stores/createdMatchesStore';
+import type { UpcomingMatch } from '@/features/matches/types/match';
 
 // ── Eyebrow section label ──
 function SectionLabel({ children }: { children: string }) {
@@ -77,6 +79,9 @@ function CreatedView({ id }: { id: string }) {
 }
 
 export default function CreateMatchScreen() {
+  // ── Global store for created matches ──
+  const { addCreatedMatch } = useCreatedMatchesStore();
+
   const createMatch = useCreateMatch();
 
   // Local state per spec.
@@ -139,7 +144,23 @@ export default function CreateMatchScreen() {
     createMatch.mutate(
       { ...values, coverUri },
       {
-        onSuccess: (data) => setCreated({ id: data.match.id }),
+        onSuccess: (data) => {
+          setCreated({ id: data.match.id });
+
+          // Add to created matches store so it appears in the home list
+          const priceLabel = values.price === 0 ? 'Grátis' : `R$ ${values.price}`;
+          const newMatch: UpcomingMatch = {
+            id: data.match.id,
+            name: values.name,
+            startsAt: new Date().toISOString(),
+            category: values.level === 'AVANCADO' ? 'COMPETITIVO' : 'CASUAL',
+            openSlots: values.players - 1, // Minus organizer
+            priceLabel,
+            avatarUrls: [], // No avatars yet (only organizer)
+          };
+
+          addCreatedMatch(newMatch);
+        },
       },
     );
   };

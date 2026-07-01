@@ -105,6 +105,15 @@ export default function RootLayout() {
       // Kick off the one-shot auth bootstrap; the splash route awaits the
       // shared promise to drive its redirect.
       void getAuthBootstrap();
+
+      // DEVELOPMENT: set a mock user if none exists (for testing without real auth)
+      if (!useAuthStore.getState().userId) {
+        useAuthStore.getState().setAuth({
+          userId: 'user-organizer',
+          accessToken: 'mock-dev-token',
+          hasProfile: true,
+        });
+      }
     }
   }, [fontsLoaded]);
 

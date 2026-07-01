@@ -121,10 +121,10 @@ export default function OnboardingScreen() {
     resolver: zodResolver(onboardingSchema),
     mode: "onChange",
     defaultValues: {
-      firstName: "",
-      lastName: "",
-      birthDate: "",
-      handle: "",
+      firstName: "renan",
+      lastName: "ortega",
+      birthDate: "29/12/2001",
+      handle: "renan",
     },
   });
 

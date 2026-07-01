@@ -38,8 +38,9 @@ async function createMatch(
 ): Promise<CreateMatchResult> {
   // MOCK: fixed-latency resolve, no network.
   await new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS));
-  // MOCK: stub match echoing a generated id.
-  return { match: { id: `mock-match-${Date.now()}` } };
+  // MOCK: stub match echoing a generated id. Must start with 'mine-' to be
+  // recognized as an organizer match in getMatchDetail.
+  return { match: { id: `mine-${Date.now()}` } };
 }
 
 export function useCreateMatch() {

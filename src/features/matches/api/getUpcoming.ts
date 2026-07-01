@@ -1,6 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { UpcomingMatch } from '@/features/matches/types/match';
+import { useCreatedMatchesStore } from '@/stores/createdMatchesStore';
 
 // MOCK: deterministic fake latency so RNTL can assert the loading placeholder,
 // the populated list, and navigation without flakiness. Tests may zero this via
@@ -66,8 +68,31 @@ export type UseUpcomingMatchesOptions = {
 
 export function useUpcomingMatches(options: UseUpcomingMatchesOptions = {}) {
   const latencyMs = options.latencyMs ?? MOCK_LATENCY_MS;
-  return useQuery({
+  const createdMatches = useCreatedMatchesStore((state) => state.createdMatches);
+  const queryClient = useQueryClient();
+
+  const query = useQuery({
     queryKey: upcomingMatchesQueryKey,
-    queryFn: () => getUpcomingMatches(latencyMs),
+    queryFn: async () => {
+      const mockData = await getUpcomingMatches(latencyMs);
+      // Combine mock data with user-created matches
+      return [...createdMatches, ...mockData];
+    },
   });
+
+  // Update cache whenever createdMatches changes
+  useEffect(() => {
+    if (createdMatches.length > 0) {
+      queryClient.setQueryData(upcomingMatchesQueryKey, (oldData: UpcomingMatch[] | undefined) => {
+        if (!oldData) return [...createdMatches, ...MOCK_UPCOMING];
+        // Remove old created matches and add new ones
+        const nonCreatedMatches = oldData.filter(
+          (m) => !createdMatches.find((cm) => cm.id === m.id)
+        );
+        return [...createdMatches, ...nonCreatedMatches];
+      });
+    }
+  }, [createdMatches, queryClient]);
+
+  return query;
 }
