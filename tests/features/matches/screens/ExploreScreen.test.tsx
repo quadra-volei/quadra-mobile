@@ -109,6 +109,8 @@ const NEARBY_FIXTURE: NearbyMatch[] = [
     confirmed: 6,
     capacity: 8,
     priceLabel: 'R$ 25',
+    lat: -23.5605,
+    lon: -46.6433,
   },
   {
     id: 'near-2',
@@ -119,6 +121,8 @@ const NEARBY_FIXTURE: NearbyMatch[] = [
     confirmed: 9,
     capacity: 12,
     priceLabel: 'Grátis',
+    lat: -23.5731,
+    lon: -46.6289,
   },
   {
     id: 'near-3',
@@ -129,6 +133,8 @@ const NEARBY_FIXTURE: NearbyMatch[] = [
     confirmed: 2,
     capacity: 12,
     priceLabel: 'R$ 18',
+    lat: -23.5489,
+    lon: -46.6588,
   },
 ];
 

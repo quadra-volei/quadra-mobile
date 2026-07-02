@@ -44,4 +44,11 @@ export type NearbyMatch = {
   capacity: number;
   /** "R$ 25" | "Grátis". */
   priceLabel: string;
+  /**
+   * Geographic coordinates of the venue, used to place the match pin on the S17
+   * map. A geo-nearby endpoint inherently returns per-match coordinates, so this
+   * stays within F1.7's payload. Additive and unused by S5/S6/`MatchCard`.
+   */
+  lat: number;
+  lon: number;
 };

@@ -35,6 +35,8 @@ const MOCK_NEARBY: NearbyMatch[] = [
     confirmed: 6,
     capacity: 8,
     priceLabel: 'R$ 25',
+    lat: -23.5605,
+    lon: -46.6433,
   },
   {
     id: 'near-2',
@@ -45,6 +47,8 @@ const MOCK_NEARBY: NearbyMatch[] = [
     confirmed: 9,
     capacity: 12,
     priceLabel: 'Grátis',
+    lat: -23.5731,
+    lon: -46.6289,
   },
   {
     id: 'near-3',
@@ -55,6 +59,8 @@ const MOCK_NEARBY: NearbyMatch[] = [
     confirmed: 2,
     capacity: 4,
     priceLabel: 'R$ 40',
+    lat: -23.5489,
+    lon: -46.6588,
   },
   {
     id: 'near-4',
@@ -65,6 +71,8 @@ const MOCK_NEARBY: NearbyMatch[] = [
     confirmed: 3,
     capacity: 12,
     priceLabel: 'R$ 18',
+    lat: -23.5905,
+    lon: -46.6201,
   },
 ];
 
