@@ -215,19 +215,20 @@ describe('S5 — Home screen', () => {
   // -------------------------------------------------------------------- header
   /**
    * Covers: S5 — Home
-   * Criterion: "Header shows the 'INÍCIO' display title, a notification bell, and
-   *  a theme toggle — no avatar and no greeting."
+   * Criterion: "Header shows the 'INÍCIO' display title and a notification bell —
+   *  no theme toggle (theme lives in Settings), no avatar and no greeting."
    */
-  it('renders the INÍCIO header with bell + theme toggle and no avatar/greeting', async () => {
+  it('renders the INÍCIO header with bell and no theme toggle/avatar/greeting', async () => {
     await render(<HomeScreen />);
 
     expect(screen.getByText('INÍCIO')).toBeTruthy();
-    // bell + theme toggle are accessible buttons
+    // bell is an accessible button
     expect(screen.getByLabelText('Notificações')).toBeTruthy();
-    expect(screen.getByLabelText('Alternar tema')).toBeTruthy();
-    // the icons themselves render
+    // the bell icon renders
     expect(screen.getByTestId('icon-bell')).toBeTruthy();
-    expect(screen.getByTestId('icon-sun')).toBeTruthy();
+    // theme toggle moved to Settings — not on Home
+    expect(screen.queryByLabelText('Alternar tema')).toBeNull();
+    expect(screen.queryByTestId('icon-sun')).toBeNull();
 
     // NO greeting / avatar (that header is S8 Profile, not Home)
     expect(screen.queryByText(/olá/i)).toBeNull();
@@ -540,14 +541,13 @@ describe('S5 — Home screen', () => {
 
   /**
    * Covers: S5 — Home
-   * Criterion: the bell and theme toggle are no-ops this iteration (documented
-   *  divergence) — tapping them navigates nowhere.
+   * Criterion: the bell is a no-op this iteration (documented divergence) —
+   *  tapping it navigates nowhere.
    */
-  it('does not navigate when the bell or theme toggle is tapped (no-op)', async () => {
+  it('does not navigate when the bell is tapped (no-op)', async () => {
     await render(<HomeScreen />);
 
     fireEvent.press(screen.getByLabelText('Notificações'));
-    fireEvent.press(screen.getByLabelText('Alternar tema'));
 
     expect(mockPush).not.toHaveBeenCalled();
   });

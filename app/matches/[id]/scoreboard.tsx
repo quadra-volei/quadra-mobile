@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, Sun } from 'lucide-react-native';
+import { ChevronLeft } from 'lucide-react-native';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, Text, View, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -435,11 +435,6 @@ function S14Scoreboard({
     }
   };
 
-  const toggleTheme = () => {
-    // MOCK: theme toggle is a no-op for MVP (no dark mode backend yet)
-    // TODO: integrate with useThemeStore once dark tokens exist
-  };
-
   // ── Formatting ──
   const formatTime = (seconds: number): string => {
     const mins = Math.floor(seconds / 60);
@@ -487,7 +482,7 @@ function S14Scoreboard({
   return (
     <View className="flex-1 bg-surface-dark">
       <SafeAreaView edges={['top']} className="flex-1">
-        {/* ── Header bar: back, AO VIVO badge + timer, theme toggle ── */}
+        {/* ── Header bar: back, AO VIVO badge + timer ── */}
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-line/10">
           <Pressable
             onPress={() => router.back()}
@@ -509,14 +504,8 @@ function S14Scoreboard({
             </Text>
           </View>
 
-          <Pressable
-            onPress={toggleTheme}
-            accessibilityRole="button"
-            accessibilityLabel="Alternar tema"
-            testID="theme-toggle"
-          >
-            <Sun size={24} color={colors.textOnDark} />
-          </Pressable>
+          {/* Spacer to keep the AO VIVO block centered opposite the back button */}
+          <View className="w-6" />
         </View>
 
         {/* ── Main score display: two teams side by side ── */}

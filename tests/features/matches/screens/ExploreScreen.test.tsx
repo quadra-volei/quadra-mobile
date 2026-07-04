@@ -204,17 +204,18 @@ describe('S6 — Explore screen', () => {
   // ----------------------------------------------------------------- header
   /**
    * Covers: S6 — Explore
-   * Criterion: "Header shows the 'EXPLORAR' display title, a notification bell,
-   *  and a theme toggle — no avatar/greeting."
+   * Criterion: "Header shows the 'EXPLORAR' display title and a notification bell
+   *  — no theme toggle (theme lives in Settings), no avatar/greeting."
    */
-  it('renders the EXPLORAR header with bell + theme toggle and no avatar/greeting', async () => {
+  it('renders the EXPLORAR header with the bell and no theme toggle/avatar/greeting', async () => {
     await render(<ExploreScreen />);
 
     expect(screen.getByText('EXPLORAR')).toBeTruthy();
     expect(screen.getByLabelText('Notificações')).toBeTruthy();
-    expect(screen.getByLabelText('Alternar tema')).toBeTruthy();
     expect(screen.getByTestId('icon-bell')).toBeTruthy();
-    expect(screen.getByTestId('icon-sun')).toBeTruthy();
+    // theme toggle moved to Settings — not in the header.
+    expect(screen.queryByLabelText('Alternar tema')).toBeNull();
+    expect(screen.queryByTestId('icon-sun')).toBeNull();
 
     // NO greeting / avatar on Explore.
     expect(screen.queryByText(/olá/i)).toBeNull();
@@ -224,14 +225,13 @@ describe('S6 — Explore screen', () => {
 
   /**
    * Covers: S6 — Explore
-   * Criterion: the bell and theme toggle are no-ops this iteration (documented
-   *  divergence) — tapping them navigates nowhere.
+   * Criterion: the bell is a no-op this iteration (documented divergence) —
+   *  tapping it navigates nowhere.
    */
-  it('does not navigate when the bell or theme toggle is tapped (no-op)', async () => {
+  it('does not navigate when the bell is tapped (no-op)', async () => {
     await render(<ExploreScreen />);
 
     await press(screen.getByLabelText('Notificações'));
-    await press(screen.getByLabelText('Alternar tema'));
 
     expect(mockPush).not.toHaveBeenCalled();
   });

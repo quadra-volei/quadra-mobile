@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Bell, Settings, Sun } from 'lucide-react-native';
+import { Bell, Settings } from 'lucide-react-native';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -86,13 +86,6 @@ function ProfileHeader() {
           onPress={() => {}}
         >
           <Bell size={24} color={colors.surfaceDark} />
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Alternar tema"
-          onPress={() => {}}
-        >
-          <Sun size={24} color={colors.surfaceDark} />
         </Pressable>
         <Pressable
           accessibilityRole="button"

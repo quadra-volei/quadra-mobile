@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Bell, Sun } from 'lucide-react-native';
+import { Bell } from 'lucide-react-native';
 import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -173,13 +173,6 @@ export default function HomeScreen() {
               onPress={() => {}}
             >
               <Bell size={24} color={colors.surfaceDark} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Alternar tema"
-              onPress={() => {}}
-            >
-              <Sun size={24} color={colors.surfaceDark} />
             </Pressable>
           </View>
         </View>

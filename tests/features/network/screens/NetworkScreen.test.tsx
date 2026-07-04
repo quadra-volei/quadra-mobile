@@ -4,7 +4,7 @@
  * Covers every acceptance criterion in docs/specs/S7-network.md:
  *  - The "Rede" tab opens app/(tabs)/network.tsx and renders without errors.
  *  - Header shows "REDE" (uppercase, font-display/text-h1) + a notification bell
- *    and a theme-toggle icon, matching S5/S6.
+ *    (theme selection lives only in Settings).
  *  - The body shows the verbatim primary message "Em breve: rede social de
  *    jogadores".
  *  - No feed/posts, like/comment/share controls, friend-suggestion carousel, or
@@ -74,9 +74,9 @@ describe('S7 — Network (placeholder) screen', () => {
   /**
    * Covers: S7 — Network
    * Criterion: "Header shows the title 'REDE' (uppercase, font-display/text-h1)
-   *  plus a notification bell and a theme-toggle icon, matching S5/S6."
+   *  plus a notification bell — theme selection lives only in Settings."
    */
-  it('renders the REDE header with bell + theme toggle icons', async () => {
+  it('renders the REDE header with the bell and no theme toggle', async () => {
     await render(<NetworkScreen />);
 
     // Title is the verbatim uppercase brand display title.
@@ -87,12 +87,13 @@ describe('S7 — Network (placeholder) screen', () => {
     expect(title.props.className).toContain('text-h1');
     expect(title.props.className).toContain('uppercase');
 
-    // bell + theme toggle are accessible buttons (mirrors S5/S6).
+    // bell is an accessible button (mirrors S5/S6).
     expect(screen.getByLabelText('Notificações')).toBeTruthy();
-    expect(screen.getByLabelText('Alternar tema')).toBeTruthy();
-    // the icons themselves render
+    // the bell icon renders
     expect(screen.getByTestId('icon-bell')).toBeTruthy();
-    expect(screen.getByTestId('icon-sun')).toBeTruthy();
+    // theme toggle moved to Settings — not in the header.
+    expect(screen.queryByLabelText('Alternar tema')).toBeNull();
+    expect(screen.queryByTestId('icon-sun')).toBeNull();
   });
 
   // ------------------------------------------------------- placeholder message
@@ -167,24 +168,23 @@ describe('S7 — Network (placeholder) screen', () => {
     expect(screen.queryByTestId('posts')).toBeNull();
     expect(screen.queryByTestId('friend-suggestions')).toBeNull();
 
-    // The only accessible buttons are the two header icons — nothing else.
+    // The only accessible button is the header bell — nothing else.
     const buttons = screen.queryAllByRole('button');
-    expect(buttons).toHaveLength(2);
+    expect(buttons).toHaveLength(1);
     const labels = buttons.map((b) => b.props.accessibilityLabel).sort();
-    expect(labels).toEqual(['Alternar tema', 'Notificações']);
+    expect(labels).toEqual(['Notificações']);
   });
 
   /**
    * Covers: S7 — Network
-   * Criterion: the bell and theme toggle are no-ops on this placeholder
-   *  (consistent with S5/S6) — tapping them does nothing observable / throws nothing.
+   * Criterion: the bell is a no-op on this placeholder (consistent with S5/S6) —
+   *  tapping it does nothing observable / throws nothing.
    */
-  it('keeps the bell and theme toggle as no-ops (tapping is harmless)', async () => {
+  it('keeps the bell as a no-op (tapping is harmless)', async () => {
     await render(<NetworkScreen />);
 
     expect(() => {
       fireEvent.press(screen.getByLabelText('Notificações'));
-      fireEvent.press(screen.getByLabelText('Alternar tema'));
     }).not.toThrow();
 
     // Still on the placeholder afterwards — nothing changed.

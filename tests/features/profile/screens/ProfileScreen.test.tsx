@@ -276,19 +276,20 @@ describe('S8 — Profile screen', () => {
     // avatar exposes the user's name
     expect(screen.getByLabelText('Avatar de Renan')).toBeTruthy();
 
-    // bell + theme toggle are accessible buttons
+    // bell is an accessible button
     expect(screen.getByLabelText('Notificações')).toBeTruthy();
-    expect(screen.getByLabelText('Alternar tema')).toBeTruthy();
     expect(screen.getByTestId('icon-bell')).toBeTruthy();
-    expect(screen.getByTestId('icon-sun')).toBeTruthy();
+    // theme toggle moved to Settings — not in the header.
+    expect(screen.queryByLabelText('Alternar tema')).toBeNull();
+    expect(screen.queryByTestId('icon-sun')).toBeNull();
   });
 
   /**
    * Covers: S8 — Profile
-   * Criterion: the bell and theme toggle are no-ops this iteration (documented) —
-   *  tapping them navigates nowhere.
+   * Criterion: the bell is a no-op this iteration (documented) —
+   *  tapping it navigates nowhere.
    */
-  it('keeps the bell and theme toggle as no-ops (tapping navigates nowhere)', async () => {
+  it('keeps the bell as a no-op (tapping navigates nowhere)', async () => {
     await render(<ProfileScreen />);
 
     // TEMP: no press

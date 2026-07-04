@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { Bell, ChevronDown, ChevronLeft, Sun } from 'lucide-react-native';
+import { Bell, ChevronDown, ChevronLeft } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -48,13 +48,6 @@ function RankingHeader() {
           onPress={noop}
         >
           <Bell size={24} color={colors.surfaceDark} />
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Alternar tema"
-          onPress={noop}
-        >
-          <Sun size={24} color={colors.surfaceDark} />
         </Pressable>
       </View>
     </View>

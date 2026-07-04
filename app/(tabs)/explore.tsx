@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { Bell, LayoutGrid, List, MapPin, Sun } from 'lucide-react-native';
+import { Bell, LayoutGrid, List, MapPin } from 'lucide-react-native';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -315,13 +315,6 @@ export default function ExploreScreen() {
               onPress={() => {}}
             >
               <Bell size={24} color={colors.surfaceDark} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Alternar tema"
-              onPress={() => {}}
-            >
-              <Sun size={24} color={colors.surfaceDark} />
             </Pressable>
           </View>
         </View>

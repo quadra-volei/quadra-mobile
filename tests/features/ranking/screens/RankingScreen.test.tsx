@@ -198,13 +198,14 @@ describe('S9 — Full Group Ranking screen', () => {
     expect(title.props.className).toContain('font-display');
     expect(title.props.className).toContain('uppercase');
 
-    // back / bell / theme are accessible buttons backed by their icons
+    // back / bell are accessible buttons backed by their icons
     expect(screen.getByLabelText('Voltar')).toBeTruthy();
     expect(screen.getByLabelText('Notificações')).toBeTruthy();
-    expect(screen.getByLabelText('Alternar tema')).toBeTruthy();
     expect(screen.getByTestId('icon-chevron-left')).toBeTruthy();
     expect(screen.getByTestId('icon-bell')).toBeTruthy();
-    expect(screen.getByTestId('icon-sun')).toBeTruthy();
+    // theme toggle moved to Settings — not in the header.
+    expect(screen.queryByLabelText('Alternar tema')).toBeNull();
+    expect(screen.queryByTestId('icon-sun')).toBeNull();
   });
 
   /**
@@ -222,21 +223,13 @@ describe('S9 — Full Group Ranking screen', () => {
 
   /**
    * Covers: S9 — Full Group Ranking
-   * Criterion: the bell and theme toggle are no-ops this iteration (documented) —
-   *  tapping them navigates nowhere.
+   * Criterion: the bell is a no-op this iteration (documented) —
+   *  tapping it navigates nowhere.
    */
-  it('keeps the bell and theme toggle as no-ops (no navigation)', async () => {
+  it('keeps the bell as a no-op (no navigation)', async () => {
     await render(<RankingScreen />);
 
     fireEvent.press(screen.getByLabelText('Notificações'));
-    expect(mockBack).not.toHaveBeenCalled();
-    expect(mockPush).not.toHaveBeenCalled();
-  });
-
-  it('keeps the theme toggle as a no-op (no navigation)', async () => {
-    await render(<RankingScreen />);
-
-    fireEvent.press(screen.getByLabelText('Alternar tema'));
     expect(mockBack).not.toHaveBeenCalled();
     expect(mockPush).not.toHaveBeenCalled();
   });

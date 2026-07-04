@@ -1,4 +1,4 @@
-import { Bell, Sun, Users } from 'lucide-react-native';
+import { Bell, Users } from 'lucide-react-native';
 import { Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -20,13 +20,6 @@ export default function NetworkScreen() {
               onPress={() => {}}
             >
               <Bell size={24} color={colors.surfaceDark} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Alternar tema"
-              onPress={() => {}}
-            >
-              <Sun size={24} color={colors.surfaceDark} />
             </Pressable>
           </View>
         </View>
