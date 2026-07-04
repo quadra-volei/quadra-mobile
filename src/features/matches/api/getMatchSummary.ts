@@ -12,6 +12,19 @@ export type MatchResult = 'VITORIA' | 'DERROTA';
 export type MatchSummaryPlayer = MatchPlayer & { votes: number };
 
 /**
+ * The signed-in player's own performance in this match (F1.6, "MEU DESEMPENHO").
+ * Read-only, computed server-side; self-reported stats input stays OUT of MVP.
+ */
+export type MatchPerformance = {
+  /** XP earned from this match, added to level progress. */
+  xpGained: number;
+  points: number;
+  blocks: number;
+  defenses: number;
+  aces: number;
+};
+
+/**
  * Full read-only match summary (F1.6). Returned by useMatchSummary.
  * result + final score + per-set breakdown + most-voted MVP + vote ranking.
  */
@@ -34,6 +47,8 @@ export type MatchSummary = {
   voteRanking: MatchSummaryPlayer[];
   /** = voteRanking[0].votes — used to scale the vote bars. */
   maxVotes: number;
+  /** The signed-in player's own performance ("MEU DESEMPENHO"). */
+  myPerformance: MatchPerformance;
 };
 
 // MOCK: deterministic fake latency so tests can assert the loading state and the
@@ -76,6 +91,7 @@ const MOCK_SUMMARIES: Record<string, MatchSummary> = {
       { id: 'o5', name: 'Manu Castro', handle: 'manu_pon', position: 'PON', avatarUrl: undefined, votes: 2 },
     ],
     maxVotes: 5,
+    myPerformance: { xpGained: 24, points: 16, blocks: 2, defenses: 6, aces: 1 },
   },
   'near-1': {
     format: '4X4',
@@ -105,6 +121,7 @@ const MOCK_SUMMARIES: Record<string, MatchSummary> = {
       { id: 'p3', name: 'Caio Drumond', handle: 'caio_op', position: 'OPO', avatarUrl: undefined, votes: 1 },
     ],
     maxVotes: 4,
+    myPerformance: { xpGained: 12, points: 9, blocks: 1, defenses: 4, aces: 0 },
   },
 };
 

@@ -13,8 +13,8 @@ Both PNGs exist on disk and were read. No prototype source code; the PNGs are th
 
 ## Notable divergences from the prototype
 - **`partida-encerrar-estatisticas.png` (entire screen) — NOT built.** It is a per-player self-reported stats input (Pontos/Blocks/Defesas/Aces with `−`/`+` steppers + "Confirmar estatísticas" CTA). SCOPE S16 default decision is **keep OUT** — this feeds Layer-3 ratings and directly contradicts the "Editable advanced stats (ACE/BLK/ATA/DEF input)" item in the SCOPE "What is NOT in MVP" list. No route, no screen, no hook is created for it. (Flip only if PM explicitly moves self-reported stats into MVP — not assumed here.)
-- **"MEU DESEMPENHO" block on `partida-resumo.png` — NOT included.** SCOPE S16 OUT: "per-player stats input / 'MEU DESEMPENHO' block". This removes the lower half of the summary screenshot: the "XP ganho nesta partida +24" pill and the four stat cards (16 Pontos / 2 Blocks / 6 Defesas / 1 Aces). Layer-3 cut.
-- **Bottom CTA re-purposed.** With "MEU DESEMPENHO" gone, the prototype's bottom "Voltar para o perfil" gradient CTA becomes the single primary action of the screen (kept as-is; it closes the match flow and returns to Profile/S8).
+- **"MEU DESEMPENHO" block on `partida-resumo.png` — INCLUDED (display-only).** Decision flipped by PM 2026-07-04. Renders the lower half of the summary screenshot: the "XP ganho nesta partida +24" card and the four stat tiles (Pontos / Blocks / Defesas / Aces). Values are **read-only**, fed by the (server-computed) `summary.myPerformance` — there is no self-reported input (the `partida-encerrar-estatisticas.png` stepper screen above stays OUT).
+- **Bottom CTA.** The bottom "Voltar para o perfil" gradient CTA is the screen's primary action (kept as-is; it closes the match flow and returns to Profile/S8).
 - **Per-set count in the score row is data-driven, not fixed at 4.** The prototype shows a 3–1 win over 4 set pills; the layout renders exactly `setScores.length` pills.
 - **Team compositions & match duration — NOT shown** (SCOPE S16 OUT; also absent from the mockup).
 - **Generated shareable image — NOT built.** SCOPE S16 OUT ("generated shareable image (post-MVP)"). The share button opens the OS share sheet with text only.
@@ -205,8 +205,8 @@ Dark hero screen (navy), light copy — the "dark hero for key data moments" pat
 - [ ] "MVP MAIS VOTADO" section shows the top-voted player in a lime-bordered highlight card with avatar, name, @handle · position, and "N de M votos"
 - [ ] Vote ranking lists top-voted players with position number, avatar, name, a proportional lime vote bar, and vote count
 - [ ] Share button opens the OS share sheet (text only) via `Share.share`
-- [ ] No "MEU DESEMPENHO" block, no XP-gained pill, no Pontos/Blocks/Defesas/Aces cards are present (Layer-3 cut verified)
-- [ ] No per-player stats input screen/form is reachable from S16
+- [ ] "MEU DESEMPENHO" block renders the read-only XP-gained card + Pontos/Blocks/Defesas/Aces stat tiles from `summary.myPerformance`
+- [ ] No per-player stats **input** screen/form (steppers) is reachable from S16 — the block is display-only
 - [ ] "Voltar para o perfil" navigates to the Profile tab (S8) and resets the match stack
 - [ ] Summary loads via `useMatchSummary(matchId)` (mocked)
 - [ ] Loading shows skeletons; load failure shows a recoverable error with "Tentar novamente"
@@ -214,7 +214,7 @@ Dark hero screen (navy), light copy — the "dark hero for key data moments" pat
 
 ## Out of scope (be explicit)
 - **Per-player self-reported stats input** (the entire `partida-encerrar-estatisticas.png` screen) — Layer 3; contradicts the SCOPE "NOT in MVP: Editable advanced stats (ACE/BLK/ATA/DEF input)". Not built.
-- **"MEU DESEMPENHO" block** (XP +24 pill + Pontos/Blocks/Defesas/Aces cards on the summary) — SCOPE S16 OUT.
+- **Per-player stats _input_** (self-reported ACE/BLK/ATA/DEF steppers) — the read-only "MEU DESEMPENHO" display block is IN (PM flip 2026-07-04), but the values come from the backend, not a user-editable form.
 - **Team compositions** and **match duration** — SCOPE S16 OUT; absent from mockup.
 - **Generated shareable image** — SCOPE S16 OUT; share is text-only via the OS sheet.
 - **Editing the result / re-voting** — read-only screen.
@@ -253,4 +253,4 @@ Dark hero screen (navy), light copy — the "dark hero for key data moments" pat
 - **Win/loss color semantics:** Vitória → `accent` (lime) fill with `text-primary` label (dark text on lime for contrast per DESIGN_SYSTEM position-badge contrast rule); Derrota → `danger` fill with `text-on-dark` label.
 - **Share payload:** build a plain-text message (e.g. `"{name} — {result} {finalScore[0]}–{finalScore[1]}. MVP: {mvp.name}."`). No deep link / image in MVP.
 - **Accessibility:** the result region should carry a single `accessibilityLabel` summarizing "Vitória/Derrota, placar X a Y, MVP Nome" so screen readers announce the outcome without traversing every pill.
-- **Do not** render any Pontos/Blocks/Defesas/Aces UI, even as a disabled/"Em breve" placeholder — SCOPE keeps the whole block out (unlike S8's GERAL-only allowance).
+- **"MEU DESEMPENHO" block (display-only):** render the read-only XP-gained card + Pontos/Blocks/Defesas/Aces stat tiles from `summary.myPerformance`. Do **not** add stepper/`−`/`+` inputs or a "Confirmar estatísticas" CTA — the values are server-computed, never user-edited.

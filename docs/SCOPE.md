@@ -231,8 +231,8 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **IN**: result header (format tag + Vitória/Derrota), match name, venue · date, final score + per-set scores (25-19, 23-25, ...)
 - **IN**: "MVP MAIS VOTADO" highlighted + vote ranking (top-voted players with counts)
 - **IN**: share button (system share sheet — image generation is OUT of MVP)
-- **⚠️ DECISION NEEDED**: `partida-encerrar-estatisticas.png` is a per-player stats input (Pontos/Blocks/Defesas/Aces) plus the "MEU DESEMPENHO" block on the summary. This **contradicts** the "Editable advanced stats (ACE/BLK/ATA/DEF input)" item in the NOT-in-MVP list. Default: **keep OUT** (these feed Layer-3 ratings); flip only if PM wants self-reported stats in MVP.
-- **OUT**: per-player stats input / "MEU DESEMPENHO" block (see decision above)
+- **IN**: "MEU DESEMPENHO" block — read-only personal stats for the match: XP gained card + Pontos/Blocks/Defesas/Aces tiles, fed by the (server-computed) summary. Decision flipped by PM 2026-07-04 to show these on the summary.
+- **OUT**: per-player stats **input** (`partida-encerrar-estatisticas.png` — self-reported ACE/BLK/ATA/DEF entry). The MEU DESEMPENHO block is display-only; the values come from the backend, not a user input screen.
 - **OUT**: team compositions (not in the mockup) / match duration (not shown)
 - **OUT**: generated shareable image (post-MVP)
 

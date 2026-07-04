@@ -9,7 +9,7 @@
  *  - The "Ver a sua carta" gradient CTA is NOT present.
  *  - "MINHAS PARTIDAS" renders rows from useRecentMatches (name, date·format,
  *    Vitória/Derrota colored success/danger, set score); tapping a row navigates
- *    to S12 (/matches/[id]) with its id.
+ *    to the S16 summary (/matches/[id]/summary) with its id.
  *  - The dark "Ranking semanal" card renders rows from
  *    useGroupRanking({ preview: true }) (position, avatar, name, subtitle, score);
  *    the current user's row is highlighted with "· você".
@@ -375,15 +375,16 @@ describe('S8 — Profile screen', () => {
 
   /**
    * Covers: S8 — Profile
-   * Criterion: "tapping a [history] row navigates to S12 with its id."
+   * Criterion: "tapping a [history] row navigates to the S16 match summary with its id."
+   * (History lists past matches, so it opens the read-only summary, not the live detail.)
    */
-  it('navigates to /matches/[id] with the match id when a history row is tapped', async () => {
+  it('navigates to /matches/[id]/summary with the match id when a history row is tapped', async () => {
     await render(<ProfileScreen />);
 
     fireEvent.press(screen.getByLabelText(/Vôlei de Quinta/));
 
     expect(mockPush).toHaveBeenCalledWith({
-      pathname: '/matches/[id]',
+      pathname: '/matches/[id]/summary',
       params: { id: 'rm-1' },
     });
   });

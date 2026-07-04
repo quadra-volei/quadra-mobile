@@ -21,8 +21,9 @@ function goRanking() {
 function goSettings() {
   router.push("/profile/settings");
 }
-function goMatch(id: string) {
-  router.push({ pathname: "/matches/[id]", params: { id } });
+function goMatchSummary(id: string) {
+  // "Minhas partidas" lists past matches — open the read-only summary, not the live detail.
+  router.push({ pathname: "/matches/[id]/summary", params: { id } });
 }
 
 /** Neutral rounded skeleton block (DESIGN_SYSTEM skeleton shapes TBD — flag). */
@@ -164,7 +165,7 @@ function RecentMatchesSection() {
       {data.map((m, i) => (
         <View key={m.id}>
           {i > 0 ? <View className="h-px bg-line mx-4" /> : null}
-          <MatchHistoryRow match={m} onPress={goMatch} />
+          <MatchHistoryRow match={m} onPress={goMatchSummary} />
         </View>
       ))}
     </View>

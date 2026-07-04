@@ -1,6 +1,18 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, MapPin, Share2, Trophy } from 'lucide-react-native';
+import {
+  ChevronLeft,
+  Flame,
+  Goal,
+  Lock,
+  type LucideIcon,
+  MapPin,
+  Share2,
+  Target,
+  Trophy,
+  User,
+  Zap,
+} from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -10,6 +22,7 @@ import { Button } from '@/components/ui/Button';
 import {
   matchSummaryQueryKey,
   useMatchSummary,
+  type MatchPerformance,
   type MatchResult,
   type MatchSummary,
 } from '@/features/matches/api/getMatchSummary';
@@ -110,7 +123,7 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
 
   return (
     <View className="flex-1 bg-surface-dark">
-      <SafeAreaView edges={['top']} className="flex-1">
+      <SafeAreaView edges={['top', 'bottom']} className="flex-1">
         <SummaryHeader onShare={handleShare} isSharing={isSharing} />
 
         <ScrollView className="flex-1" contentContainerClassName="pb-6">
@@ -226,6 +239,9 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
               </Text>
             </View>
           )}
+
+          {/* ── Meu desempenho ── */}
+          <PerformanceSection performance={summary.myPerformance} />
         </ScrollView>
 
         {/* ── Bottom CTA ── */}
@@ -235,6 +251,74 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
           </Button>
         </View>
       </SafeAreaView>
+    </View>
+  );
+}
+
+/** A single stat tile in the "MEU DESEMPENHO" 2×2 grid. */
+function StatTile({
+  icon: Icon,
+  value,
+  label,
+  highlight,
+  testID,
+}: {
+  icon: LucideIcon;
+  value: number;
+  label: string;
+  highlight?: boolean;
+  testID?: string;
+}) {
+  return (
+    <View className="w-[48%] rounded-card bg-white/5 p-4" testID={testID}>
+      <View className="flex-row items-start justify-between">
+        <View className="h-10 w-10 rounded-full bg-white/10 items-center justify-center">
+          <Icon size={18} color={colors.textOnDark} />
+        </View>
+        {highlight ? <Flame size={16} color={colors.accent} /> : null}
+      </View>
+      <Text className="font-num text-text-on-dark mt-3" style={{ fontSize: 28 }}>
+        {value}
+      </Text>
+      <Text className="text-caption text-text-muted">{label}</Text>
+    </View>
+  );
+}
+
+/**
+ * "MEU DESEMPENHO" — the signed-in player's read-only stats for this match:
+ * an XP-gained card plus a 2×2 grid of Pontos / Blocks / Defesas / Aces tiles.
+ * Fed by summary.myPerformance (F1.6); self-reported stats input stays OUT of MVP.
+ */
+function PerformanceSection({ performance }: { performance: MatchPerformance }) {
+  return (
+    <View className="px-4 mt-8" testID="summary-performance">
+      <View className="flex-row items-center gap-2 mb-3">
+        <User size={16} color={colors.accent} />
+        <Text className="text-eyebrow text-accent uppercase">Meu desempenho</Text>
+      </View>
+
+      {/* XP-gained card */}
+      <View className="flex-row items-center gap-4 p-4 rounded-card bg-white/5">
+        <View className="h-12 w-12 rounded-card bg-white/10 items-center justify-center">
+          <Flame size={22} color={colors.accent} />
+        </View>
+        <View className="flex-1">
+          <Text className="text-body-bold text-text-on-dark">XP ganho nesta partida</Text>
+          <Text className="text-caption text-text-muted">Some ao seu progresso de nível</Text>
+        </View>
+        <Text className="font-num text-accent" style={{ fontSize: 32 }} testID="summary-xp">
+          +{performance.xpGained}
+        </Text>
+      </View>
+
+      {/* 2×2 stat tiles */}
+      <View className="flex-row flex-wrap justify-between gap-y-3 mt-3">
+        <StatTile icon={Target} value={performance.points} label="Pontos" highlight testID="summary-stat-points" />
+        <StatTile icon={Goal} value={performance.blocks} label="Blocks" testID="summary-stat-blocks" />
+        <StatTile icon={Lock} value={performance.defenses} label="Defesas" testID="summary-stat-defenses" />
+        <StatTile icon={Zap} value={performance.aces} label="Aces" testID="summary-stat-aces" />
+      </View>
     </View>
   );
 }

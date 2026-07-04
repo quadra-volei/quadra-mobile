@@ -29,6 +29,12 @@ jest.mock('lucide-react-native', () => {
     MapPin: stub('map-pin'),
     Share2: stub('share2'),
     Trophy: stub('trophy'),
+    User: stub('user'),
+    Flame: stub('flame'),
+    Target: stub('target'),
+    Goal: stub('goal'),
+    Lock: stub('lock'),
+    Zap: stub('zap'),
     Plus: stub('plus'),
     Minus: stub('minus'),
   };
@@ -129,6 +135,7 @@ function winFixture(over: Partial<MatchSummary> = {}): MatchSummary {
       { id: 'o5', name: 'Manu Castro', handle: 'manu_pon', position: 'PON', avatarUrl: undefined, votes: 2 },
     ],
     maxVotes: 5,
+    myPerformance: { xpGained: 24, points: 16, blocks: 2, defenses: 6, aces: 1 },
     ...over,
   };
 }
@@ -441,23 +448,35 @@ describe('S16 — Match Summary', () => {
 
   /**
    * Covers: S16 — Match Summary
-   * Criterion: "No 'MEU DESEMPENHO' block, no XP-gained pill, no
-   *  Pontos/Blocks/Defesas/Aces cards are present (Layer-3 cut verified)."
+   * Criterion: "'MEU DESEMPENHO' block shows the XP-gained card and the
+   *  Pontos/Blocks/Defesas/Aces stat tiles, fed by summary.myPerformance."
    */
-  it('does NOT render the MEU DESEMPENHO block, XP pill, or stat cards', async () => {
+  it('renders the MEU DESEMPENHO block with the XP-gained card and stat tiles', async () => {
     await renderScreen();
 
-    expect(screen.queryByText(/MEU DESEMPENHO/i)).toBeNull();
-    expect(screen.queryByText(/XP/i)).toBeNull();
-    expect(screen.queryByText(/Pontos/i)).toBeNull();
-    expect(screen.queryByText(/Blocks/i)).toBeNull();
-    expect(screen.queryByText(/Defesas/i)).toBeNull();
-    expect(screen.queryByText(/Aces/i)).toBeNull();
+    expect(screen.getByTestId('summary-performance')).toBeTruthy();
+    expect(screen.getByText('Meu desempenho')).toBeTruthy();
+
+    // XP-gained card
+    expect(screen.getByText('XP ganho nesta partida')).toBeTruthy();
+    expect(screen.getByText('Some ao seu progresso de nível')).toBeTruthy();
+    expect(textOf(screen.getByTestId('summary-xp'))).toBe('+24');
+
+    // 2×2 stat tiles: Pontos / Blocks / Defesas / Aces with their values
+    expect(screen.getByText('Pontos')).toBeTruthy();
+    expect(screen.getByText('Blocks')).toBeTruthy();
+    expect(screen.getByText('Defesas')).toBeTruthy();
+    expect(screen.getByText('Aces')).toBeTruthy();
+    expect(textOf(screen.getByTestId('summary-stat-points'))).toContain('16');
+    expect(textOf(screen.getByTestId('summary-stat-blocks'))).toContain('2');
+    expect(textOf(screen.getByTestId('summary-stat-defenses'))).toContain('6');
+    expect(textOf(screen.getByTestId('summary-stat-aces'))).toContain('1');
   });
 
   /**
    * Covers: S16 — Match Summary
-   * Criterion: "No per-player stats input screen/form is reachable from S16."
+   * Criterion: "The MEU DESEMPENHO block is display-only — no per-player stats
+   *  input screen/form or stepper controls are reachable from S16."
    */
   it('does NOT expose any per-player stats input / stepper controls', async () => {
     await renderScreen();
