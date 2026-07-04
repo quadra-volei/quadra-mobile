@@ -387,7 +387,7 @@ export default function MatchDetailScreen() {
                 />
               </View>
 
-              <View className="mt-4">
+              <View className="mt-4 flex-row">
                 <StepperField
                   label="Jogadores por time"
                   value={perTeam}
