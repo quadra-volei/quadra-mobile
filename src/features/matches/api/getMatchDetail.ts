@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { buildMatchDetail } from '@/features/matches/lib/buildMatchDetail';
 import type { MatchDetail } from '@/features/matches/types/matchDetail';
+import { useCreatedMatchesStore } from '@/stores/createdMatchesStore';
 
 // MOCK: deterministic fake latency so RNTL can assert the loading skeleton, the
 // populated screen, and navigation without flakiness. Tests may zero this via
@@ -111,6 +113,13 @@ async function getMatchDetail(
 ): Promise<MatchDetail> {
   // MOCK: fixed-latency resolve, no network.
   await new Promise((resolve) => setTimeout(resolve, latencyMs));
+  // A match the user created this session resolves from the in-memory store so
+  // the detail screen shows the REAL entered data (not a fixture). Read a live
+  // snapshot (non-reactive) at fetch time.
+  const created = useCreatedMatchesStore.getState().getCreatedMatch(id);
+  if (created) {
+    return buildMatchDetail(created);
+  }
   // MOCK: pick a fixture by id; echo the requested id so navigation params line up.
   const base = id.startsWith('mine')
     ? MOCK_ORGANIZER_MATCH

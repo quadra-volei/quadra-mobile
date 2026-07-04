@@ -84,6 +84,7 @@ jest.mock('lucide-react-native', () => {
     ChevronLeft: stub('chevron-left'),
     Check: stub('check'),
     Lock: stub('lock'),
+    MapPin: stub('map-pin'),
     Share2: stub('share2'),
     Pencil: stub('pencil'),
     Minus: stub('minus'),

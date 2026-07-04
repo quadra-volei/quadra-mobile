@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { Check, ChevronLeft, Lock, Share2 } from 'lucide-react-native';
+import { Check, ChevronLeft, Lock, MapPin, Share2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -16,12 +16,18 @@ import { TextField } from '@/components/ui/TextField';
 import { ToggleField } from '@/components/ui/ToggleField';
 import { useCreateMatch } from '@/features/matches/api/createMatch';
 import {
+  formatPriceLabel,
+  resolveMatchStartsAt,
+  type CreatedMatch,
+} from '@/features/matches/lib/buildMatchDetail';
+import {
   createMatchSchema,
   type CreateMatchInput,
 } from '@/features/matches/schema/createMatch';
+import type { MatchLevel } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
+import { useAuthStore } from '@/stores/auth';
 import { useCreatedMatchesStore } from '@/stores/createdMatchesStore';
-import type { UpcomingMatch } from '@/features/matches/types/match';
 
 // ── Eyebrow section label ──
 function SectionLabel({ children }: { children: string }) {
@@ -32,8 +38,55 @@ function SectionLabel({ children }: { children: string }) {
   );
 }
 
-// ── Success state (partida-criada.png): navy full screen + lime check + CTAs ──
-function CreatedView({ id }: { id: string }) {
+// ── Presentational label maps (token-free copy) for the success recap ──
+const LEVEL_LABEL: Record<MatchLevel, string> = {
+  INICIANTE: 'Iniciante',
+  INTERMEDIARIO: 'Intermediário',
+  AVANCADO: 'Avançado',
+};
+
+const TYPE_LABEL: Record<CreateMatchInput['type'], string> = {
+  OneOff: 'Avulso',
+  Recurring: 'Recorrente',
+};
+
+/** "Hoje · 19h00" / "Sáb · 19h00" — resolved start of the created match. */
+function formatCreatedWhen(startsAt: string): string {
+  const date = new Date(startsAt);
+  const hh = date.getHours().toString().padStart(2, '0');
+  const mm = date.getMinutes().toString().padStart(2, '0');
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const sameDate = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+  const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'] as const;
+  const dayLabel = sameDate(date, today)
+    ? 'Hoje'
+    : sameDate(date, tomorrow)
+      ? 'Amanhã'
+      : (WEEKDAYS[date.getDay()] ?? '');
+  return `${dayLabel} · ${hh}h${mm}`;
+}
+
+// ── One recap pill on the navy success screen ──
+function RecapPill({ children }: { children: string }) {
+  return (
+    <View className="rounded-pill bg-white/15 px-3 py-1">
+      <Text className="font-mono text-mono text-text-on-dark uppercase">
+        {children}
+      </Text>
+    </View>
+  );
+}
+
+// ── Success state (partida-criada.png): navy full screen + lime check + real
+// entered-data recap + CTAs. Reads the persisted `CreatedMatch` so the recap
+// reflects exactly what the organizer typed (not a fixture). ──
+function CreatedView({ match }: { match: CreatedMatch }) {
+  const { id, startsAt, input } = match;
   const goToMatch = () =>
     router.replace({ pathname: '/matches/[id]', params: { id } });
   // SCOPE: no inline invite / invite route in MVP — route to the S12 organizer
@@ -53,6 +106,73 @@ function CreatedView({ id }: { id: string }) {
       <Text className="mt-2 text-center font-body text-body text-text-on-dark/80">
         Sua partida está no ar. Convide a galera e bora jogar!
       </Text>
+
+      {/* ── Recap of the real entered data ── */}
+      <View
+        className="mt-6 w-full rounded-card bg-white/10 p-4"
+        testID="created-recap"
+      >
+        <Text
+          className="font-body text-h3 text-text-on-dark"
+          testID="created-recap-name"
+        >
+          {input.name}
+        </Text>
+        <View className="mt-1 flex-row items-center gap-1">
+          <MapPin size={16} color={colors.textOnDark} />
+          <Text
+            className="flex-1 font-body text-body text-text-on-dark/80"
+            testID="created-recap-location"
+          >
+            {input.location}
+          </Text>
+        </View>
+
+        <View className="mt-3 flex-row flex-wrap gap-2">
+          <RecapPill>{input.format}</RecapPill>
+          <RecapPill>{LEVEL_LABEL[input.level]}</RecapPill>
+          <RecapPill>{TYPE_LABEL[input.type]}</RecapPill>
+        </View>
+
+        <View className="mt-3 flex-row justify-between">
+          <View>
+            <Text className="font-body text-eyebrow text-text-on-dark/60 uppercase">
+              Quando
+            </Text>
+            <Text
+              className="mt-1 font-body text-body-bold text-text-on-dark"
+              testID="created-recap-when"
+            >
+              {formatCreatedWhen(startsAt)}
+            </Text>
+          </View>
+          <View>
+            <Text className="font-body text-eyebrow text-text-on-dark/60 uppercase">
+              Vagas
+            </Text>
+            <Text className="mt-1 font-body text-body-bold text-text-on-dark">
+              {input.players} jogadores
+            </Text>
+          </View>
+          <View>
+            <Text className="font-body text-eyebrow text-text-on-dark/60 uppercase">
+              Valor
+            </Text>
+            <Text
+              className="mt-1 font-num text-body-bold text-text-on-dark"
+              testID="created-recap-price"
+            >
+              {formatPriceLabel(input.price)}
+            </Text>
+          </View>
+        </View>
+
+        <Text className="mt-3 font-body text-caption text-text-on-dark/70">
+          {input.isOpen
+            ? 'Partida aberta · qualquer um pode entrar'
+            : 'Partida privada · só convidados'}
+        </Text>
+      </View>
 
       <View className="mt-8 w-full">
         <Button variant="grad" onPress={goToMatch} testID="created-view-match">
@@ -79,13 +199,14 @@ function CreatedView({ id }: { id: string }) {
 }
 
 export default function CreateMatchScreen() {
-  // ── Global store for created matches ──
-  const { addCreatedMatch } = useCreatedMatchesStore();
+  // ── Global store for created matches (session source of truth) ──
+  const addCreatedMatch = useCreatedMatchesStore((s) => s.addCreatedMatch);
+  const organizerId = useAuthStore((s) => s.userId);
 
   const createMatch = useCreateMatch();
 
-  // Local state per spec.
-  const [created, setCreated] = useState<{ id: string } | null>(null);
+  // Local state per spec; holds the full created record for the success recap.
+  const [created, setCreated] = useState<CreatedMatch | null>(null);
   // LOCAL free-text mirror (bridged into RHF); SearchField is not RHF-native.
   const [location, setLocation] = useState('');
   // Picked cover image local URI (carried into the submit payload).
@@ -145,28 +266,27 @@ export default function CreateMatchScreen() {
       { ...values, coverUri },
       {
         onSuccess: (data) => {
-          setCreated({ id: data.match.id });
-
-          // Add to created matches store so it appears in the home list
-          const priceLabel = values.price === 0 ? 'Grátis' : `R$ ${values.price}`;
-          const newMatch: UpcomingMatch = {
+          // Persist the FULL entered record so the success recap, S12 detail and
+          // the home list all read the real data the organizer typed. Kept in
+          // memory for the current session (no backend yet).
+          const record: CreatedMatch = {
             id: data.match.id,
-            name: values.name,
-            startsAt: new Date().toISOString(),
-            category: values.level === 'AVANCADO' ? 'COMPETITIVO' : 'CASUAL',
-            openSlots: values.players - 1, // Minus organizer
-            priceLabel,
-            avatarUrls: [], // No avatars yet (only organizer)
+            organizerId: organizerId ?? 'me',
+            startsAt: resolveMatchStartsAt(values.day),
+            createdAt: new Date().toISOString(),
+            coverUri,
+            input: values,
           };
 
-          addCreatedMatch(newMatch);
+          addCreatedMatch(record);
+          setCreated(record);
         },
       },
     );
   };
 
   if (created) {
-    return <CreatedView id={created.id} />;
+    return <CreatedView match={created} />;
   }
 
   return (

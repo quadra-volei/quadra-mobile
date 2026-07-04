@@ -54,7 +54,8 @@ describe('useCreateMatch (mock)', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.match.id).toEqual(expect.any(String));
-    expect(result.current.data?.match.id).toMatch(/^mock-match-/);
+    // Created matches are prefixed `mine-` so the organizer view resolves.
+    expect(result.current.data?.match.id).toMatch(/^mine-/);
   });
 
   it('invalidates the ["matches"] queries on success', async () => {

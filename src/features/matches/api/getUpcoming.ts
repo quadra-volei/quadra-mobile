@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { buildUpcomingMatch } from '@/features/matches/lib/buildMatchDetail';
 import type { UpcomingMatch } from '@/features/matches/types/match';
 import { useCreatedMatchesStore } from '@/stores/createdMatchesStore';
 
@@ -71,27 +72,32 @@ export function useUpcomingMatches(options: UseUpcomingMatchesOptions = {}) {
   const createdMatches = useCreatedMatchesStore((state) => state.createdMatches);
   const queryClient = useQueryClient();
 
+  // Derive the compact home-card summaries from the full created-match records.
+  const createdSummaries = createdMatches.map(buildUpcomingMatch);
+
   const query = useQuery({
     queryKey: upcomingMatchesQueryKey,
     queryFn: async () => {
       const mockData = await getUpcomingMatches(latencyMs);
-      // Combine mock data with user-created matches
-      return [...createdMatches, ...mockData];
+      // Combine mock data with user-created matches (newest first).
+      return [...createdSummaries, ...mockData];
     },
   });
 
   // Update cache whenever createdMatches changes
   useEffect(() => {
-    if (createdMatches.length > 0) {
+    if (createdSummaries.length > 0) {
       queryClient.setQueryData(upcomingMatchesQueryKey, (oldData: UpcomingMatch[] | undefined) => {
-        if (!oldData) return [...createdMatches, ...MOCK_UPCOMING];
+        if (!oldData) return [...createdSummaries, ...MOCK_UPCOMING];
         // Remove old created matches and add new ones
         const nonCreatedMatches = oldData.filter(
-          (m) => !createdMatches.find((cm) => cm.id === m.id)
+          (m) => !createdSummaries.find((cm) => cm.id === m.id)
         );
-        return [...createdMatches, ...nonCreatedMatches];
+        return [...createdSummaries, ...nonCreatedMatches];
       });
     }
+    // createdSummaries is derived fresh each render; depend on the source array.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createdMatches, queryClient]);
 
   return query;
