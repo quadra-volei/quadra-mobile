@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { buildMatchDetail } from '@/features/matches/lib/buildMatchDetail';
 import type { MatchDetail } from '@/features/matches/types/matchDetail';
 import { useCreatedMatchesStore } from '@/stores/createdMatchesStore';
+import { useGuestsStore } from '@/stores/guestsStore';
 
 // MOCK: deterministic fake latency so RNTL can assert the loading skeleton, the
 // populated screen, and navigation without flakiness. Tests may zero this via
@@ -117,14 +118,29 @@ async function getMatchDetail(
   // the detail screen shows the REAL entered data (not a fixture). Read a live
   // snapshot (non-reactive) at fetch time.
   const created = useCreatedMatchesStore.getState().getCreatedMatch(id);
-  if (created) {
-    return buildMatchDetail(created);
+  const detail = created
+    ? buildMatchDetail(created)
+    : // MOCK: pick a fixture by id; echo the requested id so nav params line up.
+      { ...(id.startsWith('mine') ? MOCK_ORGANIZER_MATCH : MOCK_PARTICIPANT_MATCH), id };
+  return mergeGuests(detail, id);
+}
+
+/**
+ * Folds any organizer-added guests (session `guestsStore`) into the match:
+ * appends them to `players` (they render as confirmed, filling "vaga" slots) and
+ * shrinks `openDropInSlots` accordingly. Applies to created matches and mock
+ * fixtures alike, so the detail grid reflects guests after an add + invalidate.
+ */
+function mergeGuests(detail: MatchDetail, id: string): MatchDetail {
+  const guests = useGuestsStore.getState().getGuests(id);
+  if (guests.length === 0) {
+    return detail;
   }
-  // MOCK: pick a fixture by id; echo the requested id so navigation params line up.
-  const base = id.startsWith('mine')
-    ? MOCK_ORGANIZER_MATCH
-    : MOCK_PARTICIPANT_MATCH;
-  return { ...base, id };
+  return {
+    ...detail,
+    players: [...detail.players, ...guests],
+    openDropInSlots: Math.max(0, detail.openDropInSlots - guests.length),
+  };
 }
 
 export type UseMatchDetailOptions = {

@@ -13,17 +13,20 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AddGuestSheet } from '@/components/domain/AddGuestSheet';
 import { PresenceGrid } from '@/components/domain/PresenceGrid';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { StepperField } from '@/components/ui/StepperField';
+import { useAddGuest } from '@/features/matches/api/addGuest';
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
 import {
   useConfirmPresence,
   useDeclinePresence,
   useJoinMatch,
 } from '@/features/matches/api/presence';
+import type { AddGuestInput } from '@/features/matches/schema/addGuest';
 import type { MatchLevel } from '@/features/matches/types/match';
 import type {
   DrawMode,
@@ -155,6 +158,10 @@ export default function MatchDetailScreen() {
   const confirmPresence = useConfirmPresence(matchId);
   const declinePresence = useDeclinePresence(matchId);
   const joinMatch = useJoinMatch(matchId);
+  const addGuest = useAddGuest(matchId);
+
+  // Organizer "add guest to fill a vaga" sheet (S12).
+  const [guestSheetOpen, setGuestSheetOpen] = useState(false);
 
   // Organizer team-config — ephemeral local UI state (not API data; not RHF).
   // Defaults come from the payload once it resolves; seeded lazily on first read.
@@ -195,6 +202,12 @@ export default function MatchDetailScreen() {
   const onShare = () => {
     void Share.share({
       message: `Bora jogar? "${match.name}" na Quadra. (match:${match.id})`,
+    });
+  };
+
+  const handleAddGuest = (values: AddGuestInput) => {
+    addGuest.mutate(values, {
+      onSuccess: () => setGuestSheetOpen(false),
     });
   };
 
@@ -356,6 +369,9 @@ export default function MatchDetailScreen() {
             <PresenceGrid
               players={match.players}
               capacity={match.capacity}
+              onPressEmpty={
+                isOrganizer ? () => setGuestSheetOpen(true) : undefined
+              }
               testID="presence-grid"
             />
           </View>
@@ -540,6 +556,15 @@ export default function MatchDetailScreen() {
             </View>
           )}
         </View>
+
+        {/* ── Organizer: add-guest bottom sheet ── */}
+        <AddGuestSheet
+          visible={guestSheetOpen}
+          onClose={() => setGuestSheetOpen(false)}
+          onSubmit={handleAddGuest}
+          submitting={addGuest.isPending}
+          testID="add-guest-sheet"
+        />
       </SafeAreaView>
     </View>
   );

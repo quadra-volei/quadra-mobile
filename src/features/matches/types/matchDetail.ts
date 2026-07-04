@@ -30,6 +30,12 @@ export type PresencePlayer = {
   avatarUrl?: string;
   status: PresenceStatus;
   position?: PlayerPosition;
+  /**
+   * A manually-added guest occupying a slot (has no app account). Added by the
+   * organizer from S12 to fill an open "vaga"; always CONFIRMADO. Rendered with
+   * a "convidado" tag in the grid.
+   */
+  isGuest?: boolean;
 };
 
 /** The match organizer shown in the white info card's "Organizado por" row. */

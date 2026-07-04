@@ -48,6 +48,7 @@ jest.mock('react-native-safe-area-context', () => {
   return {
     SafeAreaView: ({ children, ...props }: any) =>
       ReactLocal.createElement(View, props, children),
+    useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
   };
 });
 
@@ -83,6 +84,7 @@ jest.mock('lucide-react-native', () => {
     WandSparkles: stub('wand-sparkles'),
     Minus: stub('minus'),
     Plus: stub('plus'),
+    X: stub('x'),
   };
 });
 
@@ -205,6 +207,7 @@ jest.mock('@/features/matches/api/getMatchDetail', () => ({
 const mockConfirm = { mutate: jest.fn(), isPending: false };
 const mockDecline = { mutate: jest.fn(), isPending: false };
 const mockJoin = { mutate: jest.fn(), isPending: false };
+const mockAddGuest = { mutate: jest.fn(), isPending: false };
 
 jest.mock('@/features/matches/api/presence', () => ({
   useConfirmPresence: () => ({
@@ -218,6 +221,13 @@ jest.mock('@/features/matches/api/presence', () => ({
   useJoinMatch: () => ({
     mutate: mockJoin.mutate,
     isPending: mockJoin.isPending,
+  }),
+}));
+
+jest.mock('@/features/matches/api/addGuest', () => ({
+  useAddGuest: () => ({
+    mutate: mockAddGuest.mutate,
+    isPending: mockAddGuest.isPending,
   }),
 }));
 
