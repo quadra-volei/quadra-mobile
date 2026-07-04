@@ -5,7 +5,7 @@ import { Check, ChevronLeft, Lock, MapPin, Share2 } from 'lucide-react-native';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CoverPicker } from '@/components/domain/CoverPicker';
 import { Button } from '@/components/ui/Button';
@@ -204,6 +204,7 @@ export default function CreateMatchScreen() {
   const organizerId = useAuthStore((s) => s.userId);
 
   const createMatch = useCreateMatch();
+  const insets = useSafeAreaInsets();
 
   // Local state per spec; holds the full created record for the success recap.
   const [created, setCreated] = useState<CreatedMatch | null>(null);
@@ -308,7 +309,8 @@ export default function CreateMatchScreen() {
         </View>
 
         <ScrollView
-          contentContainerClassName="px-4 pb-8"
+          contentContainerClassName="px-4"
+          contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >

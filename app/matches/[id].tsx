@@ -11,7 +11,7 @@ import {
 } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Share, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PresenceGrid } from '@/components/domain/PresenceGrid';
 import { Avatar } from '@/components/ui/Avatar';
@@ -149,6 +149,7 @@ export default function MatchDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const matchId = id ?? '';
   const userId = useAuthStore((s) => s.userId);
+  const insets = useSafeAreaInsets();
 
   const matchQuery = useMatchDetail(matchId);
   const confirmPresence = useConfirmPresence(matchId);
@@ -223,7 +224,11 @@ export default function MatchDetailScreen() {
   return (
     <View className="flex-1 bg-bg-light">
       <SafeAreaView edges={['top']} className="flex-1">
-        <ScrollView contentContainerClassName="pb-32" showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerClassName="pb-32"
+          contentContainerStyle={{ paddingBottom: insets.bottom + 128 }}
+          showsVerticalScrollIndicator={false}
+        >
           {/* ── Dark hero header ── */}
           <LinearGradient
             colors={HERO_GRADIENT}
@@ -452,7 +457,10 @@ export default function MatchDetailScreen() {
         </ScrollView>
 
         {/* ── Fixed footer ── */}
-        <View className="absolute bottom-0 left-0 right-0 border-t border-line bg-white px-4 pt-3 pb-6">
+        <View
+          className="absolute bottom-0 left-0 right-0 border-t border-line bg-white px-4 pt-3"
+          style={{ paddingBottom: Math.max(insets.bottom, 24) }}
+        >
           {isOrganizer ? (
             <Button variant="grad" onPress={goToTeams} testID="build-teams">
               Montar os times
