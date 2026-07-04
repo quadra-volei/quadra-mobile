@@ -1,28 +1,28 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
-import { Bell, Settings } from 'lucide-react-native';
-import { Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import { Bell, Settings } from "lucide-react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { LevelBar } from '@/components/domain/LevelBar';
-import { MatchHistoryRow } from '@/components/domain/MatchHistoryRow';
-import { Avatar } from '@/components/ui/Avatar';
-import { Button } from '@/components/ui/Button';
-import { useMyProfile } from '@/features/profile/api/getMyProfile';
-import { useRecentMatches } from '@/features/profile/api/getRecentMatches';
-import { useGroupRanking } from '@/features/ranking/api/getGroupRanking';
-import type { RankingRow } from '@/features/ranking/types/ranking';
-import { useAuthStore } from '@/stores/auth';
-import { colors, HERO_GRADIENT } from '@/theme/colors';
+import { LevelBar } from "@/components/domain/LevelBar";
+import { MatchHistoryRow } from "@/components/domain/MatchHistoryRow";
+import { Avatar } from "@/components/ui/Avatar";
+import { Button } from "@/components/ui/Button";
+import { useMyProfile } from "@/features/profile/api/getMyProfile";
+import { useRecentMatches } from "@/features/profile/api/getRecentMatches";
+import { useGroupRanking } from "@/features/ranking/api/getGroupRanking";
+import type { RankingRow } from "@/features/ranking/types/ranking";
+import { useAuthStore } from "@/stores/auth";
+import { colors, HERO_GRADIENT } from "@/theme/colors";
 
 function goRanking() {
-  router.push('/profile/ranking');
+  router.push("/profile/ranking");
 }
 function goSettings() {
-  router.push('/profile/settings');
+  router.push("/profile/settings");
 }
 function goMatch(id: string) {
-  router.push({ pathname: '/matches/[id]', params: { id } });
+  router.push({ pathname: "/matches/[id]", params: { id } });
 }
 
 /** Neutral rounded skeleton block (DESIGN_SYSTEM skeleton shapes TBD — flag). */
@@ -75,7 +75,7 @@ function ProfileHeader() {
         <View>
           <Text className="font-body text-caption text-text-muted">Olá,</Text>
           <Text className="font-display text-h1 text-text-primary uppercase">
-            {data?.firstName ?? '...'}
+            {data?.firstName ?? "..."}
           </Text>
         </View>
       </View>
@@ -120,7 +120,9 @@ function ProgressSection() {
         Seu progresso
       </Text>
       <View className="flex-row items-center gap-3 mt-3">
-        <Text className="font-mono text-mono text-text-muted uppercase">Geral</Text>
+        <Text className="font-mono text-mono text-text-muted uppercase">
+          Geral
+        </Text>
         <Text className="font-num text-primary text-num">{data.overall}</Text>
       </View>
       <View className="mt-4">
@@ -169,26 +171,24 @@ function RecentMatchesSection() {
   );
 }
 
-function RankingPreviewRow({
-  row,
-  isMe,
-}: {
-  row: RankingRow;
-  isMe: boolean;
-}) {
+function RankingPreviewRow({ row, isMe }: { row: RankingRow; isMe: boolean }) {
   return (
     <View
-      className={`flex-row items-center px-3 py-2 ${isMe ? 'bg-primary/20 rounded-pill' : ''}`}
+      className={`flex-row items-center px-3 py-2 ${isMe ? "bg-primary/20 rounded-pill" : ""}`}
       accessibilityLabel={isMe ? `${row.name}, você, ${row.score}` : undefined}
     >
-      <Text className="font-num text-text-on-dark text-body w-6">{row.position}</Text>
+      <Text className="font-num text-text-on-dark text-body w-6">
+        {row.position}
+      </Text>
       <Avatar name={row.name} size="sm" />
       <View className="flex-1 ml-3">
         <Text className="font-body text-body-bold text-text-on-dark">
           {row.name}
-          {isMe ? ' · você' : ''}
+          {isMe ? " · você" : ""}
         </Text>
-        <Text className="font-body text-caption text-text-muted">{row.subtitle}</Text>
+        <Text className="font-body text-caption text-text-muted">
+          {row.subtitle}
+        </Text>
       </View>
       <Text className="font-num text-accent text-body">{row.score}</Text>
     </View>
@@ -198,7 +198,9 @@ function RankingPreviewRow({
 // ── Ranking semanal (dark preview card; "Meus amigos" relabeled to ranking) ──
 function RankingSection() {
   const userId = useAuthStore((s) => s.userId);
-  const { data, isPending, isError, refetch } = useGroupRanking({ preview: true });
+  const { data, isPending, isError, refetch } = useGroupRanking({
+    preview: true,
+  });
 
   if (isPending) {
     return <SkeletonBlock className="mx-4 mt-2 h-56" />;
@@ -206,7 +208,11 @@ function RankingSection() {
   if (isError) {
     return (
       <View className="mx-4 mt-2 rounded-card overflow-hidden">
-        <LinearGradient colors={HERO_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+        <LinearGradient
+          colors={HERO_GRADIENT}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
           <View className="p-4 items-center" accessibilityLiveRegion="polite">
             <Text className="font-body text-body text-text-on-dark text-center">
               Não foi possível carregar
@@ -222,10 +228,17 @@ function RankingSection() {
 
   return (
     <View className="mx-4 mt-2 rounded-card overflow-hidden">
-      <LinearGradient colors={HERO_GRADIENT} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+      <LinearGradient
+        colors={HERO_GRADIENT}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
         <View className="p-3">
           {data.length === 0 ? (
-            <View className="py-4 items-center" accessibilityLiveRegion="polite">
+            <View
+              className="py-4 items-center"
+              accessibilityLiveRegion="polite"
+            >
               <Text className="font-body text-caption text-text-muted text-center">
                 Entre em uma partida recorrente para aparecer no ranking
               </Text>
@@ -236,7 +249,9 @@ function RankingSection() {
                 <RankingPreviewRow
                   key={row.playerId}
                   row={row}
-                  isMe={userId != null ? row.playerId === userId : Boolean(row.isMe)}
+                  isMe={
+                    userId != null ? row.playerId === userId : Boolean(row.isMe)
+                  }
                 />
               ))}
               <View className="mt-3">
@@ -255,7 +270,7 @@ function RankingSection() {
 export default function ProfileScreen() {
   return (
     <View className="flex-1 bg-bg-light">
-      <SafeAreaView edges={['top']} className="flex-1">
+      <SafeAreaView edges={["top"]} className="flex-1">
         <ProfileHeader />
 
         <ScrollView contentContainerClassName="pb-24">
@@ -269,10 +284,7 @@ export default function ProfileScreen() {
           <RecentMatchesSection />
 
           {/* Ranking semanal */}
-          <SectionTitleRow
-            title="Ranking semanal"
-            action={{ label: 'Ver tudo', onPress: goRanking }}
-          />
+          <SectionTitleRow title="Ranking semanal" />
           <RankingSection />
         </ScrollView>
       </SafeAreaView>
