@@ -1,3 +1,4 @@
+import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, Tabs } from 'expo-router';
 import type { ComponentType } from 'react';
@@ -10,6 +11,7 @@ import { TabHomeIcon } from '@/components/icons/TabHomeIcon';
 import { TabNetworkIcon } from '@/components/icons/TabNetworkIcon';
 import { TabProfileIcon } from '@/components/icons/TabProfileIcon';
 import type { TabIconProps } from '@/components/icons/tabIcon';
+import { useNavBlurTargetStore } from '@/stores/navBlurTarget';
 import { CTA_GRADIENT } from '@/theme/colors';
 
 // Routes shown as labeled tabs, in bar order: two to the left of the FAB, two to
@@ -57,6 +59,9 @@ function TabBarButton({
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+  // The focused tab screen publishes its `BlurTargetView` ref here so Android's
+  // `dimezisBlurView` has a backdrop to sample (iOS blurs natively regardless).
+  const navBlurTarget = useNavBlurTargetStore((s) => s.target);
 
   return (
     <Tabs
@@ -92,18 +97,59 @@ export default function TabsLayout() {
 
         return (
           <View
-            className="flex-row items-end bg-white border-t border-line"
-            style={{ paddingBottom: insets.bottom }}
+            pointerEvents="box-none"
+            style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}
           >
-            {leftTabs.map(renderTab)}
+          <View
+            className="mx-4"
+            style={{
+              borderRadius: 28,
+              marginBottom: insets.bottom + 12,
+              boxShadow: '0 8px 24px rgba(10,10,60,0.16)',
+            }}
+          >
+            {/* Glass pill — iOS blurs natively. On Android the real backdrop
+                blur (`dimezisBlurView`) samples the focused screen's
+                `BlurTargetView`, published via the nav-blur-target store; until
+                a screen registers one we omit the method so it renders the
+                frosted `bg-white/40` tint instead of warning + falling back to
+                "none". Clipped to the rounded shape; the FAB is a sibling
+                overlay so the clip doesn't cut off its poke. */}
+            <BlurView
+              intensity={80}
+              tint="light"
+              {...(navBlurTarget
+                ? { blurMethod: 'dimezisBlurView' as const, blurTarget: navBlurTarget }
+                : {})}
+              style={{ borderRadius: 28, overflow: 'hidden' }}
+            >
+              <View className="flex-row items-end px-1 bg-white/40 border border-white/40">
+                {leftTabs.map(renderTab)}
 
-            {/* Central "Jogar" FAB — overlaps the bar; pushes /matches/create. */}
-            <View className="w-20 items-center">
+                {/* Center column reserves the FAB's footprint and keeps the
+                    "Jogar" label aligned with the other tab labels. */}
+                <View className="w-20 items-center">
+                  <View style={{ height: 44 }} />
+                  <Text className="font-body text-[10px] mt-1 text-text-muted">
+                    Jogar
+                  </Text>
+                </View>
+
+                {rightTabs.map(renderTab)}
+              </View>
+            </BlurView>
+
+            {/* Central "Jogar" FAB — poking overlay, outside the clipped pill. */}
+            <View
+              pointerEvents="box-none"
+              className="absolute inset-x-0 items-center"
+              style={{ top: -20 }}
+            >
               <Pressable
                 onPress={() => router.push('/matches/create')}
                 accessibilityRole="button"
                 accessibilityLabel="Jogar"
-                className="rounded-full overflow-hidden -mt-6"
+                className="rounded-full overflow-hidden"
                 style={{ boxShadow: '0 4px 16px rgba(26,26,255,0.28)' }}
               >
                 <LinearGradient
@@ -121,12 +167,8 @@ export default function TabsLayout() {
                   <JogarIcon size={30} />
                 </LinearGradient>
               </Pressable>
-              <Text className="font-body text-[10px] mt-1 text-text-muted">
-                Jogar
-              </Text>
             </View>
-
-            {rightTabs.map(renderTab)}
+          </View>
           </View>
         );
       }}

@@ -1,14 +1,16 @@
+import { BlurTargetView } from 'expo-blur';
 import { router } from 'expo-router';
 import { Bell, LayoutGrid, List, MapPin } from 'lucide-react-native';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MatchCard } from '@/components/domain/MatchCard';
 import { Button } from '@/components/ui/Button';
+import { GlassHeader } from '@/components/ui/GlassHeader';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { SearchField } from '@/components/ui/SearchField';
 import { useNearbyMatches } from '@/features/matches/api/getNearby';
+import { useRegisterNavBlurTarget } from '@/stores/navBlurTarget';
 import type { NearbyMatch } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
 
@@ -298,12 +300,24 @@ function ResultsBody({
 
 export default function ExploreScreen() {
   const [view, setView] = useState<ViewMode>('grid');
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const blurTarget = useRef<View>(null);
+  useRegisterNavBlurTarget(blurTarget);
 
   return (
     <View className="flex-1 bg-bg-light">
-      <SafeAreaView edges={['top']} className="flex-1">
-        {/* Header (inline) — no avatar/greeting. Bell + theme toggle are no-ops
-            this iteration (no notifications screen; dark tokens unspecified). */}
+      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerClassName="pb-24"
+          contentContainerStyle={{ paddingTop: headerHeight }}
+        >
+          <ResultsArea view={view} setView={setView} />
+        </ScrollView>
+      </BlurTargetView>
+
+      {/* Glass header — no avatar/greeting. Bell is a no-op this iteration
+          (no notifications screen). */}
+      <GlassHeader blurTarget={blurTarget} onHeight={setHeaderHeight}>
         <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
           <Text className="font-display text-h1 text-text-primary uppercase">
             EXPLORAR
@@ -318,11 +332,7 @@ export default function ExploreScreen() {
             </Pressable>
           </View>
         </View>
-
-        <ScrollView contentContainerClassName="pb-24">
-          <ResultsArea view={view} setView={setView} />
-        </ScrollView>
-      </SafeAreaView>
+      </GlassHeader>
     </View>
   );
 }

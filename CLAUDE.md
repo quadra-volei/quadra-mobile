@@ -31,6 +31,7 @@
 | SVG | react-native-svg | 15.15.4 |
 | Images | expo-image | ~56.0.10 |
 | Gradients | expo-linear-gradient | ~56.0.4 |
+| Blur (glass chrome) | expo-blur | ~56.0.3 |
 | Icons | lucide-react-native | ^0.475.0 |
 | Forms | react-hook-form | ^7.78.0 |
 | Validation | zod | ^3.25.76 |
@@ -45,7 +46,7 @@
 
 > Added per `docs/DESIGN_SYSTEM.md` — Quadra's brand typography (Climate Crisis, Russo One, DM Sans, Baloo 2, DM Mono) replaces the previous system-font default. See "Custom fonts" below.
 
-> `@react-native-async-storage/async-storage` is for **non-secret UI preferences only** (e.g. appearance theme). Auth tokens stay in `expo-secure-store` — rule #3 below is unchanged. `expo-image-picker` was added for S10's "Trocar foto" (avatar selection). `expo-location` was added for S17's map (foreground device location to center the map and supply `lat`/`lon` to F1.7); install via `npx expo install expo-location` to pin the SDK-56-compatible version.
+> `@react-native-async-storage/async-storage` is for **non-secret UI preferences only** (e.g. appearance theme). Auth tokens stay in `expo-secure-store` — rule #3 below is unchanged. `expo-image-picker` was added for S10's "Trocar foto" (avatar selection). `expo-location` was added for S17's map (foreground device location to center the map and supply `lat`/`lon` to F1.7); install via `npx expo install expo-location` to pin the SDK-56-compatible version. `expo-blur` was added for the translucent glass app header (`src/components/ui/GlassHeader.tsx`), matching the prototype's `backdrop-filter` chrome — RN has no `backdrop-filter`, so real backdrop blur needs the native `BlurView`. It requires a Dev Client rebuild. On Android the blur uses `blurMethod="dimezisBlurView"`, which needs an explicit backdrop: each nav screen wraps its scroll content in `<BlurTargetView ref={blurTarget}>` and passes that ref to `GlassHeader` (→ `BlurView`'s `blurTarget`). Without it Android silently falls back to no blur. iOS blurs natively and ignores both props.
 
 ---
 ## Package management rules

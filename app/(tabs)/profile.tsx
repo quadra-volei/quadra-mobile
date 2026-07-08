@@ -1,15 +1,18 @@
+import { BlurTargetView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Bell, Settings } from "lucide-react-native";
+import { useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { LevelBar } from "@/components/domain/LevelBar";
 import { MatchHistoryRow } from "@/components/domain/MatchHistoryRow";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { GlassHeader } from "@/components/ui/GlassHeader";
 import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { useRecentMatches } from "@/features/profile/api/getRecentMatches";
+import { useRegisterNavBlurTarget } from "@/stores/navBlurTarget";
 import { useGroupRanking } from "@/features/ranking/api/getGroupRanking";
 import type { RankingRow } from "@/features/ranking/types/ranking";
 import { useAuthStore } from "@/stores/auth";
@@ -272,12 +275,17 @@ function RankingSection() {
 }
 
 export default function ProfileScreen() {
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const blurTarget = useRef<View>(null);
+  useRegisterNavBlurTarget(blurTarget);
+
   return (
     <View className="flex-1 bg-bg-light">
-      <SafeAreaView edges={["top"]} className="flex-1">
-        <ProfileHeader />
-
-        <ScrollView contentContainerClassName="pb-24">
+      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerClassName="pb-24"
+          contentContainerStyle={{ paddingTop: headerHeight }}
+        >
           {/* Seu progresso */}
           <View className="mt-2">
             <ProgressSection />
@@ -291,7 +299,11 @@ export default function ProfileScreen() {
           <SectionTitleRow title="Ranking semanal" />
           <RankingSection />
         </ScrollView>
-      </SafeAreaView>
+      </BlurTargetView>
+
+      <GlassHeader blurTarget={blurTarget} onHeight={setHeaderHeight}>
+        <ProfileHeader />
+      </GlassHeader>
     </View>
   );
 }
