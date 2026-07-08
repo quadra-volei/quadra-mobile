@@ -13,7 +13,7 @@
  *    an "Em breve" affordance.
  *  - "Notificações" is a chevron row that navigates to /profile/notifications.
  *  - "Permissões do app" opens OS settings (Linking.openSettings).
- *  - "Enviar feedback" opens the mail client via the feedback mailto.
+ *  - "Enviar feedback" navigates to the in-app feedback screen (/profile/feedback).
  *  - "Sobre o Quadra vX.Y.Z" shows the app version.
  *  - "Sair da conta" (red) calls logout(queryClient) (clears tokens + auth store +
  *    query cache and redirects to Login).
@@ -389,16 +389,15 @@ describe('S10 — Settings list screen', () => {
   // --------------------------------------------------------- Enviar feedback
   /**
    * Covers: S10 — Settings
-   * Criterion: "'Enviar feedback' opens the mail client via
-   *  'mailto:contato@quadra.app?subject=Feedback Quadra'."
+   * Criterion: "'Enviar feedback' navigates to the in-app feedback screen
+   *  (/profile/feedback)" — replaces the previous `mailto:` hand-off.
    */
-  it('opens the mail client with the feedback mailto when "Enviar feedback" is tapped', async () => {
+  it('navigates to /profile/feedback when "Enviar feedback" is tapped', async () => {
     await renderScreen();
 
     fireEvent.press(screen.getByText('Enviar feedback'));
-    expect(mockOpenURL).toHaveBeenCalledWith(
-      'mailto:contato@quadra.app?subject=Feedback Quadra',
-    );
+    expect(mockPush).toHaveBeenCalledWith('/profile/feedback');
+    expect(mockOpenURL).not.toHaveBeenCalled();
   });
 
   // --------------------------------------------------------- Sobre o Quadra

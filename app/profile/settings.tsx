@@ -26,9 +26,6 @@ import { colors } from '@/theme/colors';
 // (expo-constants/expo-application are not in the locked stack); update on bumps.
 const APP_VERSION = '1.0.0';
 
-// Feedback destination — opens the OS mail client (no in-app feedback form).
-const FEEDBACK_MAILTO = 'mailto:contato@quadra.app?subject=Feedback Quadra';
-
 /** Neutral rounded skeleton block (DESIGN_SYSTEM skeleton shapes TBD — flag). */
 function SkeletonBlock({ className }: { className: string }) {
   return <View className={`bg-bg-light-alt rounded-card ${className}`} />;
@@ -312,9 +309,7 @@ export default function SettingsScreen() {
               icon={<MessageSquare size={24} color={colors.surfaceDark} />}
               title="Enviar feedback"
               subtitle="Sugestões, problemas e elogios"
-              onPress={() => {
-                void Linking.openURL(FEEDBACK_MAILTO);
-              }}
+              onPress={() => router.push('/profile/feedback')}
             />
             <Divider />
             <SettingsRow
