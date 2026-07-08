@@ -16,6 +16,7 @@ import { useGroupRanking } from "@/features/ranking/api/getGroupRanking";
 import type { RankingRow } from "@/features/ranking/types/ranking";
 import { useAuthStore } from "@/stores/auth";
 import { colors } from "@/theme/colors";
+import { DEFAULT_AVATAR } from "@/theme/defaultAvatars";
 
 function goRanking() {
   router.push("/profile/ranking");
@@ -87,6 +88,7 @@ function ProfileHeader() {
           name={data?.firstName}
           size="md"
           level={data?.level}
+          defaultSource={DEFAULT_AVATAR}
         />
         <View>
           <Text className="font-body text-caption text-text-muted">Olá,</Text>
@@ -124,7 +126,7 @@ function StatCell({ label, value }: { label: string; value: number }) {
       </Text>
       {/* text-h1 (weight 400) — NOT text-h3, whose 800 weight breaks the
           single-weight Russo One font (`font-num`) and falls back to system. */}
-      <Text className="font-num text-text-primary text-h1 mt-1">{value}</Text>
+      <Text className="font-num text-text-primary text-h1">{value}</Text>
     </View>
   );
 }
@@ -146,13 +148,8 @@ function ProgressSection() {
 
   return (
     <View className="mx-4 bg-white rounded-card shadow-card p-4">
-      {/* In-screen section title: text-h2 (one step below the profile header). */}
-      <Text className="font-display text-h2 text-text-primary uppercase">
-        Seu progresso
-      </Text>
-
       {/* GERAL box (left) + 2×2 stats grid (right). */}
-      <View className="flex-row gap-3 mt-3">
+      <View className="flex-row gap-3">
         <View className="w-24 rounded-card bg-primary/5 items-center justify-center py-3">
           <Text className="font-mono text-mono text-text-muted uppercase">
             Geral

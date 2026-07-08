@@ -17,7 +17,10 @@ export const myProfileQueryKey = ['profile', 'me'] as const;
 const MOCK_PROFILE: MyProfile = {
   id: 'me',
   firstName: 'Renan',
-  avatarUrl: 'https://i.pravatar.cc/200?img=15',
+  // No uploaded photo yet → the header/card fall back to the brand default
+  // illustration (Avatar's `defaultSource`/seeded default), matching the S8
+  // prototype. Real F2.1 supplies `avatarUrl` once the user uploads one.
+  avatarUrl: undefined,
   overall: 68,
   // Per-skill ratings (prototype MY_STATS). ace/blk/ata/def feed the profile
   // 2×2 grid; srv/rec add the last two cells on the player card.

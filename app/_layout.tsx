@@ -1,4 +1,7 @@
 import '../global.css';
+// Registers `className` support on third-party components (expo-image). Must run
+// before any screen renders an <Avatar>/cover image. Side-effect import only.
+import '@/lib/registerCssInterop';
 
 import {
   DMSans_400Regular,

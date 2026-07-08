@@ -9,6 +9,7 @@ import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { positionLabel } from "@/features/profile/schema/onboarding";
 import type { MyProfile } from "@/features/profile/types/profile";
 import { colors } from "@/theme/colors";
+import { DEFAULT_AVATAR } from "@/theme/defaultAvatars";
 
 /** Opens the native share sheet with a short player-card summary. */
 async function shareCard(name: string, overall: number) {
@@ -109,7 +110,12 @@ function CardBody({ profile }: { profile: MyProfile }) {
 
         {/* Player photo */}
         <View className="items-center my-4">
-          <Avatar uri={profile.avatarUrl} name={profile.firstName} size="xl" />
+          <Avatar
+            uri={profile.avatarUrl}
+            name={profile.firstName}
+            size="xl"
+            defaultSource={DEFAULT_AVATAR}
+          />
         </View>
 
         {/* Name + @handle · position */}

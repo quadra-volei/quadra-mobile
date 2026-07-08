@@ -2,13 +2,17 @@ import { Image } from 'expo-image';
 import { Text, View } from 'react-native';
 
 import { levelTier } from '@/theme/levelTier';
+import {
+  type AvatarSource,
+  defaultAvatarFor,
+} from '@/theme/defaultAvatars';
 
 export type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
 
 export type AvatarProps = {
-  /** expo-image source; falls back to the initial when absent. */
+  /** expo-image source; falls back to a brand default illustration when absent. */
   uri?: string;
-  /** Used for the initial fallback + accessibility label. */
+  /** Used to seed the default illustration + the accessibility label. */
   name?: string;
   /** sm = ranking/header rows, md = header, lg = podium (S9), xl = player card. */
   size?: AvatarSize;
@@ -18,6 +22,12 @@ export type AvatarProps = {
    * avatar (default; existing consumers are unaffected).
    */
   level?: number;
+  /**
+   * Overrides the seeded default illustration used when there is no `uri`
+   * (e.g. pin the current user to the prototype's `DEFAULT_AVATAR`). Ignored
+   * when `uri` is present.
+   */
+  defaultSource?: AvatarSource;
   testID?: string;
 };
 
@@ -30,13 +40,6 @@ const SIZE_CLASS: Record<AvatarSize, string> = {
   xl: 'h-32 w-32',
 };
 
-const INITIAL_CLASS: Record<AvatarSize, string> = {
-  sm: 'text-body',
-  md: 'text-h3',
-  lg: 'text-h1',
-  xl: 'text-display',
-};
-
 // Badge diameter (via defined spacing tokens) + number font size per avatar size.
 const BADGE_CLASS: Record<AvatarSize, { box: string; font: number }> = {
   sm: { box: 'h-4 w-4', font: 9 },
@@ -44,11 +47,6 @@ const BADGE_CLASS: Record<AvatarSize, { box: string; font: number }> = {
   lg: { box: 'h-6 w-6', font: 12 },
   xl: { box: 'h-12 w-12', font: 20 },
 };
-
-function initialOf(name?: string): string {
-  const trimmed = name?.trim() ?? '';
-  return trimmed.length > 0 ? trimmed.charAt(0).toUpperCase() : '?';
-}
 
 /** Small tier-colored level badge overlaid at the avatar's bottom-right. */
 function LevelBadge({ level, size }: { level: number; size: AvatarSize }) {
@@ -72,33 +70,33 @@ function LevelBadge({ level, size }: { level: number; size: AvatarSize }) {
 }
 
 /**
- * Circular avatar with an initials fallback. Renders an `expo-image` (cached)
- * when `uri` is present, otherwise a `bg-bg-light-alt` circle with the name's
- * first letter. Receives plain data via props and never fetches.
+ * Circular avatar. Renders an `expo-image` (cached) of the player's photo when
+ * `uri` is present, otherwise a brand default illustration — seeded by `name`
+ * for variety, or pinned via `defaultSource`. Receives plain data via props and
+ * never fetches.
  *
  * First needed by S8 (header + ranking rows); reused by S9/S10/S12/S15.
  */
-export function Avatar({ uri, name, size = 'md', level, testID }: AvatarProps) {
+export function Avatar({
+  uri,
+  name,
+  size = 'md',
+  level,
+  defaultSource,
+  testID,
+}: AvatarProps) {
   const sizeClass = SIZE_CLASS[size];
   const label = name ? `Avatar de ${name}` : 'Avatar';
+  const source = uri ? { uri } : (defaultSource ?? defaultAvatarFor(name));
 
-  const circle = uri ? (
+  const circle = (
     <Image
-      source={{ uri }}
+      source={source}
+      contentFit="cover"
       testID={testID}
       accessibilityLabel={label}
       className={`${sizeClass} rounded-full bg-bg-light-alt`}
     />
-  ) : (
-    <View
-      testID={testID}
-      accessibilityLabel={label}
-      className={`${sizeClass} rounded-full bg-bg-light-alt items-center justify-center`}
-    >
-      <Text className={`font-num text-text-muted ${INITIAL_CLASS[size]}`}>
-        {initialOf(name)}
-      </Text>
-    </View>
   );
 
   // No badge → return the plain circle (existing consumers unchanged).

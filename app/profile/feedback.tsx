@@ -7,6 +7,7 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
+import { DEFAULT_AVATAR } from '@/theme/defaultAvatars';
 import { Button } from '@/components/ui/Button';
 import { useSendFeedback } from '@/features/profile/api/sendFeedback';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
@@ -129,7 +130,12 @@ function SendingAsCard() {
 
   return (
     <View className="mx-4 mt-6 bg-white rounded-card shadow-card p-4 flex-row items-center gap-3">
-      <Avatar uri={data.avatarUrl} name={data.firstName} size="sm" />
+      <Avatar
+        uri={data.avatarUrl}
+        name={data.firstName}
+        size="sm"
+        defaultSource={DEFAULT_AVATAR}
+      />
       <View className="flex-1">
         <Text className="font-body text-caption text-text-muted">
           Enviando como

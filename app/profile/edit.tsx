@@ -26,6 +26,7 @@ import {
 import { POSITION_OPTIONS } from "@/features/profile/schema/onboarding";
 import type { MyProfile } from "@/features/profile/types/profile";
 import { colors } from "@/theme/colors";
+import { DEFAULT_AVATAR } from "@/theme/defaultAvatars";
 
 // ── Header (inline; back + title — mirrors RankingHeader / settings) ──
 function EditHeader() {
@@ -162,6 +163,7 @@ function EditProfileForm({ profile }: { profile: MyProfile }) {
               uri={avatarUri ?? profile.avatarUrl}
               name={profile.firstName}
               size="lg"
+              defaultSource={DEFAULT_AVATAR}
             />
             <View className="absolute -bottom-1 -right-1 h-7 w-7 items-center justify-center rounded-full bg-primary border-2 border-bg-light">
               <Pencil size={14} color={colors.textOnDark} />
