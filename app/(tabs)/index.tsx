@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { Bell, Settings } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { MatchCard } from "@/components/domain/MatchCard";
 import { MatchCardCompact } from "@/components/domain/MatchCardCompact";
@@ -16,6 +17,7 @@ import type {
   UpcomingMatch,
 } from "@/features/matches/types/match";
 import { colors } from "@/theme/colors";
+import { TAB_BAR_CLEARANCE } from "@/theme/layout";
 
 // Placeholder geo while nearby is mocked — no device location read on Home (S5
 // spec "Permissions"; the real lat/lon arrive with S17's permission flow).
@@ -168,6 +170,7 @@ function NearbySection() {
 
 export default function HomeScreen() {
   const [headerHeight, setHeaderHeight] = useState(0);
+  const insets = useSafeAreaInsets();
   const blurTarget = useRef<View>(null);
   useRegisterNavBlurTarget(blurTarget);
 
@@ -175,8 +178,10 @@ export default function HomeScreen() {
     <View className="flex-1 bg-bg-light">
       <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
         <ScrollView
-          contentContainerClassName="pb-24"
-          contentContainerStyle={{ paddingTop: headerHeight }}
+          contentContainerStyle={{
+            paddingTop: headerHeight,
+            paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
+          }}
         >
           {/* "Bora pra quadra?" card */}
           <View className="mx-4 bg-white rounded-card shadow-card p-4">

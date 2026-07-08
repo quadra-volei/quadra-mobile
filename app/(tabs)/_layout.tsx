@@ -2,7 +2,7 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, Tabs } from 'expo-router';
 import type { ComponentType } from 'react';
-import { Pressable, Text, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { JogarIcon } from '@/components/icons/JogarIcon';
@@ -45,14 +45,9 @@ function TabBarButton({
       accessibilityRole="button"
       accessibilityState={{ selected: focused }}
       accessibilityLabel={label}
-      className="flex-1 items-center justify-center py-2"
+      className="w-12 items-center justify-center py-3"
     >
       <Icon focused={focused} size={24} />
-      <Text
-        className={`font-body text-[10px] mt-1 ${focused ? 'text-primary' : 'text-text-muted'}`}
-      >
-        {label}
-      </Text>
     </Pressable>
   );
 }
@@ -98,10 +93,18 @@ export default function TabsLayout() {
         return (
           <View
             pointerEvents="box-none"
-            style={{ position: 'absolute', left: 0, right: 0, bottom: 0 }}
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              alignItems: 'center',
+            }}
           >
+          {/* Auto-width, centered pill — deliberately narrower than the content
+              (no `mx-4` full-bleed), Instagram-style. Width is the sum of the
+              fixed-width tabs + the FAB's center reserve. */}
           <View
-            className="mx-4"
             style={{
               borderRadius: 28,
               marginBottom: insets.bottom + 12,
@@ -123,17 +126,11 @@ export default function TabsLayout() {
                 : {})}
               style={{ borderRadius: 28, overflow: 'hidden' }}
             >
-              <View className="flex-row items-end px-1 bg-white/40 border border-white/40">
+              <View className="flex-row items-center px-2 bg-white/40 border border-white/40">
                 {leftTabs.map(renderTab)}
 
-                {/* Center column reserves the FAB's footprint and keeps the
-                    "Jogar" label aligned with the other tab labels. */}
-                <View className="w-20 items-center">
-                  <View style={{ height: 44 }} />
-                  <Text className="font-body text-[10px] mt-1 text-text-muted">
-                    Jogar
-                  </Text>
-                </View>
+                {/* Center column reserves the FAB's horizontal footprint. */}
+                <View className="w-20" style={{ height: 44 }} />
 
                 {rightTabs.map(renderTab)}
               </View>

@@ -3,6 +3,7 @@ import { router } from "expo-router";
 import { Bell, Settings } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { LevelBar } from "@/components/domain/LevelBar";
 import { MatchHistoryRow } from "@/components/domain/MatchHistoryRow";
@@ -17,6 +18,7 @@ import type { RankingRow } from "@/features/ranking/types/ranking";
 import { useAuthStore } from "@/stores/auth";
 import { colors } from "@/theme/colors";
 import { DEFAULT_AVATAR } from "@/theme/defaultAvatars";
+import { TAB_BAR_CLEARANCE } from "@/theme/layout";
 
 function goRanking() {
   router.push("/profile/ranking");
@@ -341,6 +343,7 @@ function RankingSection() {
 
 export default function ProfileScreen() {
   const [headerHeight, setHeaderHeight] = useState(0);
+  const insets = useSafeAreaInsets();
   const blurTarget = useRef<View>(null);
   useRegisterNavBlurTarget(blurTarget);
 
@@ -348,8 +351,10 @@ export default function ProfileScreen() {
     <View className="flex-1 bg-bg-light">
       <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
         <ScrollView
-          contentContainerClassName="pb-24"
-          contentContainerStyle={{ paddingTop: headerHeight }}
+          contentContainerStyle={{
+            paddingTop: headerHeight,
+            paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
+          }}
         >
           {/* Seu progresso */}
           <View className="mt-2">

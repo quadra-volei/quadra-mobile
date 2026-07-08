@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { Bell, LayoutGrid, List, MapPin, Settings } from 'lucide-react-native';
 import { useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MatchCard } from '@/components/domain/MatchCard';
 import { Button } from '@/components/ui/Button';
@@ -13,6 +14,7 @@ import { useNearbyMatches } from '@/features/matches/api/getNearby';
 import { useRegisterNavBlurTarget } from '@/stores/navBlurTarget';
 import type { NearbyMatch } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
+import { TAB_BAR_CLEARANCE } from '@/theme/layout';
 
 // Placeholder geo while nearby is mocked — no device location read on Explore
 // (S6 spec "Permissions"; the real lat/lon arrive with S17's permission flow).
@@ -304,6 +306,7 @@ function ResultsBody({
 export default function ExploreScreen() {
   const [view, setView] = useState<ViewMode>('grid');
   const [headerHeight, setHeaderHeight] = useState(0);
+  const insets = useSafeAreaInsets();
   const blurTarget = useRef<View>(null);
   useRegisterNavBlurTarget(blurTarget);
 
@@ -311,8 +314,10 @@ export default function ExploreScreen() {
     <View className="flex-1 bg-bg-light">
       <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
         <ScrollView
-          contentContainerClassName="pb-24"
-          contentContainerStyle={{ paddingTop: headerHeight }}
+          contentContainerStyle={{
+            paddingTop: headerHeight,
+            paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
+          }}
         >
           <ResultsArea view={view} setView={setView} />
         </ScrollView>
