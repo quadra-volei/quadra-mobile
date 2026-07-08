@@ -1,31 +1,34 @@
-import { router } from 'expo-router';
-import { Bell } from 'lucide-react-native';
-import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { router } from "expo-router";
+import { Bell } from "lucide-react-native";
+import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-import { MatchCard } from '@/components/domain/MatchCard';
-import { MatchCardCompact } from '@/components/domain/MatchCardCompact';
-import { Button } from '@/components/ui/Button';
-import { useNearbyMatches } from '@/features/matches/api/getNearby';
-import { useUpcomingMatches } from '@/features/matches/api/getUpcoming';
-import type { NearbyMatch, UpcomingMatch } from '@/features/matches/types/match';
-import { colors } from '@/theme/colors';
+import { MatchCard } from "@/components/domain/MatchCard";
+import { MatchCardCompact } from "@/components/domain/MatchCardCompact";
+import { Button } from "@/components/ui/Button";
+import { useNearbyMatches } from "@/features/matches/api/getNearby";
+import { useUpcomingMatches } from "@/features/matches/api/getUpcoming";
+import type {
+  NearbyMatch,
+  UpcomingMatch,
+} from "@/features/matches/types/match";
+import { colors } from "@/theme/colors";
 
 // Placeholder geo while nearby is mocked — no device location read on Home (S5
 // spec "Permissions"; the real lat/lon arrive with S17's permission flow).
 const PLACEHOLDER_GEO = { lat: -23.55, lon: -46.63, radiusKm: 5 };
 
 function goCreate() {
-  router.push('/matches/create');
+  router.push("/matches/create");
 }
 function goExplore() {
-  router.push('/explore');
+  router.push("/explore");
 }
 function goMap() {
-  router.push('/explore/map');
+  router.push("/explore/map");
 }
 function goMatch(id: string) {
-  router.push({ pathname: '/matches/[id]', params: { id } });
+  router.push({ pathname: "/matches/[id]", params: { id } });
 }
 
 /** Neutral rounded skeleton block (DESIGN_SYSTEM skeleton shapes TBD — flag). */
@@ -44,7 +47,10 @@ function SectionHeader({
 }) {
   return (
     <View className="flex-row items-center justify-between px-4 mt-6">
-      <Text className="font-display text-h1 text-text-primary uppercase">
+      {/* In-screen section title: text-h2, one step below the "INÍCIO" screen
+          header (h1) — same Climate Crisis face. See DESIGN_SYSTEM heading
+          hierarchy. */}
+      <Text className="font-display text-h2 text-text-primary uppercase">
         {title}
       </Text>
       <Button variant="ghost" onPress={onAction}>
@@ -56,10 +62,7 @@ function SectionHeader({
 
 function ErrorRow({ onRetry }: { onRetry: () => void }) {
   return (
-    <View
-      className="px-4 py-6 items-center"
-      accessibilityLiveRegion="polite"
-    >
+    <View className="px-4 py-6 items-center" accessibilityLiveRegion="polite">
       <Text className="font-body text-body text-text-muted text-center">
         Não foi possível carregar
       </Text>
@@ -114,16 +117,17 @@ function UpcomingSection() {
 }
 
 function NearbySection() {
-  const { data, isPending, isError, refetch } = useNearbyMatches(PLACEHOLDER_GEO);
+  const { data, isPending, isError, refetch } =
+    useNearbyMatches(PLACEHOLDER_GEO);
 
   if (isPending) {
     return (
       <View className="flex-row flex-wrap px-4 gap-3 mt-2">
         <View className="w-[48%]">
-          <SkeletonBlock className="h-36" />
+          <SkeletonBlock className="h-48" />
         </View>
         <View className="w-[48%]">
-          <SkeletonBlock className="h-36" />
+          <SkeletonBlock className="h-48" />
         </View>
       </View>
     );
@@ -135,10 +139,7 @@ function NearbySection() {
 
   if (data.length === 0) {
     return (
-      <View
-        className="px-4 py-6 items-center"
-        accessibilityLiveRegion="polite"
-      >
+      <View className="px-4 py-6 items-center" accessibilityLiveRegion="polite">
         <Text className="font-body text-caption text-text-muted text-center">
           Nenhuma partida perto de você ainda
         </Text>
@@ -160,7 +161,7 @@ function NearbySection() {
 export default function HomeScreen() {
   return (
     <View className="flex-1 bg-bg-light">
-      <SafeAreaView edges={['top']} className="flex-1">
+      <SafeAreaView edges={["top"]} className="flex-1">
         {/* Header */}
         <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
           <Text className="font-display text-h1 text-text-primary uppercase">

@@ -40,7 +40,9 @@ function SectionTitleRow({
 }) {
   return (
     <View className="flex-row items-center justify-between px-4 mt-6">
-      <Text className="font-display text-h1 text-text-primary uppercase">
+      {/* In-screen section title: text-h2, one step below the profile header
+          (the greeting name, h1). See DESIGN_SYSTEM heading hierarchy. */}
+      <Text className="font-display text-h2 text-text-primary uppercase">
         {title}
       </Text>
       {action ? (
@@ -117,7 +119,8 @@ function ProgressSection() {
 
   return (
     <View className="mx-4 bg-white rounded-card shadow-card p-4">
-      <Text className="font-display text-h1 text-text-primary uppercase">
+      {/* In-screen section title: text-h2 (one step below the profile header). */}
+      <Text className="font-display text-h2 text-text-primary uppercase">
         Seu progresso
       </Text>
       <View className="flex-row items-center gap-3 mt-3">

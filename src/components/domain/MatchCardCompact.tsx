@@ -81,6 +81,9 @@ export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactPro
           </Text>
         </View>
 
+        {/* hairline divider between datetime and the vagas/price footer */}
+        <View className="h-px bg-line mt-3" />
+
         <View className="flex-row items-center justify-between mt-3">
           {/* avatar stack */}
           <View className="flex-row items-center">
@@ -98,14 +101,19 @@ export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactPro
             ) : null}
           </View>
 
-          <Text className="font-body text-caption text-text-muted">
-            {match.openSlots} vagas
-          </Text>
+          {/* badges grouped to the right, matched in size */}
+          <View className="flex-row items-center gap-2">
+            <View className="bg-bg-light-alt rounded-pill px-3 py-1">
+              <Text className="font-body text-body-bold text-primary text-[12px]">
+                {match.openSlots} vagas
+              </Text>
+            </View>
 
-          <View className="bg-accent rounded-pill px-3 py-1">
-            <Text className="font-num text-text-primary text-[11px]">
-              {match.priceLabel}
-            </Text>
+            <View className="bg-bg-light-alt rounded-pill px-3 py-1">
+              <Text className="font-num text-text-primary text-[12px]">
+                {match.priceLabel}
+              </Text>
+            </View>
           </View>
         </View>
       </View>

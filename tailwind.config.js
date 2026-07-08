@@ -57,7 +57,9 @@ module.exports = {
       fontSize: {
         display: ['36px', { lineHeight: '44px', fontWeight: '400' }],
         h1: ['21px', { lineHeight: '28px', fontWeight: '400' }],
-        h2: ['20px', { lineHeight: '28px', fontWeight: '700' }],
+        // h2 → Climate Crisis in-screen section title, one step below the h1
+        // screen header (see DESIGN_SYSTEM "Heading hierarchy").
+        h2: ['16px', { lineHeight: '22px', fontWeight: '400' }],
         h3: ['17px', { lineHeight: '24px', fontWeight: '800' }],
         body: ['15px', { lineHeight: '22px', fontWeight: '400' }],
         'body-bold': ['15px', { lineHeight: '22px', fontWeight: '600' }],

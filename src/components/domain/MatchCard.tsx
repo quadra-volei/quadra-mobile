@@ -38,11 +38,12 @@ export function MatchCard({ match, onPress, testID }: MatchCardProps) {
         end={{ x: 1, y: 1 }}
         style={{ borderRadius: 20 }}
       >
-        <View className="p-3">
-          {/* top pills */}
-          <View className="flex-row items-center gap-2">
-            <View className="bg-white/15 rounded-pill px-3 py-1">
-              <Text className="font-mono text-mono text-text-on-dark uppercase">
+        <View className="p-4">
+          {/* top pills — stacked: format on top, level badge on its own line
+              below it (each self-sized + left-aligned via items-start). */}
+          <View className="items-start gap-2">
+            <View className="bg-white rounded-pill px-3 py-1">
+              <Text className="font-mono text-mono text-text-primary uppercase">
                 {match.format}
               </Text>
             </View>
@@ -53,10 +54,11 @@ export function MatchCard({ match, onPress, testID }: MatchCardProps) {
             </View>
           </View>
 
-          {/* distance */}
-          <View className="flex-row items-center mt-4">
-            <MapPin size={14} color={colors.textOnDark} />
-            <Text className="font-body text-caption text-text-on-dark ml-1">
+          {/* distance — extra top gap gives the card the taller, roomier
+              proportions of the S5 reference. */}
+          <View className="flex-row items-center mt-10">
+            <MapPin size={14} color={colors.accent} />
+            <Text className="font-body text-caption text-accent ml-1">
               {formatDistance(match.distanceKm)}
             </Text>
           </View>

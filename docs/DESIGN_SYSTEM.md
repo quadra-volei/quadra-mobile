@@ -116,8 +116,15 @@ These are **not** system fonts, so they must be bundled:
 | Token | Family | Size | Case | Weight | Use |
 | --- | --- | --- | --- | --- | --- |
 | `text-display` | Climate Crisis | 29–46px | UPPERCASE | 400 | Hero / splash headline |
-| `text-h1` | Climate Crisis | 20–22px | UPPERCASE | 400 | Section title (e.g. "PRÓXIMAS PARTIDAS") |
+| `text-h1` | Climate Crisis | 20–22px | UPPERCASE | 400 | **Screen header — top of screen only** (e.g. "INÍCIO", "CONFIGURAÇÕES") |
+| `text-h2` | Climate Crisis | 16px | UPPERCASE | 400 | **In-screen section title** (e.g. "PRÓXIMAS PARTIDAS", "JOGOS PERTO DE VOCÊ") |
 | `text-h3` | DM Sans | 16–18px | normal | 800 | Card title |
+
+> **Heading hierarchy.** A screen has exactly **one** `text-h1` — the header at
+> the top. Every other Climate Crisis heading in the screen body (section titles
+> such as "PRÓXIMAS PARTIDAS") uses `text-h2` — same display face, one step
+> smaller — so the screen header always stays dominant. Both are `font-display`
+> + `uppercase`; only the size token differs.
 | `text-body` | DM Sans | 14–15px | normal | 400 | Default body |
 | `text-body-bold` | DM Sans | 14–15px | normal | 600 | Emphasis in body |
 | `text-eyebrow` | DM Sans | 11px | UPPERCASE | 700 | Eyebrow / overline label, letter-spacing 1.2 |
