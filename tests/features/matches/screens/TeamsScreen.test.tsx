@@ -14,7 +14,7 @@
  *  - Button shows loading spinner while confirmation is in flight.
  *  - Back button does NOT persist team assignments.
  *
- * useMatchDetail, useDrawTeams, and useDrawTeamsButton are mocked at the boundary
+ * useMatchDetail and useDrawTeams are mocked at the boundary
  * so each mode and navigation path is deterministic (no network). The Button component
  * is stubbed to expose loading/disabled state. expo-router and native modules are
  * mocked inline. Route params are injectable. Alert is spied to verify confirmation
@@ -216,21 +216,17 @@ jest.mock('@/features/matches/api/getMatchDetail', () => ({
   useMatchDetail: jest.fn(() => mockMatchDetail),
 }));
 
-// useDrawTeams + useDrawTeamsButton mock
+// useDrawTeams mutation mock. `mutate` records calls and (when data is provided
+// via the third arg's onSuccess) drives the success path deterministically.
 const mockDrawTeams = {
   data: undefined as DrawTeamsResponse | undefined,
   isPending: false,
   isError: false,
-  refetch: jest.fn(),
-};
-
-const mockDrawTeamsButton = {
-  refetch: jest.fn(),
+  mutate: jest.fn(),
 };
 
 jest.mock('@/features/matches/api/drawTeams', () => ({
   useDrawTeams: jest.fn(() => mockDrawTeams),
-  useDrawTeamsButton: jest.fn(() => mockDrawTeamsButton),
 }));
 
 // --- Test imports ---------
@@ -259,8 +255,7 @@ beforeEach(() => {
   mockDrawTeams.data = undefined;
   mockDrawTeams.isPending = false;
   mockDrawTeams.isError = false;
-  mockDrawTeams.refetch.mockClear();
-  mockDrawTeamsButton.refetch.mockClear();
+  mockDrawTeams.mutate.mockClear();
   mockParams = {
     id: 'match-1',
     teamCount: '2',
@@ -683,42 +678,8 @@ describe('S13 — In-Game Teams screen', () => {
       fireEvent.press(drawButton);
     });
 
-    // The handler should call drawButton.refetch
-    expect(mockDrawTeamsButton.refetch).toHaveBeenCalled();
-
-    // Now simulate the draw completing
-    mockDrawTeamsButton.refetch.mockResolvedValue({
-      teams: [
-        {
-          id: 'team-1',
-          number: 1,
-          name: 'Time 1',
-          players: [
-            {
-              id: 'p1',
-              name: 'João',
-              status: 'CONFIRMADO',
-              position: 'LEV',
-              avatarUrl: 'https://example.com/p1.jpg',
-            },
-          ],
-        },
-        {
-          id: 'team-2',
-          number: 2,
-          name: 'Time 2',
-          players: [
-            {
-              id: 'p2',
-              name: 'Maria',
-              status: 'CONFIRMADO',
-              position: 'PON',
-              avatarUrl: 'https://example.com/p2.jpg',
-            },
-          ],
-        },
-      ],
-    });
+    // The handler should trigger the draw mutation with the current players/config
+    expect(mockDrawTeams.mutate).toHaveBeenCalled();
 
     // Update the mock data to reflect completed draw
     mockDrawTeams.data = {

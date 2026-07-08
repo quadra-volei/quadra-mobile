@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { TeamRoster } from '@/components/domain/TeamRoster';
 import { Button } from '@/components/ui/Button';
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
-import { useDrawTeams, useDrawTeamsButton } from '@/features/matches/api/drawTeams';
+import { useDrawTeams } from '@/features/matches/api/drawTeams';
 import type { DrawMode } from '@/features/matches/types/matchDetail';
 import type { Team } from '@/features/matches/types/team';
 import { colors } from '@/theme/colors';
@@ -59,29 +59,33 @@ export default function TeamsScreen() {
   const matchQuery = useMatchDetail(matchId, { latencyMs: 0 });
   const confirmedPlayers = matchQuery.data?.players ?? [];
 
-  // For AUTO mode, trigger draw immediately; for MANUAL, only on button tap.
-  const drawQuery = useDrawTeams(
-    matchId,
-    confirmedPlayers,
-    { teamCount, perTeam, drawMode },
-    {
-      // Only fetch automatically in AUTO mode; MANUAL mode uses manual refetch
-      enabled: drawMode === 'AUTO' && confirmedPlayers.length > 0,
-    },
-  );
-
-  const drawButton = useDrawTeamsButton(matchId);
+  // A draw is an imperative action (mutation): AUTO fires it once on mount,
+  // MANUAL fires it on each "Sortear" tap.
+  const draw = useDrawTeams(matchId);
 
   // ── Local UI state ──
   const [teams, setTeams] = useState<Team[]>([]);
   const [isStarting, setIsStarting] = useState(false);
 
-  // Seed teams from draw query when it resolves
+  // Seed teams whenever a draw resolves (both AUTO and MANUAL).
   useEffect(() => {
-    if (drawQuery.data?.teams) {
-      setTeams(drawQuery.data.teams);
+    if (draw.data?.teams) {
+      setTeams(draw.data.teams);
     }
-  }, [drawQuery.data?.teams]);
+  }, [draw.data]);
+
+  // AUTO mode: draw once, as soon as the confirmed players are available.
+  const autoDrawFired = useRef(false);
+  useEffect(() => {
+    if (
+      drawMode === 'AUTO' &&
+      !autoDrawFired.current &&
+      confirmedPlayers.length > 0
+    ) {
+      autoDrawFired.current = true;
+      draw.mutate({ players: confirmedPlayers, request: { teamCount, perTeam, drawMode } });
+    }
+  }, [drawMode, confirmedPlayers, teamCount, perTeam, draw]);
 
   // ── Error state ──
   if (!paramsValid) {
@@ -115,20 +119,23 @@ export default function TeamsScreen() {
   }
 
   // ── Handlers ──
-  const handleDraw = async () => {
-    try {
-      const result = await drawButton.refetch();
-      if (result && 'teams' in result) {
-        setTeams(result.teams);
-        // Persist to global store
-        storeSetTeams(result.teams);
-      }
-    } catch (err) {
-      Alert.alert(
-        'Erro ao sortear',
-        'Não foi possível montar os times. Tente novamente.',
-      );
-    }
+  const handleDraw = () => {
+    draw.mutate(
+      { players: confirmedPlayers, request: { teamCount, perTeam, drawMode } },
+      {
+        onSuccess: (result) => {
+          setTeams(result.teams);
+          // Persist to global store
+          storeSetTeams(result.teams);
+        },
+        onError: () => {
+          Alert.alert(
+            'Erro ao sortear',
+            'Não foi possível montar os times. Tente novamente.',
+          );
+        },
+      },
+    );
   };
 
   const handleStartMatch = () => {
@@ -180,7 +187,7 @@ export default function TeamsScreen() {
   };
 
   // ── Loading state (AUTO mode, draw in flight) ──
-  const isDrawing = drawQuery.isPending && drawMode === 'AUTO' && teams.length === 0;
+  const isDrawing = draw.isPending && drawMode === 'AUTO' && teams.length === 0;
 
   // ── Render ──
   return (
@@ -248,7 +255,7 @@ export default function TeamsScreen() {
               <Button
                 variant="outline"
                 onPress={handleDraw}
-                loading={drawQuery.isPending}
+                loading={draw.isPending}
                 testID="draw-teams"
               >
                 Sortear

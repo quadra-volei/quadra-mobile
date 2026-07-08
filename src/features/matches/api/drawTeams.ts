@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation } from '@tanstack/react-query';
 
 import type {
   DrawTeamsRequest,
@@ -11,11 +11,6 @@ import type { PresencePlayer } from '@/features/matches/types/matchDetail';
 // flakiness. Tests may zero this via the options param. No randomness, no
 // network, no EXPO_PUBLIC_API_URL.
 const MOCK_LATENCY_MS = 600;
-
-/**
- * Query key (ARCHITECTURE convention): ['matches', id, 'draw'].
- */
-export const drawTeamsQueryKey = (id: string) => ['matches', id, 'draw'] as const;
 
 /**
  * Mock draw-teams implementation. Seeded with confirmed players from the match,
@@ -64,49 +59,28 @@ async function drawTeams(
 export type UseDrawTeamsOptions = {
   /** Override the mock latency (tests pass 0 to remove the fake delay). */
   latencyMs?: number;
-  /** Whether to immediately fetch on mount (for AUTO mode). */
-  enabled?: boolean;
+};
+
+/** Variables passed to `mutate` each time a draw is triggered. */
+export type DrawTeamsVariables = {
+  players: PresencePlayer[];
+  request: DrawTeamsRequest;
 };
 
 /**
  * Draws teams from the match's confirmed players, distributing them into the
  * configured team count and per-team size.
  *
- * Used by S13 both on mount (AUTO mode) and on-demand (MANUAL mode's "Sortear" button).
+ * Modeled as a mutation (not a query) because a draw is an imperative action:
+ * AUTO mode fires it once on mount, MANUAL mode fires it on each "Sortear" tap.
+ * A disabled `useQuery` (the previous shape) is skipped by `refetchQueries` and
+ * stays permanently `isPending`, which froze the MANUAL "Sortear" button.
  */
-export function useDrawTeams(
-  id: string,
-  players: PresencePlayer[],
-  request: DrawTeamsRequest,
-  options: UseDrawTeamsOptions = {},
-) {
+export function useDrawTeams(id: string, options: UseDrawTeamsOptions = {}) {
   const latencyMs = options.latencyMs ?? MOCK_LATENCY_MS;
-  const enabled = options.enabled ?? true;
 
-  return useQuery({
-    queryKey: drawTeamsQueryKey(id),
-    queryFn: () => drawTeams(id, players, request, latencyMs),
-    staleTime: 60_000,
-    enabled,
+  return useMutation<DrawTeamsResponse, Error, DrawTeamsVariables>({
+    mutationFn: ({ players, request }) =>
+      drawTeams(id, players, request, latencyMs),
   });
-}
-
-/**
- * Imperative hook to manually trigger a draw (MANUAL mode's "Sortear" button).
- * Returns a function that calls refetch and returns the promise.
- */
-export function useDrawTeamsButton(id: string) {
-  const queryClient = useQueryClient();
-  return {
-    async refetch(): Promise<DrawTeamsResponse | undefined> {
-      const result = await queryClient.refetchQueries({
-        queryKey: drawTeamsQueryKey(id),
-      });
-      // Extract the data from the query state
-      const queryData = queryClient.getQueryData<DrawTeamsResponse>(
-        drawTeamsQueryKey(id),
-      );
-      return queryData;
-    },
-  };
 }
