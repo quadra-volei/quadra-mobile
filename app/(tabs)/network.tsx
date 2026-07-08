@@ -1,11 +1,16 @@
 import { BlurTargetView } from 'expo-blur';
-import { Bell, Users } from 'lucide-react-native';
+import { router } from 'expo-router';
+import { Bell, Settings, Users } from 'lucide-react-native';
 import { useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
 import { GlassHeader } from '@/components/ui/GlassHeader';
 import { useRegisterNavBlurTarget } from '@/stores/navBlurTarget';
 import { colors } from '@/theme/colors';
+
+function goSettings() {
+  router.push('/profile/settings');
+}
 
 export default function NetworkScreen() {
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -47,6 +52,13 @@ export default function NetworkScreen() {
               onPress={() => {}}
             >
               <Bell size={24} color={colors.surfaceDark} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Configurações"
+              onPress={goSettings}
+            >
+              <Settings size={24} color={colors.surfaceDark} />
             </Pressable>
           </View>
         </View>

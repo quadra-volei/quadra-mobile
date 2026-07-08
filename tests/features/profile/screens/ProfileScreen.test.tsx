@@ -103,13 +103,19 @@ jest.mock('@/components/ui/Button', () => {
   };
 });
 
-// expo-router: spyable router.push.
+// expo-router: spyable router.push + useFocusEffect (used by
+// useRegisterNavBlurTarget) delegated to a plain effect so the screen mounts.
 const mockPush = jest.fn();
-jest.mock('expo-router', () => ({
-  router: {
-    push: (...args: any[]) => mockPush(...args),
-  },
-}));
+jest.mock('expo-router', () => {
+  const ReactLocal = require('react');
+  return {
+    router: {
+      push: (...args: any[]) => mockPush(...args),
+    },
+    useFocusEffect: (cb: () => void | (() => void)) =>
+      ReactLocal.useEffect(() => cb(), [cb]),
+  };
+});
 
 // --- Read hook mocks (mocked at the boundary) -----------------------------
 import type {

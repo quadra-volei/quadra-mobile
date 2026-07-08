@@ -72,6 +72,7 @@ jest.mock('lucide-react-native', () => {
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
   return {
     Bell: stub('bell'),
+    Settings: stub('settings'),
     Sun: stub('sun'),
     Clock: stub('clock'),
     MapPin: stub('map-pin'),
@@ -79,13 +80,19 @@ jest.mock('lucide-react-native', () => {
   };
 });
 
-// expo-router: spyable router.push.
+// expo-router: spyable router.push + useFocusEffect (used by
+// useRegisterNavBlurTarget) delegated to a plain effect so the screen mounts.
 const mockPush = jest.fn();
-jest.mock('expo-router', () => ({
-  router: {
-    push: (...args: any[]) => mockPush(...args),
-  },
-}));
+jest.mock('expo-router', () => {
+  const ReactLocal = require('react');
+  return {
+    router: {
+      push: (...args: any[]) => mockPush(...args),
+    },
+    useFocusEffect: (cb: () => void | (() => void)) =>
+      ReactLocal.useEffect(() => cb(), [cb]),
+  };
+});
 
 // --- Read hook mocks (mocked at the boundary) -----------------------------
 // `mock`-prefixed holders so the jest.mock factories may reference them.
@@ -234,6 +241,9 @@ describe('S5 — Home screen', () => {
     // theme toggle moved to Settings — not on Home
     expect(screen.queryByLabelText('Alternar tema')).toBeNull();
     expect(screen.queryByTestId('icon-sun')).toBeNull();
+    // settings affordance is present in every screen header
+    expect(screen.getByLabelText('Configurações')).toBeTruthy();
+    expect(screen.getByTestId('icon-settings')).toBeTruthy();
 
     // NO greeting / avatar (that header is S8 Profile, not Home)
     expect(screen.queryByText(/olá/i)).toBeNull();
@@ -555,5 +565,18 @@ describe('S5 — Home screen', () => {
     fireEvent.press(screen.getByLabelText('Notificações'));
 
     expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Covers: S5 — Home
+   * Criterion: the settings affordance is present on every screen header and
+   *  navigates to S10 (/profile/settings).
+   */
+  it('navigates to /profile/settings when the settings icon is tapped', async () => {
+    await render(<HomeScreen />);
+
+    fireEvent.press(screen.getByLabelText('Configurações'));
+
+    expect(mockPush).toHaveBeenCalledWith('/profile/settings');
   });
 });

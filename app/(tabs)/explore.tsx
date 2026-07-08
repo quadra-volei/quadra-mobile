@@ -1,6 +1,6 @@
 import { BlurTargetView } from 'expo-blur';
 import { router } from 'expo-router';
-import { Bell, LayoutGrid, List, MapPin } from 'lucide-react-native';
+import { Bell, LayoutGrid, List, MapPin, Settings } from 'lucide-react-native';
 import { useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
 
@@ -34,6 +34,9 @@ function goMap() {
 }
 function goMatch(id: string) {
   router.push({ pathname: '/matches/[id]', params: { id } });
+}
+function goSettings() {
+  router.push('/profile/settings');
 }
 
 /**
@@ -329,6 +332,13 @@ export default function ExploreScreen() {
               onPress={() => {}}
             >
               <Bell size={24} color={colors.surfaceDark} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Configurações"
+              onPress={goSettings}
+            >
+              <Settings size={24} color={colors.surfaceDark} />
             </Pressable>
           </View>
         </View>

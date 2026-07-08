@@ -77,6 +77,7 @@ jest.mock('lucide-react-native', () => {
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
   return {
     Bell: stub('bell'),
+    Settings: stub('settings'),
     Sun: stub('sun'),
     Search: stub('search'),
     X: stub('x'),
@@ -87,13 +88,19 @@ jest.mock('lucide-react-native', () => {
   };
 });
 
-// expo-router: spyable router.push.
+// expo-router: spyable router.push + useFocusEffect (used by
+// useRegisterNavBlurTarget) delegated to a plain effect so the screen mounts.
 const mockPush = jest.fn();
-jest.mock('expo-router', () => ({
-  router: {
-    push: (...args: any[]) => mockPush(...args),
-  },
-}));
+jest.mock('expo-router', () => {
+  const ReactLocal = require('react');
+  return {
+    router: {
+      push: (...args: any[]) => mockPush(...args),
+    },
+    useFocusEffect: (cb: () => void | (() => void)) =>
+      ReactLocal.useEffect(() => cb(), [cb]),
+  };
+});
 
 // --- Read hook mock (mocked at the boundary) ------------------------------
 import type { NearbyMatch } from '@/features/matches/types/match';
@@ -220,6 +227,9 @@ describe('S6 — Explore screen', () => {
     // theme toggle moved to Settings — not in the header.
     expect(screen.queryByLabelText('Alternar tema')).toBeNull();
     expect(screen.queryByTestId('icon-sun')).toBeNull();
+    // settings affordance is present in every screen header.
+    expect(screen.getByLabelText('Configurações')).toBeTruthy();
+    expect(screen.getByTestId('icon-settings')).toBeTruthy();
 
     // NO greeting / avatar on Explore.
     expect(screen.queryByText(/olá/i)).toBeNull();
@@ -238,6 +248,19 @@ describe('S6 — Explore screen', () => {
     await press(screen.getByLabelText('Notificações'));
 
     expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Covers: S6 — Explore
+   * Criterion: the settings affordance is present on every screen header and
+   *  navigates to S10 (/profile/settings).
+   */
+  it('navigates to /profile/settings when the settings icon is tapped', async () => {
+    await render(<ExploreScreen />);
+
+    await press(screen.getByLabelText('Configurações'));
+
+    expect(mockPush).toHaveBeenCalledWith('/profile/settings');
   });
 
   // ----------------------------------------------------------------- search

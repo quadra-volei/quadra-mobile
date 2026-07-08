@@ -37,7 +37,7 @@ jest.mock('react-native-safe-area-context', () => {
   };
 });
 
-// lucide icons -> inert nodes (header bell/sun + placeholder Users icon).
+// lucide icons -> inert nodes (header bell/settings + placeholder Users icon).
 jest.mock('lucide-react-native', () => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
@@ -45,14 +45,33 @@ jest.mock('lucide-react-native', () => {
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
   return {
     Bell: stub('bell'),
+    Settings: stub('settings'),
     Sun: stub('sun'),
     Users: stub('users'),
+  };
+});
+
+// expo-router: spyable router.push (header settings affordance -> /profile/settings)
+// + useFocusEffect (used by useRegisterNavBlurTarget) delegated to a plain effect.
+const mockPush = jest.fn();
+jest.mock('expo-router', () => {
+  const ReactLocal = require('react');
+  return {
+    router: {
+      push: (...args: any[]) => mockPush(...args),
+    },
+    useFocusEffect: (cb: () => void | (() => void)) =>
+      ReactLocal.useEffect(() => cb(), [cb]),
   };
 });
 
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import NetworkScreen from '../../../../app/(tabs)/network';
+
+beforeEach(() => {
+  mockPush.mockClear();
+});
 
 describe('S7 — Network (placeholder) screen', () => {
   // --------------------------------------------------------------- renders ok
@@ -95,6 +114,9 @@ describe('S7 — Network (placeholder) screen', () => {
     // theme toggle moved to Settings — not in the header.
     expect(screen.queryByLabelText('Alternar tema')).toBeNull();
     expect(screen.queryByTestId('icon-sun')).toBeNull();
+    // settings affordance is present in every screen header.
+    expect(screen.getByLabelText('Configurações')).toBeTruthy();
+    expect(screen.getByTestId('icon-settings')).toBeTruthy();
   });
 
   // ------------------------------------------------------- placeholder message
@@ -149,8 +171,8 @@ describe('S7 — Network (placeholder) screen', () => {
    * Criterion: "No feed, posts, like/comment/share controls, friend-suggestion
    *  carousel, or CTAs/buttons are present."
    *
-   * The only buttons allowed are the header bell + theme toggle (no-op, owned by
-   * S10/notifications scope). There is NO content button/CTA in the body.
+   * The only buttons allowed are the header bell + settings affordance (both
+   * header chrome). There is NO content button/CTA in the body.
    */
   it('renders no feed, posts, social actions, friend carousel, or content CTAs', async () => {
     await render(<NetworkScreen />);
@@ -169,11 +191,12 @@ describe('S7 — Network (placeholder) screen', () => {
     expect(screen.queryByTestId('posts')).toBeNull();
     expect(screen.queryByTestId('friend-suggestions')).toBeNull();
 
-    // The only accessible button is the header bell — nothing else.
+    // The only accessible buttons are the header chrome (bell + settings) —
+    // nothing in the body.
     const buttons = screen.queryAllByRole('button');
-    expect(buttons).toHaveLength(1);
+    expect(buttons).toHaveLength(2);
     const labels = buttons.map((b) => b.props.accessibilityLabel).sort();
-    expect(labels).toEqual(['Notificações']);
+    expect(labels).toEqual(['Configurações', 'Notificações']);
   });
 
   /**
@@ -192,6 +215,19 @@ describe('S7 — Network (placeholder) screen', () => {
     expect(
       screen.getByText('Em breve: rede social de jogadores'),
     ).toBeTruthy();
+  });
+
+  /**
+   * Covers: S7 — Network
+   * Criterion: the settings affordance is present on every screen header and
+   *  navigates to S10 (/profile/settings).
+   */
+  it('navigates to /profile/settings when the settings icon is tapped', async () => {
+    await render(<NetworkScreen />);
+
+    fireEvent.press(screen.getByLabelText('Configurações'));
+
+    expect(mockPush).toHaveBeenCalledWith('/profile/settings');
   });
 
   // ------------------------------------------------------- zero network calls

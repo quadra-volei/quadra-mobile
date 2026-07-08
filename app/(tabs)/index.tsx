@@ -1,6 +1,6 @@
 import { BlurTargetView } from "expo-blur";
 import { router } from "expo-router";
-import { Bell } from "lucide-react-native";
+import { Bell, Settings } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
 
@@ -32,6 +32,9 @@ function goMap() {
 }
 function goMatch(id: string) {
   router.push({ pathname: "/matches/[id]", params: { id } });
+}
+function goSettings() {
+  router.push("/profile/settings");
 }
 
 /** Neutral rounded skeleton block (DESIGN_SYSTEM skeleton shapes TBD — flag). */
@@ -229,6 +232,13 @@ export default function HomeScreen() {
               onPress={() => {}}
             >
               <Bell size={24} color={colors.surfaceDark} />
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Configurações"
+              onPress={goSettings}
+            >
+              <Settings size={24} color={colors.surfaceDark} />
             </Pressable>
           </View>
         </View>
