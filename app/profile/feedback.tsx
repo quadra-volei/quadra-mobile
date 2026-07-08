@@ -1,14 +1,15 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { BlurTargetView } from 'expo-blur';
 import { router } from 'expo-router';
-import { ChevronLeft, Flame, Heart, Share2, Zap } from 'lucide-react-native';
-import type { ComponentType } from 'react';
+import { Flame, Heart, Share2, Zap } from 'lucide-react-native';
+import { type ComponentType, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { DEFAULT_AVATAR } from '@/theme/defaultAvatars';
 import { Button } from '@/components/ui/Button';
+import { GlassBackHeader } from '@/components/ui/GlassBackHeader';
 import { useSendFeedback } from '@/features/profile/api/sendFeedback';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import {
@@ -26,25 +27,6 @@ const TEXT_MUTED = '#7A7A9A'; // text-muted token — textarea placeholder color
 // class after the initial render (which makes react-native-css-interop remount
 // the node and crash while reading navigation context). Mirrors Button.tsx.
 const SHADOW_CARD = '0 2px 12px rgba(10,10,60,0.06)';
-
-// ── Header (inline; back + title — mirrors settings / edit / notifications) ──
-function FeedbackHeader() {
-  return (
-    <View className="flex-row items-center gap-3 px-4 pt-2 pb-4">
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Voltar"
-        onPress={() => router.back()}
-        className="h-10 w-10 items-center justify-center rounded-chip bg-white shadow-card"
-      >
-        <ChevronLeft size={24} color={colors.surfaceDark} />
-      </Pressable>
-      <Text className="font-display text-h1 text-text-primary uppercase">
-        Feedback
-      </Text>
-    </View>
-  );
-}
 
 // ── Eyebrow section label (TIPO / SUA MENSAGEM) ──
 function SectionLabel({ children }: { children: string }) {
@@ -170,13 +152,15 @@ export default function FeedbackScreen() {
     });
   };
 
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const blurTarget = useRef<View>(null);
+
   return (
     <View className="flex-1 bg-bg-light">
-      <SafeAreaView edges={['top']} className="flex-1">
-        <FeedbackHeader />
-
+      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
         <ScrollView
           contentContainerClassName="pb-10"
+          contentContainerStyle={{ paddingTop: headerHeight }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -268,7 +252,13 @@ export default function FeedbackScreen() {
             </Button>
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </BlurTargetView>
+
+      <GlassBackHeader
+        title="Feedback"
+        blurTarget={blurTarget}
+        onHeight={setHeaderHeight}
+      />
     </View>
   );
 }

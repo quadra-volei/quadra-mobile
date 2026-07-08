@@ -1,19 +1,17 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { BlurTargetView } from "expo-blur";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { ChevronLeft, Pencil } from "lucide-react-native";
-import { useState } from "react";
+import { Pencil } from "lucide-react-native";
+import { useRef, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Pressable, Text, View } from "react-native";
-import Animated, {
-  useAnimatedKeyboard,
-  useAnimatedStyle,
-} from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { Pressable, ScrollView, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { DateField } from "@/components/ui/DateField";
+import { GlassBackHeader } from "@/components/ui/GlassBackHeader";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { TextField } from "@/components/ui/TextField";
@@ -27,25 +25,6 @@ import { POSITION_OPTIONS } from "@/features/profile/schema/onboarding";
 import type { MyProfile } from "@/features/profile/types/profile";
 import { colors } from "@/theme/colors";
 import { DEFAULT_AVATAR } from "@/theme/defaultAvatars";
-
-// ── Header (inline; back + title — mirrors RankingHeader / settings) ──
-function EditHeader() {
-  return (
-    <View className="flex-row items-center gap-3 px-4 pt-2 pb-4">
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Voltar"
-        onPress={() => router.back()}
-        className="h-10 w-10 items-center justify-center rounded-chip bg-white shadow-card"
-      >
-        <ChevronLeft size={24} color={colors.surfaceDark} />
-      </Pressable>
-      <Text className="font-display text-h1 text-text-primary uppercase">
-        Editar perfil
-      </Text>
-    </View>
-  );
-}
 
 function EditSkeleton() {
   return (
@@ -73,34 +52,45 @@ function EditError({ onRetry }: { onRetry: () => void }) {
 
 export default function EditProfileScreen() {
   const { data, isPending, isError, refetch } = useMyProfile();
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const blurTarget = useRef<View>(null);
 
   return (
     <View className="flex-1 bg-bg-light">
-      <SafeAreaView edges={["top"]} className="flex-1">
-        <EditHeader />
+      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
         {isPending ? (
-          <EditSkeleton />
+          <View style={{ paddingTop: headerHeight }}>
+            <EditSkeleton />
+          </View>
         ) : isError ? (
-          <EditError onRetry={() => refetch()} />
+          <View style={{ paddingTop: headerHeight }}>
+            <EditError onRetry={() => refetch()} />
+          </View>
         ) : (
-          <EditProfileForm profile={data} />
+          <EditProfileForm profile={data} headerHeight={headerHeight} />
         )}
-      </SafeAreaView>
+      </BlurTargetView>
+
+      <GlassBackHeader
+        title="Editar perfil"
+        blurTarget={blurTarget}
+        onHeight={setHeaderHeight}
+      />
     </View>
   );
 }
 
-function EditProfileForm({ profile }: { profile: MyProfile }) {
+function EditProfileForm({
+  profile,
+  headerHeight,
+}: {
+  profile: MyProfile;
+  headerHeight: number;
+}) {
   const updateProfile = useUpdateProfile();
+  const insets = useSafeAreaInsets();
   // Local UI state: a polite message when media-library permission is denied.
   const [permissionDenied, setPermissionDenied] = useState(false);
-
-  // Lift the scroll content with the keyboard so focused fields stay visible
-  // (mirrors the onboarding keyboard-aware approach).
-  const keyboard = useAnimatedKeyboard();
-  const contentStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: -keyboard.height.value }],
-  }));
 
   const {
     control,
@@ -150,15 +140,22 @@ function EditProfileForm({ profile }: { profile: MyProfile }) {
 
   return (
     <>
-      <Animated.ScrollView
-        style={contentStyle}
-        contentContainerClassName="px-4 pb-32"
+      <ScrollView
+        contentContainerClassName="px-4"
+        contentContainerStyle={{
+          paddingTop: headerHeight,
+          paddingBottom: insets.bottom + 128,
+        }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         {/* Avatar + Trocar foto */}
         <View className="items-center mt-2">
-          <View>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Trocar foto"
+            onPress={onChangePhoto}
+          >
             <Avatar
               uri={avatarUri ?? profile.avatarUrl}
               name={profile.firstName}
@@ -168,10 +165,7 @@ function EditProfileForm({ profile }: { profile: MyProfile }) {
             <View className="absolute -bottom-1 -right-1 h-7 w-7 items-center justify-center rounded-full bg-primary border-2 border-bg-light">
               <Pencil size={14} color={colors.textOnDark} />
             </View>
-          </View>
-          <Button variant="ghost" onPress={onChangePhoto}>
-            Trocar foto
-          </Button>
+          </Pressable>
           {permissionDenied ? (
             <Text
               className="font-body text-caption text-danger text-center"
@@ -230,6 +224,7 @@ function EditProfileForm({ profile }: { profile: MyProfile }) {
                 onChangeText={onChange}
                 autoCapitalize="none"
                 maxLength={20}
+                editable={false}
                 error={errors.handle?.message}
                 testID="edit-handle"
                 leftAdornment={
@@ -306,10 +301,13 @@ function EditProfileForm({ profile }: { profile: MyProfile }) {
             Selecione sua posição
           </Text>
         ) : null}
-      </Animated.ScrollView>
+      </ScrollView>
 
       {/* Pinned CTA */}
-      <View className="absolute bottom-0 left-0 right-0 px-4 pb-6 pt-3 bg-bg-light">
+      <View
+        className="absolute bottom-0 left-0 right-0 px-4 pt-3 bg-bg-light"
+        style={{ paddingBottom: Math.max(insets.bottom, 24) }}
+      >
         {updateProfile.isError ? (
           <Text
             className="mb-3 text-center font-body text-caption text-danger"

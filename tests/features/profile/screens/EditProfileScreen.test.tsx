@@ -47,6 +47,7 @@ jest.mock('react-native-safe-area-context', () => {
   return {
     SafeAreaView: ({ children, ...props }: any) =>
       ReactLocal.createElement(View, props, children),
+    useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
   };
 });
 
@@ -277,16 +278,12 @@ describe('S10 — Edit-profile screen', () => {
    * Criterion: "Edit form validates via React Hook Form + Zod (invalid @handle /
    *  empty name / invalid date surface inline errors)."
    */
-  it('surfaces inline Zod errors for empty name, invalid @handle and invalid date and does not submit', async () => {
+  it('surfaces inline Zod errors for empty name and invalid date and does not submit', async () => {
     await renderScreen();
 
     // empty first name
     await act(async () => {
       fireEvent.changeText(screen.getByTestId('edit-first-name'), '');
-    });
-    // invalid @handle (too short for ^[a-z0-9_]{3,20}$)
-    await act(async () => {
-      fireEvent.changeText(screen.getByTestId('edit-handle'), 'ab');
     });
     // invalid date (real-past-date refine fails: 31/02 is not a real calendar date)
     await act(async () => {
@@ -298,10 +295,21 @@ describe('S10 — Edit-profile screen', () => {
     });
 
     expect(screen.getByText('Informe seu nome')).toBeTruthy();
-    expect(screen.getByText('@ inválido')).toBeTruthy();
     expect(screen.getByText('Data inválida')).toBeTruthy();
     // invalid form never reaches the mutation
     expect(mockUpdate.mutate).not.toHaveBeenCalled();
+  });
+
+  // ------------------------------------------------------ apelido is read-only
+  /**
+   * Covers: S10 — Settings
+   * The @handle is a permanent identifier and must not be editable from the
+   * edit-profile form.
+   */
+  it('renders the APELIDO field as read-only (not editable)', async () => {
+    await renderScreen();
+
+    expect(screen.getByTestId('edit-handle').props.editable).toBe(false);
   });
 
   // --------------------------------------------------- save (primary CTA flow)
@@ -380,7 +388,7 @@ describe('S10 — Edit-profile screen', () => {
     await renderScreen();
 
     await act(async () => {
-      fireEvent.press(screen.getByText('Trocar foto'));
+      fireEvent.press(screen.getByLabelText('Trocar foto'));
     });
 
     // permission requested before launching the library
@@ -413,7 +421,7 @@ describe('S10 — Edit-profile screen', () => {
     await renderScreen();
 
     await act(async () => {
-      fireEvent.press(screen.getByText('Trocar foto'));
+      fireEvent.press(screen.getByLabelText('Trocar foto'));
     });
 
     expect(mockRequestPermission).toHaveBeenCalledTimes(1);
@@ -434,7 +442,7 @@ describe('S10 — Edit-profile screen', () => {
     await renderScreen();
 
     await act(async () => {
-      fireEvent.press(screen.getByText('Trocar foto'));
+      fireEvent.press(screen.getByLabelText('Trocar foto'));
     });
 
     // avatar still shows the original profile URL

@@ -15,6 +15,8 @@ export type TextFieldProps = {
   rightSlot?: ReactNode;
   autoCapitalize?: 'none' | 'words';
   maxLength?: number;
+  /** When false the field is displayed but not editable (muted, disabled). */
+  editable?: boolean;
   testID?: string;
 };
 
@@ -36,6 +38,7 @@ export function TextField({
   rightSlot,
   autoCapitalize = 'none',
   maxLength,
+  editable = true,
   testID,
 }: TextFieldProps) {
   const hasError = Boolean(error);
@@ -55,9 +58,9 @@ export function TextField({
       </View>
 
       <View
-        className={`mt-2 h-12 flex-row items-center rounded-chip border bg-white px-4 ${
-          hasError ? 'border-danger' : 'border-line'
-        }`}
+        className={`mt-2 h-12 flex-row items-center rounded-chip border px-4 ${
+          editable ? 'bg-white' : 'bg-bg-light-alt'
+        } ${hasError ? 'border-danger' : 'border-line'}`}
       >
         {leftAdornment ? <View className="mr-2">{leftAdornment}</View> : null}
         <TextInput
@@ -69,8 +72,12 @@ export function TextField({
           autoCapitalize={autoCapitalize}
           autoCorrect={false}
           maxLength={maxLength}
+          editable={editable}
           accessibilityLabel={label}
-          className="flex-1 font-body text-body text-text-primary"
+          accessibilityState={{ disabled: !editable }}
+          className={`flex-1 font-body text-body ${
+            editable ? 'text-text-primary' : 'text-text-muted'
+          }`}
         />
       </View>
 

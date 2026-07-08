@@ -25,6 +25,11 @@ type GlassHeaderProps = {
    * the content — glassmorphism only reads when content passes beneath it.
    */
   onHeight?: (height: number) => void;
+  /**
+   * Glass tint. `"light"` (default) matches light screens; `"dark"` tints the
+   * blur + wash for navy screens (e.g. the player card).
+   */
+  tint?: "light" | "dark";
 };
 
 /**
@@ -38,13 +43,18 @@ export function GlassHeader({
   children,
   blurTarget,
   onHeight,
+  tint = "light",
 }: GlassHeaderProps) {
   const insets = useSafeAreaInsets();
+  const wash =
+    tint === "dark"
+      ? "bg-surface-dark/40 border-b border-white/10"
+      : "bg-white/40 border-b border-white/50";
 
   return (
     <BlurView
       intensity={40}
-      tint="light"
+      tint={tint}
       // Real backdrop blur on Android (iOS blurs natively regardless). The
       // target is the screen's BlurTargetView, passed via `blurTarget`.
       blurMethod="dimezisBlurView"
@@ -54,10 +64,7 @@ export function GlassHeader({
       }
       style={{ position: "absolute", top: 0, left: 0, right: 0, zIndex: 10 }}
     >
-      <View
-        style={{ paddingTop: insets.top }}
-        className="bg-white/40 border-b border-white/50"
-      >
+      <View style={{ paddingTop: insets.top }} className={wash}>
         {children}
       </View>
     </BlurView>

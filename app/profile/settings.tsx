@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query';
+import { BlurTargetView } from 'expo-blur';
 import { router } from 'expo-router';
 import {
   Bell,
@@ -10,12 +11,12 @@ import {
   MessageSquare,
   User,
 } from 'lucide-react-native';
-import type { ReactNode } from 'react';
+import { type ReactNode, useRef, useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { GlassBackHeader } from '@/components/ui/GlassBackHeader';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import { positionLabel } from '@/features/profile/schema/onboarding';
 import { logout } from '@/lib/auth/logout';
@@ -29,25 +30,6 @@ const APP_VERSION = '1.0.0';
 /** Neutral rounded skeleton block (DESIGN_SYSTEM skeleton shapes TBD — flag). */
 function SkeletonBlock({ className }: { className: string }) {
   return <View className={`bg-bg-light-alt rounded-card ${className}`} />;
-}
-
-// ── Header (inline; back + title, mirrors RankingHeader; rounded-square back) ──
-function SettingsHeader({ title }: { title: string }) {
-  return (
-    <View className="flex-row items-center gap-3 px-4 pt-2 pb-4">
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Voltar"
-        onPress={() => router.back()}
-        className="h-10 w-10 items-center justify-center rounded-chip bg-white shadow-card"
-      >
-        <ChevronLeft size={24} color={colors.surfaceDark} />
-      </Pressable>
-      <Text className="font-display text-h1 text-text-primary uppercase">
-        {title}
-      </Text>
-    </View>
-  );
 }
 
 // ── Eyebrow section label (CONTA / PREFERÊNCIAS / SUPORTE) ──
@@ -216,6 +198,8 @@ export default function SettingsScreen() {
   const queryClient = useQueryClient();
   const theme = useThemeStore((s) => s.theme);
   const setTheme = useThemeStore((s) => s.setTheme);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const blurTarget = useRef<View>(null);
 
   const onLogout = () => {
     void logout(queryClient);
@@ -223,10 +207,11 @@ export default function SettingsScreen() {
 
   return (
     <View className="flex-1 bg-bg-light">
-      <SafeAreaView edges={['top']} className="flex-1">
-        <SettingsHeader title="Configurações" />
-
-        <ScrollView contentContainerClassName="pb-24">
+      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerClassName="pb-24"
+          contentContainerStyle={{ paddingTop: headerHeight }}
+        >
           <SummaryCard />
 
           {/* CONTA — only "Editar perfil" (Pagamentos = Layer 3, cut) */}
@@ -333,7 +318,13 @@ export default function SettingsScreen() {
             </Text>
           </Pressable>
         </ScrollView>
-      </SafeAreaView>
+      </BlurTargetView>
+
+      <GlassBackHeader
+        title="Configurações"
+        blurTarget={blurTarget}
+        onHeight={setHeaderHeight}
+      />
     </View>
   );
 }

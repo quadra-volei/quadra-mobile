@@ -77,8 +77,8 @@ Each entry follows this structure:
 ### `TextField`
 - **Path**: `src/components/ui/TextField.tsx`
 - **Category**: ui
-- **Props**: `{ label: string; value: string; onChangeText: (v: string) => void; placeholder?: string; error?: string; leftAdornment?: ReactNode; rightSlot?: ReactNode; autoCapitalize?: 'none' | 'words'; maxLength?: number; testID?: string }`
-- **Used in**: S4 Onboarding (NOME / SOBRENOME / APELIDO)
+- **Props**: `{ label: string; value: string; onChangeText: (v: string) => void; placeholder?: string; error?: string; leftAdornment?: ReactNode; rightSlot?: ReactNode; autoCapitalize?: 'none' | 'words'; maxLength?: number; editable?: boolean; testID?: string }`
+- **Used in**: S4 Onboarding (NOME / SOBRENOME / APELIDO), S10 Edit profile (APELIDO is `editable={false}`)
 - **Example**:
   ```tsx
   <TextField label="NOME" value={value} onChangeText={onChange} autoCapitalize="words" error={errors.firstName?.message} />
@@ -91,7 +91,7 @@ Each entry follows this structure:
     rightSlot={<View className="bg-accent rounded-pill px-3 py-1"><Text className="font-mono text-mono text-text-primary uppercase">SEU @ NA QUADRA</Text></View>}
   />
   ```
-- **Notes**: Generic RHF-controlled labeled text input — fills the gap `PhoneInput`/`OtpInput` don't cover. Eyebrow label (`text-eyebrow`, uppercase) with an optional `rightSlot` on the same row (e.g. a badge); optional `leftAdornment` rendered inside the field before the input (e.g. an `@` prefix). When `error` is set, the field border turns `border-danger` and the message renders below in the `danger` token (`accessibilityLiveRegion="polite"`) — consistent with `PhoneInput`. Field height `h-12`, `rounded-chip`. The root `View` is `flex-1` so two fields sit side-by-side in a `flex-row gap-4` row. Designed for reuse by S10 (edit profile) and S11 (match name).
+- **Notes**: Generic RHF-controlled labeled text input — fills the gap `PhoneInput`/`OtpInput` don't cover. Eyebrow label (`text-eyebrow`, uppercase) with an optional `rightSlot` on the same row (e.g. a badge); optional `leftAdornment` rendered inside the field before the input (e.g. an `@` prefix). When `error` is set, the field border turns `border-danger` and the message renders below in the `danger` token (`accessibilityLiveRegion="polite"`) — consistent with `PhoneInput`. `editable={false}` renders the field read-only: muted `bg-bg-light-alt` fill + `text-text-muted`, input disabled, `accessibilityState={{ disabled: true }}` (used for S10's permanent `@handle`). Field height `h-12`, `rounded-chip`. The root `View` is `flex-1` so two fields sit side-by-side in a `flex-row gap-4` row. Designed for reuse by S10 (edit profile) and S11 (match name).
 
 ### `DateField`
 - **Path**: `src/components/ui/DateField.tsx`
@@ -172,6 +172,31 @@ Each entry follows this structure:
   <CourtImage tint={match.tint} height={172} radius={16}>{overlay}</CourtImage>
   ```
 - **Notes**: On-brand match-cover placeholder (ports the prototype's `CourtImage`). A `tint → navy` `expo-linear-gradient` fill behind a faint volleyball court-line motif drawn with plain Views (outer box + center line + two dashed attack lines — **no `react-native-svg`**, so it renders cheap and is test-safe). Overlaid `children` are positioned absolutely by the caller; `radius` is `0` when the cover sits flush at a card's top. Gradient end color from `src/theme/colors.ts`.
+
+### `GlassHeader`
+- **Path**: `src/components/ui/GlassHeader.tsx`
+- **Category**: ui
+- **Props**: `{ children: ReactNode; blurTarget?: RefObject<View | null>; onHeight?: (height: number) => void; tint?: 'light' | 'dark' }`
+- **Used in**: All tab screens (S5 Home, S6 Explore, S7 Network, S8 Profile) and all profile stack screens (via `GlassBackHeader`: S9 Ranking, S10 Settings/Edit/Notifications/Feedback; directly with `tint="dark"`: S8b Player card)
+- **Example**:
+  ```tsx
+  <GlassHeader blurTarget={blurTarget} onHeight={setHeaderHeight}>
+    <ProfileHeader />
+  </GlassHeader>
+  ```
+- **Notes**: Absolutely-positioned translucent app header (glassmorphism chrome from the prototype: `rgba(255,255,255,.55)` + blur). The `expo-blur` `BlurView` supplies real backdrop blur; the inner white/navy wash + hairline border approximate the tint. Because it floats (`position:absolute`, `zIndex:10`), the screen must (1) wrap its scroll content in `expo-blur`'s `<BlurTargetView ref={blurTarget}>` and pass that ref (Android `dimezisBlurView` needs an explicit backdrop; iOS blurs natively and ignores it), and (2) offset the scroll content by the height reported via `onHeight` (`contentContainerStyle={{ paddingTop: headerHeight }}`). Applies the top safe-area inset itself — the screen must NOT also wrap in a `SafeAreaView edges={['top']}`. `tint="dark"` tints the blur + wash (`bg-surface-dark/40`) for navy screens. Requires a Dev Client rebuild (native `BlurView`).
+
+### `GlassBackHeader`
+- **Path**: `src/components/ui/GlassBackHeader.tsx`
+- **Category**: ui
+- **Props**: `{ title: string; tint?: 'light' | 'dark'; right?: ReactNode; blurTarget?: RefObject<View | null>; onHeight?: (height: number) => void }`
+- **Used in**: S9 Ranking, S10 Settings / Edit profile / Notifications / Feedback (pushed profile stack screens)
+- **Example**:
+  ```tsx
+  <GlassBackHeader title="Configurações" blurTarget={blurTarget} onHeight={setHeaderHeight} />
+  <GlassBackHeader title="Ranking" right={<Bell size={24} color={colors.surfaceDark} />} blurTarget={blurTarget} onHeight={setHeaderHeight} />
+  ```
+- **Notes**: Standard glass header for pushed stack screens — a bare `ChevronLeft` back affordance (`accessibilityLabel="Voltar"`, `router.back()`) + `font-display text-h1 uppercase` title + optional right-aligned `right` cluster, composed over `GlassHeader`. Mirrors the tab headers' bare-chevron affordance so every screen's header reads as one system (replaced the earlier boxed-white back buttons on settings/edit/notifications/feedback). The consuming screen still owns the `BlurTargetView` + `headerHeight` wiring (see `GlassHeader`). For screens whose header row diverges (e.g. the S8b player card's smaller `font-body-bold` title on dark), wire `GlassHeader` directly with `tint="dark"` instead of this component.
 
 ### `Tag`
 - **Path**: `src/components/ui/Tag.tsx`

@@ -1,33 +1,14 @@
-import { router } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
-import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { BlurTargetView } from 'expo-blur';
+import { useRef, useState } from 'react';
+import { ScrollView, Switch, Text, View } from 'react-native';
 
+import { GlassBackHeader } from '@/components/ui/GlassBackHeader';
 import { useNotificationPrefsStore } from '@/stores/notificationPrefs';
 import { colors } from '@/theme/colors';
 
 // Switch tinting (RN core Switch needs raw colors, not className).
 const TRACK = { false: '#E8EEF8', true: colors.primary }; // bg-light-alt / primary
 const THUMB = colors.textOnDark; // white thumb
-
-// ── Header (inline; back + title — mirrors RankingHeader / settings) ──
-function NotificationsHeader() {
-  return (
-    <View className="flex-row items-center gap-3 px-4 pt-2 pb-4">
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="Voltar"
-        onPress={() => router.back()}
-        className="h-10 w-10 items-center justify-center rounded-chip bg-white shadow-card"
-      >
-        <ChevronLeft size={24} color={colors.surfaceDark} />
-      </Pressable>
-      <Text className="font-display text-h1 text-text-primary uppercase">
-        Notificações
-      </Text>
-    </View>
-  );
-}
 
 // ── Hairline divider between grouped rows ──
 function Divider() {
@@ -74,12 +55,16 @@ export default function NotificationsScreen() {
   const setReminders = useNotificationPrefsStore((s) => s.setReminders);
   const setRanking = useNotificationPrefsStore((s) => s.setRanking);
 
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const blurTarget = useRef<View>(null);
+
   return (
     <View className="flex-1 bg-bg-light">
-      <SafeAreaView edges={['top']} className="flex-1">
-        <NotificationsHeader />
-
-        <ScrollView contentContainerClassName="pb-24">
+      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerClassName="pb-24"
+          contentContainerStyle={{ paddingTop: headerHeight }}
+        >
           <Text className="font-body text-eyebrow text-text-muted uppercase px-4 mt-4 mb-2">
             Notificações push
           </Text>
@@ -106,7 +91,13 @@ export default function NotificationsScreen() {
             />
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </BlurTargetView>
+
+      <GlassBackHeader
+        title="Notificações"
+        blurTarget={blurTarget}
+        onHeight={setHeaderHeight}
+      />
     </View>
   );
 }

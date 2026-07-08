@@ -1,10 +1,12 @@
+import { BlurTargetView } from "expo-blur";
 import { router } from "expo-router";
 import { ChevronLeft, Lock, Share2 } from "lucide-react-native";
+import { useRef, useState } from "react";
 import { Pressable, ScrollView, Share, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
+import { GlassHeader } from "@/components/ui/GlassHeader";
 import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { positionLabel } from "@/features/profile/schema/onboarding";
 import type { MyProfile } from "@/features/profile/types/profile";
@@ -171,12 +173,16 @@ function CardBody({ profile }: { profile: MyProfile }) {
 
 export default function CardScreen() {
   const { data, isPending, isError, refetch } = useMyProfile();
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const blurTarget = useRef<View>(null);
 
   return (
     <View className="flex-1 bg-surface-dark">
-      <SafeAreaView edges={["top"]} className="flex-1">
-        <CardHeader />
-        <ScrollView contentContainerClassName="px-5 pb-10">
+      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerClassName="px-5 pb-10"
+          contentContainerStyle={{ paddingTop: headerHeight }}
+        >
           {isPending ? (
             <SkeletonBlock className="h-96 mt-2" />
           ) : isError ? (
@@ -185,7 +191,15 @@ export default function CardScreen() {
             <CardBody profile={data} />
           )}
         </ScrollView>
-      </SafeAreaView>
+      </BlurTargetView>
+
+      <GlassHeader
+        tint="dark"
+        blurTarget={blurTarget}
+        onHeight={setHeaderHeight}
+      >
+        <CardHeader />
+      </GlassHeader>
     </View>
   );
 }

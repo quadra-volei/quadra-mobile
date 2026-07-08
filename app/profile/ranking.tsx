@@ -1,14 +1,14 @@
+import { BlurTargetView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
-import { Bell, ChevronDown, ChevronLeft } from 'lucide-react-native';
-import { useState } from 'react';
+import { Bell, ChevronDown } from 'lucide-react-native';
+import { useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { RankingRow } from '@/components/domain/RankingRow';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { FilterChip } from '@/components/ui/FilterChip';
+import { GlassBackHeader } from '@/components/ui/GlassBackHeader';
 import { useGroupRanking } from '@/features/ranking/api/getGroupRanking';
 import type { RankingRow as RankingRowData } from '@/features/ranking/types/ranking';
 import { useAuthStore } from '@/stores/auth';
@@ -23,35 +23,6 @@ function noop() {}
 /** Neutral rounded skeleton block (DESIGN_SYSTEM skeleton shapes TBD — flag). */
 function SkeletonBlock({ className }: { className: string }) {
   return <View className={`bg-bg-light-alt rounded-card ${className}`} />;
-}
-
-// ── Header (inline; title + back variant — a pushed stack screen) ──
-function RankingHeader() {
-  return (
-    <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
-      <View className="flex-row items-center gap-3">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-          onPress={() => router.back()}
-        >
-          <ChevronLeft size={24} color={colors.surfaceDark} />
-        </Pressable>
-        <Text className="font-display text-h1 text-text-primary uppercase">
-          RANKING
-        </Text>
-      </View>
-      <View className="flex-row items-center gap-3">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Notificações"
-          onPress={noop}
-        >
-          <Bell size={24} color={colors.surfaceDark} />
-        </Pressable>
-      </View>
-    </View>
-  );
 }
 
 // ── Scope tabs (Amigos active/functional; Bairro/Geral disabled "Em breve") ──
@@ -198,14 +169,19 @@ export default function RankingScreen() {
   const top = data?.slice(0, 3) ?? [];
   const rest = data?.slice(3) ?? [];
 
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const blurTarget = useRef<View>(null);
+
   return (
     <View className="flex-1 bg-bg-light">
-      <SafeAreaView edges={['top']} className="flex-1">
-        <RankingHeader />
-        <ScopeTabs scope={scope} onSelectAmigos={() => setScope('amigos')} />
-        <GroupSelector groupName={MOCK_GROUP_NAME} />
+      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerClassName="pb-10"
+          contentContainerStyle={{ paddingTop: headerHeight }}
+        >
+          <ScopeTabs scope={scope} onSelectAmigos={() => setScope('amigos')} />
+          <GroupSelector groupName={MOCK_GROUP_NAME} />
 
-        <ScrollView contentContainerClassName="pb-10">
           {isPending ? (
             <RankingSkeleton />
           ) : isError ? (
@@ -229,7 +205,22 @@ export default function RankingScreen() {
             </>
           )}
         </ScrollView>
-      </SafeAreaView>
+      </BlurTargetView>
+
+      <GlassBackHeader
+        title="Ranking"
+        right={
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Notificações"
+            onPress={noop}
+          >
+            <Bell size={24} color={colors.surfaceDark} />
+          </Pressable>
+        }
+        blurTarget={blurTarget}
+        onHeight={setHeaderHeight}
+      />
     </View>
   );
 }
