@@ -2,6 +2,7 @@ import '../global.css';
 
 import {
   DMSans_400Regular,
+  DMSans_500Medium,
   DMSans_600SemiBold,
   DMSans_700Bold,
   DMSans_800ExtraBold,
@@ -90,6 +91,7 @@ export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     'ClimateCrisis-Regular': require('../assets/fonts/ClimateCrisis-Regular-VariableFont_YEAR.ttf'),
     DMSans_400Regular,
+    DMSans_500Medium,
     DMSans_600SemiBold,
     DMSans_700Bold,
     DMSans_800ExtraBold,
