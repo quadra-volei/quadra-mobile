@@ -162,6 +162,28 @@ Each entry follows this structure:
   ```
 - **Notes**: Boolean switch row — optional leading icon + title + caption + a native RN `Switch` on a `bg-white rounded-card border border-line` row. The `Switch` carries the accessible `role="switch"` + `accessibilityState={{ checked }}` and label (title). RN core `Switch` styles via `trackColor`/`thumbColor` props (not className) — track/thumb colors mirror the `notifications.tsx` precedent (`#E8EEF8` bg-light-alt off / `colors.primary` on / `colors.textOnDark` thumb). Controlled; never fetches. **Row-chrome precedent**: S12's inlined Manual/Automático draw-mode radio rows mirror this exact row layout (icon + title + caption on a `bg-white rounded-card border` row) but with a trailing lucide `Check` instead of a `Switch` and `accessibilityRole="radio"` (single-select). That is a one-screen presentational variation — it is **inlined in `app/matches/[id].tsx`**, not extracted, and adds no `ToggleField` API change.
 
+### `CourtImage`
+- **Path**: `src/components/ui/CourtImage.tsx`
+- **Category**: ui
+- **Props**: `{ tint: string; height: number; radius?: number; label?: string; children?: ReactNode }`
+- **Used in**: S5 Home / S6 Explore match-card covers (`MatchCard`, `MatchCardCompact`)
+- **Example**:
+  ```tsx
+  <CourtImage tint={match.tint} height={172} radius={16}>{overlay}</CourtImage>
+  ```
+- **Notes**: On-brand match-cover placeholder (ports the prototype's `CourtImage`). A `tint → navy` `expo-linear-gradient` fill behind a faint volleyball court-line motif drawn with plain Views (outer box + center line + two dashed attack lines — **no `react-native-svg`**, so it renders cheap and is test-safe). Overlaid `children` are positioned absolutely by the caller; `radius` is `0` when the cover sits flush at a card's top. Gradient end color from `src/theme/colors.ts`.
+
+### `Tag`
+- **Path**: `src/components/ui/Tag.tsx`
+- **Category**: ui
+- **Props**: `{ children: ReactNode; bg?: string; color?: string; dot?: boolean }`
+- **Used in**: `MatchCard` (format + level tags), `MatchCardCompact` (category tag)
+- **Example**:
+  ```tsx
+  <Tag bg={colors.primary} color={colors.textOnDark} dot>CASUAL</Tag>
+  ```
+- **Notes**: Small uppercase pill label (ports the prototype's `Tag`): `font-body-bold` (DM Sans 700), 10px, letter-spacing 1, `rounded-pill`. `bg`/`color` are passed in because they vary per use (category/format/level) and the caller owns the DESIGN_SYSTEM priority-color choice; optional leading `dot` in the label color. Purely presentational.
+
 <!--
 More UI primitives will live here:
 
@@ -210,24 +232,24 @@ More UI primitives will live here:
 ### `MatchCard`
 - **Path**: `src/components/domain/MatchCard.tsx`
 - **Category**: domain
-- **Props**: `{ match: NearbyMatch; onPress: (id: string) => void; testID?: string }` where `NearbyMatch = { id: string; name: string; format: '2X2' | '4X4' | '6X6'; level: 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO'; distanceKm: number; confirmed: number; capacity: number; priceLabel: string }` (from `@/features/matches/types/match`)
+- **Props**: `{ match: NearbyMatch; onPress: (id: string) => void; testID?: string }` where `NearbyMatch = { id: string; name: string; format: '2X2' | '4X4' | '6X6'; level: 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO'; distanceKm: number; confirmed: number; capacity: number; priceLabel: string; tint: string }` (from `@/features/matches/types/match`)
 - **Used in**: S5 Home ("JOGOS PERTO DE VOCÊ" grid). Reused by S6 Explore grid and S17 map bottom sheet.
 - **Example**:
   ```tsx
   <MatchCard match={m} onPress={(id) => router.push({ pathname: '/matches/[id]', params: { id } })} />
   ```
-- **Notes**: Dark, image-forward card on a navy `HERO_GRADIENT` (`expo-linear-gradient`) with `text-on-dark` copy. Top row: a translucent format mono pill + a lime `bg-accent` level pill; then a `MapPin` distance (`"1,2 km"`, comma decimal), the venue name (`text-h3`, single line), and a footer with a `Users` confirmed/capacity (`font-num`) and a lime `font-num` price. Single `accessibilityRole="button"` target announcing name + distance. Receives plain data via props; never fetches. No hardcoded hex — icon/gradient colors come from `src/theme/colors.ts`.
+- **Notes**: Image-forward card mirroring the prototype's `NearbyCard`. A `<CourtImage>` cover (`height 172`) tinted per match by `match.tint`, with a dark bottom scrim. Top-left: a stacked `<Tag>` pair — a translucent-white format tag + a lime level tag. Overlaid bottom block: a `MapPin` distance in `font-mono` brightLime (`"1,2 km"`, comma decimal), the venue name (`font-body-bold`, single line, white), and a row with a `Users` confirmed/capacity and a `font-num` brightLime price. Single `accessibilityRole="button"` target announcing name + distance. Receives plain data via props; never fetches. No hardcoded hex — colors come from `src/theme/colors.ts`.
 
 ### `MatchCardCompact`
 - **Path**: `src/components/domain/MatchCardCompact.tsx`
 - **Category**: domain
-- **Props**: `{ match: UpcomingMatch; onPress: (id: string) => void; testID?: string }` where `UpcomingMatch = { id: string; name: string; startsAt: string; category?: string; openSlots: number; priceLabel: string; avatarUrls: string[] }` (from `@/features/matches/types/match`)
+- **Props**: `{ match: UpcomingMatch; onPress: (id: string) => void; testID?: string }` where `UpcomingMatch = { id: string; name: string; startsAt: string; category?: string; openSlots: number; priceLabel: string; avatarUrls: string[]; tint: string }` (from `@/features/matches/types/match`)
 - **Used in**: S5 Home ("PRÓXIMAS PARTIDAS" horizontal scroll). (Not used on S8 — the S8 "MINHAS PARTIDAS" rows are result rows, rendered by `MatchHistoryRow`, not compact cover cards.)
 - **Example**:
   ```tsx
   <MatchCardCompact match={m} onPress={(id) => router.push({ pathname: '/matches/[id]', params: { id } })} />
   ```
-- **Notes**: Light `bg-white rounded-card shadow-card` compact card (`w-64`). Navy cover strip with an optional category mono pill, then the match name (`text-h3`, single line), a `Clock` datetime rendered relatively (`"Hoje 19h30"` / `"Amanhã 20h00"` / `"20/06 19h30"` via a pure internal formatter), a confirmed-avatar stack (`expo-image`, max 3 + "+N" overflow), a `"N vagas"` label, and a lime price pill. Single `accessibilityRole="button"` target announcing name + datetime. Receives plain data via props; never fetches. No hardcoded hex — icon colors come from `src/theme/colors.ts`.
+- **Notes**: Light `bg-white rounded-card shadow-card` compact card (`w-[262px]`) mirroring the prototype's upcoming card. A `<CourtImage>` cover (`height 124`, flush top, `radius 0`) tinted by `match.tint` with a category `<Tag>` (blue+dot for "CASUAL", else lime) top-left. Content block: the match name (`font-body-bold` 16px, single line), a `Clock` datetime rendered relatively (`"Hoje · 19h30"` / `"Amanhã · 20h00"` / `"20/06 · 19h30"` via a pure internal formatter, `font-body-semibold`), then a hairline footer with a confirmed-avatar stack (`expo-image`, max 3 + "+N" overflow) and two matched badges — `"N vagas"` (blue on blue-tint) and price (`font-body-bold`, green when "Grátis", else navy, on `bg-light`). Single `accessibilityRole="button"` target announcing name + datetime. Receives plain data via props; never fetches. No hardcoded hex — colors come from `src/theme/colors.ts`.
 
 ### `LevelBar`
 - **Path**: `src/components/domain/LevelBar.tsx`

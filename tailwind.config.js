@@ -40,6 +40,16 @@ module.exports = {
         num: ['RussoOne_400Regular'],
         // font-body → DM Sans
         body: ['DMSans_400Regular'],
+        // font-body-medium → DM Sans 500 (prototype's muted-meta weight, e.g.
+        // "N partidas encontradas")
+        'body-medium': ['DMSans_500Medium'],
+        // font-body-semibold → DM Sans 600 (matches the text-body-bold weight)
+        'body-semibold': ['DMSans_600SemiBold'],
+        // font-body-bold → DM Sans 700 (prototype's dominant UI weight: card
+        // titles, tags, badges — see Quadra.html)
+        'body-bold': ['DMSans_700Bold'],
+        // font-body-extrabold → DM Sans 800 (matches the text-h3 weight)
+        'body-extrabold': ['DMSans_800ExtraBold'],
         // font-word → Baloo 2 (wordmark only)
         word: ['Baloo2_600SemiBold'],
         // font-mono → DM Mono

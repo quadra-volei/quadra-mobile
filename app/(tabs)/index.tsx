@@ -47,10 +47,12 @@ function SectionHeader({
 }) {
   return (
     <View className="flex-row items-center justify-between px-4 mt-6">
-      {/* In-screen section title: text-h2, one step below the "INÍCIO" screen
-          header (h1) — same Climate Crisis face. See DESIGN_SYSTEM heading
-          hierarchy. */}
-      <Text className="font-display text-h2 text-text-primary uppercase">
+      {/* In-screen section title: Climate Crisis 14px, one step below the
+          "INÍCIO" screen header (18px) — matches the prototype's SectionTitle. */}
+      <Text
+        className="font-display text-text-primary uppercase"
+        style={{ fontSize: 14, letterSpacing: 0.6 }}
+      >
         {title}
       </Text>
       <Button variant="ghost" onPress={onAction}>
@@ -124,10 +126,10 @@ function NearbySection() {
     return (
       <View className="flex-row flex-wrap px-4 gap-3 mt-2">
         <View className="w-[48%]">
-          <SkeletonBlock className="h-48" />
+          <SkeletonBlock className="h-[172px]" />
         </View>
         <View className="w-[48%]">
-          <SkeletonBlock className="h-48" />
+          <SkeletonBlock className="h-[172px]" />
         </View>
       </View>
     );
@@ -162,9 +164,12 @@ export default function HomeScreen() {
   return (
     <View className="flex-1 bg-bg-light">
       <SafeAreaView edges={["top"]} className="flex-1">
-        {/* Header */}
+        {/* Header — Climate Crisis 18px, matching the prototype's screen Header. */}
         <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
-          <Text className="font-display text-h1 text-text-primary uppercase">
+          <Text
+            className="font-display text-text-primary uppercase"
+            style={{ fontSize: 18, letterSpacing: 1 }}
+          >
             INÍCIO
           </Text>
           <View className="flex-row items-center gap-3">

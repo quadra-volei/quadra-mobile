@@ -74,6 +74,13 @@ export function formatPriceLabel(price: number): string {
   return price === 0 ? 'Grátis' : `R$ ${price}`;
 }
 
+/** Court-image cover tint per level, mirroring the prototype's level scale. */
+function tintForLevel(level: CreateMatchInput['level']): string {
+  if (level === 'INICIANTE') return '#00B4D8';
+  if (level === 'AVANCADO') return '#6B1AFF';
+  return '#1A1AFF'; // INTERMEDIARIO
+}
+
 /**
  * Builds the full S12 `MatchDetail` from a created-match record. The current
  * user is the organizer (so the S12 organizer view renders) and the only
@@ -123,5 +130,6 @@ export function buildUpcomingMatch(match: CreatedMatch): UpcomingMatch {
     openSlots: Math.max(0, input.players - 1),
     priceLabel: formatPriceLabel(input.price),
     avatarUrls: [],
+    tint: tintForLevel(input.level),
   };
 }

@@ -138,6 +138,7 @@ describe('buildUpcomingMatch', () => {
       openSlots: 7,
       priceLabel: 'R$ 25',
       avatarUrls: [],
+      tint: '#6B1AFF', // AVANCADO → violet
     });
   });
 

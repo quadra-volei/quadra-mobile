@@ -102,6 +102,7 @@ const UPCOMING_FIXTURE: UpcomingMatch[] = [
     openSlots: 2,
     priceLabel: 'R$ 15',
     avatarUrls: ['https://example.com/a.png', 'https://example.com/b.png'],
+    tint: '#1A1AFF',
   },
   {
     id: 'up-2',
@@ -111,6 +112,7 @@ const UPCOMING_FIXTURE: UpcomingMatch[] = [
     openSlots: 4,
     priceLabel: 'Grátis',
     avatarUrls: ['https://example.com/c.png'],
+    tint: '#6B1AFF',
   },
 ];
 
@@ -124,6 +126,7 @@ const NEARBY_FIXTURE: NearbyMatch[] = [
     confirmed: 6,
     capacity: 8,
     priceLabel: 'R$ 25',
+    tint: '#1A1AFF',
     lat: -23.5605,
     lon: -46.6433,
   },
@@ -136,6 +139,7 @@ const NEARBY_FIXTURE: NearbyMatch[] = [
     confirmed: 9,
     capacity: 12,
     priceLabel: 'Grátis',
+    tint: '#00B4D8',
     lat: -23.5731,
     lon: -46.6289,
   },

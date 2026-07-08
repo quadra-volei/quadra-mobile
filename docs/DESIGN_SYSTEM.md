@@ -98,7 +98,7 @@ Five font families, each with a distinct role. **This replaces the previous "sys
 | --- | --- | --- |
 | **Climate Crisis** | Display — screen titles, hero headlines | **Always uppercase**, letter-spacing 0, weight 400. Loaded from local TTF (`ClimateCrisis-Regular-VariableFont_YEAR.ttf`). |
 | **Russo One** | Numbers — scores, stats, levels, overall | weight 400. Google Font. |
-| **DM Sans** | Interface — body, buttons, labels, all UI text | weights 400/600/700/800. Google Font. |
+| **DM Sans** | Interface — body, buttons, labels, all UI text | weights 400/500/600/700/800. Google Font. |
 | **Baloo 2** | Wordmark — exclusive to the "quadra" logo lockup | weight 600. **Do not use for anything else.** Google Font. |
 | **DM Mono** | Micro-labels — tags, captions, technical legends | weights 400/500. Google Font. |
 
@@ -111,20 +111,33 @@ These are **not** system fonts, so they must be bundled:
 
 > ⚠️ This requires adding new dependencies to `CLAUDE.md`'s locked stack (`expo-font` + the relevant `@expo-google-fonts/*` packages + the Climate Crisis `.ttf` asset). Flag this to the human before the first screen spec that needs custom type — it's a stack change per `CLAUDE.md` rules.
 
+> **DM Sans weights are per-face family tokens, not `fontWeight`.** In React
+> Native a numeric `fontWeight` does **not** switch a named font face — you must
+> reference the weight's own family. So DM Sans weights are exposed as distinct
+> NativeWind font tokens; pick the className, never set `fontWeight`:
+> `font-body` (400) · `font-body-medium` (500) · `font-body-semibold` (600) ·
+> `font-body-bold` (700) · `font-body-extrabold` (800).
+
 ### Type scale (hierarchy)
 
 | Token | Family | Size | Case | Weight | Use |
 | --- | --- | --- | --- | --- | --- |
 | `text-display` | Climate Crisis | 29–46px | UPPERCASE | 400 | Hero / splash headline |
-| `text-h1` | Climate Crisis | 20–22px | UPPERCASE | 400 | **Screen header — top of screen only** (e.g. "INÍCIO", "CONFIGURAÇÕES") |
-| `text-h2` | Climate Crisis | 16px | UPPERCASE | 400 | **In-screen section title** (e.g. "PRÓXIMAS PARTIDAS", "JOGOS PERTO DE VOCÊ") |
+| `text-h1` | Climate Crisis | 18px | UPPERCASE | 400 | **Screen header — top of screen only** (e.g. "INÍCIO", "CONFIGURAÇÕES") |
+| `text-h2` | Climate Crisis | 14px | UPPERCASE | 400 | **In-screen section title** (e.g. "PRÓXIMAS PARTIDAS", "JOGOS PERTO DE VOCÊ") |
 | `text-h3` | DM Sans | 16–18px | normal | 800 | Card title |
 
-> **Heading hierarchy.** A screen has exactly **one** `text-h1` — the header at
-> the top. Every other Climate Crisis heading in the screen body (section titles
-> such as "PRÓXIMAS PARTIDAS") uses `text-h2` — same display face, one step
-> smaller — so the screen header always stays dominant. Both are `font-display`
-> + `uppercase`; only the size token differs.
+> **Heading hierarchy** (per the `Quadra.html` prototype). A screen has exactly
+> **one** screen header — Climate Crisis **18px** (prototype `Header`). Every
+> other Climate Crisis heading in the screen body (section titles such as
+> "PRÓXIMAS PARTIDAS") is **14px** (prototype `SectionTitle`) — same display
+> face, one step smaller — so the screen header stays dominant. Both are
+> `font-display` + `uppercase`; only the size differs.
+>
+> **Rollout status:** S5 Home applies these sizes (18/14) inline. The global
+> `text-h1` / `text-h2` tokens still resolve to the pre-prototype 21/16px and
+> will be re-pointed to 18/14 once every screen header/section has been checked
+> against the prototype — until then, don't assume the tokens match the table.
 | `text-body` | DM Sans | 14–15px | normal | 400 | Default body |
 | `text-body-bold` | DM Sans | 14–15px | normal | 600 | Emphasis in body |
 | `text-eyebrow` | DM Sans | 11px | UPPERCASE | 700 | Eyebrow / overline label, letter-spacing 1.2 |

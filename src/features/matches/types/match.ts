@@ -18,7 +18,7 @@ export type UpcomingMatch = {
   name: string;
   /** ISO timestamp; rendered as "Hoje 19h30" / "Amanhã ...". */
   startsAt: string;
-  /** e.g. "CASUAL" / "COMPETITIVO" (mono pill). Optional. */
+  /** e.g. "CASUAL" / "COMPETITIVO" (category tag). Optional. */
   category?: string;
   /** "N vagas". */
   openSlots: number;
@@ -26,6 +26,8 @@ export type UpcomingMatch = {
   priceLabel: string;
   /** Confirmed players' avatar URLs (stacked, +N overflow). */
   avatarUrls: string[];
+  /** Hex tint for the card's court-image cover gradient (tint → navy). */
+  tint: string;
 };
 
 /**
@@ -44,6 +46,8 @@ export type NearbyMatch = {
   capacity: number;
   /** "R$ 25" | "Grátis". */
   priceLabel: string;
+  /** Hex tint for the card's court-image cover gradient (tint → navy). */
+  tint: string;
   /**
    * Geographic coordinates of the venue, used to place the match pin on the S17
    * map. A geo-nearby endpoint inherently returns per-match coordinates, so this

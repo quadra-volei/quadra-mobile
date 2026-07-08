@@ -30,6 +30,7 @@ const MOCK_UPCOMING: UpcomingMatch[] = [
       'https://i.pravatar.cc/100?img=13',
       'https://i.pravatar.cc/100?img=14',
     ],
+    tint: '#1A1AFF',
   },
   {
     id: 'up-2',
@@ -42,6 +43,7 @@ const MOCK_UPCOMING: UpcomingMatch[] = [
       'https://i.pravatar.cc/100?img=21',
       'https://i.pravatar.cc/100?img=22',
     ],
+    tint: '#6B1AFF',
   },
 ];
 
