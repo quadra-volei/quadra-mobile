@@ -7,6 +7,7 @@ export type ButtonVariant =
   | "primary"
   | "outline"
   | "outlineW"
+  | "outlineLime"
   | "ghost";
 
 export type ButtonProps = {
@@ -40,6 +41,7 @@ const TEXT_CLASS: Record<ButtonVariant, string> = {
   primary: "font-body text-body-bold text-text-on-dark",
   outline: "font-body text-body-bold text-primary",
   outlineW: "font-body text-body-bold text-text-on-dark",
+  outlineLime: "font-body text-body-bold text-accent-light",
   ghost: "font-body text-body-bold text-primary",
 };
 
@@ -57,13 +59,13 @@ function Content({
   isDisabled: boolean;
 }) {
   if (loading) {
-    return (
-      <ActivityIndicator
-        color={
-          variant === "outline" || variant === "ghost" ? "#1A1AFF" : "#FFFFFF"
-        }
-      />
-    );
+    const indicatorColor =
+      variant === "outline" || variant === "ghost"
+        ? "#1A1AFF"
+        : variant === "outlineLime"
+          ? "#C6F135" // accent-light
+          : "#FFFFFF";
+    return <ActivityIndicator color={indicatorColor} />;
   }
   return (
     <>
@@ -142,10 +144,18 @@ export function Button({
   }
 
   // Non-gradient variants only (gradient variants returned above).
-  const outlineVariant = variant as "outline" | "outlineW" | "ghost";
-  const variantClass: Record<"outline" | "outlineW" | "ghost", string> = {
+  const outlineVariant = variant as
+    | "outline"
+    | "outlineW"
+    | "outlineLime"
+    | "ghost";
+  const variantClass: Record<
+    "outline" | "outlineW" | "outlineLime" | "ghost",
+    string
+  > = {
     outline: "border-2 border-primary bg-transparent",
     outlineW: "border-2 border-white bg-transparent",
+    outlineLime: "border-2 border-accent-light bg-transparent",
     ghost: "bg-transparent",
   };
 

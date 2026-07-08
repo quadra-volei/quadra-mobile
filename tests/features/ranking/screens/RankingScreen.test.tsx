@@ -121,14 +121,14 @@ import type { RankingRow } from '@/features/ranking/types/ranking';
 // Row at position 4 (playerId 'me') is the current user. Trends cover all three
 // directions (up / flat / down).
 const RANKING_FIXTURE: RankingRow[] = [
-  { position: 1, playerId: 'p-erica', name: 'Érica', subtitle: '@erica · Oposto', score: 2480, trend: { direction: 'up', delta: 1 } },
-  { position: 2, playerId: 'p-caio', name: 'Caio', subtitle: '@caio · Central', score: 2310, trend: { direction: 'flat', delta: 0 } },
-  { position: 3, playerId: 'p-manu', name: 'Manu', subtitle: '@manu · Líbero', score: 2180, trend: { direction: 'down', delta: 1 } },
-  { position: 4, playerId: 'me', name: 'Renan Dias', subtitle: '@renan · Levantador', score: 1995, isMe: true, trend: { direction: 'up', delta: 5 } },
-  { position: 5, playerId: 'p-duda', name: 'Duda Reis', subtitle: '@dudareis · Ponteiro', score: 1870, trend: { direction: 'flat', delta: 0 } },
-  { position: 6, playerId: 'p-bia', name: 'Bia Fontes', subtitle: '@biaf · Líbero', score: 1740, trend: { direction: 'up', delta: 2 } },
-  { position: 7, playerId: 'p-theo', name: 'Theo Nunes', subtitle: '@theon · Ponteiro', score: 1510, trend: { direction: 'down', delta: 2 } },
-  { position: 8, playerId: 'p-vini', name: 'Vini Sales', subtitle: '@vsales · Central', score: 1320, trend: { direction: 'up', delta: 1 } },
+  { position: 1, playerId: 'p-erica', name: 'Érica', subtitle: '@erica · Oposto', score: 81, trend: { direction: 'up', delta: 1 } },
+  { position: 2, playerId: 'p-caio', name: 'Caio', subtitle: '@caio · Central', score: 79, trend: { direction: 'flat', delta: 0 } },
+  { position: 3, playerId: 'p-manu', name: 'Manu', subtitle: '@manu · Líbero', score: 74, trend: { direction: 'down', delta: 1 } },
+  { position: 4, playerId: 'me', name: 'Renan Dias', subtitle: '@renan · Levantador', score: 68, isMe: true, trend: { direction: 'up', delta: 5 } },
+  { position: 5, playerId: 'p-duda', name: 'Duda Reis', subtitle: '@dudareis · Ponteiro', score: 65, trend: { direction: 'flat', delta: 0 } },
+  { position: 6, playerId: 'p-bia', name: 'Bia Fontes', subtitle: '@biaf · Líbero', score: 62, trend: { direction: 'up', delta: 2 } },
+  { position: 7, playerId: 'p-theo', name: 'Theo Nunes', subtitle: '@theon · Ponteiro', score: 58, trend: { direction: 'down', delta: 2 } },
+  { position: 8, playerId: 'p-vini', name: 'Vini Sales', subtitle: '@vsales · Central', score: 54, trend: { direction: 'up', delta: 1 } },
 ];
 
 const mockRanking: {
@@ -343,11 +343,11 @@ describe('S9 — Full Group Ranking screen', () => {
     expect(screen.getByLabelText('Avatar de Caio')).toBeTruthy();
     expect(screen.getByLabelText('Avatar de Manu')).toBeTruthy();
 
-    // top-3 scores rendered with the number font
-    const firstScore = screen.getByText('2480');
+    // top-3 scores (OVR) rendered with the number font
+    const firstScore = screen.getByText('81');
     expect(firstScore.props.className).toContain('font-num');
-    expect(screen.getByText('2310')).toBeTruthy();
-    expect(screen.getByText('2180')).toBeTruthy();
+    expect(screen.getByText('79')).toBeTruthy();
+    expect(screen.getByText('74')).toBeTruthy();
 
     // 1st-place pedestal uses the navy hero gradient with a lime "1º"
     expect(screen.getByTestId('linear-gradient')).toBeTruthy();
@@ -384,9 +384,9 @@ describe('S9 — Full Group Ranking screen', () => {
     expect(screen.getByText('Theo Nunes')).toBeTruthy();
     expect(screen.getByText('@theon · Ponteiro')).toBeTruthy();
 
-    // scores
-    expect(screen.getByText('1870')).toBeTruthy();
-    expect(screen.getByText('1510')).toBeTruthy();
+    // scores (OVR)
+    expect(screen.getByText('65')).toBeTruthy();
+    expect(screen.getByText('58')).toBeTruthy();
 
     // list-row avatars
     expect(screen.getByLabelText('Avatar de Duda Reis')).toBeTruthy();
@@ -438,7 +438,7 @@ describe('S9 — Full Group Ranking screen', () => {
     // The "me" row (playerId 'me' === auth userId) appends "· você".
     expect(screen.getByText('· você')).toBeTruthy();
     // and announces "você" to assistive tech (RankingRow accessibilityLabel).
-    expect(screen.getByLabelText(/Renan Dias, você, 1995 pontos/)).toBeTruthy();
+    expect(screen.getByLabelText(/Renan Dias, você, 68 pontos/)).toBeTruthy();
   });
 
   /**

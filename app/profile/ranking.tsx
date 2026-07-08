@@ -109,7 +109,7 @@ function PodiumColumn({
 
   return (
     <View className="items-center w-24">
-      <Avatar uri={undefined} name={row.name} size="lg" />
+      <Avatar uri={undefined} name={row.name} size="lg" level={row.level} />
       <Text className="font-body text-body-bold text-text-primary mt-2 text-center">
         {row.name}
       </Text>

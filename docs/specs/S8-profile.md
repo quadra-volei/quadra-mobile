@@ -1,5 +1,28 @@
 # Screen Spec: S8 — Profile
 
+> ### 🔄 Scope update — 2026-07-08 (owner decision)
+> The owner re-included three prototype elements that this spec originally cut as
+> "Layer 3", to match `Quadra.html`. Now shipped (with code + tests):
+> 1. **ACE/BLK/ATA/DEF stats grid** in "Seu progresso" (2×2, beside the GERAL box).
+> 2. **"Ver a sua carta" CTA** → new player-card screen **S8b** (`app/profile/card.tsx`):
+>    GERAL + position tag, photo, name/@handle·posição, 6-stat grid (adds SRV/REC),
+>    "Compartilhar carta" (native share), premium note.
+> 3. **"Ver tudo" on MINHAS PARTIDAS** — rendered but **inert** (no full-history
+>    screen in MVP; the prototype's handler is likewise empty).
+> Also: the "Ranking semanal" right-side number is now the player's **OVR** (same
+> value as GERAL) instead of weekly points — applied to both this preview and S9.
+>
+> **Ranking-card parity (2026-07-08):** the dark card was aligned to the prototype:
+> outer section title **"Meus amigos"** with an inner brightLime **"Ranking semanal"**
+> label; **solid navy** background (not a gradient); per-row colors (only the "me"
+> row is lime — position + score — everyone else white, with a dimmed position and
+> a bordered highlight); lime-outlined "Ver tudo" (new `Button` `outlineLime`
+> variant); and **tier-colored level badges** on the avatars (`Avatar level` prop +
+> `src/theme/levelTier.ts`), also shown on the header avatar and on S9.
+>
+> The acceptance criteria and "Out of scope" list below are updated to match; the
+> "Notable divergences" section reflects the *original* cut and is kept for history.
+
 ✅ **scope-guardian: APPROVED** — all 11 checklist items pass. Item 3 (backend gate, rule #10) cleared via the owner-approved S5/S6 mocked posture. The three "Open questions" are resolved to the spec's documented defaults: (1) hide the destination-less MINHAS PARTIDAS "Ver tudo" and render mocked rows inline; (2) add a header settings affordance → `/profile/settings` for S10 reachability; (3) title the dark card "Ranking semanal".
 
 ## Origin
@@ -226,8 +249,10 @@ Token references only; NativeWind classes; no hex; no `StyleSheet.create`. Mirro
 
 ## Acceptance criteria
 - [ ] Header shows the authenticated user's avatar, "Olá," and their first name (display type) — plus a notification bell and a theme toggle.
-- [ ] The "Seu progresso" card shows the **GERAL** number (`font-num`) and a Level/XP bar ("Level N", "XP a / b") — and **does NOT** render the ACE/BLK/ATA/DEF stats grid.
-- [ ] The "Ver a sua carta" gradient CTA is **NOT** present.
+- [ ] The "Seu progresso" card shows the **GERAL** number (`font-num`), the **ACE/BLK/ATA/DEF** stats grid (2×2), and a Level/XP bar ("Level N", "XP a / b").
+- [ ] The "Ver a sua carta" gradient CTA is present and navigates to the player card (`/profile/card`, S8b).
+- [ ] MINHAS PARTIDAS renders a "Ver tudo" button that is inert (no full-history screen in MVP).
+- [ ] The "Ranking semanal" right-side number shows each player's OVR (same scale as GERAL).
 - [ ] "MINHAS PARTIDAS" renders the recent matches from `useRecentMatches`, each row showing name, date·format, Vitória/Derrota (success/danger colored) and set score; tapping a row navigates to S12 with its id.
 - [ ] The dark "Ranking semanal" card renders ranking rows from `useGroupRanking({ preview: true })` with position, avatar, name, subtitle, score; the current user's row is highlighted with "· você".
 - [ ] "Ver tudo" on the ranking section navigates to S9 (`/profile/ranking`).
@@ -239,14 +264,12 @@ Token references only; NativeWind classes; no hex; no `StyleSheet.create`. Mirro
 - [ ] All criteria are verifiable via RNTL against the mocked queries (no MSW / no network) and mocked navigation.
 
 ## Out of scope (be explicit)
-- ACE/BLK/ATA/DEF stats grid (Layer 3 — SCOPE "Display GERAL only"; row hidden).
-- "Ver a sua carta" / player card `CardScreen` (Layer 3 — SCOPE OUT "hide the button").
 - "SUGESTÃO DE AMIGOS" friend suggestions / any friends system (Layer 3 — SCOPE OUT + global NOT-in-MVP).
 - "CONQUISTAS" achievements gallery (Layer 3 — SCOPE OUT + global NOT-in-MVP).
 - Inline editable profile fields (S10 Settings owns editing — SCOPE OUT).
 - Functional dark-mode theme toggle (dark tokens unspecified; toggle is a no-op until S10 + dark tokens).
 - Notifications screen / bell badge / push preview (no notifications screen in SCOPE; bell is a no-op).
-- A dedicated full match-history screen (none in MVP — see Open question; MINHAS PARTIDAS "Ver tudo" hidden).
+- A dedicated full match-history screen (none in MVP; the MINHAS PARTIDAS "Ver tudo" is rendered but inert until one exists).
 - Real data wiring — all three reads are mocked; the human wires real F2.1/F2.2/F2.3/F1.6 behind the unchanged hook signatures.
 
 ## Open questions for scope-guardian / PM

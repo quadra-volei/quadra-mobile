@@ -18,6 +18,8 @@ export type RankingRow = {
   subtitle: string;
   /** The player's score (Russo One number). */
   score: number;
+  /** Player level — drives the tier-colored level badge on the row avatar. */
+  level?: number;
   /** Mock-only convenience flag; screen prefers the userId match. */
   isMe?: boolean;
   /**

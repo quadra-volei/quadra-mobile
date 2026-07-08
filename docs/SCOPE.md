@@ -114,13 +114,14 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **Reference**: `docs/references/screens/S8-profile/perfil.png` (header + middle + bottom)- **Route**: `app/(tabs)/profile.tsx`
 - **Backend deps**: F2.1, F2.2, F2.3, F1.6 (match history)
 - **IN**: header with avatar + greeting ("Olá, NOME") + notification bell + theme toggle
-- **IN**: "Seu progresso" card with GERAL score (large number) and ACE/BLK/ATA/DEF stats (small)
-  - **Note**: ACE/BLK/ATA/DEF stats are Layer 3. For MVP, show static placeholder values with "Em breve" overlay or hide the row entirely. Display GERAL only.
+- **IN**: "Seu progresso" card with GERAL score (large number) and the ACE/BLK/ATA/DEF stats grid (small, 2×2)
+  - **Note**: the ACE/BLK/ATA/DEF stats grid is now shown (owner decision 2026-07-08, matching the prototype). Values come from the profile progress payload (mocked until F2.2). The full 6-stat set (adds SRV/REC) appears on the player card (see below).
 - **IN**: XP bar with Level indicator (mockup: "Level 15 — XP 2.450 / 5.000")
 - **IN**: "MINHAS PARTIDAS" — list of recent matches with result (Vitória/Derrota + set score) + "Ver tudo" (read-only history via F1.6)
 - **IN**: "Meus amigos / Ranking semanal" dark card with ranking rows (uses group ranking, NOT a friends system — title is misleading in mockup; clarify with PM if blocking)
 - **IN**: "Ver tudo" CTA → opens full ranking screen (S9)
-- **OUT**: "Ver a sua carta" CTA / player card (`CardScreen`, Layer 3) — hide the button for MVP
+- **IN**: "Ver tudo" on MINHAS PARTIDAS — present (matches the prototype) but inert until a full match-history screen exists (none in MVP)
+- **IN**: "Ver a sua carta" CTA → player card screen **S8b** (`app/profile/card.tsx`) — GERAL + position tag, photo, name/@handle·posição, 6-stat grid (ACE/BLK/ATA/DEF/SRV/REC), share, premium note (owner decision 2026-07-08)
 - **OUT**: "Sugestão de amigos" / friend suggestions (friends system, Layer 3)
 - **OUT**: "Conquistas" / achievement gallery (Layer 3)
 - **OUT**: editable fields inline (separate Settings screen, S10)

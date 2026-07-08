@@ -20,6 +20,17 @@ export type MyProfile = {
   avatarUrl?: string;
   /** GERAL overall score (Russo One number). */
   overall: number;
+  /**
+   * Per-skill ratings shown in the "Seu progresso" 2×2 grid (ace/blk/ata/def)
+   * and the full 6-stat grid on the player card (adds srv/rec). Russo One
+   * numbers. MOCK now; real F2.2 progress payload supplies these later.
+   */
+  ace: number;
+  blk: number;
+  ata: number;
+  def: number;
+  srv: number;
+  rec: number;
   /** Player level ("Level 15"). */
   level: number;
   /** Current XP toward the next level. */

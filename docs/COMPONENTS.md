@@ -130,14 +130,14 @@ Each entry follows this structure:
 ### `Avatar`
 - **Path**: `src/components/ui/Avatar.tsx`
 - **Category**: ui
-- **Props**: `{ uri?: string; name?: string; size?: 'sm' | 'md' | 'lg'; testID?: string }`
+- **Props**: `{ uri?: string; name?: string; size?: 'sm' | 'md' | 'lg' | 'xl'; level?: number; testID?: string }`
 - **Used in**: S8 Profile (header + ranking preview rows)
 - **Example**:
   ```tsx
   <Avatar uri={profile.avatarUrl} name={profile.firstName} size="md" />
   <Avatar name={row.name} size="sm" />
   ```
-- **Notes**: Circular avatar (`rounded-full`). Renders a cached `expo-image` when `uri` is present, otherwise a `bg-bg-light-alt` circle with the name's first letter (`font-num`, `text-muted`) as a fallback. Sizes: `sm` (`h-10 w-10`, ranking/header rows), `md` (`h-12 w-12`, header), `lg` (`h-16 w-16`, S9 podium). Exposes `accessibilityLabel` derived from `name`. Receives plain data via props; never fetches. Designed for reuse by S9/S10/S12/S15.
+- **Notes**: Circular avatar (`rounded-full`). Renders a cached `expo-image` when `uri` is present, otherwise a `bg-bg-light-alt` circle with the name's first letter (`font-num`, `text-muted`) as a fallback. Sizes: `sm` (`h-10 w-10`, ranking/header rows), `md` (`h-12 w-12`, header), `lg` (`h-16 w-16`, S9 podium), `xl` (`h-32 w-32`, S8b player-card photo). When `level` is set, overlays a tier-colored level badge ("bolinha") at the bottom-right (colors from `src/theme/levelTier.ts`, mirroring the prototype's `BadgeAvatar`); the badge exposes `accessibilityLabel="Nível N"` and `testID="avatar-level-badge"`. Exposes `accessibilityLabel` derived from `name`. Receives plain data via props; never fetches. Designed for reuse by S9/S10/S12/S15.
 
 ### `StepperField`
 - **Path**: `src/components/ui/StepperField.tsx`

@@ -1,5 +1,4 @@
 import { BlurTargetView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Bell, Settings } from "lucide-react-native";
 import { useRef, useState } from "react";
@@ -16,14 +15,20 @@ import { useRegisterNavBlurTarget } from "@/stores/navBlurTarget";
 import { useGroupRanking } from "@/features/ranking/api/getGroupRanking";
 import type { RankingRow } from "@/features/ranking/types/ranking";
 import { useAuthStore } from "@/stores/auth";
-import { colors, HERO_GRADIENT } from "@/theme/colors";
+import { colors } from "@/theme/colors";
 
 function goRanking() {
   router.push("/profile/ranking");
 }
+function goCard() {
+  router.push("/profile/card");
+}
 function goSettings() {
   router.push("/profile/settings");
 }
+// "Ver tudo" on MINHAS PARTIDAS has no full-history screen in MVP — the button is
+// present (matching the prototype) but inert until a history screen exists.
+function noop() {}
 function goMatchSummary(id: string) {
   // "Minhas partidas" lists past matches — open the read-only summary, not the live detail.
   router.push({ pathname: "/matches/[id]/summary", params: { id } });
@@ -77,7 +82,12 @@ function ProfileHeader() {
   return (
     <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
       <View className="flex-row items-center gap-3">
-        <Avatar uri={data?.avatarUrl} name={data?.firstName} size="md" />
+        <Avatar
+          uri={data?.avatarUrl}
+          name={data?.firstName}
+          size="md"
+          level={data?.level}
+        />
         <View>
           <Text className="font-body text-caption text-text-muted">Olá,</Text>
           <Text className="font-display text-h1 text-text-primary uppercase">
@@ -105,12 +115,26 @@ function ProfileHeader() {
   );
 }
 
-// ── "Seu progresso" card (GERAL + Level/XP only — stats grid & CTA cut) ──
+// One cell of the ACE/BLK/ATA/DEF 2×2 stats grid (bordered box: label + number).
+function StatCell({ label, value }: { label: string; value: number }) {
+  return (
+    <View className="flex-1 border border-line rounded-chip py-2 items-center">
+      <Text className="font-mono text-mono text-text-muted uppercase">
+        {label}
+      </Text>
+      {/* text-h1 (weight 400) — NOT text-h3, whose 800 weight breaks the
+          single-weight Russo One font (`font-num`) and falls back to system. */}
+      <Text className="font-num text-text-primary text-h1 mt-1">{value}</Text>
+    </View>
+  );
+}
+
+// ── "Seu progresso" card (GERAL box + ACE/BLK/ATA/DEF grid + card CTA + Level/XP) ──
 function ProgressSection() {
   const { data, isPending, isError, refetch } = useMyProfile();
 
   if (isPending) {
-    return <SkeletonBlock className="mx-4 h-36" />;
+    return <SkeletonBlock className="mx-4 h-64" />;
   }
   if (isError) {
     return (
@@ -126,12 +150,36 @@ function ProgressSection() {
       <Text className="font-display text-h2 text-text-primary uppercase">
         Seu progresso
       </Text>
-      <View className="flex-row items-center gap-3 mt-3">
-        <Text className="font-mono text-mono text-text-muted uppercase">
-          Geral
-        </Text>
-        <Text className="font-num text-primary text-num">{data.overall}</Text>
+
+      {/* GERAL box (left) + 2×2 stats grid (right). */}
+      <View className="flex-row gap-3 mt-3">
+        <View className="w-24 rounded-card bg-primary/5 items-center justify-center py-3">
+          <Text className="font-mono text-mono text-text-muted uppercase">
+            Geral
+          </Text>
+          <Text className="font-num text-primary text-display mt-1">
+            {data.overall}
+          </Text>
+        </View>
+        <View className="flex-1 gap-2">
+          <View className="flex-row gap-2">
+            <StatCell label="ACE" value={data.ace} />
+            <StatCell label="BLK" value={data.blk} />
+          </View>
+          <View className="flex-row gap-2">
+            <StatCell label="ATA" value={data.ata} />
+            <StatCell label="DEF" value={data.def} />
+          </View>
+        </View>
       </View>
+
+      {/* Ver a sua carta → player card (S8b) */}
+      <View className="mt-4">
+        <Button variant="grad" onPress={goCard}>
+          Ver a sua carta
+        </Button>
+      </View>
+
       <View className="mt-4">
         <LevelBar level={data.level} xp={data.xp} xpToNext={data.xpToNext} />
       </View>
@@ -174,30 +222,58 @@ function RecentMatchesSection() {
           <MatchHistoryRow match={m} onPress={goMatchSummary} />
         </View>
       ))}
+      {/* "Ver tudo" placeholder — no full-history screen yet, so it is inert
+          (matches the prototype, whose handler is empty). */}
+      <View className="p-3 pt-1">
+        <Button variant="outline" onPress={noop} testID="ver-tudo-partidas">
+          Ver tudo
+        </Button>
+      </View>
     </View>
   );
 }
 
 function RankingPreviewRow({ row, isMe }: { row: RankingRow; isMe: boolean }) {
+  // Prototype coloring: only the current user's row is lime (position + score);
+  // everyone else is white, with a dimmed position number. The 1.5px border is
+  // applied via inline style so non-"me" rows stay truly transparent (a bare
+  // `border` className leaves RN's default black borderColor showing) while
+  // keeping every row the same height.
   return (
     <View
-      className={`flex-row items-center px-3 py-2 ${isMe ? "bg-primary/20 rounded-pill" : ""}`}
+      className={`flex-row items-center px-3 py-2 rounded-chip ${
+        isMe ? "bg-primary/25" : ""
+      }`}
+      style={{
+        borderWidth: 1.5,
+        borderColor: isMe ? colors.primary : "transparent",
+      }}
       accessibilityLabel={isMe ? `${row.name}, você, ${row.score}` : undefined}
     >
-      <Text className="font-num text-text-on-dark text-body w-6">
+      <Text
+        className={`font-num text-body w-6 text-center ${
+          isMe ? "text-accent-light" : "text-white/50"
+        }`}
+      >
         {row.position}
       </Text>
-      <Avatar name={row.name} size="sm" />
+      <Avatar name={row.name} size="sm" level={row.level} />
       <View className="flex-1 ml-3">
         <Text className="font-body text-body-bold text-text-on-dark">
           {row.name}
           {isMe ? " · você" : ""}
         </Text>
-        <Text className="font-body text-caption text-text-muted">
+        <Text className="font-body text-caption text-white/60">
           {row.subtitle}
         </Text>
       </View>
-      <Text className="font-num text-accent text-body">{row.score}</Text>
+      <Text
+        className={`font-num text-body ${
+          isMe ? "text-accent-light" : "text-text-on-dark"
+        }`}
+      >
+        {row.score}
+      </Text>
     </View>
   );
 }
@@ -214,62 +290,54 @@ function RankingSection() {
   }
   if (isError) {
     return (
-      <View className="mx-4 mt-2 rounded-card overflow-hidden">
-        <LinearGradient
-          colors={HERO_GRADIENT}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View className="p-4 items-center" accessibilityLiveRegion="polite">
-            <Text className="font-body text-body text-text-on-dark text-center">
-              Não foi possível carregar
-            </Text>
-            <Button variant="outlineW" onPress={() => refetch()}>
-              Tentar novamente
-            </Button>
-          </View>
-        </LinearGradient>
+      <View className="mx-4 mt-2 rounded-card overflow-hidden bg-surface-dark">
+        <View className="p-4 items-center" accessibilityLiveRegion="polite">
+          <Text className="font-body text-body text-text-on-dark text-center">
+            Não foi possível carregar
+          </Text>
+          <Button variant="outlineLime" onPress={() => refetch()}>
+            Tentar novamente
+          </Button>
+        </View>
       </View>
     );
   }
 
   return (
-    <View className="mx-4 mt-2 rounded-card overflow-hidden">
-      <LinearGradient
-        colors={HERO_GRADIENT}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-      >
-        <View className="p-3">
-          {data.length === 0 ? (
-            <View
-              className="py-4 items-center"
-              accessibilityLiveRegion="polite"
-            >
-              <Text className="font-body text-caption text-text-muted text-center">
-                Entre em uma partida recorrente para aparecer no ranking
-              </Text>
-            </View>
-          ) : (
-            <>
-              {data.map((row) => (
-                <RankingPreviewRow
-                  key={row.playerId}
-                  row={row}
-                  isMe={
-                    userId != null ? row.playerId === userId : Boolean(row.isMe)
-                  }
-                />
-              ))}
-              <View className="mt-3">
-                <Button variant="outlineW" onPress={goRanking}>
-                  Ver tudo
-                </Button>
-              </View>
-            </>
-          )}
+    // Solid navy card (prototype "Card dark"), not a gradient. Outer section
+    // title is "Meus amigos"; this brightLime label names the card's content.
+    <View className="mx-4 mt-2 rounded-card overflow-hidden bg-surface-dark p-4">
+      <Text className="font-body-bold text-caption text-accent-light mb-3">
+        Ranking semanal
+      </Text>
+      {data.length === 0 ? (
+        <View className="py-4 items-center" accessibilityLiveRegion="polite">
+          <Text className="font-body text-caption text-white/60 text-center">
+            Entre em uma partida recorrente para aparecer no ranking
+          </Text>
         </View>
-      </LinearGradient>
+      ) : (
+        <View className="gap-1">
+          {data.map((row) => (
+            <RankingPreviewRow
+              key={row.playerId}
+              row={row}
+              isMe={
+                userId != null ? row.playerId === userId : Boolean(row.isMe)
+              }
+            />
+          ))}
+          <View className="mt-3">
+            <Button
+              variant="outlineLime"
+              onPress={goRanking}
+              testID="ver-tudo-ranking"
+            >
+              Ver tudo
+            </Button>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -295,8 +363,8 @@ export default function ProfileScreen() {
           <SectionTitleRow title="MINHAS PARTIDAS" />
           <RecentMatchesSection />
 
-          {/* Ranking semanal */}
-          <SectionTitleRow title="Ranking semanal" />
+          {/* Meus amigos → "Ranking semanal" preview card */}
+          <SectionTitleRow title="Meus amigos" />
           <RankingSection />
         </ScrollView>
       </BlurTargetView>

@@ -4,12 +4,14 @@
  * Covers every acceptance criterion in docs/specs/S8-profile.md:
  *  - Header shows the authenticated user's avatar, "Olá," + first name (display),
  *    plus a notification bell and a theme toggle.
- *  - "Seu progresso" shows the GERAL number (font-num) + a Level/XP bar
- *    ("Level N", "XP: a / b") and does NOT render the ACE/BLK/ATA/DEF stats grid.
- *  - The "Ver a sua carta" gradient CTA is NOT present.
+ *  - "Seu progresso" shows the GERAL number (font-num) + the ACE/BLK/ATA/DEF
+ *    stats grid + a Level/XP bar ("Level N", "XP: a / b").
+ *  - The "Ver a sua carta" gradient CTA navigates to the player card
+ *    (/profile/card).
  *  - "MINHAS PARTIDAS" renders rows from useRecentMatches (name, date·format,
  *    Vitória/Derrota colored success/danger, set score); tapping a row navigates
- *    to the S16 summary (/matches/[id]/summary) with its id.
+ *    to the S16 summary (/matches/[id]/summary) with its id. A "Ver tudo" button
+ *    is present but inert (no full-history screen in MVP).
  *  - The dark "Ranking semanal" card renders rows from
  *    useGroupRanking({ preview: true }) (position, avatar, name, subtitle, score);
  *    the current user's row is highlighted with "· você".
@@ -129,6 +131,14 @@ const PROFILE_FIXTURE: MyProfile = {
   firstName: 'Renan',
   avatarUrl: 'https://example.com/me.png',
   overall: 68,
+  // Distinct values so each stat cell is queryable by text (none collide with
+  // the GERAL 68, the ranking scores, positions, or "Level 15").
+  ace: 34,
+  blk: 25,
+  ata: 20,
+  def: 22,
+  srv: 27,
+  rec: 24,
   level: 15,
   xp: 2450,
   xpToNext: 5000,
@@ -156,9 +166,9 @@ const RECENT_FIXTURE: RecentMatch[] = [
 // Scores are chosen distinct from the GERAL number (68), the positions (1..3)
 // and each other so each value is queryable unambiguously by text.
 const RANKING_FIXTURE: RankingRow[] = [
-  { position: 1, playerId: 'p-guga', name: 'Guga', subtitle: 'Gustavo Lima', score: 91 },
-  { position: 2, playerId: 'p-cake', name: 'Cake', subtitle: 'Caio Keller', score: 84 },
-  { position: 3, playerId: 'me', name: 'Você', subtitle: 'Renan Dias', score: 77, isMe: true },
+  { position: 1, playerId: 'p-guga', name: 'Guga', subtitle: 'Gustavo Lima', score: 91, level: 21 },
+  { position: 2, playerId: 'p-cake', name: 'Cake', subtitle: 'Caio Keller', score: 84, level: 19 },
+  { position: 3, playerId: 'me', name: 'Você', subtitle: 'Renan Dias', score: 77, level: 13, isMe: true },
 ];
 
 type QueryState<T> = {
@@ -327,26 +337,39 @@ describe('S8 — Profile screen', () => {
 
   /**
    * Covers: S8 — Profile
-   * Criterion: the "Seu progresso" card "does NOT render the ACE/BLK/ATA/DEF
-   *  stats grid." (Layer 3 — SCOPE "Display GERAL only".)
+   * Criterion: the "Seu progresso" card renders the ACE/BLK/ATA/DEF stats grid
+   *  (per-skill ratings) next to the GERAL box.
    */
-  it('does NOT render the ACE/BLK/ATA/DEF stats grid', async () => {
+  it('renders the ACE/BLK/ATA/DEF stats grid', async () => {
     await render(<ProfileScreen />);
 
-    expect(screen.queryByText('ACE')).toBeNull();
-    expect(screen.queryByText('BLK')).toBeNull();
-    expect(screen.queryByText('ATA')).toBeNull();
-    expect(screen.queryByText('DEF')).toBeNull();
+    // labels
+    expect(screen.getByText('ACE')).toBeTruthy();
+    expect(screen.getByText('BLK')).toBeTruthy();
+    expect(screen.getByText('ATA')).toBeTruthy();
+    expect(screen.getByText('DEF')).toBeTruthy();
+
+    // values (font-num), distinct per cell in the fixture
+    const ace = screen.getByText('34');
+    expect(ace.props.className).toContain('font-num');
+    expect(screen.getByText('25')).toBeTruthy();
+    expect(screen.getByText('20')).toBeTruthy();
+    expect(screen.getByText('22')).toBeTruthy();
   });
 
   /**
    * Covers: S8 — Profile
-   * Criterion: "The 'Ver a sua carta' gradient CTA is NOT present."
+   * Criterion: "The 'Ver a sua carta' gradient CTA navigates to the player card
+   *  (/profile/card)."
    */
-  it('does NOT render the "Ver a sua carta" CTA', async () => {
+  it('renders the "Ver a sua carta" CTA and navigates to /profile/card', async () => {
     await render(<ProfileScreen />);
 
-    expect(screen.queryByText(/ver a sua carta/i)).toBeNull();
+    const cta = screen.getByText('Ver a sua carta');
+    expect(cta).toBeTruthy();
+
+    fireEvent.press(cta);
+    expect(mockPush).toHaveBeenCalledWith('/profile/card');
   });
 
   // ----------------------------------------------------- MINHAS PARTIDAS section
@@ -398,22 +421,18 @@ describe('S8 — Profile screen', () => {
 
   /**
    * Covers: S8 — Profile
-   * Criterion (Open question 1 default): MINHAS PARTIDAS "Ver tudo" is hidden (no
-   *  full-history screen in MVP) and all mocked rows render inline. Only the
-   *  ranking section carries a "Ver tudo".
+   * Criterion: MINHAS PARTIDAS carries a "Ver tudo" button (matching the
+   *  prototype) but it is inert — there is no full-history screen in MVP, so
+   *  pressing it navigates nowhere.
    */
-  it('does not render a "Ver tudo" under the MINHAS PARTIDAS section', async () => {
+  it('renders an inert "Ver tudo" under the MINHAS PARTIDAS section', async () => {
     await render(<ProfileScreen />);
 
-    // "Ver tudo" appears only on the ranking section (its header link + the
-    // in-card button) — both route to /profile/ranking. None route to history,
-    // so every "Ver tudo" on screen targets the ranking destination.
-    const verTudo = screen.getAllByText('Ver tudo');
-    expect(verTudo.length).toBeGreaterThan(0);
-    // Press a single node: pressing multiple in a tight loop overlaps act() and
-    // corrupts React state for subsequent tests. One press proves the wiring.
-    fireEvent.press(verTudo[0] as NonNullable<(typeof verTudo)[number]>);
-    mockPush.mock.calls.forEach(([arg]) => expect(arg).toBe('/profile/ranking'));
+    const verTudo = screen.getByTestId('ver-tudo-partidas');
+    expect(verTudo).toBeTruthy();
+
+    fireEvent.press(verTudo);
+    expect(mockPush).not.toHaveBeenCalled();
   });
 
   // --------------------------------------------------- Ranking semanal section
@@ -444,6 +463,26 @@ describe('S8 — Profile screen', () => {
     // each row carries an avatar (initials fallback uses "Avatar de <name>")
     expect(screen.getByLabelText('Avatar de Guga')).toBeTruthy();
     expect(screen.getByLabelText('Avatar de Cake')).toBeTruthy();
+  });
+
+  /**
+   * Covers: S8 — Profile (prototype parity)
+   * Criterion: the section is titled "Meus amigos" over the "Ranking semanal"
+   *  card, and avatars (header + ranking rows) carry a tier-colored level badge.
+   */
+  it('renders the "Meus amigos" title and level badges on the avatars', async () => {
+    await render(<ProfileScreen />);
+
+    // Outer section title + inner card label.
+    expect(screen.getByText('Meus amigos')).toBeTruthy();
+    expect(screen.getByText('Ranking semanal')).toBeTruthy();
+
+    // Header avatar (level 15) + the three ranking rows (20/18/12) each show a badge.
+    expect(
+      screen.getAllByTestId('avatar-level-badge').length,
+    ).toBeGreaterThanOrEqual(4);
+    expect(screen.getByText('21')).toBeTruthy(); // Guga's level
+    expect(screen.getByLabelText('Nível 21')).toBeTruthy();
   });
 
   /**
@@ -484,11 +523,11 @@ describe('S8 — Profile screen', () => {
   it('navigates to /profile/ranking from the ranking section "Ver tudo"', async () => {
     await render(<ProfileScreen />);
 
-    // "Ver tudo" exists only on the ranking section (header link + in-card
-    // button); both route to S9.
-    const [verTudo] = screen.getAllByText('Ver tudo');
+    // The ranking "Ver tudo" (in-card button) routes to S9. The MINHAS PARTIDAS
+    // "Ver tudo" is a separate, inert button — target the ranking one by testID.
+    const verTudo = screen.getByTestId('ver-tudo-ranking');
     expect(verTudo).toBeTruthy();
-    fireEvent.press(verTudo as NonNullable<typeof verTudo>);
+    fireEvent.press(verTudo);
 
     expect(mockPush).toHaveBeenCalledWith('/profile/ranking');
   });

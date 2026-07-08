@@ -19,6 +19,14 @@ const MOCK_PROFILE: MyProfile = {
   firstName: 'Renan',
   avatarUrl: 'https://i.pravatar.cc/200?img=15',
   overall: 68,
+  // Per-skill ratings (prototype MY_STATS). ace/blk/ata/def feed the profile
+  // 2×2 grid; srv/rec add the last two cells on the player card.
+  ace: 30,
+  blk: 25,
+  ata: 20,
+  def: 30,
+  srv: 27,
+  rec: 24,
   level: 15,
   xp: 2450,
   xpToNext: 5000,
