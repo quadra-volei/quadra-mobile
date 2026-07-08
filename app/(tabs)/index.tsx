@@ -1,13 +1,16 @@
+import { BlurTargetView } from "expo-blur";
 import { router } from "expo-router";
 import { Bell } from "lucide-react-native";
+import { useRef, useState } from "react";
 import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 import { MatchCard } from "@/components/domain/MatchCard";
 import { MatchCardCompact } from "@/components/domain/MatchCardCompact";
 import { Button } from "@/components/ui/Button";
+import { GlassHeader } from "@/components/ui/GlassHeader";
 import { useNearbyMatches } from "@/features/matches/api/getNearby";
 import { useUpcomingMatches } from "@/features/matches/api/getUpcoming";
+import { useRegisterNavBlurTarget } from "@/stores/navBlurTarget";
 import type {
   NearbyMatch,
   UpcomingMatch,
@@ -161,29 +164,17 @@ function NearbySection() {
 }
 
 export default function HomeScreen() {
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const blurTarget = useRef<View>(null);
+  useRegisterNavBlurTarget(blurTarget);
+
   return (
     <View className="flex-1 bg-bg-light">
-      <SafeAreaView edges={["top"]} className="flex-1">
-        {/* Header — Climate Crisis 18px, matching the prototype's screen Header. */}
-        <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
-          <Text
-            className="font-display text-text-primary uppercase"
-            style={{ fontSize: 18, letterSpacing: 1 }}
-          >
-            INÍCIO
-          </Text>
-          <View className="flex-row items-center gap-3">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Notificações"
-              onPress={() => {}}
-            >
-              <Bell size={24} color={colors.surfaceDark} />
-            </Pressable>
-          </View>
-        </View>
-
-        <ScrollView contentContainerClassName="pb-24">
+      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+        <ScrollView
+          contentContainerClassName="pb-24"
+          contentContainerStyle={{ paddingTop: headerHeight }}
+        >
           {/* "Bora pra quadra?" card */}
           <View className="mx-4 bg-white rounded-card shadow-card p-4">
             <Text className="font-body text-h3 text-text-primary text-center">
@@ -220,7 +211,28 @@ export default function HomeScreen() {
           />
           <NearbySection />
         </ScrollView>
-      </SafeAreaView>
+      </BlurTargetView>
+
+      {/* Glass header — Climate Crisis 18px, matching the prototype's Header. */}
+      <GlassHeader blurTarget={blurTarget} onHeight={setHeaderHeight}>
+        <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
+          <Text
+            className="font-display text-text-primary uppercase"
+            style={{ fontSize: 18, letterSpacing: 1 }}
+          >
+            INÍCIO
+          </Text>
+          <View className="flex-row items-center gap-3">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Notificações"
+              onPress={() => {}}
+            >
+              <Bell size={24} color={colors.surfaceDark} />
+            </Pressable>
+          </View>
+        </View>
+      </GlassHeader>
     </View>
   );
 }
