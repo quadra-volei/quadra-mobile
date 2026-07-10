@@ -105,10 +105,12 @@ describe('S6 — Bottom tab bar with Explorar active', () => {
   it('renders the four labeled tabs and the central Jogar FAB', async () => {
     await render(<TabsLayout />);
 
-    expect(screen.getByText('Início')).toBeTruthy();
-    expect(screen.getByText('Explorar')).toBeTruthy();
-    expect(screen.getByText('Rede')).toBeTruthy();
-    expect(screen.getByText('Perfil')).toBeTruthy();
+    // Icon-only bar (compact redesign) — tabs are identified by accessibility
+    // label, not visible text.
+    expect(screen.getByLabelText('Início')).toBeTruthy();
+    expect(screen.getByLabelText('Explorar')).toBeTruthy();
+    expect(screen.getByLabelText('Rede')).toBeTruthy();
+    expect(screen.getByLabelText('Perfil')).toBeTruthy();
     expect(screen.getByLabelText('Jogar')).toBeTruthy();
   });
 

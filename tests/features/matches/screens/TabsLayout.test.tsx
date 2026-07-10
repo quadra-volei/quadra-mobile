@@ -55,6 +55,26 @@ jest.mock('@/components/icons/TabExploreIcon', () => ({ TabExploreIcon: tabIconS
 jest.mock('@/components/icons/TabNetworkIcon', () => ({ TabNetworkIcon: tabIconStub('network') }));
 jest.mock('@/components/icons/TabProfileIcon', () => ({ TabProfileIcon: tabIconStub('profile') }));
 
+// RN Modal wraps children in an AppContainer that needs a native root tag the
+// test renderer can't supply -> passthrough that renders children when visible.
+jest.mock('react-native/Libraries/Modal/Modal', () => {
+  const ReactLocal = require('react');
+  return {
+    __esModule: true,
+    default: ({ visible, children }: any) =>
+      visible ? ReactLocal.createElement(ReactLocal.Fragment, null, children) : null,
+  };
+});
+
+// lucide icons in the "BORA JOGAR?" menu -> inert nodes.
+jest.mock('lucide-react-native', () => {
+  const ReactLocal = require('react');
+  const { View } = require('react-native');
+  const stub = (name: string) => (props: any) =>
+    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
+  return { Plus: stub('plus'), Search: stub('search'), X: stub('x') };
+});
+
 // expo-router: spyable router.push + a `Tabs` that renders only the `tabBar` prop
 // against a synthetic navigation state (Home active).
 const mockPush = jest.fn();
@@ -105,10 +125,12 @@ describe('S5 — Bottom tab bar + Jogar FAB', () => {
   it('renders the four labeled tabs and the central Jogar FAB', async () => {
     await render(<TabsLayout />);
 
-    expect(screen.getByText('Início')).toBeTruthy();
-    expect(screen.getByText('Explorar')).toBeTruthy();
-    expect(screen.getByText('Rede')).toBeTruthy();
-    expect(screen.getByText('Perfil')).toBeTruthy();
+    // The bar is icon-only (compact redesign) — tabs are identified by their
+    // accessibility label, not visible text.
+    expect(screen.getByLabelText('Início')).toBeTruthy();
+    expect(screen.getByLabelText('Explorar')).toBeTruthy();
+    expect(screen.getByLabelText('Rede')).toBeTruthy();
+    expect(screen.getByLabelText('Perfil')).toBeTruthy();
 
     // central FAB present (accessible "Jogar" button + its icon)
     expect(screen.getByLabelText('Jogar')).toBeTruthy();
@@ -137,16 +159,40 @@ describe('S5 — Bottom tab bar + Jogar FAB', () => {
 
   /**
    * Covers: S5 — Home
-   * Criterion: "... the central 'Jogar' FAB does the same [navigates to S11
-   *  /matches/create]."
+   * Criterion: "... the central 'Jogar' FAB does the same [reaches S11
+   *  /matches/create]." — the FAB now opens the "BORA JOGAR?" menu, and
+   *  "Criar partida" within it pushes create-match.
    */
-  it('pushes /matches/create when the central Jogar FAB is tapped', async () => {
+  it('opens the Jogar menu and pushes /matches/create via "Criar partida"', async () => {
     await render(<TabsLayout />);
 
+    // Menu is closed initially — its options are not mounted.
+    expect(screen.queryByLabelText('Criar partida')).toBeNull();
+
+    // Tapping the FAB opens the menu instead of navigating directly.
     fireEvent.press(screen.getByLabelText('Jogar'));
+    const createOption = await screen.findByLabelText('Criar partida');
+    expect(screen.getByText('Bora jogar?')).toBeTruthy();
+    expect(mockPush).not.toHaveBeenCalled();
+
+    fireEvent.press(createOption);
 
     expect(mockPush).toHaveBeenCalledTimes(1);
     expect(mockPush).toHaveBeenCalledWith('/matches/create');
+  });
+
+  /**
+   * Covers: S5 — Home (Jogar menu)
+   * "Buscar partida" within the menu pushes the explore/search flow.
+   */
+  it('pushes /explore via "Buscar partida" in the Jogar menu', async () => {
+    await render(<TabsLayout />);
+
+    fireEvent.press(screen.getByLabelText('Jogar'));
+    fireEvent.press(await screen.findByLabelText('Buscar partida'));
+
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(mockPush).toHaveBeenCalledWith('/explore');
   });
 
   /**

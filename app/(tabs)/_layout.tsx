@@ -2,9 +2,11 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, Tabs } from 'expo-router';
 import type { ComponentType } from 'react';
+import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { JogarMenu } from '@/components/domain/JogarMenu';
 import { JogarIcon } from '@/components/icons/JogarIcon';
 import { TabExploreIcon } from '@/components/icons/TabExploreIcon';
 import { TabHomeIcon } from '@/components/icons/TabHomeIcon';
@@ -16,7 +18,7 @@ import { CTA_GRADIENT } from '@/theme/colors';
 
 // Routes shown as labeled tabs, in bar order: two to the left of the FAB, two to
 // the right. The central "Jogar" FAB sits between them (it is not a tab route —
-// it pushes /matches/create, the same action as the S5 card CTA).
+// it opens the "BORA JOGAR?" action menu with the Criar/Buscar entry points).
 const TABS: {
   name: string;
   label: string;
@@ -57,8 +59,12 @@ export default function TabsLayout() {
   // The focused tab screen publishes its `BlurTargetView` ref here so Android's
   // `dimezisBlurView` has a backdrop to sample (iOS blurs natively regardless).
   const navBlurTarget = useNavBlurTargetStore((s) => s.target);
+  // The central FAB opens the "BORA JOGAR?" action menu instead of jumping
+  // straight to create-match.
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
+    <>
     <Tabs
       screenOptions={{ headerShown: false }}
       tabBar={({ state, navigation }) => {
@@ -143,7 +149,7 @@ export default function TabsLayout() {
               style={{ top: -20 }}
             >
               <Pressable
-                onPress={() => router.push('/matches/create')}
+                onPress={() => setMenuOpen(true)}
                 accessibilityRole="button"
                 accessibilityLabel="Jogar"
                 className="rounded-full overflow-hidden"
@@ -175,5 +181,19 @@ export default function TabsLayout() {
       <Tabs.Screen name="network" options={{ title: 'Rede' }} />
       <Tabs.Screen name="profile" options={{ title: 'Perfil' }} />
     </Tabs>
+
+    <JogarMenu
+      visible={menuOpen}
+      onClose={() => setMenuOpen(false)}
+      onCreate={() => {
+        setMenuOpen(false);
+        router.push('/matches/create');
+      }}
+      onSearch={() => {
+        setMenuOpen(false);
+        router.push('/explore');
+      }}
+    />
+    </>
   );
 }

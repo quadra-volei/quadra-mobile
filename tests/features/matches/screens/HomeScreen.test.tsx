@@ -3,10 +3,10 @@
  *
  * Covers every acceptance criterion in docs/specs/S5-home.md:
  *  - Header shows "INÍCIO" + bell + theme toggle — NO avatar, NO greeting.
- *  - "Bora pra quadra?" card renders "Criar partida" (gradient) above
- *    "Procurar partidas" (outline).
- *  - "Criar partida" navigates to /matches/create.
- *  - "Procurar partidas" and "Ver todas" navigate to /explore.
+ *  - Dual-CTA renders a "Criar partida" (gradient) tile beside a "Buscar
+ *    partida" tile.
+ *  - The "Criar partida" tile navigates to /matches/create.
+ *  - The "Buscar partida" tile and "Ver todas" navigate to /explore.
  *  - "PRÓXIMAS PARTIDAS" renders a horizontal scroll of MatchCardCompact from
  *    useUpcomingMatches; tapping a card navigates to S12 with its id.
  *  - "JOGOS PERTO DE VOCÊ" renders a 2-col grid of MatchCard from
@@ -77,6 +77,8 @@ jest.mock('lucide-react-native', () => {
     Clock: stub('clock'),
     MapPin: stub('map-pin'),
     Users: stub('users'),
+    Plus: stub('plus'),
+    Search: stub('search'),
   };
 });
 
@@ -251,37 +253,33 @@ describe('S5 — Home screen', () => {
     expect(screen.queryByTestId('header-avatar')).toBeNull();
   });
 
-  // ------------------------------------------------------- "Bora pra quadra?"
+  // ----------------------------------------------------------- dual CTA tiles
   /**
    * Covers: S5 — Home
-   * Criterion: "The 'Bora pra quadra?' card renders 'Criar partida' (gradient)
-   *  above 'Procurar partidas' (outline)."
+   * Criterion: "The dual-CTA renders a 'Criar partida' (gradient) tile beside a
+   *  'Buscar partida' tile."
    */
-  it('renders the "Bora pra quadra?" card with Criar partida above Procurar partidas', async () => {
+  it('renders the Criar and Buscar CTA tiles', async () => {
     await render(<HomeScreen />);
 
-    expect(screen.getByText('Bora pra quadra?')).toBeTruthy();
-    expect(screen.getByText('Crie ou encontre um jogo agora')).toBeTruthy();
+    expect(screen.getByLabelText('Criar partida')).toBeTruthy();
+    expect(screen.getByLabelText('Buscar partida')).toBeTruthy();
 
-    const create = screen.getByText('Criar partida');
-    const explore = screen.getByText('Procurar partidas');
-    expect(create).toBeTruthy();
-    expect(explore).toBeTruthy();
-
-    // "Criar partida" is the gradient CTA -> a gradient fill is rendered for it.
-    expect(screen.getAllByTestId('linear-gradient').length).toBeGreaterThan(0);
+    // Both tiles carry a gradient fill.
+    expect(screen.getAllByTestId('linear-gradient').length).toBeGreaterThan(1);
   });
 
   // --------------------------------------------------------- create navigation
   /**
    * Covers: S5 — Home
-   * Criterion: "Tapping 'Criar partida' navigates to S11 (/matches/create)."
+   * Criterion: "Tapping the 'Criar partida' tile navigates to S11
+   *  (/matches/create)."
    * (The central 'Jogar' FAB doing the same is covered in TabsLayout.test.tsx.)
    */
-  it('navigates to /matches/create when "Criar partida" is tapped', async () => {
+  it('navigates to /matches/create when the Criar tile is tapped', async () => {
     await render(<HomeScreen />);
 
-    fireEvent.press(screen.getByText('Criar partida'));
+    fireEvent.press(screen.getByLabelText('Criar partida'));
 
     expect(mockPush).toHaveBeenCalledTimes(1);
     expect(mockPush).toHaveBeenCalledWith('/matches/create');
@@ -290,13 +288,13 @@ describe('S5 — Home screen', () => {
   // -------------------------------------------------------- explore navigation
   /**
    * Covers: S5 — Home
-   * Criterion: "Tapping 'Procurar partidas' and 'Ver todas' navigate to S6
-   *  (/explore)."
+   * Criterion: "Tapping the 'Buscar partida' tile and 'Ver todas' navigate to
+   *  S6 (/explore)."
    */
-  it('navigates to /explore from "Procurar partidas"', async () => {
+  it('navigates to /explore from the Buscar tile', async () => {
     await render(<HomeScreen />);
 
-    fireEvent.press(screen.getByText('Procurar partidas'));
+    fireEvent.press(screen.getByLabelText('Buscar partida'));
 
     expect(mockPush).toHaveBeenCalledWith('/explore');
   });

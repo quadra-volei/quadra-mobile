@@ -1,10 +1,12 @@
 import { BlurTargetView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { Bell, Settings } from "lucide-react-native";
+import { Bell, Plus, Search, Settings } from "lucide-react-native";
 import { useRef, useState } from "react";
 import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { JogarIcon } from "@/components/icons/JogarIcon";
 import { MatchCard } from "@/components/domain/MatchCard";
 import { MatchCardCompact } from "@/components/domain/MatchCardCompact";
 import { Button } from "@/components/ui/Button";
@@ -16,7 +18,13 @@ import type {
   NearbyMatch,
   UpcomingMatch,
 } from "@/features/matches/types/match";
-import { colors } from "@/theme/colors";
+import {
+  colors,
+  CREATE_TILE_GRADIENT,
+  CREATE_TILE_LOCATIONS,
+  SEARCH_TILE_GRADIENT,
+  SEARCH_TILE_LOCATIONS,
+} from "@/theme/colors";
 import { TAB_BAR_CLEARANCE } from "@/theme/layout";
 
 // Placeholder geo while nearby is mocked — no device location read on Home (S5
@@ -79,6 +87,104 @@ function ErrorRow({ onRetry }: { onRetry: () => void }) {
       <Button variant="ghost" onPress={onRetry}>
         Tentar novamente
       </Button>
+    </View>
+  );
+}
+
+/**
+ * Home dual-CTA — two side-by-side tiles ("Criar partida" / "Buscar partida"),
+ * ported from the Quadra prototype (screens-main.jsx). Replaces the old single
+ * "Bora pra quadra?" card.
+ */
+function DualCtaTiles() {
+  return (
+    <View className="flex-row px-4 gap-3">
+      {/* Criar — lime→blue→deep-blue gradient hero (echoes the Jogar FAB) */}
+      <Pressable
+        onPress={goCreate}
+        accessibilityRole="button"
+        accessibilityLabel="Criar partida"
+        className="flex-1 rounded-[22px] overflow-hidden"
+        style={{ minHeight: 138, boxShadow: "0 10px 26px rgba(0,50,209,0.3)" }}
+      >
+        <LinearGradient
+          colors={CREATE_TILE_GRADIENT}
+          locations={CREATE_TILE_LOCATIONS}
+          start={{ x: 0.15, y: 0 }}
+          end={{ x: 0.55, y: 1 }}
+          style={{ flex: 1 }}
+        >
+          {/* Faint volleyball motif — same ball as the Jogar FAB, tilted. */}
+          <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              right: -30,
+              bottom: -26,
+              opacity: 0.16,
+              transform: [{ rotate: "-8deg" }],
+            }}
+          >
+            <JogarIcon size={150} color={colors.textOnDark} />
+          </View>
+          <View className="flex-1 justify-between px-4 pt-[18px] pb-4">
+            <View className="w-[42px] h-[42px] rounded-[14px] items-center justify-center bg-white/20 border border-white/30">
+              <Plus size={24} color={colors.textOnDark} strokeWidth={2.4} />
+            </View>
+            <View>
+              <Text
+                className="font-display text-white uppercase"
+                style={{ fontSize: 20, lineHeight: 21 }}
+              >
+                Criar
+              </Text>
+              <Text className="font-body text-body-bold text-white">
+                partida
+              </Text>
+            </View>
+          </View>
+        </LinearGradient>
+      </Pressable>
+
+      {/* Buscar — lime→pale-lime→white gradient, glassy search badge */}
+      <Pressable
+        onPress={goExplore}
+        accessibilityRole="button"
+        accessibilityLabel="Buscar partida"
+        className="flex-1 rounded-[22px] overflow-hidden border-[1.5px] border-primary/15"
+        style={{ minHeight: 138, boxShadow: "0 6px 18px rgba(10,10,60,0.06)" }}
+      >
+        <LinearGradient
+          colors={SEARCH_TILE_GRADIENT}
+          locations={SEARCH_TILE_LOCATIONS}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={{ flex: 1 }}
+        >
+          <View className="flex-1 justify-between px-4 pt-[18px] pb-4">
+            <View
+              className="w-[42px] h-[42px] rounded-[14px] items-center justify-center bg-white/70 border border-white"
+              style={{
+                boxShadow:
+                  "inset 0 1px 1px rgba(255,255,255,0.7), 0 2px 6px rgba(10,10,60,0.08)",
+              }}
+            >
+              <Search size={23} color={colors.surfaceDark} strokeWidth={2.2} />
+            </View>
+            <View>
+              <Text
+                className="font-display text-text-primary uppercase"
+                style={{ fontSize: 20, lineHeight: 21 }}
+              >
+                Buscar
+              </Text>
+              <Text className="font-body text-body-bold text-text-primary">
+                partida
+              </Text>
+            </View>
+          </View>
+        </LinearGradient>
+      </Pressable>
     </View>
   );
 }
@@ -183,25 +289,8 @@ export default function HomeScreen() {
             paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
           }}
         >
-          {/* "Bora pra quadra?" card */}
-          <View className="mx-4 bg-white rounded-card shadow-card p-4">
-            <Text className="font-body text-h3 text-text-primary text-center">
-              Bora pra quadra?
-            </Text>
-            <Text className="font-body text-caption text-text-muted text-center mt-1">
-              Crie ou encontre um jogo agora
-            </Text>
-            <View className="mt-4">
-              <Button variant="grad" onPress={goCreate}>
-                Criar partida
-              </Button>
-            </View>
-            <View className="mt-3">
-              <Button variant="outline" onPress={goExplore}>
-                Procurar partidas
-              </Button>
-            </View>
-          </View>
+          {/* Dual CTA tiles — Criar / Buscar */}
+          <DualCtaTiles />
 
           {/* PRÓXIMAS PARTIDAS */}
           <SectionHeader
