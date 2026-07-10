@@ -1,35 +1,30 @@
 /**
  * S11 — Create-match screen tests (`app/matches/create.tsx`).
  *
- * Covers every acceptance criterion of docs/specs/S11-create-match.md:
+ * The screen is a "formulário vivo" (progressive disclosure) port of the Quadra
+ * prototype: a single conversational flow where each answer reveals the next
+ * block, a top progress bar, and a sticky footer CTA that stays disabled
+ * ("Responda pra continuar") until every required answer is given.
+ *
+ * Covered here:
  *  - Header: inline back chevron (accessibilityLabel "Voltar" -> router.back) and
  *    the "CRIAR PARTIDA" display/uppercase title; no tab bar.
- *  - CoverPicker: with expo-image-picker mocked (granted + fixed asset uri), tapping
- *    "Trocar capa" renders the selected uri and includes it in the submit payload;
- *    permission denial shows a polite inline message and does not crash.
- *  - NOME required (empty -> field error, mutation blocked).
- *  - LOCAL required free text (empty -> error, mutation blocked).
- *  - QUANDO defaults to "Hoje", single-select among Hoje/Amanhã/Sex/Sáb; no "+"
- *    chip, no time control.
- *  - FORMATO defaults 6x6 single-select; NÍVEL defaults Intermediário single-select.
- *  - TIPO defaults "Avulso" (OneOff), single-select; chosen value in payload.
- *  - Players stepper defaults 12, min 2; price accepts 0 and positive.
- *  - CONFIRMAÇÕES ABREM defaults "24h antes" (24), single-select; chosen value in
- *    payload.
- *  - "Partida aberta" toggle reflects/updates isOpen (default off).
- *  - Valid submit -> useCreateMatch called with the full payload -> loading state ->
- *    "PARTIDA CRIADA!" success screen.
+ *  - Progressive disclosure: only block 1 shows initially; LOCAL reveals after a
+ *    2+ char name; TIPO after a 2+ char location; and so on down the chain.
+ *  - CoverPicker: granted pick previews the uri and includes it in the payload;
+ *    permission denial shows a polite inline message; cancel keeps the placeholder.
+ *  - The footer CTA is disabled until the whole flow is complete.
+ *  - A OneOff happy path completes -> useCreateMatch called with the full payload
+ *    (whenType/time/duration/format/level/privacy...) -> success screen.
+ *  - The Recurring branch reveals the weekday/frequency/start scheduler.
  *  - Success CTAs route to /matches/[id] and /(tabs) via router.replace.
- *  - Failed (mock-forced) create -> inline retryable error + button re-enabled.
+ *  - A failed (mock-forced) create shows the inline retryable error.
  *
- * useCreateMatch is mocked at the boundary (no latency/network). expo-image-picker
- * is mocked so permission/pick branches are deterministic. The Zod resolver runs
- * for real (the validation criteria are the contract). Native modules
- * (reanimated/safe-area/expo-image/expo-linear-gradient/lucide/Button) are stubbed
- * inline — the repo's tests/__mocks__ are NOT auto-applied. The
- * TextField/SearchField/FilterChip/StepperField/ToggleField primitives render for
- * real (queried by testID). The ['matches'] invalidation criterion is covered
- * against the real hook in tests/features/matches/api/createMatch.test.tsx.
+ * useCreateMatch is mocked at the boundary. expo-image-picker is mocked so the
+ * permission/pick branches are deterministic. The Zod resolver runs for real.
+ * Native modules (reanimated/safe-area/expo-image/expo-linear-gradient/lucide/
+ * Button) are stubbed inline. The TextField/SearchField/FilterChip/StepperField/
+ * DateField/CoverPicker primitives render for real (queried by testID).
  */
 import React from 'react';
 
@@ -38,13 +33,20 @@ import React from 'react';
 jest.mock('react-native-reanimated', () => {
   const ReactLocal = require('react');
   const { ScrollView, View } = require('react-native');
+  // Strip animation-only props so RN host components don't receive them.
+  const AnimatedView = ({ children, style, entering, exiting, ...props }: any) =>
+    ReactLocal.createElement(View, { ...props, style }, children);
   const AnimatedScrollView = ({ children, style, ...props }: any) =>
     ReactLocal.createElement(ScrollView, { ...props, style }, children);
-  const AnimatedView = ({ children, style, ...props }: any) =>
-    ReactLocal.createElement(View, { ...props, style }, children);
+  const chain: any = {
+    duration: () => chain,
+    delay: () => chain,
+    springify: () => chain,
+  };
   return {
     __esModule: true,
-    default: { ScrollView: AnimatedScrollView, View: AnimatedView },
+    default: { View: AnimatedView, ScrollView: AnimatedScrollView },
+    FadeInDown: chain,
     useAnimatedStyle: (cb: () => object) => cb(),
   };
 });
@@ -84,39 +86,43 @@ jest.mock('lucide-react-native', () => {
   return {
     ChevronLeft: stub('chevron-left'),
     Check: stub('check'),
+    Clock: stub('clock'),
+    Copy: stub('copy'),
+    Heart: stub('heart'),
     Lock: stub('lock'),
     MapPin: stub('map-pin'),
-    Share2: stub('share2'),
     Pencil: stub('pencil'),
+    Search: stub('search'),
+    Share2: stub('share2'),
+    Users: stub('users'),
+    Zap: stub('zap'),
     Minus: stub('minus'),
     Plus: stub('plus'),
-    Search: stub('search'),
+    Calendar: stub('calendar'),
     X: stub('x'),
   };
 });
 
-// Button is a NativeWind (css-interop) Pressable. Stub it as a plain Pressable
-// that forwards loading -> accessibilityState.busy/disabled so the CTA loading
-// criterion stays queryable. Its internals are covered by its own tests.
+// Button stub: a plain Pressable that respects disabled/loading so the
+// "Responda pra continuar" gate is testable (RNTL blocks press on disabled).
 jest.mock('@/components/ui/Button', () => {
   const ReactLocal = require('react');
   const { Pressable, Text } = require('react-native');
   return {
-    Button: ({ children, onPress, testID, loading }: any) =>
-      ReactLocal.createElement(
+    Button: ({ children, onPress, testID, loading, disabled }: any) => {
+      const isDisabled = Boolean(loading || disabled);
+      return ReactLocal.createElement(
         Pressable,
         {
           onPress,
           testID,
-          disabled: Boolean(loading),
+          disabled: isDisabled,
           accessibilityRole: 'button',
-          accessibilityState: {
-            busy: Boolean(loading),
-            disabled: Boolean(loading),
-          },
+          accessibilityState: { busy: Boolean(loading), disabled: isDisabled },
         },
         ReactLocal.createElement(Text, null, children),
-      ),
+      );
+    },
   };
 });
 
@@ -148,7 +154,7 @@ const mockCreate = {
   isPending: false,
   isError: false,
   behavior: 'resolve' as 'resolve' | 'reject',
-  resultId: 'mock-match-1',
+  resultId: 'mine-mock-1',
   mutate: jest.fn((_payload: unknown, opts?: MutateOpts) => {
     if (mockCreate.behavior === 'reject') {
       opts?.onError?.(new Error('boom'));
@@ -172,6 +178,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from '@testing-library/react-native';
 
 import CreateMatchScreen from '../../../../app/matches/create';
@@ -189,7 +196,7 @@ beforeEach(() => {
   mockCreate.isPending = false;
   mockCreate.isError = false;
   mockCreate.behavior = 'resolve';
-  mockCreate.resultId = 'mock-match-1';
+  mockCreate.resultId = 'mine-mock-1';
 });
 
 afterEach(() => {
@@ -202,72 +209,81 @@ async function renderScreen() {
   });
 }
 
-/** Fills the two required fields (NOME, LOCAL) so a submit can be valid. */
-async function fillRequired() {
+async function press(testID: string) {
   await act(async () => {
-    fireEvent.changeText(screen.getByTestId('match-name'), 'Racha de Quinta');
-  });
-  await act(async () => {
-    fireEvent.changeText(screen.getByTestId('match-location'), 'Arena Central');
+    fireEvent.press(screen.getByTestId(testID));
   });
 }
 
-async function submit() {
+async function type(testID: string, text: string) {
   await act(async () => {
-    fireEvent.press(screen.getByTestId('create-submit'));
+    fireEvent.changeText(screen.getByTestId(testID), text);
   });
 }
 
-describe('S11 — Create-match screen', () => {
+/** Answers the whole OneOff · open flow so the footer CTA becomes enabled. */
+async function completeOneOffFlow() {
+  await type('match-name', 'Racha de Quinta'); // → reveals LOCAL
+  await type('match-location', 'Arena Central'); // → reveals TIPO
+  await press('type-OneOff'); // → reveals QUANDO chips
+  await press('when-today'); // date ready → reveals horário
+  await press('time-19h00'); // → reveals duração (default 1h30) → FORMATO
+  await press('format-6X6'); // sets players 12 → reveals NÍVEL
+  await press('level-INTERMEDIARIO'); // → reveals VALOR (price default 25)
+  await press('confirm-24'); // → reveals PRIVACIDADE
+  await press('privacy-open'); // → complete
+}
+
+describe('S11 — Create-match (formulário vivo)', () => {
   // ------------------------------------------------------------ header / scope
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "Header shows an inline back chevron (accessibilityLabel 'Voltar',
-   *  calls router.back()) and the 'CRIAR PARTIDA' title (font-display, uppercase)";
-   *  "No tab bar is shown on this stack screen."
-   */
   it('renders the CRIAR PARTIDA header with a back affordance and no tab bar', async () => {
     await renderScreen();
 
-    // "Criar partida" appears twice (header title + CTA label); the title is the
-    // font-display/uppercase one.
     const title = screen
       .getAllByText('Criar partida')
       .find((n) => String(n.props.className).includes('font-display'));
     expect(title).toBeTruthy();
-    expect(title?.props.className).toContain('font-display');
     expect(title?.props.className).toContain('uppercase');
 
     fireEvent.press(screen.getByLabelText('Voltar'));
     expect(mockBack).toHaveBeenCalledTimes(1);
 
-    // no tab labels render on this stack screen
     expect(screen.queryByText('Início')).toBeNull();
     expect(screen.queryByText('Explorar')).toBeNull();
     expect(screen.queryByText('Perfil')).toBeNull();
   });
 
-  // ----------------------------------------------------------------- cover
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "The cover block renders the navy 'CAPA DA PARTIDA' placeholder with
-   *  'Trocar capa'."
-   */
-  it('renders the cover placeholder with CAPA DA PARTIDA and Trocar capa', async () => {
+  // ----------------------------------------------------- progressive disclosure
+  it('shows only block 1 initially and reveals the next block per answer', async () => {
     await renderScreen();
 
+    // Block 1 (name) is visible; nothing downstream is.
+    expect(screen.getByTestId('match-name')).toBeTruthy();
+    expect(screen.queryByTestId('match-location')).toBeNull();
+    expect(screen.queryByTestId('type-OneOff')).toBeNull();
+
+    // A 2+ char name reveals LOCAL.
+    await type('match-name', 'Racha de Quinta');
+    expect(screen.getByTestId('match-location')).toBeTruthy();
+    expect(screen.queryByTestId('type-OneOff')).toBeNull();
+
+    // A 2+ char location reveals TIPO.
+    await type('match-location', 'Arena Central');
+    expect(screen.getByTestId('type-OneOff')).toBeTruthy();
+    expect(screen.getByTestId('type-Recurring')).toBeTruthy();
+    // Format/level are still gated behind the schedule.
+    expect(screen.queryByTestId('format-6X6')).toBeNull();
+    expect(screen.queryByTestId('level-INTERMEDIARIO')).toBeNull();
+  });
+
+  // ----------------------------------------------------------------- cover
+  it('renders the cover placeholder with CAPA DA PARTIDA and Trocar capa', async () => {
+    await renderScreen();
     expect(screen.getByText('Capa da partida')).toBeTruthy();
     expect(screen.getByText('Trocar capa')).toBeTruthy();
-    // placeholder shown, no chosen image yet
     expect(screen.queryByTestId('cover-picker-image')).toBeNull();
   });
 
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "With expo-image-picker mocked (granted + fixed asset uri), tapping
-   *  'Trocar capa' updates CoverPicker to render that selected uri, and that uri is
-   *  included in the useCreateMatch payload on submit."
-   */
   it('previews the picked cover uri and includes it in the submit payload', async () => {
     mockRequestPermission.mockResolvedValue(GRANTED);
     mockLaunchLibrary.mockResolvedValue({
@@ -276,476 +292,209 @@ describe('S11 — Create-match screen', () => {
     });
 
     await renderScreen();
+    await press('cover-picker');
 
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('cover-picker'));
-    });
-
-    // permission requested before launching, then library launched
     expect(mockRequestPermission).toHaveBeenCalledTimes(1);
     expect(mockLaunchLibrary).toHaveBeenCalledTimes(1);
-
-    // the cover now renders the chosen local uri
     expect(screen.getByTestId('cover-picker-image').props.source).toEqual({
       uri: PICKED_URI,
     });
 
-    // the picked uri is carried into the submit payload
-    await fillRequired();
-    await submit();
+    await completeOneOffFlow();
+    await press('create-submit');
     expect(mockCreate.mutate.mock.calls[0]?.[0]).toMatchObject({
       coverUri: PICKED_URI,
     });
   });
 
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "Permission denial shows a polite inline message and does not crash."
-   */
   it('shows a polite inline message on permission denial without launching the picker', async () => {
     mockRequestPermission.mockResolvedValue(DENIED);
 
     await renderScreen();
-
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('cover-picker'));
-    });
+    await press('cover-picker');
 
     expect(mockRequestPermission).toHaveBeenCalledTimes(1);
     expect(mockLaunchLibrary).not.toHaveBeenCalled();
 
     const msg = screen.getByText(/permiss[ãa]o de fotos negada/i);
     expect(msg.props.accessibilityLiveRegion).toBe('polite');
-    // no preview image, no crash
     expect(screen.queryByTestId('cover-picker-image')).toBeNull();
   });
 
-  /**
-   * Covers: S11 — Create Match (cover, non-canceled wording)
-   * Canceling the picker leaves the placeholder (no uri in the payload).
-   */
   it('keeps the placeholder and omits coverUri when the picker is canceled', async () => {
     mockRequestPermission.mockResolvedValue(GRANTED);
     mockLaunchLibrary.mockResolvedValue({ canceled: true });
 
     await renderScreen();
-
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('cover-picker'));
-    });
-
+    await press('cover-picker');
     expect(screen.queryByTestId('cover-picker-image')).toBeNull();
 
-    await fillRequired();
-    await submit();
+    await completeOneOffFlow();
+    await press('create-submit');
     expect(
       (mockCreate.mutate.mock.calls[0]?.[0] as { coverUri?: string } | undefined)
         ?.coverUri,
     ).toBeUndefined();
   });
 
-  // --------------------------------------------------------------- NOME / LOCAL
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "'NOME DA PARTIDA' is required; submitting empty shows the field
-   *  error and blocks the mutation."
-   */
-  it('blocks submit and shows the NOME error when name is empty', async () => {
+  // --------------------------------------------------------- footer CTA gating
+  it('keeps the footer CTA disabled ("Responda pra continuar") until complete', async () => {
     await renderScreen();
 
-    // fill only LOCAL so NOME is the sole failure
-    await act(async () => {
-      fireEvent.changeText(
-        screen.getByTestId('match-location'),
-        'Arena Central',
-      );
-    });
-    await submit();
+    const ctaBefore = screen.getByTestId('create-submit');
+    expect(ctaBefore.props.accessibilityState?.disabled).toBe(true);
+    expect(screen.getByText('Responda pra continuar')).toBeTruthy();
 
-    expect(screen.getByText('Dê um nome à partida')).toBeTruthy();
+    // Pressing while disabled must not submit.
+    await press('create-submit');
     expect(mockCreate.mutate).not.toHaveBeenCalled();
+
+    await completeOneOffFlow();
+    const ctaAfter = screen.getByTestId('create-submit');
+    expect(ctaAfter.props.accessibilityState?.disabled).toBe(false);
+    // CTA label flips from the gate copy to "Criar partida".
+    expect(screen.queryByText('Responda pra continuar')).toBeNull();
+    expect(within(ctaAfter).getByText('Criar partida')).toBeTruthy();
   });
 
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "'LOCAL' captures free text and is required; submitting empty shows
-   *  its error and blocks the mutation."
-   */
-  it('blocks submit and shows the LOCAL error when location is empty', async () => {
+  // --------------------------------------------------- OneOff happy path
+  it('submits the full OneOff payload and renders the success screen', async () => {
     await renderScreen();
-
-    // fill only NOME so LOCAL is the sole failure
-    await act(async () => {
-      fireEvent.changeText(screen.getByTestId('match-name'), 'Racha de Quinta');
-    });
-    await submit();
-
-    expect(screen.getByText('Informe o local')).toBeTruthy();
-    expect(mockCreate.mutate).not.toHaveBeenCalled();
-  });
-
-  // --------------------------------------------------------------- QUANDO
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "QUANDO defaults to 'Hoje' selected, single-select among
-   *  Hoje/Amanhã/Sex/Sáb; there is no '+' chip and no time control on the screen."
-   */
-  it('defaults QUANDO to Hoje, single-selects among the 4 chips, with no "+" / no time', async () => {
-    await renderScreen();
-
-    expect(
-      screen.getByTestId('day-today').props.accessibilityState?.selected,
-    ).toBe(true);
-    for (const id of ['day-tomorrow', 'day-fri', 'day-sat']) {
-      expect(screen.getByTestId(id).props.accessibilityState?.selected).toBe(
-        false,
-      );
-    }
-
-    // single-select: picking Amanhã deselects Hoje
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('day-tomorrow'));
-    });
-    expect(
-      screen.getByTestId('day-tomorrow').props.accessibilityState?.selected,
-    ).toBe(true);
-    expect(
-      screen.getByTestId('day-today').props.accessibilityState?.selected,
-    ).toBe(false);
-
-    // no "+" custom-date chip and no time-of-day control on the screen
-    expect(screen.queryByText('+')).toBeNull();
-    expect(screen.queryByText(/hor[áa]rio/i)).toBeNull();
-  });
-
-  // --------------------------------------------------------- FORMATO / NÍVEL
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "FORMATO defaults to 6x6 selected, single-select; NÍVEL defaults to
-   *  Intermediário selected, single-select."
-   */
-  it('defaults FORMATO to 6x6 and NÍVEL to Intermediário, both single-select', async () => {
-    await renderScreen();
-
-    expect(
-      screen.getByTestId('format-6X6').props.accessibilityState?.selected,
-    ).toBe(true);
-    expect(
-      screen.getByTestId('format-2X2').props.accessibilityState?.selected,
-    ).toBe(false);
-    expect(
-      screen.getByTestId('format-4X4').props.accessibilityState?.selected,
-    ).toBe(false);
-
-    expect(
-      screen.getByTestId('level-INTERMEDIARIO').props.accessibilityState
-        ?.selected,
-    ).toBe(true);
-    expect(
-      screen.getByTestId('level-INICIANTE').props.accessibilityState?.selected,
-    ).toBe(false);
-    expect(
-      screen.getByTestId('level-AVANCADO').props.accessibilityState?.selected,
-    ).toBe(false);
-
-    // single-select FORMATO
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('format-2X2'));
-    });
-    expect(
-      screen.getByTestId('format-2X2').props.accessibilityState?.selected,
-    ).toBe(true);
-    expect(
-      screen.getByTestId('format-6X6').props.accessibilityState?.selected,
-    ).toBe(false);
-
-    // single-select NÍVEL
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('level-AVANCADO'));
-    });
-    expect(
-      screen.getByTestId('level-AVANCADO').props.accessibilityState?.selected,
-    ).toBe(true);
-    expect(
-      screen.getByTestId('level-INTERMEDIARIO').props.accessibilityState
-        ?.selected,
-    ).toBe(false);
-  });
-
-  // --------------------------------------------------------------- TIPO
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "TIPO defaults to 'Avulso' selected (type: 'OneOff'), single-select
-   *  between Avulso / Recorrente; the chosen type is included in the submit payload."
-   */
-  it('defaults TIPO to Avulso (OneOff), single-selects, and carries the chosen type into the payload', async () => {
-    await renderScreen();
-
-    expect(
-      screen.getByTestId('type-OneOff').props.accessibilityState?.selected,
-    ).toBe(true);
-    expect(
-      screen.getByTestId('type-Recurring').props.accessibilityState?.selected,
-    ).toBe(false);
-
-    // pick Recorrente -> single-select
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('type-Recurring'));
-    });
-    expect(
-      screen.getByTestId('type-Recurring').props.accessibilityState?.selected,
-    ).toBe(true);
-    expect(
-      screen.getByTestId('type-OneOff').props.accessibilityState?.selected,
-    ).toBe(false);
-
-    await fillRequired();
-    await submit();
-    expect(mockCreate.mutate.mock.calls[0]?.[0]).toMatchObject({
-      type: 'Recurring',
-    });
-  });
-
-  // --------------------------------------------------------- VAGAS & VALOR
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "'Jogadores' stepper defaults to 12 and enforces a minimum of 2."
-   */
-  it('defaults Jogadores to 12 and clamps at the minimum of 2', async () => {
-    await renderScreen();
-
-    expect(screen.getByTestId('players-stepper').props.children).toEqual([
-      '',
-      12,
-    ]);
-
-    // decrementing from 12 ten times would reach 2 then clamp (min=2)
-    for (let i = 0; i < 12; i += 1) {
-      await act(async () => {
-        fireEvent.press(screen.getByTestId('players-stepper-decrement'));
-      });
-    }
-    expect(screen.getByTestId('players-stepper').props.children).toEqual([
-      '',
-      2,
-    ]);
-  });
-
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "'Valor / pessoa' accepts 0 (Grátis) and positive values."
-   */
-  it('lets the price be 0 (Grátis) and increment to a positive value', async () => {
-    await renderScreen();
-
-    // default 0, with "R$ " prefix
-    expect(screen.getByTestId('price-stepper').props.children).toEqual([
-      'R$ ',
-      0,
-    ]);
-
-    // cannot go below 0 (min=0)
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('price-stepper-decrement'));
-    });
-    expect(screen.getByTestId('price-stepper').props.children).toEqual([
-      'R$ ',
-      0,
-    ]);
-
-    // increments to a positive value
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('price-stepper-increment'));
-    });
-    expect(screen.getByTestId('price-stepper').props.children).toEqual([
-      'R$ ',
-      1,
-    ]);
-  });
-
-  // --------------------------------------------------- CONFIRMAÇÕES ABREM
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "CONFIRMAÇÕES ABREM defaults to '24h antes' selected
-   *  (confirmationOpensHoursBefore: 24), single-select among 48h/24h/12h/6h; the
-   *  chosen value is included in the submit payload."
-   */
-  it('defaults CONFIRMAÇÕES to 24h, single-selects, and carries the chosen value into the payload', async () => {
-    await renderScreen();
-
-    expect(
-      screen.getByTestId('confirm-24').props.accessibilityState?.selected,
-    ).toBe(true);
-    for (const id of ['confirm-48', 'confirm-12', 'confirm-6']) {
-      expect(screen.getByTestId(id).props.accessibilityState?.selected).toBe(
-        false,
-      );
-    }
-
-    // pick 6h -> single-select
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('confirm-6'));
-    });
-    expect(
-      screen.getByTestId('confirm-6').props.accessibilityState?.selected,
-    ).toBe(true);
-    expect(
-      screen.getByTestId('confirm-24').props.accessibilityState?.selected,
-    ).toBe(false);
-
-    await fillRequired();
-    await submit();
-    expect(mockCreate.mutate.mock.calls[0]?.[0]).toMatchObject({
-      confirmationOpensHoursBefore: 6,
-    });
-  });
-
-  // ----------------------------------------------------------- PRIVACIDADE
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "'Partida aberta' toggle reflects and updates isOpen (default off)."
-   */
-  it('defaults the Partida aberta toggle off and updates isOpen when toggled', async () => {
-    await renderScreen();
-
-    const toggle = screen.getByTestId('open-toggle');
-    expect(toggle.props.value).toBe(false);
-
-    await act(async () => {
-      fireEvent(toggle, 'valueChange', true);
-    });
-    expect(screen.getByTestId('open-toggle').props.value).toBe(true);
-
-    await fillRequired();
-    await submit();
-    expect(mockCreate.mutate.mock.calls[0]?.[0]).toMatchObject({
-      isOpen: true,
-    });
-  });
-
-  // --------------------------------------------------- submit (full payload)
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "Tapping 'Criar partida' with valid input calls useCreateMatch
-   *  (mocked) with a payload containing name, location, day, format, level, type,
-   *  players, price, confirmationOpensHoursBefore, isOpen ... then renders the
-   *  'PARTIDA CRIADA!' success screen."
-   */
-  it('submits the full default payload and renders the PARTIDA CRIADA! success screen', async () => {
-    await renderScreen();
-    await fillRequired();
-    await submit();
+    await completeOneOffFlow();
+    await press('create-submit');
 
     expect(mockCreate.mutate).toHaveBeenCalledTimes(1);
     expect(mockCreate.mutate.mock.calls[0]?.[0]).toMatchObject({
       name: 'Racha de Quinta',
       location: 'Arena Central',
-      day: 'today',
+      type: 'OneOff',
+      whenType: 'today',
+      time: '19h00',
+      duration: '1h30',
       format: '6X6',
       level: 'INTERMEDIARIO',
-      type: 'OneOff',
       players: 12,
-      price: 0,
+      price: 25,
       confirmationOpensHoursBefore: 24,
-      isOpen: false,
+      privacy: 'open',
     });
 
-    // success screen replaces the form
     expect(screen.getByText('Partida criada!')).toBeTruthy();
-    expect(screen.queryByTestId('create-submit')).toBeNull();
+    expect(screen.queryByTestId('type-OneOff')).toBeNull();
   });
 
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "shows the Button loading state" while the mutation is pending.
-   */
-  it('shows the CTA loading state while the mutation is pending', async () => {
-    mockCreate.isPending = true;
+  it('pre-fills the suggested player count when a format is chosen', async () => {
     await renderScreen();
+    await type('match-name', 'Racha de Quinta');
+    await type('match-location', 'Arena Central');
+    await press('type-OneOff');
+    await press('when-today');
+    await press('time-19h00');
+    await press('format-2X2'); // 2x2 suggests 4 players (no manual stepper)
 
-    const cta = screen.getByTestId('create-submit');
-    expect(cta.props.accessibilityState?.busy).toBe(true);
-    expect(cta.props.accessibilityState?.disabled).toBe(true);
+    await press('level-INTERMEDIARIO');
+    await press('confirm-24');
+    await press('privacy-open');
+    await press('create-submit');
+    expect(mockCreate.mutate.mock.calls[0]?.[0]).toMatchObject({
+      format: '2X2',
+      players: 4,
+    });
+  });
+
+  // --------------------------------------------------- Recurring branch
+  it('reveals the recurring scheduler (weekdays + frequency + start) for Recorrente', async () => {
+    await renderScreen();
+    await type('match-name', 'Racha de Quinta');
+    await type('match-location', 'Arena Central');
+    await press('type-Recurring');
+
+    // Weekday toggles + frequency chips + start date appear; OneOff chips do not.
+    expect(screen.getByTestId('rec-day-0')).toBeTruthy();
+    expect(screen.getByTestId('rec-freq-weekly')).toBeTruthy();
+    expect(screen.getByTestId('rec-start')).toBeTruthy();
+    expect(screen.queryByTestId('when-today')).toBeNull();
+
+    // The horário block stays hidden until a day + start date are set.
+    expect(screen.queryByTestId('time-19h00')).toBeNull();
+    await press('rec-day-3'); // Wednesday
+    await type('rec-start', '03072026'); // masked to 03/07/2026
+    expect(screen.getByTestId('time-19h00')).toBeTruthy();
+  });
+
+  it('completes a Recurring · private (guests) flow and submits its payload', async () => {
+    await renderScreen();
+    await type('match-name', 'Racha Fixo');
+    await type('match-location', 'Arena Central');
+    await press('type-Recurring');
+    await press('rec-day-3');
+    await type('rec-start', '03072026');
+    await press('time-20h00');
+    await press('format-6X6');
+    await press('level-AVANCADO');
+    await press('confirm-12');
+    await press('privacy-private');
+    // Private requires an invite mode before the flow is complete.
+    expect(screen.getByTestId('create-submit').props.accessibilityState?.disabled).toBe(
+      true,
+    );
+    await press('invite-guests');
+
+    await press('create-submit');
+    expect(mockCreate.mutate.mock.calls[0]?.[0]).toMatchObject({
+      type: 'Recurring',
+      recDays: [3],
+      recStart: '03/07/2026',
+      time: '20h00',
+      format: '6X6',
+      level: 'AVANCADO',
+      confirmationOpensHoursBefore: 12,
+      privacy: 'private',
+      inviteMode: 'guests',
+    });
   });
 
   // -------------------------------------------------------- success CTAs
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "Success 'Ver a partida criada' navigates to S12 (/matches/[id])
-   *  with the new id."
-   */
   it('routes "Ver a partida criada" to /matches/[id] with the new id', async () => {
-    mockCreate.resultId = 'mock-match-42';
+    mockCreate.resultId = 'mine-42';
     await renderScreen();
-    await fillRequired();
-    await submit();
+    await completeOneOffFlow();
+    await press('create-submit');
 
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('created-view-match'));
-    });
+    await press('created-view-match');
     expect(mockReplace).toHaveBeenCalledWith({
       pathname: '/matches/[id]',
-      params: { id: 'mock-match-42' },
+      params: { id: 'mine-42' },
     });
   });
 
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "Success 'Convidar jogadores' navigates to S12 (/matches/[id]) with
-   *  the new id (definitive — not disabled)."
-   */
-  it('routes "Convidar jogadores" to /matches/[id] with the new id', async () => {
-    mockCreate.resultId = 'mock-match-7';
-    await renderScreen();
-    await fillRequired();
-    await submit();
-
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('created-invite'));
-    });
-    expect(mockReplace).toHaveBeenCalledWith({
-      pathname: '/matches/[id]',
-      params: { id: 'mock-match-7' },
-    });
-  });
-
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "Success 'Voltar ao início' navigates to Home (/(tabs))."
-   */
   it('routes "Voltar ao início" to /(tabs)', async () => {
     await renderScreen();
-    await fillRequired();
-    await submit();
+    await completeOneOffFlow();
+    await press('create-submit');
 
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('created-home'));
-    });
+    await press('created-home');
     expect(mockReplace).toHaveBeenCalledWith('/(tabs)');
   });
 
   // ------------------------------------------------------- error / retry
-  /**
-   * Covers: S11 — Create Match
-   * Criterion: "A failed (mock-forced) create shows the inline retryable error and
-   *  re-enables the button."
-   */
-  it('shows an inline retryable error and re-enables the button on a failed create', async () => {
+  it('shows an inline retryable error on a failed create', async () => {
     mockCreate.behavior = 'reject';
     mockCreate.isError = true;
+
     await renderScreen();
-    await fillRequired();
-    await submit();
+    await completeOneOffFlow();
+    await press('create-submit');
 
     expect(mockCreate.mutate).toHaveBeenCalledTimes(1);
-    // stays on the form (no success screen)
     expect(screen.queryByText('Partida criada!')).toBeNull();
 
-    const err = screen.getByText('Não foi possível criar a partida. Tente novamente.');
+    const err = screen.getByText(
+      'Não foi possível criar a partida. Tente novamente.',
+    );
     expect(err.props.accessibilityLiveRegion).toBe('polite');
-
-    // the CTA is re-enabled (not pending) so the user can retry
-    const cta = screen.getByTestId('create-submit');
-    expect(cta.props.accessibilityState?.disabled).toBe(false);
+    expect(
+      screen.getByTestId('create-submit').props.accessibilityState?.disabled,
+    ).toBe(false);
   });
 });

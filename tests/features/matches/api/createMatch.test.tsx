@@ -21,14 +21,21 @@ import {
 const payload: CreateMatchPayload = {
   name: 'Racha de Quinta',
   location: 'Arena Central',
-  day: 'today',
-  format: '6X6',
-  level: 'INTERMEDIARIO',
   type: 'OneOff',
+  whenType: 'today',
+  customDate: '',
+  recDays: [],
+  recFreq: 'weekly',
+  recStart: '',
+  time: '19h00',
+  duration: '1h30',
+  format: '6X6',
   players: 12,
+  level: 'INTERMEDIARIO',
   price: 0,
+  priceMonthly: 80,
   confirmationOpensHoursBefore: 24,
-  isOpen: false,
+  privacy: 'open',
 };
 
 // A fresh client per test, captured so the invalidation spy can target it.

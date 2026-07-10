@@ -1,5 +1,17 @@
 # Screen Spec: S11 — Create Match
 
+> ## ⚠️ REVISION 2026-07-10 — "formulário vivo" (progressive disclosure) full port
+> The screen was **re-implemented as a conversational, progressive-disclosure form** — a faithful port of the Quadra prototype `screens-create.jsx` (`app.jsx` playmenu → this flow). Owner-approved ("Full faithful port"). Sections below that describe the earlier **single-page** form are **superseded** where they conflict; the mock-transport, success-screen, and navigation contracts are unchanged.
+>
+> **What changed:**
+> - **UX**: one scrolling flow where each answer reveals the next block (`Reveal`), a top **progress bar**, and a **sticky footer CTA** that reads "Responda pra continuar" (disabled) until the whole flow validates, then "Criar partida".
+> - **Datetime / recurring / invite are now IN** (previously STOP). The schema gained: `whenType` (Hoje/Amanhã/Outra data) + `customDate`; a **recurring scheduler** (`recDays`, `recFreq`, `recStart`); **time-of-day** (`time`, presets + "Outro horário" masked input) + **duration**; a separate **monthly price** (`priceMonthly`); and **privacy** as `privacy: 'open' | 'private'` + `inviteMode: 'code' | 'guests'` (replacing the old `isOpen` boolean). `players` is now auto-set from the format via `SUGGESTED_PLAYERS` (no manual stepper); `format`/`level`/`type` are chosen via `OptionCard`s.
+> - Conditional requirements are enforced by a Zod `superRefine` (+ `isCreateMatchComplete` for the footer gate). `resolveMatchStartsAt` now takes the input object (schedule + time), not a single quick-date string.
+> - The presentational primitives `Reveal` / `Question` / `OptionCard` are **inlined** in `app/matches/create.tsx` (single-use to this flow) — no new COMPONENTS.md catalog entries; `FilterChip` / `StepperField` / `DateField` / `SearchField` / `TextField` / `CoverPicker` / `Button` are reused.
+> - Tests rewritten: `tests/features/matches/screens/CreateMatchScreen.test.tsx` (conversational reveal + OneOff/Recurring paths + footer gate) and `tests/features/matches/lib/buildMatchDetail.test.ts` (new `resolveMatchStartsAt` signature + `privacy`).
+>
+> ---
+>
 > Revised after scope-guardian REJECTION (round 1, fixed) and a subsequent change adding the TIPO + CONFIRMAÇÕES ABREM controls. The earlier DESIGN GAP STOP on Recurring/OneOff + confirmation-window is now LIFTED and the controls are designed token-free via the existing `FilterChip` primitive (no new design token). The QUANDO "+" custom-date chip and any match time-of-day entry remain STOP (not authorized, still no token).
 >
 > The user authorized designing these controls ("You can add those elements of Recurring/OneOff toggle (Recorrente/Avulso) and select confirmation-window, you have the power to choose how it can be, in future i will adjust if needs."). The design below is conservative — reuses an existing primitive, invents no token, fully reversible — so a future adjustment is cheap.

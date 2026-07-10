@@ -14,10 +14,7 @@
  */
 import type { UpcomingMatch } from '@/features/matches/types/match';
 import type { MatchDetail } from '@/features/matches/types/matchDetail';
-import type {
-  CreateMatchDay,
-  CreateMatchInput,
-} from '@/features/matches/schema/createMatch';
+import type { CreateMatchInput } from '@/features/matches/schema/createMatch';
 
 /**
  * A match created by the current user this session. Stores the raw entered
@@ -38,34 +35,54 @@ export type CreatedMatch = {
   input: CreateMatchInput;
 };
 
-/** No time-of-day control exists this iteration; default matches to the evening. */
+/** Fallback hour when the entered `time` is missing/malformed. */
 const DEFAULT_MATCH_HOUR = 19;
 
-/** Advance `d` in place to the next occurrence of `weekday` (0=Sun … 6=Sat), today included. */
-function advanceToWeekday(d: Date, weekday: number): void {
-  const delta = (weekday - d.getDay() + 7) % 7;
-  d.setDate(d.getDate() + delta);
+/** Parses a 'HHhMM' time string ('19h30') → {hour, minute}; evening fallback. */
+function parseTime(time: string | undefined): { hour: number; minute: number } {
+  const match = /^(\d{1,2})h(\d{2})$/.exec(time ?? '');
+  if (!match) return { hour: DEFAULT_MATCH_HOUR, minute: 0 };
+  return { hour: Number(match[1]), minute: Number(match[2]) };
+}
+
+/** Parses a 'DD/MM/AAAA' date string → Date (local midnight), or null. */
+function parseBrDate(value: string | undefined): Date | null {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value ?? '');
+  if (!match) return null;
+  return new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1]));
 }
 
 /**
- * Resolves a QUANDO quick-date chip to a concrete ISO start timestamp
- * (at {@link DEFAULT_MATCH_HOUR}:00 local). Pure — `now` is injectable so the
- * output is deterministic under test.
+ * Resolves the entered schedule (OneOff Hoje/Amanhã/Data or the Recurring start
+ * date, plus the chosen time-of-day) to a concrete ISO start timestamp. Pure —
+ * `now` is injectable so the output is deterministic under test.
  */
 export function resolveMatchStartsAt(
-  day: CreateMatchDay,
+  input: Pick<
+    CreateMatchInput,
+    'type' | 'whenType' | 'customDate' | 'recStart' | 'time'
+  >,
   now: Date = new Date(),
 ): string {
+  const { hour, minute } = parseTime(input.time);
   const d = new Date(now.getTime());
-  d.setHours(DEFAULT_MATCH_HOUR, 0, 0, 0);
-  if (day === 'tomorrow') {
+
+  if (input.type === 'Recurring') {
+    const start = parseBrDate(input.recStart);
+    if (start) {
+      d.setFullYear(start.getFullYear(), start.getMonth(), start.getDate());
+    }
+  } else if (input.whenType === 'tomorrow') {
     d.setDate(d.getDate() + 1);
-  } else if (day === 'fri') {
-    advanceToWeekday(d, 5);
-  } else if (day === 'sat') {
-    advanceToWeekday(d, 6);
+  } else if (input.whenType === 'date') {
+    const custom = parseBrDate(input.customDate);
+    if (custom) {
+      d.setFullYear(custom.getFullYear(), custom.getMonth(), custom.getDate());
+    }
   }
-  // 'today' → keep the resolved evening of `now`.
+  // OneOff 'today' → keep `now`'s date.
+
+  d.setHours(hour, minute, 0, 0);
   return d.toISOString();
 }
 
@@ -111,7 +128,8 @@ export function buildMatchDetail(match: CreatedMatch): MatchDetail {
     players: [
       { id: match.organizerId, name: 'Você', status: 'CONFIRMADO' },
     ],
-    openDropInSlots: input.isOpen ? Math.max(0, input.players - 1) : 0,
+    openDropInSlots:
+      input.privacy === 'open' ? Math.max(0, input.players - 1) : 0,
     myParticipationType: null,
     myStatus: null,
     teamConfig: { teamCount, perTeam, drawMode: 'MANUAL' },
