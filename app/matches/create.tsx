@@ -21,7 +21,6 @@ import {
   Pressable,
   ScrollView,
   Text,
-  TextInput,
   View,
   type LayoutChangeEvent,
 } from 'react-native';
@@ -30,7 +29,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { CoverPicker } from '@/components/domain/CoverPicker';
 import { Button } from '@/components/ui/Button';
-import { DateField } from '@/components/ui/DateField';
+import { DateTimePickerField } from '@/components/ui/DateTimePickerField';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { SearchField } from '@/components/ui/SearchField';
 import { StepperField } from '@/components/ui/StepperField';
@@ -164,13 +163,6 @@ function MiniLabel({ children }: { children: string }) {
       {children}
     </Text>
   );
-}
-
-// Masks raw digits as 'HHhMM' (max 4 digits → hour/minute).
-function maskTime(input: string): string {
-  const digits = input.replace(/\D/g, '').slice(0, 4);
-  if (digits.length <= 2) return digits;
-  return `${digits.slice(0, 2)}h${digits.slice(2)}`;
 }
 
 const WEEKDAYS = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'] as const;
@@ -349,6 +341,13 @@ export default function CreateMatchScreen() {
 
   const createMatch = useCreateMatch();
   const insets = useSafeAreaInsets();
+
+  // Start of today — floor for the date pickers (no partida in the past).
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
 
   const [created, setCreated] = useState<CreatedMatch | null>(null);
   // LOCAL free-text mirror (bridged into RHF); SearchField is not RHF-native.
@@ -676,10 +675,13 @@ export default function CreateMatchScreen() {
                     control={control}
                     name="customDate"
                     render={({ field: { value, onChange } }) => (
-                      <DateField
+                      <DateTimePickerField
+                        mode="date"
                         label="Data da partida"
                         value={value ?? ''}
-                        onChangeText={onChange}
+                        onChange={onChange}
+                        placeholder="Escolha a data"
+                        minimumDate={today}
                         testID="custom-date"
                       />
                     )}
@@ -747,10 +749,13 @@ export default function CreateMatchScreen() {
                       control={control}
                       name="recStart"
                       render={({ field: { value, onChange } }) => (
-                        <DateField
+                        <DateTimePickerField
+                          mode="date"
                           label="Início"
                           value={value ?? ''}
-                          onChangeText={onChange}
+                          onChange={onChange}
+                          placeholder="Escolha a data"
+                          minimumDate={today}
                           testID="rec-start"
                         />
                       )}
@@ -786,23 +791,15 @@ export default function CreateMatchScreen() {
                   />
                 </View>
                 <Reveal show={otherTime}>
-                  <View className="h-12 flex-row items-center rounded-chip border border-line bg-white px-4">
-                    <Clock size={20} color={colors.primary} />
-                    <TextInput
-                      testID="time-input"
-                      value={time ?? ''}
-                      onChangeText={(t) =>
-                        setValue('time', maskTime(t), { shouldValidate: true })
-                      }
-                      placeholder="19h30"
-                      placeholderTextColor={colors.textMuted}
-                      keyboardType="number-pad"
-                      inputMode="numeric"
-                      maxLength={5}
-                      accessibilityLabel="Horário"
-                      className="ml-2 flex-1 font-body text-body text-text-primary"
-                    />
-                  </View>
+                  <DateTimePickerField
+                    mode="time"
+                    value={time ?? ''}
+                    onChange={(t) =>
+                      setValue('time', t, { shouldValidate: true })
+                    }
+                    placeholder="Escolha o horário"
+                    testID="time-input"
+                  />
                 </Reveal>
               </Reveal>
 

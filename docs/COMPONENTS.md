@@ -102,7 +102,19 @@ Each entry follows this structure:
   ```tsx
   <DateField label="DATA DE NASCIMENTO" value={value} onChangeText={onChange} error={errors.birthDate?.message} />
   ```
-- **Notes**: Masked `DD/MM/AAAA` date field with a leading lucide `Calendar` icon (`primary` color). Holds/raises the **masked string** (`DD/MM/AAAA`); masking is applied internally as the user types digits (`number-pad`, max 10 chars). It does NOT validate — the consuming Zod schema validates/parses the string into a real past date. No native date-picker dependency (the mockup shows a plain masked field). Error surfacing mirrors `TextField`/`PhoneInput` (`border-danger` + danger caption, `accessibilityLiveRegion="polite"`). Designed for reuse by S10 and S11.
+- **Notes**: Masked `DD/MM/AAAA` date field with a leading lucide `Calendar` icon (`primary` color). Holds/raises the **masked string** (`DD/MM/AAAA`); masking is applied internally as the user types digits (`number-pad`, max 10 chars). It does NOT validate — the consuming Zod schema validates/parses the string into a real past date. No native date-picker dependency (the mockup shows a plain masked field). Error surfacing mirrors `TextField`/`PhoneInput` (`border-danger` + danger caption, `accessibilityLiveRegion="polite"`). Used by S4 Onboarding + S10 Edit-profile for **birth date** (free typing suits a far-past date better than a picker). For a *future* date/time the user selects rather than types (S11 create-match), use `DateTimePickerField` instead.
+
+### `DateTimePickerField`
+- **Path**: `src/components/ui/DateTimePickerField.tsx`
+- **Category**: ui
+- **Props**: `{ mode: 'date' | 'time'; value: string; onChange: (masked: string) => void; label?: string; placeholder?: string; minimumDate?: Date; maximumDate?: Date; error?: string; testID?: string }`
+- **Used in**: S11 Create-match (match date "Outra data" + recurring "Início" + custom "Outro horário")
+- **Example**:
+  ```tsx
+  <DateTimePickerField mode="date" label="Data da partida" value={value} onChange={onChange} minimumDate={today} testID="custom-date" />
+  <DateTimePickerField mode="time" value={time} onChange={(t) => setValue('time', t)} testID="time-input" />
+  ```
+- **Notes**: Tap-to-open **native OS picker** (via `@react-native-community/datetimepicker`). A chip-styled trigger (leading `Calendar`/`Clock` icon + selected value or placeholder) opens an **Android dialog** (imperative `DateTimePickerAndroid.open`) or an **iOS spinner** in a translucent bottom sheet with a "Confirmar" action. Owns/raises the same masked strings the schema expects — `DD/MM/AAAA` (`mode="date"`) or `HHhMM` (`mode="time"`, 24h) — so it drops into RHF `Controller`s in place of a masked `DateField`/`TextField` without touching Zod validation. `minimumDate`/`maximumDate` bound the picker (create-match passes start-of-today so a partida can't be scheduled in the past). Requires a **Dev Client rebuild** (native module; bundled in Expo Go). Testing note: mock the module and drive `onChange` — see `CreateMatchScreen.test.tsx`.
 
 ### `FilterChip`
 - **Path**: `src/components/ui/FilterChip.tsx`

@@ -21,6 +21,7 @@
 | Local prefs storage | @react-native-async-storage/async-storage | 2.2.0 |
 | Image picker | expo-image-picker | ~56.0.18 |
 | Location | expo-location | ~56.0.19 |
+| Date/time picker | @react-native-community/datetimepicker | 9.1.0 |
 | Realtime | @microsoft/signalr | ^8.0.17 |
 | Gestures | react-native-gesture-handler | ~2.31.1 |
 | Animation | react-native-reanimated | 4.3.1 |
@@ -46,7 +47,7 @@
 
 > Added per `docs/DESIGN_SYSTEM.md` — Quadra's brand typography (Climate Crisis, Russo One, DM Sans, Baloo 2, DM Mono) replaces the previous system-font default. See "Custom fonts" below.
 
-> `@react-native-async-storage/async-storage` is for **non-secret UI preferences only** (e.g. appearance theme). Auth tokens stay in `expo-secure-store` — rule #3 below is unchanged. `expo-image-picker` was added for S10's "Trocar foto" (avatar selection). `expo-location` was added for S17's map (foreground device location to center the map and supply `lat`/`lon` to F1.7); install via `npx expo install expo-location` to pin the SDK-56-compatible version. `expo-blur` was added for the translucent glass app header (`src/components/ui/GlassHeader.tsx`), matching the prototype's `backdrop-filter` chrome — RN has no `backdrop-filter`, so real backdrop blur needs the native `BlurView`. It requires a Dev Client rebuild. On Android the blur uses `blurMethod="dimezisBlurView"`, which needs an explicit backdrop: each nav screen wraps its scroll content in `<BlurTargetView ref={blurTarget}>` and passes that ref to `GlassHeader` (→ `BlurView`'s `blurTarget`). Without it Android silently falls back to no blur. iOS blurs natively and ignores both props.
+> `@react-native-async-storage/async-storage` is for **non-secret UI preferences only** (e.g. appearance theme). Auth tokens stay in `expo-secure-store` — rule #3 below is unchanged. `expo-image-picker` was added for S10's "Trocar foto" (avatar selection). `@react-native-community/datetimepicker` was added for S11's create-match date/time selection — the `DateTimePickerField` (`src/components/ui/DateTimePickerField.tsx`) opens the native OS picker widget on tap (Android dialog via `DateTimePickerAndroid.open`; iOS spinner in a bottom-sheet Modal). It is bundled in Expo Go but needs a Dev Client rebuild for standalone/dev-client builds; install via `npx expo install @react-native-community/datetimepicker`. Birth-date fields (S4/S10) keep the typed `DateField` — a picker suits future dates the user selects, not a far-past DOB. `expo-location` was added for S17's map (foreground device location to center the map and supply `lat`/`lon` to F1.7); install via `npx expo install expo-location` to pin the SDK-56-compatible version. `expo-blur` was added for the translucent glass app header (`src/components/ui/GlassHeader.tsx`), matching the prototype's `backdrop-filter` chrome — RN has no `backdrop-filter`, so real backdrop blur needs the native `BlurView`. It requires a Dev Client rebuild. On Android the blur uses `blurMethod="dimezisBlurView"`, which needs an explicit backdrop: each nav screen wraps its scroll content in `<BlurTargetView ref={blurTarget}>` and passes that ref to `GlassHeader` (→ `BlurView`'s `blurTarget`). Without it Android silently falls back to no blur. iOS blurs natively and ignores both props.
 
 ---
 ## Package management rules

@@ -145,6 +145,28 @@ jest.mock('expo-image-picker', () => ({
   launchImageLibraryAsync: (...args: any[]) => mockLaunchLibrary(...args),
 }));
 
+// datetimepicker: the native widget is replaced by a Pressable that, when
+// pressed, fires the picker's onChange with the date staged in `__pickerDate`.
+// Covers both the iOS sheet path (default test platform) and Android imperative.
+jest.mock('@react-native-community/datetimepicker', () => {
+  const ReactLocal = require('react');
+  const { Pressable } = require('react-native');
+  const MockPicker = ({ testID, onValueChange }: any) =>
+    ReactLocal.createElement(Pressable, {
+      testID,
+      onPress: () => onValueChange({ type: 'set' }, (globalThis as any).__pickerDate),
+    });
+  return {
+    __esModule: true,
+    default: MockPicker,
+    DateTimePickerAndroid: {
+      open: ({ onValueChange }: any) =>
+        onValueChange({ type: 'set' }, (globalThis as any).__pickerDate),
+      dismiss: () => Promise.resolve(true),
+    },
+  };
+});
+
 // useCreateMatch mocked at the boundary (no fake latency / no network).
 type MutateOpts = {
   onSuccess?: (data: { match: { id: string } }) => void;
@@ -219,6 +241,18 @@ async function type(testID: string, text: string) {
   await act(async () => {
     fireEvent.changeText(screen.getByTestId(testID), text);
   });
+}
+
+/**
+ * Picks `date` in a `DateTimePickerField` (iOS sheet path): open the field,
+ * fire the picker's onChange, then confirm. Stages the date the mocked native
+ * widget will report.
+ */
+async function pickDate(fieldTestID: string, date: Date) {
+  (globalThis as any).__pickerDate = date;
+  await press(fieldTestID); // open the sheet
+  await press(`${fieldTestID}-picker`); // stage the selected date
+  await press(`${fieldTestID}-confirm`); // commit → raises DD/MM/AAAA
 }
 
 /** Answers the whole OneOff · open flow so the footer CTA becomes enabled. */
@@ -418,7 +452,7 @@ describe('S11 — Create-match (formulário vivo)', () => {
     // The horário block stays hidden until a day + start date are set.
     expect(screen.queryByTestId('time-19h00')).toBeNull();
     await press('rec-day-3'); // Wednesday
-    await type('rec-start', '03072026'); // masked to 03/07/2026
+    await pickDate('rec-start', new Date(2026, 6, 3)); // → 03/07/2026
     expect(screen.getByTestId('time-19h00')).toBeTruthy();
   });
 
@@ -428,7 +462,7 @@ describe('S11 — Create-match (formulário vivo)', () => {
     await type('match-location', 'Arena Central');
     await press('type-Recurring');
     await press('rec-day-3');
-    await type('rec-start', '03072026');
+    await pickDate('rec-start', new Date(2026, 6, 3));
     await press('time-20h00');
     await press('format-6X6');
     await press('level-AVANCADO');

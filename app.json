@@ -42,7 +42,8 @@
         {
           "locationWhenInUsePermission": "O Quadra usa a sua localização para mostrar partidas de vôlei perto de você no mapa."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true
