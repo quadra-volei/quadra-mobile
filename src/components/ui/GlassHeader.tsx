@@ -1,6 +1,6 @@
 import { BlurView } from "expo-blur";
 import type { ReactNode, RefObject } from "react";
-import { type LayoutChangeEvent, View } from "react-native";
+import { type LayoutChangeEvent, Platform, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 /**
@@ -46,14 +46,20 @@ export function GlassHeader({
   tint = "light",
 }: GlassHeaderProps) {
   const insets = useSafeAreaInsets();
+  // Android's real Dimezis blur frosts the sampled content much darker than
+  // iOS (and than Expo Go, which skips the native frost). Tame it there: a
+  // lower blur radius plus a stronger white wash lift the light header back to
+  // the prototype's translucency. iOS blurs natively and stays untouched.
+  const isAndroid = Platform.OS === "android";
+  const intensity = isAndroid ? 22 : 40;
   const wash =
     tint === "dark"
       ? "bg-surface-dark/40 border-b border-white/10"
-      : "bg-white/40 border-b border-white/50";
+      : `${isAndroid ? "bg-white/60" : "bg-white/40"} border-b border-white/50`;
 
   return (
     <BlurView
-      intensity={40}
+      intensity={intensity}
       tint={tint}
       // Real backdrop blur on Android (iOS blurs natively regardless). The
       // target is the screen's BlurTargetView, passed via `blurTarget`.
