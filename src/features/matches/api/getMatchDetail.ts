@@ -2,8 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 
 import { buildMatchDetail } from '@/features/matches/lib/buildMatchDetail';
 import type { MatchDetail } from '@/features/matches/types/matchDetail';
+import { useAuthStore } from '@/stores/auth';
 import { useCreatedMatchesStore } from '@/stores/createdMatchesStore';
 import { useGuestsStore } from '@/stores/guestsStore';
+import { usePresenceStore } from '@/stores/presenceStore';
 
 // MOCK: deterministic fake latency so RNTL can assert the loading skeleton, the
 // populated screen, and navigation without flakiness. Tests may zero this via
@@ -43,20 +45,28 @@ const MOCK_PARTICIPANT_MATCH: MatchDetail = {
   level: 'INTERMEDIARIO',
   venue: 'Arena Quadra',
   distanceKm: 1.2,
+  tint: '#1A1AFF',
   priceLabel: 'R$ 25',
+  pricePlan: 'RECORRENTE',
+  priceMonthlyLabel: 'R$ 80',
   capacity: 12,
   startsAt: MOCK_PARTICIPANT_STARTS_AT,
   confirmationClosesAt: MOCK_PARTICIPANT_CLOSES_AT,
   confirmationWindowClosed: false,
   organizerId: 'user-erica',
-  organizer: { id: 'user-erica', name: 'Érica Moraes', position: 'CEN' },
+  organizer: {
+    id: 'user-erica',
+    name: 'Érica Moraes',
+    position: 'CEN',
+    level: 18,
+  },
   players: [
-    { id: 'p1', name: 'Renan', status: 'CONFIRMADO', position: 'LEV' },
-    { id: 'p2', name: 'Bia', status: 'CONFIRMADO', position: 'PON' },
-    { id: 'p3', name: 'Caio', status: 'CONFIRMADO', position: 'OPO' },
-    { id: 'p4', name: 'Duda', status: 'CONFIRMADO', position: 'LIB' },
-    { id: 'p5', name: 'Manu', status: 'CONFIRMADO', position: 'CEN' },
-    { id: 'p6', name: 'Vini', status: 'CONFIRMADO', position: 'COR' },
+    { id: 'p1', name: 'Renan', status: 'CONFIRMADO', position: 'LEV', level: 15 },
+    { id: 'p2', name: 'Bia', status: 'CONFIRMADO', position: 'PON', level: 9 },
+    { id: 'p3', name: 'Caio', status: 'CONFIRMADO', position: 'OPO', level: 15 },
+    { id: 'p4', name: 'Duda', status: 'CONFIRMADO', position: 'LIB', level: 11 },
+    { id: 'p5', name: 'Manu', status: 'CONFIRMADO', position: 'CEN', level: 14 },
+    { id: 'p6', name: 'Vini', status: 'CONFIRMADO', position: 'COR', level: 6 },
   ],
   openDropInSlots: 6,
   myParticipationType: 'REGULAR',
@@ -73,26 +83,35 @@ const MOCK_ORGANIZER_MATCH: MatchDetail = {
   level: 'INTERMEDIARIO',
   venue: 'Arena Sky Beach',
   distanceKm: 1.2,
+  tint: '#1A1AFF',
   priceLabel: 'R$ 25',
+  pricePlan: 'AVULSO',
   capacity: 12,
   startsAt: MOCK_ORGANIZER_STARTS_AT,
   confirmationClosesAt: MOCK_ORGANIZER_CLOSES_AT,
   confirmationWindowClosed: true,
   organizerId: MOCK_ORGANIZER_USER_ID,
-  organizer: { id: MOCK_ORGANIZER_USER_ID, name: 'Você', position: 'LEV' },
+  organizer: {
+    id: MOCK_ORGANIZER_USER_ID,
+    name: 'Você',
+    position: 'LEV',
+    level: 15,
+  },
   players: [
-    { id: 'o1', name: 'Renan', status: 'CONFIRMADO', position: 'LEV' },
-    { id: 'o2', name: 'Érica', status: 'CONFIRMADO', position: 'CEN' },
-    { id: 'o3', name: 'Caio', status: 'CONFIRMADO', position: 'OPO' },
-    { id: 'o4', name: 'Duda', status: 'CONFIRMADO', position: 'LIB' },
-    { id: 'o5', name: 'Manu', status: 'CONFIRMADO', position: 'PON' },
-    { id: 'o6', name: 'Theo', status: 'CONFIRMADO', position: 'OPO' },
-    { id: 'o7', name: 'Bia', status: 'CONFIRMADO', position: 'PON' },
-    { id: 'o8', name: 'Vini', status: 'CONFIRMADO', position: 'COR' },
+    { id: 'o1', name: 'Renan', status: 'CONFIRMADO', position: 'LEV', level: 15 },
+    { id: 'o2', name: 'Érica', status: 'CONFIRMADO', position: 'CEN', level: 18 },
+    { id: 'o3', name: 'Caio', status: 'CONFIRMADO', position: 'OPO', level: 15 },
+    { id: 'o4', name: 'Duda', status: 'CONFIRMADO', position: 'LIB', level: 11 },
+    { id: 'o5', name: 'Manu', status: 'CONFIRMADO', position: 'PON', level: 14 },
+    { id: 'o6', name: 'Theo', status: 'CONFIRMADO', position: 'OPO', level: 7 },
+    { id: 'o7', name: 'Bia', status: 'CONFIRMADO', position: 'PON', level: 9 },
+    { id: 'o8', name: 'Vini', status: 'CONFIRMADO', position: 'COR', level: 6 },
   ],
   openDropInSlots: 4,
-  myParticipationType: null,
-  myStatus: null,
+  // The organizer is a Regular like anyone else — organizing is not playing, so
+  // they start PENDENTE and only join the confirmed grid once they confirm.
+  myParticipationType: 'REGULAR',
+  myStatus: 'PENDENTE',
   teamConfig: { teamCount: 2, perTeam: 4, drawMode: 'MANUAL' },
 };
 
@@ -122,7 +141,51 @@ async function getMatchDetail(
     ? buildMatchDetail(created)
     : // MOCK: pick a fixture by id; echo the requested id so nav params line up.
       { ...(id.startsWith('mine') ? MOCK_ORGANIZER_MATCH : MOCK_PARTICIPANT_MATCH), id };
-  return mergeGuests(detail, id);
+  return mergeGuests(mergeMyPresence(detail, id), id);
+}
+
+/**
+ * Folds the current user's own presence (session `presenceStore`) into the match.
+ *
+ * Presence IS list membership: a CONFIRMADO user is appended to `players` (so
+ * they appear in the confirmed grid and count toward N/M) and takes a slot;
+ * declining removes them again and frees it. This holds for the organizer too —
+ * organizing a match does not mean playing it, so the organizer only appears
+ * once they confirm.
+ *
+ * No stored entry → the payload's own `myStatus` stands (the user hasn't acted
+ * this session).
+ */
+function mergeMyPresence(detail: MatchDetail, id: string): MatchDetail {
+  const presence = usePresenceStore.getState().getPresence(id);
+  const userId = useAuthStore.getState().userId;
+  if (!presence || !userId) {
+    return detail;
+  }
+
+  const isConfirmed = presence.status === 'CONFIRMADO';
+  const others = detail.players.filter((p) => p.id !== userId);
+  const wasListed = others.length !== detail.players.length;
+
+  const players = isConfirmed
+    ? [
+        ...others,
+        // MOCK: the payload has no name/level for the viewer at this seam; the
+        // real F1.4 response carries the full player record.
+        { id: userId, name: 'Você', status: 'CONFIRMADO' as const },
+      ]
+    : others;
+
+  // A confirm consumes an open slot; a decline gives one back.
+  const slotDelta = (isConfirmed ? 1 : 0) - (wasListed ? 1 : 0);
+
+  return {
+    ...detail,
+    players,
+    myStatus: presence.status,
+    myParticipationType: presence.participation ?? detail.myParticipationType,
+    openDropInSlots: Math.max(0, detail.openDropInSlots - slotDelta),
+  };
 }
 
 /**

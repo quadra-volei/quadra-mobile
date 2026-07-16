@@ -132,21 +132,22 @@ describe('buildMatchDetail', () => {
     expect(detail.confirmationWindowClosed).toBe(false);
   });
 
-  it('makes the current user the organizer and the only confirmed player', () => {
+  it('makes the current user the organizer without confirming them as a player', () => {
     const detail = buildMatchDetail(makeRecord({ organizerId: 'user-42' }));
 
     expect(detail.organizerId).toBe('user-42');
     expect(detail.organizer).toEqual({ id: 'user-42', name: 'Você' });
-    expect(detail.players).toEqual([
-      { id: 'user-42', name: 'Você', status: 'CONFIRMADO' },
-    ]);
-    expect(detail.myParticipationType).toBeNull();
-    expect(detail.myStatus).toBeNull();
+    // Organizing is not playing: nobody is confirmed until someone confirms,
+    // and the organizer is a Regular who must do so like everyone else.
+    expect(detail.players).toEqual([]);
+    expect(detail.myParticipationType).toBe('REGULAR');
+    expect(detail.myStatus).toBe('PENDENTE');
   });
 
   it('opens drop-in slots only for a public match', () => {
     const open = buildMatchDetail(makeRecord());
-    expect(open.openDropInSlots).toBe(7); // players - organizer
+    // Every slot is open — the organizer has not taken one.
+    expect(open.openDropInSlots).toBe(8);
 
     const priv = buildMatchDetail(
       makeRecord({ input: { ...baseInput, privacy: 'private' } }),
@@ -172,7 +173,7 @@ describe('buildUpcomingMatch', () => {
       name: 'Racha de Quinta',
       startsAt: '2026-07-03T22:00:00.000Z',
       category: 'COMPETITIVO', // AVANCADO → competitivo
-      openSlots: 7,
+      openSlots: 8, // nobody confirmed yet, not even the organizer
       priceLabel: 'R$ 25',
       avatarUrls: [],
       tint: '#6B1AFF', // AVANCADO → violet

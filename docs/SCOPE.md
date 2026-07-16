@@ -173,14 +173,17 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 - **Reference**: `docs/references/screens/S12-match-detail/partida-visa-paricipante.png` (participant view) + `partida-visao-organizador.png` (organizer view)- **Route**: `app/matches/[id].tsx`
 - **Backend deps**: F1.2, F1.3, F1.4, F1.5, F1.6
 - **IN**: single-scroll layout (no tab bar in the mockup) — match info card (cover photo, format/level tags, name, datetime, location, distance) + organizer line
-- **IN**: presence list ("CONFIRMADOS N/M") with avatars + empty "vaga" slots; status per player (Confirmado/Recusado/Pendente)
-- **IN**: confirm/decline for the current user if Regular ("Confirmar presença")
+- **IN**: "VALORES" section — the per-session (avulso) price, plus the monthly price when the match is billed on a recurring plan, tagged Avulso/Recorrente, with the "valor combinado direto com o organizador" note. Payment is never processed in-app (see OUT below); this is display-only.
+- **IN**: presence list ("CONFIRMADOS N/M") with avatars + empty "vaga" slots; status per player (Confirmado/Recusado/Pendente); each avatar carries its player's level "bolinha", explained by a tier legend under the grid
+- **IN**: confirm/decline for the current user if Regular ("Confirmar presença"). **Presence IS list membership**: confirming puts the user in the CONFIRMADOS grid and takes a slot; declining removes them and frees it — including after they had already confirmed (they can always change their mind while the window is open).
+- **IN**: **the organizer confirms like anyone else** — organizing a match is not the same as playing it, so a new match starts with nobody confirmed, and the organizer only appears in the grid once they say they will play (and can take themselves back out). They keep the "Montar os times" CTA whether or not they play.
 - **IN**: "Join" if there are DropIn slots open and window is closed
 - **IN**: countdown to game start or confirmation window close
 - **IN**: organizer view (`partida-visao-organizador.png`) — "VOCÊ ORGANIZA" badge, "Convidar", and the team-setup entry embedded here: team count (2/3/4 times), players-per-team stepper, draw mode (Manual / Automático), "Montar os times" CTA → S13
 - **NOTE**: S13 (teams), S14 (scoreboard) and S16 (summary) are reached as **separate navigated screens** from here, NOT as tabs (the prototype renders each as its own full screen). The earlier "Info | Times | Placar | Resumo" tab model is dropped.
 - **OUT**: per-player OVR ratings shown in the mockup (Layer 3)
 - **OUT**: chat (Layer 3)
+- **OUT**: payment processing — VALORES only displays what the organizer charges; money changes hands outside the app (same posture as S11)
 
 ### S13 — In-Game Teams
 - **Reference**: ⚠️ **no dedicated screenshot exists** for this screen. The team-setup UI is shown inside `docs/references/screens/S12-match-detail/partida-visao-organizador.png` (organizer view); use it as the visual reference.

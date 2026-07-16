@@ -1,6 +1,8 @@
 # Screen Spec: S12 — Match Detail
 
 > Revised after scope-guardian REJECTION (round 1) + a round-2 token-note addition. Three round-1 fixes applied (DrawModeCard dropped; Button variants reconciled; Regular-vs-DropIn acceptance criteria) — all confirmed resolved — plus a round-2 note clarifying the opacity-modifier utilities are NativeWind modifiers over already-registered tokens (no new tokens, no change to the three resolved items).
+>
+> **Round 3 (2026-07-15) — realigned to the prototype.** The Claude Design prototype (`Quadra 08-07-26/screens-detail.jsx`) became available; it is now the layout authority over the PNGs, which predate it. Owner-approved deltas: (1) the hero is the full-bleed `CourtImage` cover, not a flat navy `LinearGradient`; (2) the 2×2 metadata grid gains leading `primary` icons and loses the floating card; (3) a new **VALORES** section (Avulso/Recorrente) replaces the footer price — added to SCOPE S12's IN list; (4) grid avatars carry the level "bolinha" + a tier legend; (5) "vaga" placeholders cap at 3; (6) the footer is a **full-width** CTA. **SCOPE still wins on behavior**: the prototype has no Recusar / drop-in join / organizer team-config, and all three are retained (the owner chose "prototype look, keep the logic"). See "Footer CTA logic".
 
 ## Origin
 - Screen from SCOPE: S12 — Match Detail
@@ -11,7 +13,9 @@
 - [x] `docs/references/screens/S12-match-detail/partida-visa-paricipante.png` (participant view) — read in full
 - [x] `docs/references/screens/S12-match-detail/partida-visao-organizador.png` (organizer view) — read in full
 
-Both PNGs exist on disk and were read. No prototype source exists; the PNGs are the only layout reference.
+- [x] `Quadra 08-07-26/screens-detail.jsx` (`DetailScreen`) — the prototype source, read in full (round 3)
+
+Both PNGs exist on disk and were read. **Round 3**: the prototype source now exists and supersedes the PNGs on layout wherever they disagree (the PNGs are an earlier iteration — e.g. they still put the price in the footer and have no VALORES section). The PNGs remain the reference for the organizer view, which the prototype does not model.
 
 What `partida-visa-paricipante.png` (participant view) shows, top to bottom:
 1. **Dark hero header** (navy `HERO_GRADIENT`) with a back chevron (top-left) and a share icon (top-right); a translucent format mono pill **"6X6"** + a lime **"INTERMEDIÁRIO"** pill; the display title **"RACHA DE DOMINGO"**; a `MapPin` line **"Arena Quadra · 1,2 km"**.
@@ -91,10 +95,13 @@ The catalog has no presence/slot grid. Evaluated against "reuse before create" a
       id: string; name: string; avatarUrl?: string;
       status: 'CONFIRMADO' | 'RECUSADO' | 'PENDENTE';
       position?: 'LEV' | 'PON' | 'OPO' | 'CEN' | 'LIB' | 'COR';
+      level?: number;          // tier-colored badge on the avatar; guests have none
     };
     type PresenceGridProps = {
       players: PresencePlayer[];
       capacity: number;        // total slots; empties beyond players.length render as "vaga"
+      onPressEmpty?: () => void;
+      maxEmptySlots?: number;  // caps the "vaga" placeholders (S12 passes 3, per the prototype)
       testID?: string;
     };
     ```
@@ -114,92 +121,115 @@ The catalog has no presence/slot grid. Evaluated against "reuse before create" a
 
 ## Layout structure
 
-Token references only; NativeWind classes; no hex; no `StyleSheet.create`. Opacity modifiers (`/15`, `/80`, `/5`, `/10`) are NativeWind modifiers over registered tokens — see the opacity-modifier note under "Existing components reused". Two role-conditioned variants share one scroll shell. `isOrganizer` comes from `match.organizerId === useAuthStore.userId`.
+Token references only; NativeWind classes; no hex; no `StyleSheet.create`. Opacity modifiers (`/90`, `/85`, `/5`, `/35`) are NativeWind modifiers over registered tokens — see the opacity-modifier note under "Existing components reused". Two role-conditioned variants share one scroll shell. `isOrganizer` comes from `match.organizerId === useAuthStore.userId`.
+
+The page is **white** (not `bg-light`) and there is **no top `SafeAreaView`**: the cover bleeds under the status bar, as in the prototype, so the back/share row is positioned with `insets.top` from `useSafeAreaInsets()` and the scrim keeps the status-bar area legible. The footer still respects `insets.bottom`.
 
 ```
-<View className="flex-1 bg-bg-light">
-  <SafeAreaView edges={['top']} className="flex-1">
-    <ScrollView contentContainerClassName="pb-32">
+<View className="flex-1 bg-white">
+    <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 148 }}>
 
-      # ── Dark hero header (navy HERO_GRADIENT LinearGradient, rounded-b-card) ──
-      <LinearGradient colors={HERO_GRADIENT} className="px-4 pt-2 pb-6 rounded-b-card">
-        <View className="flex-row items-center justify-between">
-          <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={router.back}>
-            <ChevronLeft color={colors.textOnDark} />
-          </Pressable>
-          <Pressable accessibilityRole="button" accessibilityLabel="Compartilhar partida" onPress={onShare}>
+      # ── Court-image hero (full-bleed under the status bar; radius 0) ──
+      <CourtImage tint={match.tint} height={270} radius={0} label="FOTO DA QUADRA">
+        {/* COVER_SCRIM: surface-dark at 0.35 → 0 → 0.55, keeping the actions (top)
+            and the title block (bottom) legible over any tint. */}
+        <LinearGradient colors={COVER_SCRIM} locations={COVER_SCRIM_LOCATIONS} style={absoluteFill} />
+
+        <View className="absolute left-4 right-4 flex-row items-center justify-between" style={{ top: insets.top }}>
+          <HeroAction label="Voltar" onPress={router.back}><ChevronLeft color={colors.textOnDark} /></HeroAction>
+          <HeroAction label="Compartilhar partida" onPress={onShare} testID="hero-share">
             <Share2 color={colors.textOnDark} />
-          </Pressable>
+          </HeroAction>
         </View>
 
-        {isOrganizer && (
-          <View className="bg-accent rounded-pill px-3 py-1 self-start mt-4">
-            <Text className="font-mono text-mono text-text-primary uppercase">Você organiza</Text>
+        <View className="absolute bottom-4 left-5 right-5">
+          {isOrganizer && (
+            <View className="bg-accent rounded-pill px-3 py-1 self-start mb-2">
+              <Text className="font-mono text-mono text-text-primary uppercase">Você organiza</Text>
+            </View>
+          )}
+          <View className="flex-row gap-2">
+            <View className="bg-white/90 rounded-pill px-3 py-1">  {/* /90 = NativeWind opacity modifier over `white` */}
+              <Text className="font-mono text-mono text-text-primary uppercase">{match.format}</Text>
+            </View>
+            <View className="bg-accent rounded-pill px-3 py-1">
+              <Text className="font-mono text-mono text-text-primary uppercase">{levelLabel}</Text>
+            </View>
           </View>
-        )}
-
-        <View className="flex-row gap-2 mt-4">
-          <View className="bg-white/15 rounded-pill px-3 py-1">  {/* /15 = NativeWind opacity modifier over `white` token (cf. MatchCard.tsx:44) */}
-            <Text className="font-mono text-mono text-text-on-dark uppercase">{match.format}</Text>
-          </View>
-          <View className="bg-accent rounded-pill px-3 py-1">
-            <Text className="font-mono text-mono text-text-primary uppercase">{levelLabel}</Text>
+          <Text className="font-display text-h1 text-text-on-dark uppercase mt-2">{match.name}</Text>
+          <View className="flex-row items-center gap-1 mt-1">
+            <MapPin color={colors.textOnDark} size={15} />
+            <Text className="font-body text-body text-text-on-dark/85">{match.venue} · {distanceLabel}</Text>
           </View>
         </View>
+      </CourtImage>
 
-        <Text className="font-display text-h1 text-text-on-dark uppercase mt-3">{match.name}</Text>
-        <View className="flex-row items-center gap-1 mt-2">
-          <MapPin color={colors.textOnDark} size={16} />
-          <Text className="font-body text-body text-text-on-dark/80">{match.venue} · {distanceLabel}</Text>  {/* /80 modifier over `text-on-dark` (cf. create.tsx:51) */}
-        </View>
-      </LinearGradient>
+      # ── Body sheet (white; no floating card — the prototype sits flush) ──
+      <View className="px-5 pt-6 pb-5">
 
-      # ── White info card: 2×2 metadata grid + organizer row ──
-      <View className="bg-white rounded-card shadow-card mx-4 -mt-4 p-4">
+        # ── 2×2 metadata grid (leading primary icon per cell) ──
         <View className="flex-row flex-wrap">
-          <MetaCell label="QUANDO" value={whenLabel} />   {/* "Hoje · 19h30" */}
-          <MetaCell label="MODO"   value={match.format} />
-          <MetaCell label="VAGAS"  value={`${confirmedCount}/${match.capacity}`} />
-          <MetaCell label="NÍVEL"  value={levelLabel} />
+          <InfoCell icon={<Calendar   size={22} color={colors.primary} />} label="Quando" value={whenLabel} />
+          <InfoCell icon={<Volleyball size={22} color={colors.primary} />} label="Modo"   value={match.format} />
+          <InfoCell icon={<Users      size={22} color={colors.primary} />} label="Vagas"  value={`${confirmedCount}/${match.capacity}`} />
+          <InfoCell icon={<Zap        size={22} color={colors.primary} />} label="Nível"  value={levelLabel} />
         </View>
-        <View className="h-px bg-line my-4" />
-        <View className="flex-row items-center gap-3">
-          <Avatar uri={match.organizer.avatarUrl} name={match.organizer.name} size="sm" />
+
+        # ── Countdown strip (game start OR confirmation-window close) ──
+        <Text className="text-caption text-text-muted text-center mt-1" testID="countdown">{countdownLabel}</Text>
+        {/* "Começa em 2h 14min" OR "Confirmações fecham em 1h 30min" — pure formatter */}
+
+        # ── VALORES (SCOPE S12 IN, round 3) ──
+        <View className="mt-6">
+          <View className="flex-row items-center justify-between mb-3">
+            <Text className="font-display text-h2 text-surface-dark uppercase">Valores</Text>
+            <View className={isRecurring ? 'bg-primary rounded-pill px-3 py-1' : 'bg-bg-light rounded-pill px-3 py-1'}>
+              <Text className="font-mono text-mono uppercase">{isRecurring ? 'Recorrente' : 'Avulso'}</Text>
+            </View>
+          </View>
+          <View className="flex-row gap-3">
+            <PriceTile label="Jogador avulso" value={match.priceLabel} testID="price-single" />
+            {isRecurring && <PriceTile label="Jogador recorrente" value={match.priceMonthlyLabel} accent testID="price-monthly" />}
+          </View>
+          <View className="flex-row items-start gap-2 mt-3">
+            <MapPin size={13} color={colors.textMuted} />
+            <Text className="text-caption text-text-muted flex-1">Valor combinado direto com o organizador da partida.</Text>
+          </View>
+        </View>
+
+        # ── Organizer row (its own card, per the prototype) ──
+        <View className="bg-white rounded-card shadow-card p-4 mt-6 flex-row items-center gap-3">
+          <Avatar uri={match.organizer.avatarUrl} name={match.organizer.name} size="md" level={match.organizer.level} />
           <View className="flex-1">
             <Text className="text-caption text-text-muted">Organizado por</Text>
             <Text className="text-body-bold text-text-primary">{match.organizer.name}</Text>
           </View>
           {match.organizer.position && (
-            <View className="bg-primary/10 rounded-pill px-3 py-1">  {/* /10 modifier over `primary` (cf. RankingRow.tsx:65) */}
+            <View className="bg-bg-light rounded-pill px-3 py-1">
               <Text className="font-mono text-mono text-primary uppercase">{positionLabel}</Text>
             </View>
           )}
         </View>
-      </View>
 
-      # ── Countdown strip (game start OR confirmation-window close) ──
-      <View className="mx-4 mt-4">
-        <Text className="text-caption text-text-muted text-center">{countdownLabel}</Text>
-        {/* "Começa em 2h 14min" OR "Confirmações fecham em 1h 30min" — pure formatter */}
-      </View>
-
-      # ── CONFIRMADOS section ──
-      <View className="mx-4 mt-6">
-        <View className="flex-row items-center justify-between">
-          <Text className="text-eyebrow text-text-primary">CONFIRMADOS · {confirmedCount}/{match.capacity}</Text>
-          {isOrganizer && (
-            <Button variant="outline" onPress={onShare} leftIcon={<UserPlus color={colors.primary} size={18} />}>
-              Convidar
-            </Button>
-          )}
+        # ── CONFIRMADOS section ──
+        <View className="flex-row items-center justify-between mt-6">
+          <Text className="font-display text-h2 text-surface-dark uppercase">Confirmados</Text>
+          <View className="flex-row items-center gap-3">
+            <Text className="text-body-bold text-primary" testID="confirmed-count">{confirmedCount}/{match.capacity}</Text>
+            {isOrganizer && (
+              <Button variant="outline" onPress={onShare} leftIcon={<UserPlus color={colors.primary} size={18} />}>
+                Convidar
+              </Button>
+            )}
+          </View>
         </View>
-        <PresenceGrid players={match.players} capacity={match.capacity} testID="presence-grid" />
-      </View>
+        <PresenceGrid players={match.players} capacity={match.capacity} maxEmptySlots={3} testID="presence-grid" />
+        <LevelLegend />  {/* tier dot + label per LEVEL_LEGEND; explains each avatar's bolinha */}
 
-      # ── Organizer-only: team configuration (→ S13) ──
-      {isOrganizer && (
-        <View className="mx-4 mt-8">
-          <Text className="text-eyebrow text-text-primary">CONFIGURAÇÃO DOS TIMES</Text>
+        # ── Organizer-only: team configuration (→ S13) ──
+        {isOrganizer && (
+        <View className="mt-8">
+          <Text className="font-display text-h2 text-surface-dark uppercase">Configuração dos times</Text>
           <View className="flex-row gap-2 mt-2">
             <FilterChip label="2 times" selected={teamCount===2} onPress={() => setTeamCount(2)} />
             <FilterChip label="3 times" selected={teamCount===3} onPress={() => setTeamCount(3)} />
@@ -210,7 +240,7 @@ Token references only; NativeWind classes; no hex; no `StyleSheet.create`. Opaci
                         testID="per-team-stepper" />
           <Text className="text-caption text-text-muted mt-1">{confirmedCount} confirmados no total</Text>
 
-          <Text className="text-eyebrow text-text-primary mt-6">COMO SORTEAR OS TIMES</Text>
+          <Text className="font-display text-h2 text-surface-dark uppercase mt-6">Como sortear os times</Text>
           {/* Inlined radio rows mirroring ToggleField's chrome (icon + title + caption on a
               bg-white rounded-card border row), with a trailing Check when selected. NO new component.
               bg-primary/5 = NativeWind opacity modifier over `primary` (same idiom as the shipped bg-primary/10,/20). */}
@@ -235,39 +265,42 @@ Token references only; NativeWind classes; no hex; no `StyleSheet.create`. Opaci
             {drawMode==='AUTO' && <Check color={colors.primary} />}
           </Pressable>
         </View>
-      )}
+        )}
+      </View>   {/* /body sheet */}
     </ScrollView>
 
-    # ── Fixed footer (absolute, above safe-area inset) ──
-    <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-line px-4 pt-3 pb-6">
-      {isOrganizer ? (
-        # Organizer forward CTA → grad (blue→lime)
-        <Button variant="grad" onPress={goToTeams} testID="build-teams">Montar os times</Button>
-      ) : (
-        <View className="flex-row items-center gap-3">
-          <View>
-            <Text className="text-caption text-text-muted">Valor</Text>
-            <Text className="font-num text-h3 text-text-primary">{match.priceLabel}</Text>
-          </View>
-          {participantCta /* see "Footer CTA logic" below — affirmative CTAs are variant="primary" */}
-        </View>
-      )}
+    # ── Sticky action bar (absolute, above safe-area inset; FULL-WIDTH CTA) ──
+    # The prototype has no price here — the price lives in VALORES.
+    <View className="absolute bottom-0 left-0 right-0 bg-white border-t border-line px-5 pt-4"
+          style={{ paddingBottom: Math.max(insets.bottom, 10) + 10 }}>
+      {participantOrOrganizerCta /* see "Footer CTA logic" below */}
     </View>
-  </SafeAreaView>
 </View>
 ```
 
-`MetaCell` is a tiny inline `<View className="w-1/2 mb-3">` with an eyebrow label + value — inlined, not extracted (single-use, per catalog rule).
+`InfoCell` (icon + eyebrow label + value), `PriceTile`, `LevelLegend` and `HeroAction` are tiny inline pieces — inlined, not extracted (single-use, per catalog rule). `LevelLegend` maps `LEVEL_LEGEND` from `src/theme/levelTier.ts`, which is the token layer for the tier dot colors + bracket labels.
 
-### Footer CTA logic (participant, SCOPE-driven)
-Per SCOPE S12: confirm/decline for the current user **if Regular** (invited); **Join** if there are **DropIn** slots open **and** the confirmation window is **closed**. Variant mapping reconciled per DESIGN_SYSTEM ("Confirmar presença" = the canonical `primary` example):
-- **Invited Regular participant**, `myStatus === 'PENDENTE'` (window open) → **"Confirmar presença"** (`variant="primary"`, navy→blue) + a secondary **"Recusar"** (`variant="outline"`).
-- **Invited Regular participant**, `myStatus === 'CONFIRMADO'` → a confirmed pill ("Presença confirmada", lime) + a low-emphasis "Recusar" (`variant="ghost"`).
-- **Invited Regular participant**, `myStatus === 'RECUSADO'` → **"Confirmar presença"** (`variant="primary"`) re-enabled.
-- **Not a Regular participant AND open DropIn slots exist AND the confirmation window is closed** → **"Entrar na partida"** (`variant="primary"`, navy→blue affirmative, calls `useJoinMatch`).
+### Presence is list membership (round 4, owner rule)
+> **Owner rule (2026-07-15):** "Nem sempre o organizador vai jogar — ele também precisa confirmar para entrar na lista", and "o botão 'não vou poder ir' deveria remover o jogador da lista de confirmados; e caso ele tenha confirmado, ele também pode remover."
+
+Confirming **is** what puts a user in the CONFIRMADOS grid; declining takes them out and frees the slot, whether or not they had confirmed. This applies to the organizer too — organizing is not playing, so a created match starts with **nobody** confirmed (`players: []`, every slot open) and the organizer joins the grid only by confirming.
+
+Mechanically, while F1.4 is mocked: the presence mutations write the new status to the session `presenceStore` (`src/stores/presenceStore.ts`), and `getMatchDetail`'s `mergeMyPresence` folds it into the payload at fetch time — adding/removing the current user in `players`, setting `myStatus`, promoting `myParticipationType` to `DROPIN` after a join, and adjusting `openDropInSlots`. This mirrors `guestsStore`/`mergeGuests`. **Without the store the mutations are no-ops** — the invalidation would refetch the same fixed fixture and the grid would never change. The store write disappears with the mock; the real F1.4 response becomes the truth behind the unchanged hook signatures.
+
+### Footer CTA logic (SCOPE-driven)
+The prototype's action bar is a **single full-width button** that flips "Confirmar presença" → "Iniciar partida". SCOPE S12 additionally requires decline, drop-in join, and the organizer forward CTA, and the owner chose **"prototype look, keep the logic"** — so the full-width CTA is the prototype's, and the decline sits under it as a low-emphasis `ghost`:
+
+- **Organizer** → **"Montar os times"** (`variant="grad"`, blue→lime) + a `ghost` presence toggle below it: **"Vou jogar"** when not confirmed, **"Não vou jogar"** once confirmed. The forward CTA stays primary and always available — an organizer who does not play still builds the teams — while presence is the secondary, reversible choice.
+- **Invited Regular participant**, `myStatus` `PENDENTE` | `RECUSADO` → **"Confirmar presença"** (`variant="grad"`, full-width, leading `Check` icon — the prototype's CTA) + **"Não vou poder ir"** (`variant="ghost"`) below.
+- **Invited Regular participant**, `myStatus === 'CONFIRMADO'` → **"Iniciar partida"** (`variant="primary"`, leading `Play` icon) + **"Não vou poder ir"** (`variant="ghost"`) below. **"Iniciar partida" routes to S13** (`/matches/[id]/teams`), *not* straight to the scoreboard: the prototype jumps to the game because it does not model S13, but SCOPE's chain is S12 → S13 → S14.
+- **Not a Regular participant AND open DropIn slots exist AND the confirmation window is closed** → **"Entrar na partida"** (`variant="primary"`, calls `useJoinMatch`).
 - Not a participant and (no open slots **or** window still open) → disabled "Partida cheia" / "Aguarde a janela de confirmação" state (no actionable CTA).
 
-> `variant="grad"` is NOT used for any participant affirmative CTA — it is reserved for the organizer "Montar os times" forward CTA. The dark hero/cards use navy `HERO_GRADIENT` + `text-on-dark`; the lime `bg-accent` "VOCÊ ORGANIZA" badge; display title in `font-display` + `uppercase`; scores/values in `font-num`; chips/tags in `font-mono`/`text-mono`. Tokens only — NO inline hex; NO `StyleSheet.create`. Translucent surfaces use NativeWind opacity modifiers over registered tokens (see the opacity-modifier note).
+> **Variant note (supersedes round 1).** Round 1 reserved `variant="grad"` for the organizer CTA alone, reading DESIGN_SYSTEM's "Confirmar presença" as the canonical `primary` example. The prototype and the participant PNG both render "Confirmar presença" as the **blue→lime gradient** CTA, so `grad` now covers *the* primary action of each role — organizer "Montar os times" **and** participant "Confirmar presença". `primary` (navy→blue) covers the follow-on affirmatives ("Iniciar partida" / "Entrar na partida"). Only one `grad` button is ever on screen at a time.
+>
+> DESIGN_SYSTEM's "direct-action CTAs stay icon-free" rule is **overridden here by both references**: the prototype and `partida-visa-paricipante.png` render "✓ Confirmar presença" with the check.
+
+> The lime `bg-accent` "VOCÊ ORGANIZA" badge; display title + section headings in `font-display` + `uppercase`; prices in `font-num`; chips/tags in `font-mono`/`text-mono`. Tokens only — NO inline hex; NO `StyleSheet.create`. Translucent surfaces use NativeWind opacity modifiers over registered tokens (see the opacity-modifier note). The cover scrim is the one runtime color array (`COVER_SCRIM` in `src/theme/colors.ts`), because `expo-linear-gradient` needs raw values — same seam as `HERO_GRADIENT`/`CTA_GRADIENT`.
 
 ## State
 
@@ -279,7 +312,8 @@ Per SCOPE S12: confirm/decline for the current user **if Regular** (invited); **
 > No mock imports `EXPO_PUBLIC_API_URL`. All `queryFn`/`mutationFn` are deterministic with latency overridable to 0 under test (mirroring `getNearby.ts` / `createMatch.ts`).
 
 ### Client state (Zustand)
-- `useAuthStore` (`src/stores/auth.ts`, exists) — read-only; `userId` determines `isOrganizer` (`match.organizerId === userId`); `myStatus` + `myParticipationType` are read from the match payload for the current user. No new store.
+- `useAuthStore` (`src/stores/auth.ts`, exists) — read-only; `userId` determines `isOrganizer` (`match.organizerId === userId`); `myStatus` + `myParticipationType` are read from the match payload for the current user.
+- `usePresenceStore` (`src/stores/presenceStore.ts`, **new in round 4**) — the current user's own presence per match, for the mocked-F1.4 window only. Written by the presence mutations, merged by `getMatchDetail` (see "Presence is list membership"). Session-only, no persistence; mirrors `guestsStore`. Goes away when F1.4 lands.
 
 ### Local state (organizer team-config, ephemeral)
 - `teamCount: 2 | 3 | 4` — default from `match.teamConfig.teamCount` (or 2).
@@ -315,15 +349,17 @@ Per SCOPE S12: confirm/decline for the current user **if Regular** (invited); **
 
 ## Acceptance criteria
 - [ ] The screen reads `id` from `useLocalSearchParams` and renders via `useMatchDetail(id)` (mocked); a loading skeleton shows while pending and an error state with retry shows on failure.
-- [ ] The hero header shows the back chevron (`accessibilityLabel="Voltar"` → `router.back()`), the share icon, the format mono pill, the level lime pill, the match name (`font-display`, uppercase), and the "venue · distance" line.
-- [ ] The white info card shows the QUANDO / MODO / VAGAS / NÍVEL grid and the "Organizado por {name}" row with the organizer's avatar and (when present) a position pill — colored `primary` on the light card per DESIGN_SYSTEM's position-badge rule.
-- [ ] The confirmed-players grid (`PresenceGrid`) shows one `Avatar` + name per confirmed player and dashed "vaga" placeholders for the remaining `capacity - confirmedCount` slots; the section header reads "CONFIRMADOS · N/M".
+- [ ] The hero is the full-bleed `CourtImage` cover (`radius={0}`, `tint` from the payload) under a `COVER_SCRIM`, showing the back chevron (`accessibilityLabel="Voltar"` → `router.back()`), the share icon, the format mono pill, the level lime pill, the match name (`font-display`, uppercase), and the "venue · distance" line.
+- [ ] The 2×2 metadata grid shows a leading `primary` icon per cell (Calendar / Volleyball / Users / Zap) beside the QUANDO / MODO / VAGAS / NÍVEL label + value, and the "Organizado por {name}" row is its own card with the organizer's avatar and (when present) a position pill — colored `primary` on the light card per DESIGN_SYSTEM's position-badge rule.
+- [ ] The **VALORES** section shows the avulso price tile; a `RECORRENTE` match also shows the monthly tile (`accent`) and the "Recorrente" tag, an `AVULSO` match shows only the single tile and the "Avulso" tag; a "Grátis" price renders in the `success` token; the "Valor combinado direto com o organizador da partida." note is always present.
+- [ ] The confirmed-players grid (`PresenceGrid`) shows one `Avatar` + first name per confirmed player, each carrying its tier-colored level badge, and dashed "vaga" placeholders for the open slots **capped at 3**; the section header reads "CONFIRMADOS" beside the N/M count. A tier legend under the grid names each bracket.
 - [ ] **No per-player OVR number is rendered anywhere** (Layer-3 cut), in either the participant or organizer view.
 - [ ] A countdown line renders **"countdown to game start OR confirmation window close"** (SCOPE S12 wording): when the confirmation window is still open it shows the time until the window closes (e.g. "Confirmações fecham em …"), and when the window is closed it shows the time until game start (e.g. "Começa em …"). Both branches are required and asserted via a pure formatter over the payload timestamps (a fixed "now" is injected so the string is deterministic).
-- [ ] **Participant confirm/decline is shown only when the current user is an invited Regular participant** (`myParticipationType === 'REGULAR'`), not merely because `myStatus` is Pendente/Recusado. For a Regular participant with `myStatus` Pendente/Recusado, **"Confirmar presença"** (`Button variant="primary"`, navy→blue) is shown and tapping it calls `useConfirmPresence` (mocked), shows the loading state, and invalidates the match detail query; **"Recusar"** calls `useDeclinePresence`. A user who is not a Regular participant is **not** shown confirm/decline.
+- [ ] **Participant confirm/decline is shown only when the current user is an invited Regular participant** (`myParticipationType === 'REGULAR'`), not merely because `myStatus` is Pendente/Recusado. For a Regular participant with `myStatus` Pendente/Recusado, **"Confirmar presença"** (`Button variant="grad"`, full-width) is shown and tapping it calls `useConfirmPresence` (mocked), shows the loading state, and invalidates the match detail query; the **"Não vou poder ir"** ghost below it calls `useDeclinePresence`. Once `myStatus === 'CONFIRMADO'` the CTA flips to **"Iniciar partida"** (`variant="primary"`), which navigates to S13. A user who is not a Regular participant is **not** shown either.
 - [ ] **Participant DropIn join** ("Entrar na partida", `Button variant="primary"`) is shown **only when the user is NOT a Regular participant AND open DropIn slots exist AND the confirmation window is closed** (SCOPE S12 verbatim). When any of those three conditions is false, the join CTA is **not** shown; tapping it (when shown) calls `useJoinMatch` (mocked) and invalidates the detail query.
-- [ ] **`Button variant="grad"` is used only for the organizer "Montar os times" CTA**; the participant affirmative CTAs ("Confirmar presença" / "Entrar na partida") use `variant="primary"`. (Verifiable via the rendered variant/testID.)
-- [ ] **Organizer view** (`match.organizerId === useAuthStore.userId`): the "VOCÊ ORGANIZA" badge, the "Convidar" button, and the team-config block (2/3/4 times chips, "Jogadores por time" stepper with "N confirmados no total" caption, Manual/Automático radio rows) are shown; the participant footer CTA is replaced by "Montar os times" (`variant="grad"`).
+- [ ] **`Button variant="grad"` marks the primary action of each role** — the organizer "Montar os times" and the participant "Confirmar presença" — and only one is ever on screen at a time; the follow-on affirmatives ("Iniciar partida" / "Entrar na partida") use `variant="primary"`. (Verifiable via the rendered variant/testID.)
+- [ ] **Organizer view** (`match.organizerId === useAuthStore.userId`): the "VOCÊ ORGANIZA" badge, the "Convidar" button, and the team-config block (2/3/4 times chips, "Jogadores por time" stepper with "N confirmados no total" caption, Manual/Automático radio rows) are shown; the participant footer CTA is replaced by "Montar os times" (`variant="grad"`) plus the `ghost` "Vou jogar"/"Não vou jogar" presence toggle.
+- [ ] **Presence is list membership**: confirming adds the current user to `players` (they appear in the grid, count toward N/M) and decrements `openDropInSlots`; declining removes them and restores the slot, including after a prior confirm. A created match starts with `players: []`, `myStatus: 'PENDENTE'` and every slot open — **the organizer is not auto-confirmed**, and only enters the grid via the toggle.
 - [ ] Team-count chips are single-select (default 2); the players-per-team stepper enforces its min; the draw-mode rows are single-select (default Manual) and expose `accessibilityRole="radio"` + `accessibilityState={{ checked }}`.
 - [ ] "Montar os times" navigates to S13 (`/matches/[id]/teams`) carrying `{ id, teamCount, perTeam, drawMode }`.
 - [ ] The "Convidar" button and the hero share icon invoke `Share.share` (mocked at the module boundary) — no navigation, no contact picker.

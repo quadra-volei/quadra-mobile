@@ -18,8 +18,10 @@
  *    non-Regular user sees no confirm/decline.
  *  - DropIn join shown only when NOT Regular AND open DropIn slots exist AND window
  *    closed; tapping calls useJoinMatch; otherwise the disabled full/closed CTA.
- *  - variant="grad" only for organizer "Montar os times"; affirmative participant
- *    CTAs use variant="primary".
+ *  - variant="grad" for the organizer "Montar os times" and the participant
+ *    "Confirmar presença" (the prototype's full-width gradient CTA); the
+ *    remaining affirmative CTAs ("Iniciar partida" / "Entrar na partida") use
+ *    variant="primary".
  *  - organizer view: "VOCÊ ORGANIZA" badge, "Convidar", team-config block; footer
  *    CTA replaced by "Montar os times".
  *  - team-count chips single-select (default 2); stepper min; draw-mode radio rows
@@ -75,13 +77,18 @@ jest.mock('lucide-react-native', () => {
   const stub = (name: string) => (props: any) =>
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
   return {
+    Calendar: stub('calendar'),
     Check: stub('check'),
     ChevronLeft: stub('chevron-left'),
     Hand: stub('hand'),
     MapPin: stub('map-pin'),
+    Play: stub('play'),
     Share2: stub('share2'),
     UserPlus: stub('user-plus'),
+    Users: stub('users'),
+    Volleyball: stub('volleyball'),
     WandSparkles: stub('wand-sparkles'),
+    Zap: stub('zap'),
     Minus: stub('minus'),
     Plus: stub('plus'),
     X: stub('x'),
@@ -147,17 +154,25 @@ function participantFixture(over: Partial<MatchDetail> = {}): MatchDetail {
     level: 'INTERMEDIARIO',
     venue: 'Arena Quadra',
     distanceKm: 1.2,
+    tint: '#1A1AFF',
     priceLabel: 'R$ 25',
+    pricePlan: 'RECORRENTE',
+    priceMonthlyLabel: 'R$ 80',
     capacity: 12,
     startsAt: '2026-06-23T22:00:00.000Z',
     confirmationClosesAt: '2026-06-23T19:30:00.000Z',
     confirmationWindowClosed: false,
     organizerId: 'user-erica',
-    organizer: { id: 'user-erica', name: 'Érica Moraes', position: 'CEN' },
+    organizer: {
+      id: 'user-erica',
+      name: 'Érica Moraes',
+      position: 'CEN',
+      level: 18,
+    },
     players: [
-      { id: 'p1', name: 'Renan', status: 'CONFIRMADO', position: 'LEV' },
-      { id: 'p2', name: 'Bia', status: 'CONFIRMADO', position: 'PON' },
-      { id: 'p3', name: 'Caio', status: 'CONFIRMADO', position: 'OPO' },
+      { id: 'p1', name: 'Renan', status: 'CONFIRMADO', position: 'LEV', level: 15 },
+      { id: 'p2', name: 'Bia', status: 'CONFIRMADO', position: 'PON', level: 9 },
+      { id: 'p3', name: 'Caio', status: 'CONFIRMADO', position: 'OPO', level: 15 },
     ],
     openDropInSlots: 6,
     myParticipationType: 'REGULAR',
@@ -358,11 +373,11 @@ describe('S12 — Match Detail screen', () => {
   it('renders the 2x2 metadata grid and the organizer row with a primary position pill', async () => {
     await renderScreen();
 
-    // grid labels
-    expect(screen.getByText('QUANDO')).toBeTruthy();
-    expect(screen.getByText('MODO')).toBeTruthy();
-    expect(screen.getByText('VAGAS')).toBeTruthy();
-    expect(screen.getByText('NÍVEL')).toBeTruthy();
+    // grid labels (uppercased via the `uppercase` class, not in the copy)
+    expect(screen.getByText('Quando')).toBeTruthy();
+    expect(screen.getByText('Modo')).toBeTruthy();
+    expect(screen.getByText('Vagas')).toBeTruthy();
+    expect(screen.getByText('Nível')).toBeTruthy();
     // VAGAS value = confirmedCount/capacity = 3/12
     expect(screen.getAllByText('3/12').length).toBeGreaterThan(0);
 
@@ -380,19 +395,42 @@ describe('S12 — Match Detail screen', () => {
   /**
    * Covers: S12 — Match Detail
    * Criterion: "The confirmed-players grid (PresenceGrid) shows one Avatar + name
-   *  per confirmed player and dashed 'vaga' placeholders for the remaining slots;
-   *  the section header reads 'CONFIRMADOS · N/M'."
+   *  per confirmed player and dashed 'vaga' placeholders for the remaining slots
+   *  (capped at 3); the section header reads 'CONFIRMADOS' + the N/M count."
    */
   it('renders the CONFIRMADOS section header and the presence grid with vaga slots', async () => {
     await renderScreen();
 
-    expect(screen.getByText('Confirmados · 3/12')).toBeTruthy();
+    expect(screen.getByText('Confirmados')).toBeTruthy();
+    expect(screen.getByTestId('confirmed-count').props.children).toEqual([
+      3,
+      '/',
+      12,
+    ]);
     // confirmed players
     expect(screen.getByText('Renan')).toBeTruthy();
     expect(screen.getByText('Bia')).toBeTruthy();
     expect(screen.getByText('Caio')).toBeTruthy();
-    // 12 - 3 = 9 vaga placeholders
-    expect(screen.getAllByTestId('presence-grid-empty')).toHaveLength(9);
+    // 12 - 3 = 9 open slots, but only MAX_VAGA_SLOTS (3) placeholders render
+    expect(screen.getAllByTestId('presence-grid-empty')).toHaveLength(3);
+  });
+
+  /**
+   * Covers: S12 — Match Detail
+   * Criterion: "each confirmed player's avatar carries the tier-colored level
+   *  badge, and a legend under the grid explains the tiers."
+   */
+  it('renders the level badges and the tier legend under the grid', async () => {
+    await renderScreen();
+
+    // one badge per confirmed player in the fixture (Renan + Caio are both 15)
+    expect(screen.getAllByTestId('avatar-level-badge').length).toBeGreaterThanOrEqual(3);
+    expect(screen.getAllByLabelText('Nível 15')).toHaveLength(2);
+    expect(screen.getByLabelText('Nível 9')).toBeTruthy();
+    // the legend explains what the bolinha means
+    expect(screen.getByTestId('level-legend')).toBeTruthy();
+    expect(screen.getByText('Nv 15–30')).toBeTruthy();
+    expect(screen.getByText('Nv 75+')).toBeTruthy();
   });
 
   /**
@@ -460,10 +498,11 @@ describe('S12 — Match Detail screen', () => {
   /**
    * Covers: S12 — Match Detail
    * Criterion: "For a Regular participant with myStatus Pendente/Recusado,
-   *  'Confirmar presença' (variant='primary') is shown and tapping it calls
-   *  useConfirmPresence; 'Recusar' calls useDeclinePresence."
+   *  'Confirmar presença' (variant='grad', the prototype's full-width CTA) is
+   *  shown and tapping it calls useConfirmPresence; the secondary decline calls
+   *  useDeclinePresence."
    */
-  it('shows Confirmar (primary) + Recusar for a Regular PENDENTE participant and wires both mutations', async () => {
+  it('shows Confirmar (grad) + decline for a Regular PENDENTE participant and wires both mutations', async () => {
     mockDetail.data = participantFixture({
       myParticipationType: 'REGULAR',
       myStatus: 'PENDENTE',
@@ -472,7 +511,9 @@ describe('S12 — Match Detail screen', () => {
 
     const confirm = screen.getByTestId('confirm-presence');
     expect(confirm).toBeTruthy();
-    expect(variantOf(confirm)).toBe('primary');
+    expect(variantOf(confirm)).toBe('grad');
+    expect(screen.getByText('Confirmar presença')).toBeTruthy();
+    expect(screen.getByText('Não vou poder ir')).toBeTruthy();
 
     await act(async () => {
       fireEvent.press(confirm);
@@ -498,7 +539,7 @@ describe('S12 — Match Detail screen', () => {
 
     const confirm = screen.getByTestId('confirm-presence');
     expect(confirm).toBeTruthy();
-    expect(variantOf(confirm)).toBe('primary');
+    expect(variantOf(confirm)).toBe('grad');
   });
 
   /**
@@ -520,23 +561,46 @@ describe('S12 — Match Detail screen', () => {
 
   /**
    * Covers: S12 — Match Detail
-   * Criterion: a CONFIRMADO Regular sees the confirmed pill + a ghost "Recusar"
-   *  (no "Confirmar presença"); tapping Recusar calls useDeclinePresence.
+   * Criterion: once confirmed, the CTA flips to "Iniciar partida" (the
+   *  prototype's post-confirm state) with the decline still available below;
+   *  tapping decline calls useDeclinePresence.
    */
-  it('shows the confirmed pill + Recusar for a Regular CONFIRMADO participant', async () => {
+  it('flips the CTA to Iniciar partida for a Regular CONFIRMADO participant', async () => {
     mockDetail.data = participantFixture({
       myParticipationType: 'REGULAR',
       myStatus: 'CONFIRMADO',
     });
     await renderScreen();
 
-    expect(screen.getByText('Presença confirmada')).toBeTruthy();
+    const start = screen.getByTestId('start-match');
+    expect(variantOf(start)).toBe('primary');
+    expect(screen.getByText('Iniciar partida')).toBeTruthy();
     expect(screen.queryByTestId('confirm-presence')).toBeNull();
 
     await act(async () => {
       fireEvent.press(screen.getByTestId('decline-presence'));
     });
     expect(mockDecline.mutate).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * Covers: S12 — Match Detail
+   * Criterion: "Iniciar partida" continues the SCOPE flow into S13 (teams)
+   *  rather than jumping straight to the scoreboard.
+   */
+  it('navigates to S13 teams from Iniciar partida', async () => {
+    mockDetail.data = participantFixture({
+      myParticipationType: 'REGULAR',
+      myStatus: 'CONFIRMADO',
+    });
+    await renderScreen();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('start-match'));
+    });
+    expect(mockPush).toHaveBeenCalledWith(
+      expect.objectContaining({ pathname: '/matches/[id]/teams' }),
+    );
   });
 
   /**
@@ -586,6 +650,24 @@ describe('S12 — Match Detail screen', () => {
 
   /**
    * Covers: S12 — Match Detail
+   * Criterion: a drop-in who already took a slot is past the join step — the CTA
+   *  must not offer to join a match they are already in.
+   */
+  it('does not re-offer the join CTA to an already-confirmed drop-in', async () => {
+    mockDetail.data = participantFixture({
+      myParticipationType: 'DROPIN',
+      myStatus: 'CONFIRMADO',
+      openDropInSlots: 3,
+      confirmationWindowClosed: true,
+    });
+    await renderScreen();
+
+    expect(screen.queryByTestId('join-match')).toBeNull();
+    expect(screen.getByTestId('start-match')).toBeTruthy();
+  });
+
+  /**
+   * Covers: S12 — Match Detail
    * Criterion: "When any of those three conditions is false, the join CTA is not
    *  shown." (window still open -> no join; disabled "wait" CTA instead)
    */
@@ -623,14 +705,57 @@ describe('S12 — Match Detail screen', () => {
     expect(screen.getByText('Partida cheia')).toBeTruthy();
   });
 
+  // ----------------------------------------------------------------- valores
   /**
    * Covers: S12 — Match Detail
-   * Criterion: the participant footer shows the price ("Valor R$ 25").
+   * Criterion: "the VALORES section shows the avulso price; for a RECORRENTE
+   *  match it also shows the monthly price, tagged 'Recorrente'."
    */
-  it('renders the price label in the participant footer', async () => {
+  it('renders both price tiles and the Recorrente tag for a recurring match', async () => {
     await renderScreen();
-    expect(screen.getByText('Valor')).toBeTruthy();
+
+    expect(screen.getByText('Valores')).toBeTruthy();
+    expect(screen.getByText('Recorrente')).toBeTruthy();
+    expect(screen.getByTestId('price-single')).toBeTruthy();
     expect(screen.getByText('R$ 25')).toBeTruthy();
+    expect(screen.getByTestId('price-monthly')).toBeTruthy();
+    expect(screen.getByText('R$ 80')).toBeTruthy();
+    expect(
+      screen.getByText('Valor combinado direto com o organizador da partida.'),
+    ).toBeTruthy();
+  });
+
+  /**
+   * Covers: S12 — Match Detail
+   * Criterion: an AVULSO match shows only the single price tile + "Avulso" tag.
+   */
+  it('renders only the avulso tile for a single-price match', async () => {
+    mockDetail.data = participantFixture({
+      pricePlan: 'AVULSO',
+      priceMonthlyLabel: undefined,
+    });
+    await renderScreen();
+
+    expect(screen.getByText('Avulso')).toBeTruthy();
+    expect(screen.getByTestId('price-single')).toBeTruthy();
+    expect(screen.queryByTestId('price-monthly')).toBeNull();
+    expect(screen.queryByText('Recorrente')).toBeNull();
+  });
+
+  /**
+   * Covers: S12 — Match Detail
+   * Criterion: a free match renders "Grátis" in the success token, not a price.
+   */
+  it('renders Grátis in the success color for a free match', async () => {
+    mockDetail.data = participantFixture({
+      priceLabel: 'Grátis',
+      pricePlan: 'AVULSO',
+      priceMonthlyLabel: undefined,
+    });
+    await renderScreen();
+
+    const free = screen.getByText('Grátis');
+    expect(free.props.className).toContain('text-success');
   });
 
   // ----------------------------------------------------------------- share
@@ -716,14 +841,55 @@ describe('S12 — Match Detail screen', () => {
 
   /**
    * Covers: S12 — Match Detail
-   * Criterion: variant="grad" is used ONLY for "Montar os times"; the organizer has
-   *  no participant affirmative CTA.
+   * Criterion: the organizer's forward CTA is "Montar os times" (variant="grad")
+   *  and no participant CTA is rendered alongside it.
    */
-  it('uses grad only for the organizer forward CTA', async () => {
+  it('renders only the grad forward CTA in the organizer footer', async () => {
     await renderOrganizer();
     // the only grad button on screen is build-teams; participant primaries absent
     expect(variantOf(screen.getByTestId('build-teams'))).toBe('grad');
     expect(screen.queryByTestId('no-action')).toBeNull();
+  });
+
+  // ------------------------------------------- organizer presence (owner rule)
+  /**
+   * Covers: S12 — Match Detail
+   * Criterion: "organizing is not playing" — the organizer opts into the
+   *  confirmed grid via a ghost toggle, without losing the forward CTA.
+   */
+  it('offers the organizer a Vou jogar toggle while keeping Montar os times', async () => {
+    await renderOrganizer({ myParticipationType: 'REGULAR', myStatus: 'PENDENTE' });
+
+    const toggle = screen.getByTestId('organizer-presence');
+    expect(variantOf(toggle)).toBe('ghost');
+    expect(screen.getByText('Vou jogar')).toBeTruthy();
+    // the forward CTA is still there — an organizer who does not play still
+    // builds the teams
+    expect(screen.getByTestId('build-teams')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(toggle);
+    });
+    expect(mockConfirm.mutate).toHaveBeenCalledTimes(1);
+  });
+
+  /**
+   * Covers: S12 — Match Detail
+   * Criterion: a confirmed organizer can take themselves back out of the list.
+   */
+  it('lets a confirmed organizer remove themselves via Não vou jogar', async () => {
+    await renderOrganizer({
+      myParticipationType: 'REGULAR',
+      myStatus: 'CONFIRMADO',
+    });
+
+    expect(screen.getByText('Não vou jogar')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('organizer-presence'));
+    });
+    expect(mockDecline.mutate).toHaveBeenCalledTimes(1);
+    expect(mockConfirm.mutate).not.toHaveBeenCalled();
   });
 
   /**

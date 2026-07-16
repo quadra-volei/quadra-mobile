@@ -18,6 +18,17 @@ export const HERO_GRADIENT = [colors.surfaceDark, colors.primary] as const;
 // Blue → lime brand CTA gradient (bg-gradient-cta), derived from the tokens.
 export const CTA_GRADIENT = [colors.primary, colors.accent] as const;
 
+// S12 match-detail cover scrim. Darkens the top of the court image (so the
+// status bar + back/share icons stay legible) and its bottom (so the tags,
+// title and venue line stay legible) over any `tint`. surface-dark at varying
+// alpha — the prototype's cover overlay, expressed over the token.
+export const COVER_SCRIM = [
+  'rgba(10,10,60,0.35)',
+  'rgba(10,10,60,0)',
+  'rgba(10,10,60,0.55)',
+] as const;
+export const COVER_SCRIM_LOCATIONS = [0, 0.3, 1] as const;
+
 // Home dual-CTA tiles (S5) — exact stops ported from the Quadra prototype
 // (screens-main.jsx). "Criar" is a lime→blue→deep-blue hero; "Buscar" fades
 // lime→pale-lime→white. `locations` mirror the CSS gradient stops (top→bottom).

@@ -1,22 +1,29 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
+  Calendar,
   Check,
   ChevronLeft,
   Hand,
   MapPin,
+  Play,
   Share2,
   UserPlus,
+  Users,
+  Volleyball,
   WandSparkles,
+  Zap,
 } from 'lucide-react-native';
+import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Share, Text, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AddGuestSheet } from '@/components/domain/AddGuestSheet';
 import { PresenceGrid } from '@/components/domain/PresenceGrid';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { CourtImage } from '@/components/ui/CourtImage';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { StepperField } from '@/components/ui/StepperField';
 import { useAddGuest } from '@/features/matches/api/addGuest';
@@ -34,7 +41,8 @@ import type {
   PlayerPosition,
 } from '@/features/matches/types/matchDetail';
 import { useAuthStore } from '@/stores/auth';
-import { colors, HERO_GRADIENT } from '@/theme/colors';
+import { colors, COVER_SCRIM, COVER_SCRIM_LOCATIONS } from '@/theme/colors';
+import { LEVEL_LEGEND } from '@/theme/levelTier';
 
 // ── Pure label maps (token-free; presentational copy) ──
 const LEVEL_LABEL: Record<MatchLevel, string> = {
@@ -51,6 +59,12 @@ const POSITION_LABEL: Record<PlayerPosition, string> = {
   LIB: 'Líbero',
   COR: 'Corredor',
 };
+
+/** Cover height; the hero bleeds under the status bar, as in the prototype. */
+const HERO_HEIGHT = 270;
+
+/** Only a hint of the open slots is shown, however empty the match is. */
+const MAX_VAGA_SLOTS = 3;
 
 /** "1,2 km" — comma decimal, mirroring MatchCard. */
 function formatDistance(distanceKm: number): string {
@@ -103,29 +117,128 @@ function formatWhen(startsAt: string): string {
   return `${dayLabel} · ${hh}h${mm}`;
 }
 
-// ── Inline 2×2 metadata cell (single-use; not extracted per catalog rule) ──
-function MetaCell({ label, value }: { label: string; value: string }) {
+// ── Inline single-use pieces (not extracted, per the catalog's one-off rule) ──
+
+/** One icon + label + value cell of the 2×2 metadata grid. */
+function InfoCell({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
-    <View className="w-1/2 mb-3">
-      <Text className="font-body text-eyebrow text-text-muted uppercase">
+    <View className="mb-4 w-1/2 flex-row items-center gap-3 pr-2">
+      <View className="w-6 items-center">{icon}</View>
+      <View className="flex-1">
+        <Text className="font-body-semibold text-eyebrow text-text-muted uppercase">
+          {label}
+        </Text>
+        <Text className="font-body-semibold text-body-bold text-text-primary">
+          {value}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+/**
+ * One price of the VALORES section. `accent` marks the plan the match is billed
+ * on (the recurring one), which the prototype highlights in primary. "Grátis"
+ * reads in `success` rather than the neutral price color.
+ */
+function PriceTile({
+  label,
+  value,
+  accent,
+  testID,
+}: {
+  label: string;
+  value: string;
+  accent?: boolean;
+  testID?: string;
+}) {
+  const isFree = value === 'Grátis';
+  const valueColor = isFree
+    ? 'text-success'
+    : accent
+      ? 'text-primary'
+      : 'text-surface-dark';
+  return (
+    <View
+      testID={testID}
+      className={`flex-1 rounded-chip border p-3 ${
+        accent ? 'border-primary bg-primary/5' : 'border-line bg-white'
+      }`}
+    >
+      <Text
+        className={`font-body-bold text-eyebrow uppercase ${
+          accent ? 'text-primary' : 'text-text-muted'
+        }`}
+      >
         {label}
       </Text>
-      <Text className="mt-1 font-body text-body-bold text-text-primary">
-        {value}
-      </Text>
+      <Text className={`mt-1 font-num text-h1 ${valueColor}`}>{value}</Text>
     </View>
+  );
+}
+
+/** Explains the tier-colored level "bolinha" carried by each grid avatar. */
+function LevelLegend() {
+  return (
+    <View
+      testID="level-legend"
+      className="mt-2 flex-row flex-wrap gap-x-3 gap-y-2 border-t border-line pt-3"
+    >
+      {LEVEL_LEGEND.map((tier) => (
+        <View key={tier.label} className="flex-row items-center gap-2">
+          <View
+            className="h-2 w-2 rounded-full"
+            style={{ backgroundColor: tier.color }}
+          />
+          <Text className="font-body text-caption text-text-muted">
+            {tier.label}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+/** Circular translucent hero action (back / share) over the cover. */
+function HeroAction({
+  label,
+  onPress,
+  children,
+  testID,
+}: {
+  label: string;
+  onPress: () => void;
+  children: ReactNode;
+  testID?: string;
+}) {
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      onPress={onPress}
+      testID={testID}
+      className="h-10 w-10 items-center justify-center rounded-full bg-surface-dark/35"
+    >
+      {children}
+    </Pressable>
   );
 }
 
 // ── Lightweight loading skeleton (neutral bg-light-alt blocks) ──
 function MatchDetailSkeleton() {
   return (
-    <View className="flex-1 bg-bg-light" testID="match-detail-skeleton">
-      <SafeAreaView edges={['top']} className="flex-1">
-        <View className="h-48 rounded-b-card bg-bg-light-alt" />
-        <View className="mx-4 -mt-4 h-32 rounded-card bg-bg-light-alt" />
-        <View className="mx-4 mt-6 h-40 rounded-card bg-bg-light-alt" />
-      </SafeAreaView>
+    <View className="flex-1 bg-white" testID="match-detail-skeleton">
+      <View className="bg-bg-light-alt" style={{ height: HERO_HEIGHT }} />
+      <View className="mx-5 mt-6 h-24 rounded-card bg-bg-light-alt" />
+      <View className="mx-5 mt-6 h-40 rounded-card bg-bg-light-alt" />
     </View>
   );
 }
@@ -133,8 +246,8 @@ function MatchDetailSkeleton() {
 // ── Error state with retry ──
 function MatchDetailError({ onRetry }: { onRetry: () => void }) {
   return (
-    <View className="flex-1 bg-bg-light" testID="match-detail-error">
-      <SafeAreaView edges={['top']} className="flex-1 items-center justify-center px-6">
+    <View className="flex-1 bg-white" testID="match-detail-error">
+      <View className="flex-1 items-center justify-center px-6">
         <Text className="text-center font-body text-body text-text-primary">
           Não foi possível carregar a partida.
         </Text>
@@ -143,7 +256,7 @@ function MatchDetailError({ onRetry }: { onRetry: () => void }) {
             Tentar de novo
           </Button>
         </View>
-      </SafeAreaView>
+      </View>
     </View>
   );
 }
@@ -198,6 +311,8 @@ export default function MatchDetailScreen() {
     ? POSITION_LABEL[match.organizer.position]
     : undefined;
   const countdownLabel = formatCountdown(match, new Date());
+  const isRecurring =
+    match.pricePlan === 'RECORRENTE' && Boolean(match.priceMonthlyLabel);
 
   const onShare = () => {
     void Share.share({
@@ -228,132 +343,204 @@ export default function MatchDetailScreen() {
   const showConfirm =
     isRegular &&
     (match.myStatus === 'PENDENTE' || match.myStatus === 'RECUSADO');
-  const isConfirmed = isRegular && match.myStatus === 'CONFIRMADO';
+  // Confirmed covers a drop-in who already took a slot, not just an invited
+  // Regular — either way the user is in the match and past the join step.
+  const isConfirmed =
+    match.myParticipationType != null && match.myStatus === 'CONFIRMADO';
   const showJoin =
-    !isRegular && match.openDropInSlots > 0 && match.confirmationWindowClosed;
+    !isRegular &&
+    !isConfirmed &&
+    match.openDropInSlots > 0 &&
+    match.confirmationWindowClosed;
   const mutationBusy =
     confirmPresence.isPending || declinePresence.isPending || joinMatch.isPending;
 
   return (
-    <View className="flex-1 bg-bg-light">
-      <SafeAreaView edges={['top']} className="flex-1">
-        <ScrollView
-          contentContainerClassName="pb-32"
-          contentContainerStyle={{ paddingBottom: insets.bottom + 128 }}
-          showsVerticalScrollIndicator={false}
+    <View className="flex-1 bg-white">
+      <ScrollView
+        contentContainerStyle={{ paddingBottom: insets.bottom + 148 }}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Court-image hero (bleeds under the status bar) ── */}
+        <CourtImage
+          tint={match.tint}
+          height={HERO_HEIGHT}
+          radius={0}
+          label="FOTO DA QUADRA"
         >
-          {/* ── Dark hero header ── */}
+          {/* Scrim: keeps the actions (top) and the title block (bottom) legible
+              over any tint. */}
           <LinearGradient
-            colors={HERO_GRADIENT}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ borderBottomLeftRadius: 20, borderBottomRightRadius: 20 }}
+            colors={COVER_SCRIM}
+            locations={COVER_SCRIM_LOCATIONS}
+            style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+          />
+
+          <View
+            className="absolute left-4 right-4 flex-row items-center justify-between"
+            style={{ top: Math.max(insets.top, 12) }}
           >
-            <View className="px-4 pt-2 pb-6">
-              <View className="flex-row items-center justify-between">
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Voltar"
-                  onPress={() => router.back()}
-                  className="h-10 w-10 items-center justify-center rounded-chip bg-white/15"
-                >
-                  <ChevronLeft size={24} color={colors.textOnDark} />
-                </Pressable>
-                <Pressable
-                  accessibilityRole="button"
-                  accessibilityLabel="Compartilhar partida"
-                  onPress={onShare}
-                  className="h-10 w-10 items-center justify-center rounded-chip bg-white/15"
-                  testID="hero-share"
-                >
-                  <Share2 size={24} color={colors.textOnDark} />
-                </Pressable>
-              </View>
-
-              {isOrganizer ? (
-                <View className="bg-accent rounded-pill px-3 py-1 self-start mt-4">
-                  <Text className="font-mono text-mono text-text-primary uppercase">
-                    Você organiza
-                  </Text>
-                </View>
-              ) : null}
-
-              <View className="mt-4 flex-row gap-2">
-                <View className="bg-white/15 rounded-pill px-3 py-1">
-                  <Text className="font-mono text-mono text-text-on-dark uppercase">
-                    {match.format}
-                  </Text>
-                </View>
-                <View className="bg-accent rounded-pill px-3 py-1">
-                  <Text className="font-mono text-mono text-text-primary uppercase">
-                    {levelLabel}
-                  </Text>
-                </View>
-              </View>
-
-              <Text className="mt-3 font-display text-h1 text-text-on-dark uppercase">
-                {match.name}
-              </Text>
-              <View className="mt-2 flex-row items-center gap-1">
-                <MapPin size={16} color={colors.textOnDark} />
-                <Text className="font-body text-body text-text-on-dark/80">
-                  {match.venue} · {formatDistance(match.distanceKm)}
-                </Text>
-              </View>
-            </View>
-          </LinearGradient>
-
-          {/* ── White info card: 2×2 metadata grid + organizer row ── */}
-          <View className="mx-4 -mt-4 rounded-card bg-white p-4 shadow-card">
-            <View className="flex-row flex-wrap">
-              <MetaCell label="QUANDO" value={formatWhen(match.startsAt)} />
-              <MetaCell label="MODO" value={match.format} />
-              <MetaCell
-                label="VAGAS"
-                value={`${confirmedCount}/${match.capacity}`}
-              />
-              <MetaCell label="NÍVEL" value={levelLabel} />
-            </View>
-            <View className="my-4 h-px bg-line" />
-            <View className="flex-row items-center gap-3">
-              <Avatar
-                uri={match.organizer.avatarUrl}
-                name={match.organizer.name}
-                size="sm"
-              />
-              <View className="flex-1">
-                <Text className="font-body text-caption text-text-muted">
-                  Organizado por
-                </Text>
-                <Text className="font-body text-body-bold text-text-primary">
-                  {match.organizer.name}
-                </Text>
-              </View>
-              {positionLabel ? (
-                <View className="bg-primary/10 rounded-pill px-3 py-1">
-                  <Text className="font-mono text-mono text-primary uppercase">
-                    {positionLabel}
-                  </Text>
-                </View>
-              ) : null}
-            </View>
-          </View>
-
-          {/* ── Countdown strip ── */}
-          <View className="mx-4 mt-4">
-            <Text
-              className="text-center font-body text-caption text-text-muted"
-              testID="countdown"
+            <HeroAction label="Voltar" onPress={() => router.back()}>
+              <ChevronLeft size={24} color={colors.textOnDark} />
+            </HeroAction>
+            <HeroAction
+              label="Compartilhar partida"
+              onPress={onShare}
+              testID="hero-share"
             >
-              {countdownLabel}
-            </Text>
+              <Share2 size={24} color={colors.textOnDark} />
+            </HeroAction>
           </View>
 
-          {/* ── CONFIRMADOS section ── */}
-          <View className="mx-4 mt-6">
-            <View className="flex-row items-center justify-between">
-              <Text className="font-body text-eyebrow text-text-primary uppercase">
-                Confirmados · {confirmedCount}/{match.capacity}
+          <View className="absolute bottom-4 left-5 right-5">
+            {isOrganizer ? (
+              <View className="mb-2 self-start rounded-pill bg-accent px-3 py-1">
+                <Text className="font-mono text-mono text-text-primary uppercase">
+                  Você organiza
+                </Text>
+              </View>
+            ) : null}
+
+            <View className="flex-row gap-2">
+              <View className="rounded-pill bg-white/90 px-3 py-1">
+                <Text className="font-mono text-mono text-text-primary uppercase">
+                  {match.format}
+                </Text>
+              </View>
+              <View className="rounded-pill bg-accent px-3 py-1">
+                <Text className="font-mono text-mono text-text-primary uppercase">
+                  {levelLabel}
+                </Text>
+              </View>
+            </View>
+
+            <Text className="mt-2 font-display text-h1 text-text-on-dark uppercase">
+              {match.name}
+            </Text>
+            <View className="mt-1 flex-row items-center gap-1">
+              <MapPin size={15} color={colors.textOnDark} />
+              <Text className="font-body text-body text-text-on-dark/85">
+                {match.venue} · {formatDistance(match.distanceKm)}
+              </Text>
+            </View>
+          </View>
+        </CourtImage>
+
+        {/* ── Body sheet ── */}
+        <View className="px-5 pb-5 pt-6">
+          {/* 2×2 metadata grid */}
+          <View className="flex-row flex-wrap">
+            <InfoCell
+              icon={<Calendar size={22} color={colors.primary} />}
+              label="Quando"
+              value={formatWhen(match.startsAt)}
+            />
+            <InfoCell
+              icon={<Volleyball size={22} color={colors.primary} />}
+              label="Modo"
+              value={match.format}
+            />
+            <InfoCell
+              icon={<Users size={22} color={colors.primary} />}
+              label="Vagas"
+              value={`${confirmedCount}/${match.capacity}`}
+            />
+            <InfoCell
+              icon={<Zap size={22} color={colors.primary} />}
+              label="Nível"
+              value={levelLabel}
+            />
+          </View>
+
+          {/* Countdown strip */}
+          <Text
+            className="mt-1 text-center font-body text-caption text-text-muted"
+            testID="countdown"
+          >
+            {countdownLabel}
+          </Text>
+
+          {/* ── VALORES ── */}
+          <View className="mt-6">
+            <View className="mb-3 flex-row items-center justify-between">
+              <Text className="font-display text-h2 text-surface-dark uppercase">
+                Valores
+              </Text>
+              <View
+                className={`rounded-pill px-3 py-1 ${
+                  isRecurring ? 'bg-primary' : 'bg-bg-light'
+                }`}
+              >
+                <Text
+                  className={`font-mono text-mono uppercase ${
+                    isRecurring ? 'text-text-on-dark' : 'text-primary'
+                  }`}
+                >
+                  {isRecurring ? 'Recorrente' : 'Avulso'}
+                </Text>
+              </View>
+            </View>
+
+            <View className="flex-row gap-3">
+              <PriceTile
+                label="Jogador avulso"
+                value={match.priceLabel}
+                testID="price-single"
+              />
+              {isRecurring && match.priceMonthlyLabel ? (
+                <PriceTile
+                  label="Jogador recorrente"
+                  value={match.priceMonthlyLabel}
+                  accent
+                  testID="price-monthly"
+                />
+              ) : null}
+            </View>
+
+            <View className="mt-3 flex-row items-start gap-2">
+              <MapPin size={13} color={colors.textMuted} />
+              <Text className="flex-1 font-body text-caption text-text-muted">
+                Valor combinado direto com o organizador da partida.
+              </Text>
+            </View>
+          </View>
+
+          {/* ── Organizer row ── */}
+          <View className="mt-6 flex-row items-center gap-3 rounded-card bg-white p-4 shadow-card">
+            <Avatar
+              uri={match.organizer.avatarUrl}
+              name={match.organizer.name}
+              size="md"
+              level={match.organizer.level}
+            />
+            <View className="flex-1">
+              <Text className="font-body-medium text-caption text-text-muted">
+                Organizado por
+              </Text>
+              <Text className="font-body-bold text-body-bold text-text-primary">
+                {match.organizer.name}
+              </Text>
+            </View>
+            {positionLabel ? (
+              <View className="rounded-pill bg-bg-light px-3 py-1">
+                <Text className="font-mono text-mono text-primary uppercase">
+                  {positionLabel}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
+          {/* ── CONFIRMADOS ── */}
+          <View className="mt-6 flex-row items-center justify-between">
+            <Text className="font-display text-h2 text-surface-dark uppercase">
+              Confirmados
+            </Text>
+            <View className="flex-row items-center gap-3">
+              <Text
+                className="font-body-bold text-body-bold text-primary"
+                testID="confirmed-count"
+              >
+                {confirmedCount}/{match.capacity}
               </Text>
               {isOrganizer ? (
                 <Button
@@ -366,20 +553,20 @@ export default function MatchDetailScreen() {
                 </Button>
               ) : null}
             </View>
-            <PresenceGrid
-              players={match.players}
-              capacity={match.capacity}
-              onPressEmpty={
-                isOrganizer ? () => setGuestSheetOpen(true) : undefined
-              }
-              testID="presence-grid"
-            />
           </View>
+          <PresenceGrid
+            players={match.players}
+            capacity={match.capacity}
+            maxEmptySlots={MAX_VAGA_SLOTS}
+            onPressEmpty={isOrganizer ? () => setGuestSheetOpen(true) : undefined}
+            testID="presence-grid"
+          />
+          <LevelLegend />
 
           {/* ── Organizer-only: team configuration (→ S13) ── */}
           {isOrganizer ? (
-            <View className="mx-4 mt-8">
-              <Text className="font-body text-eyebrow text-text-primary uppercase">
+            <View className="mt-8">
+              <Text className="font-display text-h2 text-surface-dark uppercase">
                 Configuração dos times
               </Text>
               <View className="mt-2 flex-row gap-2">
@@ -416,7 +603,7 @@ export default function MatchDetailScreen() {
                 {confirmedCount} confirmados no total
               </Text>
 
-              <Text className="mt-6 font-body text-eyebrow text-text-primary uppercase">
+              <Text className="mt-6 font-display text-h2 text-surface-dark uppercase">
                 Como sortear os times
               </Text>
               {/* Inlined radio rows mirroring ToggleField's chrome (icon + title +
@@ -470,102 +657,108 @@ export default function MatchDetailScreen() {
               </Pressable>
             </View>
           ) : null}
-        </ScrollView>
+        </View>
+      </ScrollView>
 
-        {/* ── Fixed footer ── */}
-        <View
-          className="absolute bottom-0 left-0 right-0 border-t border-line bg-white px-4 pt-3"
-          style={{ paddingBottom: Math.max(insets.bottom, 24) }}
-        >
-          {isOrganizer ? (
+      {/* ── Sticky action bar ── */}
+      <View
+        className="absolute bottom-0 left-0 right-0 border-t border-line bg-white px-5 pt-4"
+        style={{ paddingBottom: Math.max(insets.bottom, 10) + 10 }}
+      >
+        {isOrganizer ? (
+          <>
             <Button variant="grad" onPress={goToTeams} testID="build-teams">
               Montar os times
             </Button>
-          ) : (
-            <View className="flex-row items-center gap-3">
-              <View>
-                <Text className="font-body text-caption text-text-muted">Valor</Text>
-                <Text className="font-num text-h3 text-text-primary">
-                  {match.priceLabel}
-                </Text>
-              </View>
-              <View className="flex-1">
-                {showConfirm ? (
-                  <View className="flex-row gap-3">
-                    <View className="flex-1">
-                      <Button
-                        variant="primary"
-                        onPress={() => confirmPresence.mutate()}
-                        loading={confirmPresence.isPending}
-                        disabled={mutationBusy && !confirmPresence.isPending}
-                        testID="confirm-presence"
-                      >
-                        Confirmar presença
-                      </Button>
-                    </View>
-                    <View className="flex-1">
-                      <Button
-                        variant="outline"
-                        onPress={() => declinePresence.mutate()}
-                        loading={declinePresence.isPending}
-                        disabled={mutationBusy && !declinePresence.isPending}
-                        testID="decline-presence"
-                      >
-                        Recusar
-                      </Button>
-                    </View>
-                  </View>
-                ) : isConfirmed ? (
-                  <View className="flex-row items-center justify-end gap-3">
-                    <View className="rounded-pill bg-accent px-4 py-2">
-                      <Text className="font-mono text-mono text-text-primary uppercase">
-                        Presença confirmada
-                      </Text>
-                    </View>
-                    <Button
-                      variant="ghost"
-                      onPress={() => declinePresence.mutate()}
-                      loading={declinePresence.isPending}
-                      testID="decline-presence"
-                    >
-                      Recusar
-                    </Button>
-                  </View>
-                ) : showJoin ? (
-                  <Button
-                    variant="primary"
-                    onPress={() => joinMatch.mutate()}
-                    loading={joinMatch.isPending}
-                    testID="join-match"
-                  >
-                    Entrar na partida
-                  </Button>
-                ) : (
-                  <Button
-                    variant="primary"
-                    onPress={() => {}}
-                    disabled
-                    testID="no-action"
-                  >
-                    {match.openDropInSlots <= 0
-                      ? 'Partida cheia'
-                      : 'Aguarde a janela de confirmação'}
-                  </Button>
-                )}
-              </View>
+            {/* Organizing is not playing: the organizer opts into the confirmed
+                grid (and back out of it) here, without losing the forward CTA
+                they need whether or not they play. */}
+            <View className="mt-1">
+              <Button
+                variant="ghost"
+                onPress={() =>
+                  isConfirmed
+                    ? declinePresence.mutate()
+                    : confirmPresence.mutate()
+                }
+                loading={confirmPresence.isPending || declinePresence.isPending}
+                testID="organizer-presence"
+              >
+                {isConfirmed ? 'Não vou jogar' : 'Vou jogar'}
+              </Button>
             </View>
-          )}
-        </View>
+          </>
+        ) : showConfirm ? (
+          <>
+            <Button
+              variant="grad"
+              onPress={() => confirmPresence.mutate()}
+              loading={confirmPresence.isPending}
+              disabled={mutationBusy && !confirmPresence.isPending}
+              leftIcon={<Check size={18} color={colors.textOnDark} />}
+              testID="confirm-presence"
+            >
+              Confirmar presença
+            </Button>
+            <View className="mt-1">
+              <Button
+                variant="ghost"
+                onPress={() => declinePresence.mutate()}
+                loading={declinePresence.isPending}
+                disabled={mutationBusy && !declinePresence.isPending}
+                testID="decline-presence"
+              >
+                Não vou poder ir
+              </Button>
+            </View>
+          </>
+        ) : isConfirmed ? (
+          <>
+            <Button
+              variant="primary"
+              onPress={goToTeams}
+              leftIcon={<Play size={18} color={colors.textOnDark} />}
+              testID="start-match"
+            >
+              Iniciar partida
+            </Button>
+            <View className="mt-1">
+              <Button
+                variant="ghost"
+                onPress={() => declinePresence.mutate()}
+                loading={declinePresence.isPending}
+                testID="decline-presence"
+              >
+                Não vou poder ir
+              </Button>
+            </View>
+          </>
+        ) : showJoin ? (
+          <Button
+            variant="primary"
+            onPress={() => joinMatch.mutate()}
+            loading={joinMatch.isPending}
+            testID="join-match"
+          >
+            Entrar na partida
+          </Button>
+        ) : (
+          <Button variant="primary" onPress={() => {}} disabled testID="no-action">
+            {match.openDropInSlots <= 0
+              ? 'Partida cheia'
+              : 'Aguarde a janela de confirmação'}
+          </Button>
+        )}
+      </View>
 
-        {/* ── Organizer: add-guest bottom sheet ── */}
-        <AddGuestSheet
-          visible={guestSheetOpen}
-          onClose={() => setGuestSheetOpen(false)}
-          onSubmit={handleAddGuest}
-          submitting={addGuest.isPending}
-          testID="add-guest-sheet"
-        />
-      </SafeAreaView>
+      {/* ── Organizer: add-guest bottom sheet ── */}
+      <AddGuestSheet
+        visible={guestSheetOpen}
+        onClose={() => setGuestSheetOpen(false)}
+        onSubmit={handleAddGuest}
+        submitting={addGuest.isPending}
+        testID="add-guest-sheet"
+      />
     </View>
   );
 }

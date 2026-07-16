@@ -178,7 +178,7 @@ Each entry follows this structure:
 - **Path**: `src/components/ui/CourtImage.tsx`
 - **Category**: ui
 - **Props**: `{ tint: string; height: number; radius?: number; label?: string; children?: ReactNode }`
-- **Used in**: S5 Home / S6 Explore match-card covers (`MatchCard`, `MatchCardCompact`)
+- **Used in**: S5 Home / S6 Explore match-card covers (`MatchCard`, `MatchCardCompact`) and the S12 Match Detail hero (full-bleed, `radius={0}`, with a scrim + overlaid title block)
 - **Example**:
   ```tsx
   <CourtImage tint={match.tint} height={172} radius={16}>{overlay}</CourtImage>
@@ -324,13 +324,13 @@ More UI primitives will live here:
 ### `PresenceGrid`
 - **Path**: `src/components/domain/PresenceGrid.tsx`
 - **Category**: domain
-- **Props**: `{ players: PresencePlayer[]; capacity: number; onPressEmpty?: () => void; testID?: string }` where `PresencePlayer = { id: string; name: string; avatarUrl?: string; status: 'CONFIRMADO' | 'RECUSADO' | 'PENDENTE'; position?: 'LEV' | 'PON' | 'OPO' | 'CEN' | 'LIB' | 'COR'; isGuest?: boolean }` (from `@/features/matches/types/matchDetail`)
+- **Props**: `{ players: PresencePlayer[]; capacity: number; onPressEmpty?: () => void; maxEmptySlots?: number; testID?: string }` where `PresencePlayer = { id: string; name: string; avatarUrl?: string; status: 'CONFIRMADO' | 'RECUSADO' | 'PENDENTE'; position?: 'LEV' | 'PON' | 'OPO' | 'CEN' | 'LIB' | 'COR'; level?: number; isGuest?: boolean }` (from `@/features/matches/types/matchDetail`)
 - **Used in**: S12 Match Detail ("CONFIRMADOS" confirmed-players grid). Designed for reuse by S13 (team rosters share the avatar+slot idiom).
 - **Example**:
   ```tsx
-  <PresenceGrid players={match.players} capacity={match.capacity} onPressEmpty={() => setGuestSheetOpen(true)} testID="presence-grid" />
+  <PresenceGrid players={match.players} capacity={match.capacity} maxEmptySlots={3} onPressEmpty={() => setGuestSheetOpen(true)} testID="presence-grid" />
   ```
-- **Notes**: Capacity-aware wrapping grid (`w-1/4` cells) — renders an `<Avatar size="md" />` + name per player, then dashed `border-line` "vaga" placeholders for the remaining `capacity - players.length` open slots (each tagged `{testID}-empty`). A player with `isGuest` gets a muted "Convidado" eyebrow under the name. When `onPressEmpty` is passed the empty slots become buttons (organizer "add guest" affordance on S12); omit it for inert placeholders. Presentational: receives plain data via props, never fetches. **No per-player OVR number is rendered** (Layer-3 cut, per SCOPE S12). Avatars are display-only (no tap navigation). Small grid (≤ capacity, typically ≤ 12) → a wrapping `View` is used, not a `FlatList`.
+- **Notes**: Capacity-aware wrapping grid (`w-1/4` cells) — renders an `<Avatar size="md" />` + **first name** per player, then dashed `border-line` "vaga" placeholders for the remaining `capacity - players.length` open slots (each tagged `{testID}-empty`). A player carrying a `level` gets the tier-colored level "bolinha" via `Avatar`'s `level` prop (guests have none, so theirs is omitted); pair the grid with a tier legend where the badge needs explaining (S12 inlines one). `maxEmptySlots` caps how many "vaga" placeholders render so a nearly-empty high-capacity match shows a hint of open slots instead of a wall of dashed circles (S12 passes 3, per the prototype); omit it to render every open slot. A player with `isGuest` gets a muted "Convidado" eyebrow under the name. When `onPressEmpty` is passed the empty slots become buttons (organizer "add guest" affordance on S12); omit it for inert placeholders. Presentational: receives plain data via props, never fetches. **No per-player OVR number is rendered** (Layer-3 cut, per SCOPE S12). Avatars are display-only (no tap navigation). Small grid (≤ capacity, typically ≤ 12) → a wrapping `View` is used, not a `FlatList`.
 
 ### `AddGuestSheet`
 - **Path**: `src/components/domain/AddGuestSheet.tsx`

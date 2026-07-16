@@ -117,7 +117,11 @@ export function buildMatchDetail(match: CreatedMatch): MatchDetail {
     venue: input.location,
     // Own match — no distance-from-me concept until F1.7 geo lands.
     distanceKm: 0,
+    tint: tintForLevel(input.level),
     priceLabel: formatPriceLabel(input.price),
+    // The create form collects a single price, so a created match is always
+    // charged per session — there is no monthly figure to show.
+    pricePlan: 'AVULSO',
     capacity: input.players,
     startsAt: match.startsAt,
     // No datetime picker this iteration: the window closes at match start.
@@ -125,13 +129,13 @@ export function buildMatchDetail(match: CreatedMatch): MatchDetail {
     confirmationWindowClosed: false,
     organizerId: match.organizerId,
     organizer: { id: match.organizerId, name: 'Você' },
-    players: [
-      { id: match.organizerId, name: 'Você', status: 'CONFIRMADO' },
-    ],
-    openDropInSlots:
-      input.privacy === 'open' ? Math.max(0, input.players - 1) : 0,
-    myParticipationType: null,
-    myStatus: null,
+    // Organizing a match is not the same as playing it — the organizer may only
+    // be running it. So a new match starts with nobody confirmed and every slot
+    // open; the organizer enters the grid only by confirming, like anyone else.
+    players: [],
+    openDropInSlots: input.privacy === 'open' ? input.players : 0,
+    myParticipationType: 'REGULAR',
+    myStatus: 'PENDENTE',
     teamConfig: { teamCount, perTeam, drawMode: 'MANUAL' },
   };
 }
@@ -144,8 +148,9 @@ export function buildUpcomingMatch(match: CreatedMatch): UpcomingMatch {
     name: input.name,
     startsAt: match.startsAt,
     category: input.level === 'AVANCADO' ? 'COMPETITIVO' : 'CASUAL',
-    // Organizer occupies one slot.
-    openSlots: Math.max(0, input.players - 1),
+    // Nobody is confirmed at creation — not even the organizer, who has to
+    // confirm like anyone else — so every slot is still open.
+    openSlots: input.players,
     priceLabel: formatPriceLabel(input.price),
     avatarUrls: [],
     tint: tintForLevel(input.level),

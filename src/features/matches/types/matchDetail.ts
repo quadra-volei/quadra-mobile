@@ -23,6 +23,14 @@ export type ParticipationType = 'REGULAR' | 'DROPIN';
 /** How the organizer wants the teams drawn. */
 export type DrawMode = 'MANUAL' | 'AUTO';
 
+/**
+ * How the match is charged:
+ * - AVULSO — a single per-session price, the only one shown.
+ * - RECORRENTE — a per-session price for drop-ins AND a monthly price for
+ *   regulars; both are shown side by side in the VALORES section.
+ */
+export type PricePlan = 'AVULSO' | 'RECORRENTE';
+
 /** One player rendered in the confirmed-players grid (PresenceGrid). */
 export type PresencePlayer = {
   id: string;
@@ -30,6 +38,12 @@ export type PresencePlayer = {
   avatarUrl?: string;
   status: PresenceStatus;
   position?: PlayerPosition;
+  /**
+   * Player level, rendered as the tier-colored "bolinha" on the avatar and
+   * explained by the legend under the grid. Absent for guests (no account, so
+   * no level) — the badge is then omitted.
+   */
+  level?: number;
   /**
    * A manually-added guest occupying a slot (has no app account). Added by the
    * organizer from S12 to fill an open "vaga"; always CONFIRMADO. Rendered with
@@ -44,6 +58,8 @@ export type MatchOrganizer = {
   name: string;
   avatarUrl?: string;
   position?: PlayerPosition;
+  /** Level badge on the organizer's avatar; omitted when unknown. */
+  level?: number;
 };
 
 /** Organizer team-configuration defaults (read for S12, carried into S13). */
@@ -66,8 +82,14 @@ export type MatchDetail = {
   venue: string;
   /** "1,2 km" rendered with a comma decimal. */
   distanceKm: number;
-  /** "R$ 25" | "Grátis". */
+  /** Hex tint the hero cover gradient runs from (tint → navy). */
+  tint: string;
+  /** "R$ 25" | "Grátis" — the per-session (avulso) price. */
   priceLabel: string;
+  /** Whether the match charges per session only, or also on a monthly plan. */
+  pricePlan: PricePlan;
+  /** "R$ 50" — the monthly price; present only when pricePlan is RECORRENTE. */
+  priceMonthlyLabel?: string;
   /** Total slots; PresenceGrid renders empties beyond confirmed as "vaga". */
   capacity: number;
 
