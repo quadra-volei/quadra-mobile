@@ -983,7 +983,7 @@ describe('S14 — In-Game Scoreboard', () => {
       return render(<ScoreboardScreen />);
     });
 
-    const clearIntervalSpy = jest.spyOn(global, 'clearInterval');
+    const clearIntervalSpy = jest.spyOn(globalThis, 'clearInterval');
 
     await act(async () => {
       unmount();

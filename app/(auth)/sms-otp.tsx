@@ -159,6 +159,13 @@ export default function SmsOtpScreen() {
           >
             <ChevronLeft size={24} color={colors.textOnDark} />
           </Pressable>
+
+          {/* message glyph centered in the dark strip */}
+          <View className="items-center mt-2">
+            <View className="h-16 w-16 rounded-card bg-white/10 items-center justify-center">
+              <MessageSquare size={28} color={colors.textOnDark} />
+            </View>
+          </View>
         </SafeAreaView>
       </LinearGradient>
 

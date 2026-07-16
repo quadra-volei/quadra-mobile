@@ -56,6 +56,8 @@ jest.mock('react-native-safe-area-context', () => {
   return {
     SafeAreaView: ({ children, ...props }: any) =>
       ReactLocal.createElement(View, props, children),
+    // GlassHeader reads the top inset to size its safe-area padding.
+    useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
   };
 });
 
@@ -193,7 +195,9 @@ describe('S9 — Full Group Ranking screen', () => {
   it('renders the RANKING display title, back, bell and theme toggle', async () => {
     await render(<RankingScreen />);
 
-    const title = screen.getByText('RANKING');
+    // The copy is "Ranking"; the display face + `uppercase` token render it as
+    // RANKING, so the casing is asserted via the className, not the text node.
+    const title = screen.getByText('Ranking');
     expect(title).toBeTruthy();
     expect(title.props.className).toContain('font-display');
     expect(title.props.className).toContain('uppercase');
@@ -485,7 +489,7 @@ describe('S9 — Full Group Ranking screen', () => {
     expect(screen.queryByText('Érica')).toBeNull();
     expect(screen.queryByText('Duda Reis')).toBeNull();
     // header chrome still renders
-    expect(screen.getByText('RANKING')).toBeTruthy();
+    expect(screen.getByText('Ranking')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Amigos' })).toBeTruthy();
   });
 

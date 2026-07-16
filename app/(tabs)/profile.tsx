@@ -150,6 +150,10 @@ function ProgressSection() {
 
   return (
     <View className="mx-4 bg-white rounded-card shadow-card p-4">
+      <Text className="font-display text-h1 text-text-primary uppercase mb-3">
+        Seu progresso
+      </Text>
+
       {/* GERAL box (left) + 2×2 stats grid (right). */}
       <View className="flex-row gap-3">
         <View className="w-24 rounded-card bg-primary/5 items-center justify-center py-3">

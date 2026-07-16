@@ -120,11 +120,12 @@ export default function OnboardingScreen() {
   } = useForm<OnboardingProfileInput>({
     resolver: zodResolver(onboardingSchema),
     mode: "onChange",
+    // Onboarding always starts blank — this is the user's first run.
     defaultValues: {
-      firstName: "renan",
-      lastName: "ortega",
-      birthDate: "29/12/2001",
-      handle: "renan",
+      firstName: "",
+      lastName: "",
+      birthDate: "",
+      handle: "",
     },
   });
 

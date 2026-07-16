@@ -169,6 +169,55 @@ jest.mock('@/features/matches/api/selectTeamsForSet', () => ({
   }),
 }));
 
+// ── useCurrentSet mock ───────────────────────────────────────────────────────
+// The teamCount === 2 path renders S14 instead of the picker, and S14 reads the
+// current set on mount. Mocked at the boundary (as in scoreboard.s14.test.tsx)
+// so this suite needs no QueryClientProvider.
+
+const mockCurrentSet: {
+  data: any;
+  isPending: boolean;
+  isError: boolean;
+  refetch: jest.Mock;
+} = {
+  data: {
+    startedAt: new Date().toISOString(),
+    teams: [
+      { id: 'team-1', name: 'Time Azul', number: 1, players: [] },
+      { id: 'team-2', name: 'Time Lima', number: 2, players: [] },
+    ],
+    scores: [0, 0],
+    isOrganizer: true,
+    pointsScoredCount: 0,
+  },
+  isPending: false,
+  isError: false,
+  refetch: jest.fn(),
+};
+
+jest.mock('@/features/matches/api/getCurrentSet', () => ({
+  useCurrentSet: () => ({
+    data: mockCurrentSet.data,
+    isPending: mockCurrentSet.isPending,
+    isError: mockCurrentSet.isError,
+    refetch: mockCurrentSet.refetch,
+  }),
+}));
+
+// ── S14's remaining seams (same reason as useCurrentSet above) ───────────────
+
+jest.mock('@/features/matches/api/mutations/addPoint', () => ({
+  useAddPointMutation: () => ({ mutateAsync: jest.fn(), isPending: false }),
+}));
+
+jest.mock('@/features/matches/api/mutations/undoPoint', () => ({
+  useUndoPointMutation: () => ({ mutateAsync: jest.fn(), isPending: false }),
+}));
+
+jest.mock('@/features/matches/realtime/useScoreSubscription', () => ({
+  useScoreSubscription: jest.fn(),
+}));
+
 // ── Import screen ───────────────────────────────────────────────────────────
 
 import ScoreboardScreen from '../../../../app/matches/[id]/scoreboard';
@@ -274,9 +323,9 @@ describe('S13.5 — Set Team Picker', () => {
     expect(screen.queryByText('Quem joga este set?')).toBeNull();
     expect(screen.queryByTestId('start-set-button')).toBeNull();
 
-    // S14 scoreboard placeholder should be present
-    expect(screen.getByText(/Placar/i)).toBeTruthy();
-    expect(screen.getByText('Set 1 • Melhor de 3')).toBeTruthy();
+    // The real S14 scoreboard renders instead: the AO VIVO badge + set header.
+    expect(screen.getByText('AO VIVO')).toBeTruthy();
+    expect(screen.getByText(/Set 1 melhor de 3/)).toBeTruthy();
   });
 
   // ──────────────────────────────────────────────────────────────────────────
