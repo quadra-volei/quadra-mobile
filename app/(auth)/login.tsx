@@ -22,10 +22,17 @@ import { Button } from "@/components/ui/Button";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { useGoogleSignIn } from "@/features/auth/api/googleSignIn";
 import { useRequestOtp } from "@/features/auth/api/requestOtp";
+import { useRiseIn } from "@/hooks/useRiseIn";
 import { useAuthStore } from "@/stores/auth";
 import { colors, HERO_GRADIENT } from "@/theme/colors";
 
 const SWIPE_CLOSE_THRESHOLD = 120; // drag distance (px) past which a release closes the sheet
+
+// Intro entrance stagger (ms), mirroring the prototype's .q-rise animationDelays.
+const LOCKUP_DELAY = 0;
+const HEADLINE_DELAY = 60;
+const SUBTITLE_DELAY = 120;
+const CTA_DELAY = 180;
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const SHEET_MIN_HEIGHT = Math.round(SCREEN_HEIGHT * 0.4); // sheet occupies ~40% of the screen
@@ -46,6 +53,12 @@ export default function LoginScreen() {
   const setAuth = useAuthStore((s) => s.setAuth);
 
   const translateY = useSharedValue(SHEET_HIDDEN_OFFSET);
+
+  // Intro copy rises in on mount, one element after the next.
+  const lockupStyle = useRiseIn({ delay: LOCKUP_DELAY });
+  const headlineStyle = useRiseIn({ delay: HEADLINE_DELAY });
+  const subtitleStyle = useRiseIn({ delay: SUBTITLE_DELAY });
+  const ctaStyle = useRiseIn({ delay: CTA_DELAY });
 
   const {
     control,
@@ -152,30 +165,39 @@ export default function LoginScreen() {
         <SafeAreaView className="flex-1 px-6">
           <View className="flex-1 justify-center">
             {/* brand lockup */}
-            <View className="flex-row items-center">
+            <Animated.View
+              className="flex-row items-center"
+              style={lockupStyle}
+            >
               <QuadraLogo size={44} />
               <Text className="font-word text-text-on-dark text-4xl ml-3 lowercase">
                 quadra
               </Text>
-            </View>
+            </Animated.View>
 
-            <Text className="font-display text-display text-text-on-dark uppercase mt-8 leading-[38px]">
+            <Animated.Text
+              className="font-display text-display text-text-on-dark uppercase mt-8 leading-[38px]"
+              style={headlineStyle}
+            >
               O JOGO{"\n"}COMEÇA{"\n"}
               <Text className="text-accent">AQUI.</Text>
-            </Text>
+            </Animated.Text>
 
-            <Text className="font-body text-body-bold text-text-on-dark mt-4">
+            <Animated.Text
+              className="font-body text-body-bold text-text-on-dark mt-4"
+              style={subtitleStyle}
+            >
               Encontre partidas de vôlei perto de você, monte seu time e suba no
               ranking.
-            </Text>
+            </Animated.Text>
           </View>
 
           {/* pinned CTA */}
-          <View className="pb-6">
+          <Animated.View className="pb-6" style={ctaStyle}>
             <Button variant="grad" onPress={openSheet} testID="open-sheet">
               Entrar e jogar
             </Button>
-          </View>
+          </Animated.View>
         </SafeAreaView>
       </LinearGradient>
 

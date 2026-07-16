@@ -3,11 +3,11 @@
  *
  * Covers every acceptance criterion in docs/specs/S1-splash.md:
  *  - Brand lockup renders (gradient bg, QuadraLogo, "quadra" wordmark, tagline).
- *  - Indeterminate progress bar + "CARREGANDO" label show while auth check runs.
+ *  - Progress bar + "CARREGANDO" label show while auth check runs.
  *  - Valid token + existing profile  -> redirect /(tabs).
  *  - Valid token + hasProfile=false  -> redirect /(auth)/onboarding.
  *  - No token / failed auth/me        -> redirect /(auth)/login.
- *  - Splash never visible longer than 2s before redirecting.
+ *  - Splash held for MIN_SPLASH_MS, then never visible longer than 2s.
  *  - No tappable / interactive elements.
  *  - No blue-blob / lime-wave decorative shapes.
  */
@@ -25,23 +25,34 @@ jest.mock('react-native-svg', () => {
   return { __esModule: true, default: Svg, Svg, Path };
 });
 
-// reanimated -> stub the hooks/helpers the splash uses, Animated.View -> View.
+// reanimated -> stub the hooks/helpers the splash uses; Animated.View/Text -> RN
+// View/Text. Every `with*` helper resolves to its end value, so the assertions
+// below see the finished (settled) frame of each entrance animation.
 jest.mock('react-native-reanimated', () => {
   const ReactLocal = require('react');
-  const { View } = require('react-native');
+  const { Text, View } = require('react-native');
   const AnimatedView = ({ children, style, ...props }: any) =>
     ReactLocal.createElement(View, { ...props, style }, children);
+  const AnimatedText = ({ children, style, ...props }: any) =>
+    ReactLocal.createElement(Text, { ...props, style }, children);
   const easing = (fn?: unknown) => fn ?? 0;
   const createAnimatedComponent = (Component: any) => Component;
   return {
     __esModule: true,
-    default: { View: AnimatedView, createAnimatedComponent },
+    default: { View: AnimatedView, Text: AnimatedText, createAnimatedComponent },
     createAnimatedComponent,
     useSharedValue: (initial: number) => ({ value: initial }),
     withTiming: (to: number) => to,
     withRepeat: (anim: unknown) => anim,
+    withDelay: (_delay: number, anim: unknown) => anim,
     useAnimatedStyle: (cb: () => object) => cb(),
-    Easing: { inOut: easing, ease: 0, in: easing, out: easing },
+    Easing: {
+      inOut: easing,
+      ease: 0,
+      in: easing,
+      out: easing,
+      bezier: () => 0,
+    },
   };
 });
 
@@ -91,22 +102,43 @@ jest.mock('../../../../app/_layout', () => ({
   getAuthBootstrap: () => mockBootstrapPromise,
 }));
 
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { act, render, screen, waitFor } from '@testing-library/react-native';
 
 import { useAuthStore } from '@/stores/auth';
 
 import Index from '../../../../app/index';
 
+/** Comfortably past the splash's MIN_SPLASH_MS (1800ms) minimum hold. */
+const PAST_MINIMUM_HOLD_MS = 2000;
+
 beforeEach(() => {
+  jest.useFakeTimers();
   mockReplace.mockClear();
   resetBootstrap();
   useAuthStore.getState().clearAuth();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
 });
 
 /** Resolves the shared bootstrap promise the way the root layout would. */
 async function settleBootstrap() {
   mockResolveBootstrap();
   await mockBootstrapPromise;
+}
+
+/** Runs the clock past the minimum hold that keeps the splash on screen. */
+async function passMinimumHold() {
+  await act(async () => {
+    jest.advanceTimersByTime(PAST_MINIMUM_HOLD_MS);
+  });
+}
+
+/** The two gates on the redirect: bootstrap settled AND minimum hold elapsed. */
+async function settleSplash() {
+  await settleBootstrap();
+  await passMinimumHold();
 }
 
 describe('S1 — Splash screen', () => {
@@ -147,7 +179,7 @@ describe('S1 — Splash screen', () => {
   it('redirects to /(tabs) when authenticated with an existing profile', async () => {
     await render(<Index />);
     useAuthStore.getState().setAuth({ userId: 'u1', accessToken: 't', hasProfile: true });
-    await settleBootstrap();
+    await settleSplash();
 
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/(tabs)'));
     expect(mockReplace).toHaveBeenCalledTimes(1);
@@ -161,7 +193,7 @@ describe('S1 — Splash screen', () => {
   it('redirects to /(auth)/onboarding when authenticated without a profile', async () => {
     await render(<Index />);
     useAuthStore.getState().setAuth({ userId: 'u1', accessToken: 't', hasProfile: false });
-    await settleBootstrap();
+    await settleSplash();
 
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/(auth)/onboarding'));
     expect(mockReplace).toHaveBeenCalledTimes(1);
@@ -175,7 +207,7 @@ describe('S1 — Splash screen', () => {
   it('redirects to /(auth)/login when the bootstrap resolves unauthenticated', async () => {
     await render(<Index />);
     // clearAuth already applied in beforeEach -> unauthenticated.
-    await settleBootstrap();
+    await settleSplash();
 
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/(auth)/login'));
     expect(mockReplace).toHaveBeenCalledTimes(1);
@@ -185,13 +217,34 @@ describe('S1 — Splash screen', () => {
    * Covers: S1 — Splash
    * Criterion: "The splash never stays visible longer than 2 seconds before
    *  redirecting." From the screen's side: once the (2s-capped) bootstrap
-   *  settles, a redirect always fires. (The 2s cap itself is verified in the
-   *  authBootstrap unit test.)
+   *  settles and the minimum hold elapses, a redirect always fires. (The 2s cap
+   *  itself is verified in the authBootstrap unit test.)
    */
   it('always redirects once the (2s-capped) bootstrap settles', async () => {
     await render(<Index />);
     expect(mockReplace).not.toHaveBeenCalled(); // nothing before settle
+    await settleSplash();
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledTimes(1));
+  });
+
+  /**
+   * Covers: S1 — Splash
+   * Criterion: the brand animation and progress fill must be visible on launch —
+   * an instantly-settling bootstrap must not flash the splash away. The screen
+   * holds for MIN_SPLASH_MS (1800ms) before redirecting.
+   */
+  it('holds the splash for the minimum duration when the bootstrap settles instantly', async () => {
+    await render(<Index />);
     await settleBootstrap();
+
+    // Bootstrap is done, but the hold has not elapsed -> still on the splash.
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(screen.getByText('CARREGANDO')).toBeTruthy();
+
+    await passMinimumHold();
     await waitFor(() => expect(mockReplace).toHaveBeenCalledTimes(1));
   });
 

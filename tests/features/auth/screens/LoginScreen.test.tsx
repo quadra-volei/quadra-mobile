@@ -32,16 +32,21 @@ jest.mock('react-native-svg', () => {
   return { __esModule: true, default: Svg, Svg, Path };
 });
 
-// reanimated -> stub the hooks/helpers the login sheet uses.
+// reanimated -> stub the hooks/helpers the login sheet and intro entrance use.
+// Every `with*` helper resolves to its end value, so assertions see the settled
+// frame (the intro rise is finished, the sheet is at its target offset).
 jest.mock('react-native-reanimated', () => {
   const ReactLocal = require('react');
-  const { View } = require('react-native');
+  const { Text, View } = require('react-native');
   const AnimatedView = ({ children, style, ...props }: any) =>
     ReactLocal.createElement(View, { ...props, style }, children);
+  const AnimatedText = ({ children, style, ...props }: any) =>
+    ReactLocal.createElement(Text, { ...props, style }, children);
+  const easing = (fn?: unknown) => fn ?? 0;
   const createAnimatedComponent = (Component: any) => Component;
   return {
     __esModule: true,
-    default: { View: AnimatedView, createAnimatedComponent },
+    default: { View: AnimatedView, Text: AnimatedText, createAnimatedComponent },
     createAnimatedComponent,
     useSharedValue: (initial: number) => ({ value: initial }),
     withTiming: (to: number, _config?: object, cb?: (finished: boolean) => void) => {
@@ -51,9 +56,11 @@ jest.mock('react-native-reanimated', () => {
       }
       return to;
     },
+    withDelay: (_delay: number, anim: unknown) => anim,
     runOnJS: (fn: (...args: any[]) => any) => fn,
     useAnimatedStyle: (cb: () => object) => cb(),
     useAnimatedKeyboard: () => ({ height: { value: 0 } }),
+    Easing: { inOut: easing, ease: 0, in: easing, out: easing, bezier: () => 0 },
   };
 });
 
