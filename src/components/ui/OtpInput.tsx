@@ -16,8 +16,8 @@ export type OtpInputProps = {
   /** The joined code, 0–`length` digits. */
   value: string;
   onChangeText: (code: string) => void;
-  /** Fixed 4 for MVP (Cognito-locked); default 4. */
-  length?: 4;
+  /** Number of digits; default 6 (the backend's SMS code length). */
+  length?: number;
   /** Drives the red border + shake trigger. */
   error?: boolean;
   autoFocus?: boolean;
@@ -39,7 +39,7 @@ const SHAKE_DURATION = 50; // ms per oscillation leg
 export function OtpInput({
   value,
   onChangeText,
-  length = 4,
+  length = 6,
   error = false,
   autoFocus = false,
   onFilled,
@@ -134,7 +134,7 @@ export function OtpInput({
   };
 
   return (
-    <Animated.View style={shakeStyle} className="flex-row justify-between" testID={testID}>
+    <Animated.View style={shakeStyle} className="flex-row gap-2" testID={testID}>
       {Array.from({ length }).map((_, index) => (
         <TextInput
           key={index}
@@ -153,7 +153,9 @@ export function OtpInput({
           autoComplete="sms-otp"
           selectTextOnFocus
           accessibilityLabel={`Dígito ${index + 1} de ${length}`}
-          className={`h-16 w-16 rounded-card border-2 bg-white text-center font-num text-num text-text-primary ${borderClass(index)}`}
+          // flex-1 (not a fixed width): six 64px boxes would not fit a phone
+          // screen, so the boxes share the row equally.
+          className={`h-16 flex-1 rounded-card border-2 bg-white text-center font-num text-num text-text-primary ${borderClass(index)}`}
         />
       ))}
     </Animated.View>

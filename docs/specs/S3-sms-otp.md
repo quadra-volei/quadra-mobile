@@ -1,5 +1,16 @@
 # Screen Spec: S3 — SMS Verification
 
+> ## Amendment — 2026-10-05: real login, 6-digit code (supersedes the mock-first notes below)
+>
+> Johny approved wiring S3 to the real backend (own JWT, SMS via Twilio Verify — no Cognito). Where this amendment and the original text disagree, the amendment wins.
+>
+> - **6 digits, not 4.** The backend's SMS code has 6 digits, so `OtpInput` renders 6 boxes (`length` defaults to 6), the subtitle reads "Enviamos um código de 6 dígitos…", and "Verificar" enables at 6 digits. The reference PNGs still show 4 boxes — they are the layout reference only. Six 64px boxes do not fit a phone, so each box is `h-16 flex-1` in a `flex-row gap-2` row (same height token, equal widths).
+> - **`useVerifyOtp` is real**: `POST /api/v1/auth/login/sms-otp` `{ step: "verify", phoneNumber, code }`. A valid code returns the Quadra session (`accessToken`, `refreshToken`, `userId`, `isNewUser`); both tokens are saved to `expo-secure-store` (`quadra.accessToken` / `quadra.refreshToken`). The first valid code for a phone number creates the account — there is no separate signup. A wrong or expired code (401) rejects with `Error('Código inválido')`, which drives the existing error state.
+> - **`useResendOtp` is real**: it re-issues `{ step: "initiate", phoneNumber }` (the backend has no dedicated resend route; starting the verification again resends the code).
+> - **`hasProfile`** (Onboarding vs Home): `false` when `isNewUser` is true; otherwise whether this device recorded that user finishing onboarding (`src/lib/auth/onboardingFlag.ts`). This is a stop-gap until the backend Profile module (F2.1) can report it.
+> - There is no canonical `"1234"` code any more. Against a local backend running the fake SMS provider, the code is whatever `Auth:PhoneVerification:Fake:Code` says (default `123456`).
+> - Hook signatures, navigation, countdown, error/shake behaviour and every other acceptance criterion are unchanged.
+
 > ✅ **scope-guardian: APPROVED** (round 3) — all 11 checklist items pass. Prior rejections (raw hex literals → shared `src/theme/colors.ts` token module; `h-14 w-14` spacing → `h-16 w-16`) resolved.
 
 ## Origin
@@ -27,7 +38,7 @@ This is intentional for this iteration and is the only "validation" logic; it is
 - The error state (shake + red border for a wrong code) has **no mockup reference**; per SCOPE it follows the DESIGN_SYSTEM `danger` token. Documented here, not invented beyond the token system.
 
 ## Goal
-Let a user who just requested an SMS code confirm their phone number by entering the 4-digit OTP, then proceed into the app (Onboarding for new users, Home for returning users) — with the ability to resend the code after a countdown or go back to change the number.
+Let a user who just requested an SMS code confirm their phone number by entering the 6-digit OTP, then proceed into the app (Onboarding for new users, Home for returning users) — with the ability to resend the code after a countdown or go back to change the number.
 
 ## Route
 `app/(auth)/sms-otp.tsx` — replaces the current placeholder (`<Text>Verificar SMS</Text>`). Lives in the `(auth)` stack (`headerShown: false`), reached from S2 via `router.push({ pathname: '/sms-otp', params: { phone } })`. Reads `phone` (E.164, e.g. `+5531999999999`) from route params via `useLocalSearchParams`.
@@ -50,9 +61,9 @@ These mocks are **intentional, deterministic, and test-friendly** (latency can b
   - Props:
     ```ts
     type OtpInputProps = {
-      value: string;                 // the joined code, 0–4 digits
+      value: string;                 // the joined code, 0–6 digits
       onChangeText: (code: string) => void;
-      length?: 4;                    // fixed 4 for MVP (Cognito-locked); default 4
+      length?: number;               // default 6 (the backend SMS code length)
       error?: boolean;              // drives red border + shake trigger
       autoFocus?: boolean;
       onFilled?: (code: string) => void; // fired when all `length` digits entered
@@ -113,11 +124,11 @@ import { colors, HERO_GRADIENT } from '@/theme/colors';
         style={{ minHeight: SHEET_MIN_HEIGHT }}>
     <Text className="font-display text-h1 text-text-primary uppercase">CONFIRME SEU NÚMERO</Text>
     <Text className="font-body text-body text-text-muted mt-2">
-      Enviamos um código de 4 dígitos por SMS para{' '}
+      Enviamos um código de 6 dígitos por SMS para{' '}
       <Text className="font-body text-body-bold text-text-primary">{displayPhone}</Text>.
     </Text>
 
-    {/* 4 digit boxes */}
+    {/* 6 digit boxes */}
     <View className="mt-6">
       <OtpInput value={code} onChangeText={setCode} error={isError} autoFocus
                 onFilled={onVerify} testID="otp-input" />
@@ -125,7 +136,7 @@ import { colors, HERO_GRADIENT } from '@/theme/colors';
 
     <View className="mt-6">
       <Button variant="grad" onPress={onVerify}
-              disabled={code.length < 4} loading={verifyOtp.isPending} testID="verify-otp">
+              disabled={code.length < 6} loading={verifyOtp.isPending} testID="verify-otp">
         Verificar
       </Button>
     </View>
@@ -167,12 +178,12 @@ NativeWind classes only. No `StyleSheet.create`. **No hardcoded hex anywhere in 
 
 ### Local state
 - `useState` minimal:
-  - `code: string` — the joined 0–4 digit OTP (the segmented field's source of truth; not server data, so plain `useState` is correct here — this is not a React Hook Form case because it's a single auto-advancing token field, not a multi-field form).
+  - `code: string` — the joined 0–6 digit OTP (the segmented field's source of truth; not server data, so plain `useState` is correct here — this is not a React Hook Form case because it's a single auto-advancing token field, not a multi-field form).
   - `secondsLeft: number` — resend countdown, initialized to `30` (prototype shows `0:26` mid-countdown, ~30s start per SCOPE), decremented by a `setInterval` in an effect; reset to `30` after a successful resend.
   - `isError: boolean` — set true when the mocked verify rejects (drives `OtpInput error` → red border + shake); cleared on the next edit.
 
 ### Forms (if any)
-- **None.** The 4-digit OTP is a single auto-advancing token field, not a multi-field form. Per the ARCHITECTURE/CLAUDE rule, React Hook Form + Zod governs *forms*; a single segmented code field is handled by the `OtpInput` component + local `code` state. (Validation that matters — "exactly 4 digits" — is enforced by the field length and the disabled CTA; correctness is the server/mock's job.)
+- **None.** The 6-digit OTP is a single auto-advancing token field, not a multi-field form. Per the ARCHITECTURE/CLAUDE rule, React Hook Form + Zod governs *forms*; a single segmented code field is handled by the `OtpInput` component + local `code` state. (Validation that matters — "exactly 4 digits" — is enforced by the field length and the disabled CTA; correctness is the server/mock's job.)
 
 ## Navigation triggers
 - Back chevron (dark strip) → `router.back()` (returns to S2 / login). If there is no back entry, `router.replace('/login')`.
@@ -197,20 +208,20 @@ NativeWind classes only. No `StyleSheet.create`. **No hardcoded hex anywhere in 
 
 ## Acceptance criteria
 - [ ] The screen renders the navy→blue hero strip with a back chevron and a message icon, then a white card with the "CONFIRME SEU NÚMERO" display headline.
-- [ ] The subtitle echoes the phone passed from S2 (e.g. "Enviamos um código de 4 dígitos por SMS para +55 (31) 23121-3312.").
-- [ ] Four separate digit boxes are shown; typing a digit auto-advances focus to the next box; backspace on an empty box moves focus to the previous box.
-- [ ] "Verificar" is disabled (muted grey, no shadow) until all 4 digits are entered, then becomes the blue→lime gradient CTA.
+- [ ] The subtitle echoes the phone passed from S2 (e.g. "Enviamos um código de 6 dígitos por SMS para +55 (31) 23121-3312.").
+- [ ] Six separate digit boxes are shown; typing a digit auto-advances focus to the next box; backspace on an empty box moves focus to the previous box.
+- [ ] "Verificar" is disabled (muted grey, no shadow) until all 6 digits are entered, then becomes the blue→lime gradient CTA.
 - [ ] Submitting the code calls the **mocked** `useVerifyOtp` (no network); on its resolution the user lands on Onboarding (stub `hasProfile === false`) or Home (stub `hasProfile === true`).
-- [ ] Entering an incorrect code (anything other than the mock's canonical `"1234"`) surfaces the error state (red border + shake) and renders no toast.
+- [ ] Entering an incorrect code (the backend answers 401) surfaces the error state (red border + shake) and renders no toast.
 - [ ] The resend control shows "Reenviar em M:SS" counting down (~30s) and is non-interactive during the countdown; at 0 it becomes an active "Reenviar código" link.
 - [ ] Tapping "Reenviar código" calls the **mocked** `useResendOtp` and restarts the countdown.
 - [ ] "Usar outro número" and the back chevron both return to S2 (login).
-- [ ] Exactly 4 boxes are rendered (no 5/6-digit variant).
+- [ ] Exactly 6 boxes are rendered (no 4-digit variant).
 - [ ] All criteria are verifiable via RNTL against the mocked mutations (no MSW / no network) and mocked navigation/route params.
 
 ## Out of scope (be explicit)
 - Real auth backend wiring — `useVerifyOtp` / `useResendOtp` are mocked this iteration; the human wires real FA.3 verify/resend later (see "Mock-first auth note").
-- Codes longer than 4 digits — locked by Cognito config (SCOPE S3 OUT); `OtpInput` length is fixed at 4 for MVP.
+- Codes of any length other than 6 digits — the backend sends 6-digit codes (SCOPE S3 OUT).
 - Token persistence — held in-memory in the Zustand store only; nothing written to AsyncStorage; real `expo-secure-store` persistence lands with the real flow.
 - Toast / global notification primitive — not introduced; the wrong-code error is inline (red border + shake) only.
 - Swipe-to-dismiss / backdrop-tap-to-close — S3 is a full route, not a bottom sheet; dismissal is the back chevron / "Usar outro número" only.
@@ -218,7 +229,7 @@ NativeWind classes only. No `StyleSheet.create`. **No hardcoded hex anywhere in 
 
 ## Files to create
 - `app/(auth)/sms-otp.tsx` — the screen (replaces the placeholder).
-- `src/components/ui/OtpInput.tsx` — segmented 4-box auto-advancing OTP field with error/shake state.
+- `src/components/ui/OtpInput.tsx` — segmented 6-box auto-advancing OTP field with error/shake state.
 - `src/theme/colors.ts` — shared, named brand color token module (mirrors `tailwind.config.js`) exporting `colors` (`surfaceDark`, `primary`, `textOnDark`, `danger`) and the derived `HERO_GRADIENT`; the single source of truth for JS-side color props (Lucide `color`, LinearGradient `colors`) so no screen inlines hex.
 - `src/features/auth/api/verifyOtp.ts` — `useVerifyOtp` mutation (**MOCK** `mutationFn`; canonical `"1234"` resolves a stub session/user, else rejects; `// TODO(real-api):` FA.3 verify).
 - `src/features/auth/api/resendOtp.ts` — `useResendOtp` mutation (**MOCK** `mutationFn` resolving `{ ok: true }`; `// TODO(real-api):` FA.3 resend).
@@ -237,6 +248,6 @@ NativeWind classes only. No `StyleSheet.create`. **No hardcoded hex anywhere in 
 - Countdown: drive `secondsLeft` from a single `setInterval` cleared on unmount; format as `M:SS` with the seconds in `font-mono` (the prototype renders the timer in a mono face). Start at 30; reset to 30 on successful resend; never let it go negative.
 - Keep the mock `mutationFn` bodies trivial and deterministic (fixed latency, fixed canonical code, no randomness) so RNTL can assert both the success and the error branch without flakiness; allow latency to be zeroed under test. Do not import or reference `EXPO_PUBLIC_API_URL` in these mock files. Leave `// MOCK:` and `// TODO(real-api):` markers where the real call slots in, behind the unchanged hook signatures — matching `requestOtp.ts`/`googleSignIn.ts`.
 - Do not call any API from the screen — both actions go through `src/features/auth/api/` hooks (CLAUDE.md rule 6), even while mocked.
-- Accessibility: each box exposes an accessible label ("Dígito 1 de 4", …); the shake/red-border error also surfaces an `accessibilityLiveRegion="polite"` status text ("Código inválido, tente novamente") for screen readers; the disabled "Verificar" is announced as disabled; the countdown text is a polite live region so the resend availability is announced when it flips to active.
+- Accessibility: each box exposes an accessible label ("Dígito 1 de 6", …); the shake/red-border error also surfaces an `accessibilityLiveRegion="polite"` status text ("Código inválido, tente novamente") for screen readers; the disabled "Verificar" is announced as disabled; the countdown text is a polite live region so the resend availability is announced when it flips to active.
 - The display headline must use `font-display` + `uppercase` (Climate Crisis is display-only/uppercase per CLAUDE.md).
 - **No raw hex in any screen.** The hero gradient and the on-dark icon colors come from the shared `src/theme/colors.ts` module (`HERO_GRADIENT` and `colors.textOnDark`), which mirrors the `surface-dark`→`primary` and `text-on-dark` tokens in `tailwind.config.js`. `app/(auth)/login.tsx` is refactored to consume the same module so the auth stack has a single source of truth for these JS-side color values — do **not** reintroduce a local `['#0A0A3C', '#1A1AFF']` constant or inline `#FFFFFF`.

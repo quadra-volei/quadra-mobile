@@ -19,7 +19,7 @@ import { colors, HERO_GRADIENT } from "@/theme/colors";
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const SHEET_MIN_HEIGHT = Math.round(SCREEN_HEIGHT * 0.4); // card occupies ~40% of the screen
 
-const OTP_LENGTH = 4;
+const OTP_LENGTH = 6; // backend SMS code length (FA.3)
 const RESEND_SECONDS = 30; // SCOPE: ~30s resend countdown
 
 /** Formats an E.164 BR number (e.g. "+5531231213312") as "+55 (31) 23121-3312". */
@@ -187,14 +187,14 @@ export default function SmsOtpScreen() {
           CONFIRME SEU NÚMERO
         </Text>
         <Text className="font-body text-body text-text-muted mt-2">
-          Enviamos um código de 4 dígitos por SMS para{" "}
+          Enviamos um código de 6 dígitos por SMS para{" "}
           <Text className="font-body text-body-bold text-text-primary">
             {displayPhone}
           </Text>
           .
         </Text>
 
-        {/* 4 digit boxes */}
+        {/* 6 digit boxes */}
         <View className="mt-6">
           <OtpInput
             value={code}

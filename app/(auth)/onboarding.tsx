@@ -29,6 +29,7 @@ import {
   type OnboardingProfileInput,
   type Position,
 } from "@/features/profile/schema/onboarding";
+import { markOnboardingCompleted } from "@/lib/auth/onboardingFlag";
 import { useAuthStore } from "@/stores/auth";
 import { colors, CTA_GRADIENT, HERO_GRADIENT } from "@/theme/colors";
 
@@ -110,6 +111,7 @@ export default function OnboardingScreen() {
   const [step, setStep] = useState<Step>(0);
   const createProfile = useCreateProfile();
   const setHasProfile = useAuthStore((s) => s.setHasProfile);
+  const userId = useAuthStore((s) => s.userId);
 
   const {
     control,
@@ -177,6 +179,10 @@ export default function OnboardingScreen() {
   const onValid = (data: OnboardingProfileInput) => {
     createProfile.mutate(data, {
       onSuccess: () => {
+        if (userId) {
+          // Remembered on this device until the backend can report it (F2.1).
+          void markOnboardingCompleted(userId);
+        }
         setHasProfile(true);
         router.replace("/(tabs)");
       },

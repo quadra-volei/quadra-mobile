@@ -137,6 +137,7 @@ Token valid? ──No──→ Login screen
    Yes
     ↓
 Verify with backend GET /api/v1/auth/me
+(expired access token → refresh once, then retry)
     ↓
 Profile exists? ──No──→ Onboarding
     ↓
@@ -150,11 +151,13 @@ Home (tabs)
 - Access token: `expo-secure-store` under key `quadra.accessToken`
 - Refresh token: `expo-secure-store` under key `quadra.refreshToken`
 - **NEVER** `AsyncStorage` for tokens — those are clear-text on Android.
-- Token refresh on 401: single-flight pattern in `lib/auth/refreshSession.ts`. Multiple concurrent requests share one refresh.
+- Token refresh on 401: single-flight pattern in `lib/auth/refreshSession.ts`. Multiple concurrent requests share one refresh — required, because the backend **rotates** the refresh token on every use (a refresh token works exactly once), so the new pair is saved before anything else runs.
+- The tokens are the Quadra backend’s own (JWT access token, ~15 min; opaque refresh token, 30 days). There is no Cognito. Login is SMS OTP or Google (`src/features/auth/api/`); the first successful login creates the account.
+- "Profile exists?" is answered on-device for now (`lib/auth/onboardingFlag.ts`) — the backend has no Profile module yet (F2.1).
 
 ### Logout
 
-`logout()` clears both keys, resets every Zustand store, and `queryClient.clear()`s the cache before redirecting to login.
+`logout()` revokes the refresh token on the backend (`POST /api/v1/auth/logout`, best-effort), clears both keys, resets every Zustand store, and `queryClient.clear()`s the cache before redirecting to login.
 
 ---
 
@@ -272,9 +275,6 @@ Required variables for MVP:
 
 ```
 EXPO_PUBLIC_API_URL=https://api.quadra.dev
-EXPO_PUBLIC_COGNITO_REGION=us-east-1
-EXPO_PUBLIC_COGNITO_USER_POOL_ID=...
-EXPO_PUBLIC_COGNITO_APP_CLIENT_ID=...
 EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=...
 EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=...
 ```
