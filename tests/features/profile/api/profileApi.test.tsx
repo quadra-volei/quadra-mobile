@@ -290,7 +290,6 @@ describe('profile photo upload', () => {
       if (url.endsWith('/photo/upload-url')) {
         return respond(201, { uploadUrl: 'https://storage.test/put-here', objectKey: 'profiles/new.jpg' });
       }
-      if (url === editInput.avatarUri) return { ok: true, blob: async () => ({ size: 3 }) };
       if (url === 'https://storage.test/put-here') return respond(200);
       return init.method === 'PUT' ? respond(200, apiProfile) : respond(200, apiProfile);
     });
@@ -298,10 +297,41 @@ describe('profile photo upload', () => {
     const settled = await runMutation(useUpdateProfile, editInput);
 
     expect(settled.status).toBe('fulfilled');
-    const upload = calls().find((c) => c.url === 'https://storage.test/put-here');
+    // The local file is handed to the network layer by URI, never read into memory.
+    const upload = (fetchMock.mock.calls as [string, RequestInit][]).find(
+      ([url]) => url === 'https://storage.test/put-here',
+    )?.[1];
     expect(upload?.method).toBe('PUT');
+    expect(upload?.headers).toEqual({ 'Content-Type': 'image/jpeg' });
+    expect(upload?.body).toEqual({ uri: editInput.avatarUri, type: 'image/jpeg', name: 'photo.jpg' });
+    expect(fetchMock.mock.calls.some(([url]) => url === editInput.avatarUri)).toBe(false);
     expect(calls().find((c) => c.url.endsWith('/api/v1/profiles/me') && c.method === 'PUT')?.body)
       .toMatchObject({ photoObjectKey: 'profiles/new.jpg' });
+  });
+});
+
+describe('profile photo upload failures', () => {
+  /**
+   * Covers: S10 — a refused upload says which step failed and the profile is
+   * not saved without the photo the user picked.
+   */
+  it('reports the storage refusing the file and does not save the profile', async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (url.endsWith('/photo/upload-url')) {
+        return respond(201, { uploadUrl: 'https://storage.test/put-here', objectKey: 'profiles/new.jpg' });
+      }
+      if (url === 'https://storage.test/put-here') return respond(403);
+      return respond(200, apiProfile);
+    });
+
+    const settled = await runMutation(useUpdateProfile, editInput);
+
+    expect(settled.status === 'rejected' && (settled.reason as Error).message).toBe(
+      'Não foi possível enviar a foto (erro 403). Tente de novo.',
+    );
+    expect(
+      calls().some((c) => c.url.endsWith('/api/v1/profiles/me') && c.method === 'PUT'),
+    ).toBe(false);
   });
 });
 

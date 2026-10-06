@@ -87,3 +87,10 @@ Placeholders that are NOT mocks (the backend has no such data yet, the app shows
 | 36 | The EAS **`preview` profile builds an installable APK that talks to the hosted test API** (`EXPO_PUBLIC_API_URL` in the profile's `env`). | A phone build that needs no computer running. The URL is not a secret. |
 | 37 | The **Google Maps Android key comes from the `GOOGLE_MAPS_ANDROID_API_KEY` environment variable** (`app.config.js`), never from a committed file. Without it the build still works, but the map screen is blank. | A standalone build needs its own Maps key (Expo Go brings one); keys do not belong in the repository. |
 | 38 | **To build the test APK again**: in this folder, logged in to EAS as the project owner `ojohnyzada` (`npx eas-cli whoami`), run `npx eas-cli build -p android --profile preview --non-interactive --no-wait`. EAS builds in the cloud and the build page has the install link/QR code. No local gradle build. | The project belongs to `ojohnyzada`; any other account gets "Entity not authorized". Do not run `eas init` to work around it: it changes the `projectId` and the signing key. |
+
+## 2026-10-06 — Profile photo upload fix
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 38 | The picked photo is sent to the signed URL **by URI** (`body: { uri, type, name }`, which React Native streams from disk) instead of being read first with `fetch(localUri).blob()`. | The backend and the storage were verified end to end; the upload failed on the phone, where reading a `file://` URI through `fetch` breaks on Android builds. No new package. |
+| 39 | The edit-profile screen shows **the reason of a failed save** (which step: preparing the upload, sending the photo with its HTTP status, no connection, @ taken) instead of one fixed sentence. A failed photo upload does not save the profile without the photo. | The fixed sentence hid which step had failed. |

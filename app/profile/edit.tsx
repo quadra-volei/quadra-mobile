@@ -323,7 +323,8 @@ function EditProfileForm({
             className="mb-3 text-center font-body text-caption text-danger"
             accessibilityLiveRegion="polite"
           >
-            Não foi possível salvar. Tente novamente.
+            {updateProfile.error?.message ??
+              "Não foi possível salvar. Tente novamente."}
           </Text>
         ) : null}
         <Button
