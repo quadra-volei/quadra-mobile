@@ -96,6 +96,13 @@ const mockCreate = {
   }),
 };
 
+// Live @ check: staged per test (the real hook is covered in profileApi.test.tsx).
+const mockHandleTaken = { value: false };
+jest.mock('@/features/profile/api/handleAvailability', () => ({
+  HANDLE_TAKEN_MESSAGE: 'Esse @ já está em uso. Escolha outro.',
+  useHandleTaken: () => mockHandleTaken.value,
+}));
+
 jest.mock('@/features/profile/api/createProfile', () => ({
   useCreateProfile: () => ({
     mutate: mockCreate.mutate,

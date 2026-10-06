@@ -104,6 +104,41 @@ export function putMyProfile(body: ApiProfileUpdate): Promise<ApiProfile> {
 }
 
 /**
+ * Uploads a picked photo (`POST /profiles/me/photo/upload-url`, then a PUT of
+ * the file straight to the storage) and returns the object key to save on the
+ * profile. Null when this environment has no photo storage (503): the profile
+ * is then saved with the photo it already had.
+ */
+export async function uploadProfilePhoto(localUri: string): Promise<string | null> {
+  let target: { uploadUrl: string; objectKey: string };
+  try {
+    target = await authorizedApiClient('/api/v1/profiles/me/photo/upload-url', {
+      method: 'POST',
+      body: JSON.stringify({ contentType: PHOTO_CONTENT_TYPE }),
+    });
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 503) {
+      return null;
+    }
+    throw error;
+  }
+
+  const file = await (await fetch(localUri)).blob();
+  const upload = await fetch(target.uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': PHOTO_CONTENT_TYPE },
+    body: file,
+  });
+  if (!upload.ok) {
+    throw new Error('Não foi possível enviar a foto. Tente de novo.');
+  }
+  return target.objectKey;
+}
+
+// The picker (expo-image-picker with editing on) hands back a JPEG.
+const PHOTO_CONTENT_TYPE = 'image/jpeg';
+
+/**
  * Turns a failed profile save into an `Error` whose message can be shown to the
  * user as-is.
  */
@@ -123,6 +158,10 @@ export function toProfileError(error: unknown): Error {
   // fetch rejects with a TypeError when the request never reached the server.
   if (error instanceof TypeError) {
     return new Error('Sem conexão. Verifique sua internet e tente de novo.');
+  }
+  // An error that already carries a message for the user (e.g. the photo upload).
+  if (error instanceof Error && !(error instanceof ApiError)) {
+    return error;
   }
   return new Error('Não foi possível salvar seu perfil.');
 }
