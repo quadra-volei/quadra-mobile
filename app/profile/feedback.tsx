@@ -232,7 +232,8 @@ export default function FeedbackScreen() {
                 className="mb-3 text-center font-body text-caption text-danger"
                 accessibilityLiveRegion="polite"
               >
-                Não foi possível enviar. Tente novamente.
+                {sendFeedback.error?.message ??
+                  'Não foi possível enviar. Tente novamente.'}
               </Text>
             ) : null}
             <Button
