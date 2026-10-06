@@ -6,6 +6,7 @@ import { CourtImage } from '@/components/ui/CourtImage';
 import { Tag } from '@/components/ui/Tag';
 import type { NearbyMatch } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
+import { PRESS_RIPPLE } from '@/theme/layout';
 
 export type MatchCardProps = {
   match: NearbyMatch;
@@ -32,6 +33,7 @@ export function MatchCard({ match, onPress, testID }: MatchCardProps) {
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={`${match.name}, ${formatDistance(match.distanceKm)}`}
+      android_ripple={PRESS_RIPPLE}
       className="rounded-card overflow-hidden"
     >
       <CourtImage tint={match.tint} height={172} radius={16}>

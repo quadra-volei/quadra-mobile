@@ -1,9 +1,8 @@
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, Tabs } from 'expo-router';
 import type { ComponentType } from 'react';
 import { useEffect, useState } from 'react';
-import { Keyboard, Platform, Pressable, View } from 'react-native';
+import { Keyboard, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { JogarMenu } from '@/components/domain/JogarMenu';
@@ -13,8 +12,8 @@ import { TabHomeIcon } from '@/components/icons/TabHomeIcon';
 import { TabNetworkIcon } from '@/components/icons/TabNetworkIcon';
 import { TabProfileIcon } from '@/components/icons/TabProfileIcon';
 import type { TabIconProps } from '@/components/icons/tabIcon';
-import { useNavBlurTargetStore } from '@/stores/navBlurTarget';
 import { CTA_GRADIENT } from '@/theme/colors';
+import { ICON_RIPPLE } from '@/theme/layout';
 
 // Routes shown as labeled tabs, in bar order: two to the left of the FAB, two to
 // the right. The central "Jogar" FAB sits between them (it is not a tab route —
@@ -47,6 +46,7 @@ function TabBarButton({
       accessibilityRole="button"
       accessibilityState={{ selected: focused }}
       accessibilityLabel={label}
+      android_ripple={ICON_RIPPLE}
       className="flex-1 h-full items-center justify-center"
     >
       <Icon focused={focused} size={28} />
@@ -55,17 +55,9 @@ function TabBarButton({
 }
 
 const PILL_RADIUS = 32;
-// Same taming as `GlassHeader`: Android's Dimezis blur frosts the sampled
-// content much darker than iOS, so it gets a lower radius and a stronger wash.
-const IS_ANDROID = Platform.OS === 'android';
-const BLUR_INTENSITY = IS_ANDROID ? 22 : 80;
-const PILL_WASH = IS_ANDROID ? 'bg-white/70' : 'bg-white/50';
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
-  // The focused tab screen publishes its `BlurTargetView` ref here so Android's
-  // `dimezisBlurView` has a backdrop to sample (iOS blurs natively regardless).
-  const navBlurTarget = useNavBlurTargetStore((s) => s.target);
   // The central FAB opens the "BORA JOGAR?" action menu instead of jumping
   // straight to create-match.
   const [menuOpen, setMenuOpen] = useState(false);
@@ -133,36 +125,22 @@ export default function TabsLayout() {
               boxShadow: '0 6px 20px rgba(10,10,60,0.12)',
             }}
           >
-            {/* Glass pill — iOS blurs natively. On Android the real backdrop
-                blur (`dimezisBlurView`) samples the focused screen's
-                `BlurTargetView`, published via the nav-blur-target store; until
-                a screen registers one we omit the method so it renders the
-                frosted white tint instead of warning + falling back to
-                "none". Clipped to the rounded shape; the FAB is a sibling
-                overlay so the clip doesn't cut off its poke. */}
-            <BlurView
-              intensity={BLUR_INTENSITY}
-              tint="light"
-              {...(navBlurTarget
-                ? { blurMethod: 'dimezisBlurView' as const, blurTarget: navBlurTarget }
-                : {})}
-              style={{ borderRadius: PILL_RADIUS, overflow: 'hidden' }}
+            {/* Solid white pill with a hairline border — no backdrop blur, which
+                rendered grey or white on Android depending on the content
+                behind it (DECISIONS #46). The FAB is a sibling overlay so the
+                pill's rounded clip doesn't cut off its poke. The tabs share the
+                width left by the FAB reserve equally. */}
+            <View
+              className="flex-row items-center h-16 px-2 bg-white border border-line overflow-hidden"
+              style={{ borderRadius: PILL_RADIUS }}
             >
-              {/* The wash carries the same radius so its hairline border follows
-                  the pill instead of being cut off at the corners. The tabs
-                  share the width left by the FAB reserve equally. */}
-              <View
-                className={`flex-row items-center h-16 px-2 border border-white/60 ${PILL_WASH}`}
-                style={{ borderRadius: PILL_RADIUS }}
-              >
-                {leftTabs.map(renderTab)}
+              {leftTabs.map(renderTab)}
 
-                {/* Center column reserves the FAB's horizontal footprint. */}
-                <View style={{ width: 80 }} />
+              {/* Center column reserves the FAB's horizontal footprint. */}
+              <View style={{ width: 80 }} />
 
-                {rightTabs.map(renderTab)}
-              </View>
-            </BlurView>
+              {rightTabs.map(renderTab)}
+            </View>
 
             {/* Central "Jogar" FAB — poking overlay, outside the clipped pill. */}
             <View

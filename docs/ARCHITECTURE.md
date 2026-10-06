@@ -15,7 +15,7 @@ src/features/<area>/      api/ (query + mutation hooks), schema/ (Zod), types/, 
 src/lib/api/              client.ts, authorizedClient.ts
 src/lib/auth/             token storage, refresh, session check, logout
 src/lib/realtime/         SignalR connection
-src/stores/               Zustand stores (auth, theme, notificationPrefs, navBlurTarget)
+src/stores/               Zustand stores (auth, theme, notificationPrefs)
 src/theme/                tokens used outside className
 tests/                    Jest + RNTL
 ```

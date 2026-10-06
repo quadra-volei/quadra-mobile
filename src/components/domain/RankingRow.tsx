@@ -68,7 +68,7 @@ export function RankingRow({ row, isMe, testID }: RankingRowProps) {
       <Text className="font-num text-primary text-body w-8">{row.position}</Text>
       <Avatar name={row.name} size="sm" level={row.level} />
       <View className="flex-1 ml-3">
-        <Text className="font-body text-body-bold text-text-primary">
+        <Text className="font-body-semibold text-body-bold text-text-primary">
           {row.name}
           {isMe ? <Text className="text-primary"> · você</Text> : null}
         </Text>

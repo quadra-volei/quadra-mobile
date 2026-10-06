@@ -66,7 +66,7 @@ export function PresenceGrid({
             {firstName(player.name)}
           </Text>
           {player.isGuest ? (
-            <Text className="font-body text-eyebrow text-text-muted uppercase">
+            <Text className="font-body-bold text-eyebrow text-text-muted uppercase">
               Convidado
             </Text>
           ) : null}

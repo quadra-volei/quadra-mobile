@@ -1,14 +1,14 @@
-import { BlurTargetView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bell, ChevronDown } from 'lucide-react-native';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { RankingRow } from '@/components/domain/RankingRow';
 import { Avatar } from '@/components/ui/Avatar';
-import { Button } from '@/components/ui/Button';
+import { SkeletonBlock } from '@/components/ui/Skeleton';
+import { StateMessage } from '@/components/ui/StateMessage';
 import { FilterChip } from '@/components/ui/FilterChip';
-import { GlassBackHeader } from '@/components/ui/GlassBackHeader';
+import { BackHeader } from '@/components/ui/BackHeader';
 import {
   useGroupRanking,
   useRankingGroupName,
@@ -16,13 +16,9 @@ import {
 import type { RankingRow as RankingRowData } from '@/features/ranking/types/ranking';
 import { useAuthStore } from '@/stores/auth';
 import { colors, HERO_GRADIENT } from '@/theme/colors';
+import { ICON_HIT_SLOP, ICON_RIPPLE } from '@/theme/layout';
 
 function noop() {}
-
-/** Neutral rounded skeleton block (DESIGN_SYSTEM skeleton shapes TBD — flag). */
-function SkeletonBlock({ className }: { className: string }) {
-  return <View className={`bg-bg-light-alt rounded-card ${className}`} />;
-}
 
 // ── Scope tabs (Amigos active/functional; Bairro/Geral disabled "Em breve") ──
 function ScopeTabs({
@@ -56,7 +52,7 @@ function GroupSelector({ groupName }: { groupName: string }) {
         accessibilityLabel="Selecionar grupo"
         onPress={noop}
       >
-        <Text className="font-body text-body-bold text-text-primary">
+        <Text className="font-body-semibold text-body-bold text-text-primary">
           {groupName}
         </Text>
         <ChevronDown size={18} color={colors.surfaceDark} />
@@ -81,7 +77,7 @@ function PodiumColumn({
   return (
     <View className="items-center w-24">
       <Avatar uri={undefined} name={row.name} size="lg" level={row.level} />
-      <Text className="font-body text-body-bold text-text-primary mt-2 text-center">
+      <Text className="font-body-semibold text-body-bold text-text-primary mt-2 text-center">
         {row.name}
       </Text>
       <Text className="font-num text-primary text-body">{row.score}</Text>
@@ -117,29 +113,6 @@ function Podium({ top }: { top: RankingRowData[] }) {
   );
 }
 
-function RankingErrorBlock({ onRetry }: { onRetry: () => void }) {
-  return (
-    <View className="mx-4 mt-6 py-8 items-center" accessibilityLiveRegion="polite">
-      <Text className="font-body text-body text-text-muted text-center">
-        Não foi possível carregar o ranking
-      </Text>
-      <Button variant="ghost" onPress={onRetry}>
-        Tentar novamente
-      </Button>
-    </View>
-  );
-}
-
-function RankingEmptyBlock() {
-  return (
-    <View className="mx-4 mt-10 py-8 items-center" accessibilityLiveRegion="polite">
-      <Text className="font-body text-caption text-text-muted text-center">
-        Entre em uma partida recorrente para aparecer no ranking
-      </Text>
-    </View>
-  );
-}
-
 function RankingSkeleton() {
   return (
     <View className="mt-2">
@@ -171,11 +144,10 @@ export default function RankingScreen() {
   const rest = data?.slice(3) ?? [];
 
   const [headerHeight, setHeaderHeight] = useState(0);
-  const blurTarget = useRef<View>(null);
 
   return (
     <View className="flex-1 bg-bg-light">
-      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         <ScrollView
           contentContainerClassName="pb-10"
           contentContainerStyle={{ paddingTop: headerHeight }}
@@ -186,9 +158,17 @@ export default function RankingScreen() {
           {isPending ? (
             <RankingSkeleton />
           ) : isError ? (
-            <RankingErrorBlock onRetry={() => refetch()} />
+            <View className="mt-6">
+              <StateMessage
+                message="Não foi possível carregar o ranking"
+                actionLabel="Tentar novamente"
+                onAction={() => refetch()}
+              />
+            </View>
           ) : data.length === 0 ? (
-            <RankingEmptyBlock />
+            <View className="mt-6">
+              <StateMessage message="Entre em uma partida recorrente para aparecer no ranking" />
+            </View>
           ) : (
             <>
               <Podium top={top} />
@@ -206,20 +186,21 @@ export default function RankingScreen() {
             </>
           )}
         </ScrollView>
-      </BlurTargetView>
+      </View>
 
-      <GlassBackHeader
+      <BackHeader
         title="Ranking"
         right={
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Notificações"
+            hitSlop={ICON_HIT_SLOP}
+            android_ripple={ICON_RIPPLE}
             onPress={noop}
           >
             <Bell size={24} color={colors.surfaceDark} />
           </Pressable>
         }
-        blurTarget={blurTarget}
         onHeight={setHeaderHeight}
       />
     </View>

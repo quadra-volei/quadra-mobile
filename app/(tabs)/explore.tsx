@@ -1,21 +1,26 @@
-import { BlurTargetView } from "expo-blur";
 import { router } from "expo-router";
 import { Bell, LayoutGrid, List, MapPin, Settings } from "lucide-react-native";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { MatchCard } from "@/components/domain/MatchCard";
 import { Button } from "@/components/ui/Button";
-import { GlassHeader } from "@/components/ui/GlassHeader";
+import { SkeletonBlock } from "@/components/ui/Skeleton";
+import { StateMessage } from "@/components/ui/StateMessage";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { SearchField } from "@/components/ui/SearchField";
 import { useNearbyMatches } from "@/features/matches/api/getNearby";
 import { useDeviceCoords } from "@/features/matches/lib/useDeviceCoords";
-import { useRegisterNavBlurTarget } from "@/stores/navBlurTarget";
 import type { NearbyMatch } from "@/features/matches/types/match";
 import { colors } from "@/theme/colors";
-import { TAB_BAR_CLEARANCE } from "@/theme/layout";
+import {
+  ICON_HIT_SLOP,
+  ICON_RIPPLE,
+  PRESS_RIPPLE,
+  TAB_BAR_CLEARANCE,
+} from "@/theme/layout";
 
 // Where Explore searches when the device location is not available: São Paulo
 // centre. Explore never prompts for location (S6 spec "Permissions").
@@ -84,11 +89,6 @@ function deriveResults(
   return list;
 }
 
-/** Neutral rounded skeleton block (DESIGN_SYSTEM skeleton shapes TBD — flag). */
-function SkeletonBlock({ className }: { className: string }) {
-  return <View className={`bg-bg-light-alt rounded-card ${className}`} />;
-}
-
 function ResultsArea({
   view,
   setView,
@@ -149,49 +149,49 @@ function ResultsArea({
         )}
       />
 
-      {/* ── Map preview (inline; full map is S17) ── */}
+      {/* ── Map entry (full map is S17): how many matches are nearby and how
+          far the closest one is. One flat row — the whole row opens the map. ── */}
       <Pressable
-        className="mx-4 mt-4 h-44 rounded-card overflow-hidden shadow-card bg-bg-light-alt"
+        className="mx-4 mt-4 p-3 flex-row items-center gap-3 bg-white rounded-card shadow-card overflow-hidden"
         onPress={goMap}
+        android_ripple={PRESS_RIPPLE}
         accessibilityRole="button"
         accessibilityLabel="Abrir mapa de partidas"
       >
-        {/* lime badge (top-left): how many matches the search found nearby. */}
-        <View className="absolute top-3 left-3 bg-accent rounded-pill px-3 py-1">
-          <Text className="font-mono text-mono text-text-primary uppercase">
+        <View className="h-10 w-10 rounded-chip bg-primary items-center justify-center">
+          <MapPin size={20} color={colors.textOnDark} />
+        </View>
+        <View className="flex-1">
+          <Text
+            className="font-body-bold text-body text-text-primary"
+            numberOfLines={1}
+          >
             {results.length} jogos por perto
           </Text>
-        </View>
-
-        {/* Floating card (bottom): the closest match found. */}
-        {nearest ? (
-          <View className="absolute bottom-3 left-3 right-3 bg-white rounded-card shadow-card p-3 flex-row items-center gap-3">
-            <View className="h-10 w-10 rounded-card bg-primary items-center justify-center">
-              <MapPin size={20} color={colors.textOnDark} />
-            </View>
-            <View className="flex-1">
+          {nearest ? (
+            <View className="flex-row gap-1">
+              <Text className="font-body text-caption text-text-muted">
+                Mais perto:
+              </Text>
               <Text
-                className="font-body text-h3 text-text-primary"
+                className="shrink font-body-semibold text-caption text-text-primary"
                 numberOfLines={1}
               >
-                Mais perto de você
-              </Text>
-              <Text className="font-body text-caption text-text-muted">
                 {nearest.distanceKm.toFixed(1).replace(".", ",")} km ·{" "}
                 {nearest.priceLabel}
               </Text>
             </View>
-            <Button variant="primary" onPress={goMap}>
-              Ver
-            </Button>
-          </View>
-        ) : null}
+          ) : null}
+        </View>
+        <Button variant="primary" onPress={goMap}>
+          Ver
+        </Button>
       </Pressable>
 
       {/* ── Results count + Grade/Lista toggle ── */}
       <View className="flex-row items-center justify-between px-4 mt-6">
         <Text
-          className="font-body text-body-bold text-text-primary"
+          className="font-body-semibold text-body-bold text-text-primary"
           accessibilityLiveRegion="polite"
         >
           {results.length} partidas encontradas
@@ -244,18 +244,18 @@ function ResultsBody({
 }) {
   if (isPending) {
     return (
-      <View className="flex-row flex-wrap px-4 gap-3 mt-2">
+      <View className="flex-row flex-wrap justify-between px-4 gap-y-3 mt-2">
         <View className="w-[48%]">
-          <SkeletonBlock className="h-36" />
+          <SkeletonBlock className="h-[172px]" />
         </View>
         <View className="w-[48%]">
-          <SkeletonBlock className="h-36" />
+          <SkeletonBlock className="h-[172px]" />
         </View>
         <View className="w-[48%]">
-          <SkeletonBlock className="h-36" />
+          <SkeletonBlock className="h-[172px]" />
         </View>
         <View className="w-[48%]">
-          <SkeletonBlock className="h-36" />
+          <SkeletonBlock className="h-[172px]" />
         </View>
       </View>
     );
@@ -263,14 +263,11 @@ function ResultsBody({
 
   if (isError) {
     return (
-      <View className="px-4 py-6 items-center" accessibilityLiveRegion="polite">
-        <Text className="font-body text-body text-text-muted text-center">
-          Não foi possível carregar
-        </Text>
-        <Button variant="ghost" onPress={onRetry}>
-          Tentar novamente
-        </Button>
-      </View>
+      <StateMessage
+        message="Não foi possível carregar"
+        actionLabel="Tentar novamente"
+        onAction={onRetry}
+      />
     );
   }
 
@@ -278,25 +275,15 @@ function ResultsBody({
     // Distinguish "no data at all" from "filtered out by search/chip".
     if (sourceEmpty) {
       return (
-        <View
-          className="px-4 py-6 items-center"
-          accessibilityLiveRegion="polite"
-        >
-          <Text className="font-body text-caption text-text-muted text-center">
-            Nenhuma partida perto de você ainda
-          </Text>
-        </View>
+        <StateMessage message="Nenhuma partida perto de você ainda" />
       );
     }
     return (
-      <View className="px-4 py-6 items-center" accessibilityLiveRegion="polite">
-        <Text className="font-body text-caption text-text-muted text-center">
-          Nenhuma partida encontrada para esta busca
-        </Text>
-        <Button variant="ghost" onPress={onClearFilters}>
-          Limpar filtros
-        </Button>
-      </View>
+      <StateMessage
+        message="Nenhuma partida encontrada para esta busca"
+        actionLabel="Limpar filtros"
+        onAction={onClearFilters}
+      />
     );
   }
 
@@ -304,7 +291,7 @@ function ResultsBody({
     <View
       className={
         view === "grid"
-          ? "flex-row flex-wrap px-4 gap-3 mt-2"
+          ? "flex-row flex-wrap justify-between px-4 gap-y-3 mt-2"
           : "px-4 gap-3 mt-2"
       }
     >
@@ -321,12 +308,10 @@ export default function ExploreScreen() {
   const [view, setView] = useState<ViewMode>("grid");
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
-  const blurTarget = useRef<View>(null);
-  useRegisterNavBlurTarget(blurTarget);
 
   return (
     <View className="flex-1 bg-bg-light">
-      <BlurTargetView ref={blurTarget} className="flex-1 bg-bg-light">
+      <View className="flex-1 bg-bg-light">
         <ScrollView
           contentContainerStyle={{
             paddingTop: headerHeight,
@@ -335,12 +320,12 @@ export default function ExploreScreen() {
         >
           <ResultsArea view={view} setView={setView} />
         </ScrollView>
-      </BlurTargetView>
+      </View>
 
-      {/* Glass header — no avatar/greeting. Bell is a no-op this iteration
+      {/* Screen header — no avatar/greeting. Bell is a no-op this iteration
           (no notifications screen). */}
-      <GlassHeader blurTarget={blurTarget} onHeight={setHeaderHeight}>
-        <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
+      <ScreenHeader onHeight={setHeaderHeight}>
+        <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
           <Text className="font-display text-h1 text-text-primary uppercase">
             EXPLORAR
           </Text>
@@ -348,6 +333,8 @@ export default function ExploreScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Notificações"
+              hitSlop={ICON_HIT_SLOP}
+              android_ripple={ICON_RIPPLE}
               onPress={() => {}}
             >
               <Bell size={24} color={colors.surfaceDark} />
@@ -355,13 +342,15 @@ export default function ExploreScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Configurações"
+              hitSlop={ICON_HIT_SLOP}
+              android_ripple={ICON_RIPPLE}
               onPress={goSettings}
             >
               <Settings size={24} color={colors.surfaceDark} />
             </Pressable>
           </View>
         </View>
-      </GlassHeader>
+      </ScreenHeader>
     </View>
   );
 }

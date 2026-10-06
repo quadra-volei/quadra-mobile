@@ -650,7 +650,7 @@ export default function MatchDetailScreen() {
               >
                 <Hand size={20} color={colors.primary} />
                 <View className="flex-1">
-                  <Text className="font-body text-h3 text-text-primary">Manual</Text>
+                  <Text className="font-body-extrabold text-h3 text-text-primary">Manual</Text>
                   <Text className="font-body text-caption text-text-muted">
                     Você escolhe quem joga em cada time, na mão
                   </Text>
@@ -672,7 +672,7 @@ export default function MatchDetailScreen() {
               >
                 <WandSparkles size={20} color={colors.primary} />
                 <View className="flex-1">
-                  <Text className="font-body text-h3 text-text-primary">
+                  <Text className="font-body-extrabold text-h3 text-text-primary">
                     Automático
                   </Text>
                   <Text className="font-body text-caption text-text-muted">

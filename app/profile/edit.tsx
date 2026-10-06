@@ -1,9 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { BlurTargetView } from "expo-blur";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { Pencil } from "lucide-react-native";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 
 import {
@@ -16,7 +15,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { DateField } from "@/components/ui/DateField";
-import { GlassBackHeader } from "@/components/ui/GlassBackHeader";
+import { BackHeader } from "@/components/ui/BackHeader";
 import { FilterChip } from "@/components/ui/FilterChip";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { TextField } from "@/components/ui/TextField";
@@ -58,11 +57,10 @@ function EditError({ onRetry }: { onRetry: () => void }) {
 export default function EditProfileScreen() {
   const { data, isPending, isError, refetch } = useMyProfile();
   const [headerHeight, setHeaderHeight] = useState(0);
-  const blurTarget = useRef<View>(null);
 
   return (
     <View className="flex-1 bg-bg-light">
-      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         {isPending ? (
           <View style={{ paddingTop: headerHeight }}>
             <EditSkeleton />
@@ -74,11 +72,10 @@ export default function EditProfileScreen() {
         ) : (
           <EditProfileForm profile={data} headerHeight={headerHeight} />
         )}
-      </BlurTargetView>
+      </View>
 
-      <GlassBackHeader
+      <BackHeader
         title="Editar perfil"
-        blurTarget={blurTarget}
         onHeight={setHeaderHeight}
       />
     </View>
@@ -264,7 +261,7 @@ function EditProfileForm({
 
         {/* NÚMERO DE TELEFONE */}
         <View className="mt-4">
-          <Text className="font-body text-eyebrow text-text-primary uppercase mb-2">
+          <Text className="font-body-bold text-eyebrow text-text-primary uppercase mb-2">
             Número de telefone
           </Text>
           <Controller
@@ -283,7 +280,7 @@ function EditProfileForm({
         </View>
 
         {/* POSIÇÃO EM QUADRA — single-select chips */}
-        <Text className="font-body text-eyebrow text-text-primary uppercase mt-6 mb-2">
+        <Text className="font-body-bold text-eyebrow text-text-primary uppercase mt-6 mb-2">
           Posição em quadra
         </Text>
         <Controller

@@ -1,46 +1,46 @@
 import { router } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
-import type { ReactNode, RefObject } from "react";
+import type { ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 
-import { GlassHeader } from "@/components/ui/GlassHeader";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { colors } from "@/theme/colors";
+import { ICON_HIT_SLOP, ICON_RIPPLE } from "@/theme/layout";
 
-type GlassBackHeaderProps = {
+type BackHeaderProps = {
   /** Screen title, rendered in the display face (uppercased by the token). */
   title: string;
-  /** Glass tint — `"dark"` for navy screens (e.g. the player card). */
+  /** `"dark"` for navy screens (e.g. the player card). */
   tint?: "light" | "dark";
   /** Optional right-aligned cluster (e.g. a Bell or Share action). */
   right?: ReactNode;
-  /** Forwarded to `GlassHeader` — Android backdrop-blur target. */
-  blurTarget?: RefObject<View | null>;
-  /** Forwarded to `GlassHeader` — reports total header height for content offset. */
+  /** Forwarded to `ScreenHeader` — reports total header height for content offset. */
   onHeight?: (height: number) => void;
 };
 
 /**
- * Standard glass header for pushed stack screens (back chevron + title, optional
- * right cluster) over the shared `GlassHeader` glass chrome. Mirrors the tab
- * headers' bare-chevron affordance so every screen's header reads as one system.
+ * Standard header for pushed stack screens (back chevron + title, optional
+ * right cluster) over the shared `ScreenHeader`. Mirrors the tab headers'
+ * bare-chevron affordance so every screen's header reads as one system.
  */
-export function GlassBackHeader({
+export function BackHeader({
   title,
   tint = "light",
   right,
-  blurTarget,
   onHeight,
-}: GlassBackHeaderProps) {
+}: BackHeaderProps) {
   const iconColor = tint === "dark" ? colors.textOnDark : colors.surfaceDark;
   const titleColor = tint === "dark" ? "text-text-on-dark" : "text-text-primary";
 
   return (
-    <GlassHeader tint={tint} blurTarget={blurTarget} onHeight={onHeight}>
+    <ScreenHeader tint={tint} onHeight={onHeight}>
       <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
         <View className="flex-1 flex-row items-center gap-3">
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Voltar"
+            hitSlop={ICON_HIT_SLOP}
+            android_ripple={ICON_RIPPLE}
             onPress={() => router.back()}
           >
             <ChevronLeft size={24} color={iconColor} />
@@ -56,6 +56,6 @@ export function GlassBackHeader({
           <View className="flex-row items-center gap-3">{right}</View>
         ) : null}
       </View>
-    </GlassHeader>
+    </ScreenHeader>
   );
 }

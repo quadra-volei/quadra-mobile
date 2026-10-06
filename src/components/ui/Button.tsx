@@ -25,7 +25,7 @@ export type ButtonProps = {
 const GRADIENT_CTA = ["#1A1AFF", "#AADD00"] as const; // bg-gradient-cta (blue → lime)
 const GRADIENT_PRIMARY = ["#0A0A3C", "#1A1AFF"] as const; // bg-gradient-primary (navy → blue)
 const GRADIENT_DISABLED = ["#E8EEF8", "#E8EEF8"] as const; // bg-light-alt token — muted disabled fill
-const TEXT_DISABLED = "#7A7A9A"; // text-muted token — disabled label color
+const TEXT_DISABLED = "#62628A"; // text-muted token — disabled label color
 
 // boxShadow tokens (DESIGN_SYSTEM "Gradients"). Applied via inline style — NOT a
 // toggled className — so enabling the button never mutates NativeWind styles
@@ -37,12 +37,12 @@ const BASE = "h-12 rounded-btn flex-row items-center justify-center px-6";
 
 // Per-variant text classes (font weight/family + enabled color).
 const TEXT_CLASS: Record<ButtonVariant, string> = {
-  grad: "font-body text-body-bold text-text-on-dark",
-  primary: "font-body text-body-bold text-text-on-dark",
-  outline: "font-body text-body-bold text-primary",
-  outlineW: "font-body text-body-bold text-text-on-dark",
-  outlineLime: "font-body text-body-bold text-accent-light",
-  ghost: "font-body text-body-bold text-primary",
+  grad: "font-body-semibold text-body-bold text-text-on-dark",
+  primary: "font-body-semibold text-body-bold text-text-on-dark",
+  outline: "font-body-semibold text-body-bold text-primary",
+  outlineW: "font-body-semibold text-body-bold text-text-on-dark",
+  outlineLime: "font-body-semibold text-body-bold text-accent-light",
+  ghost: "font-body-semibold text-body-bold text-primary",
 };
 
 function isGradient(variant: ButtonVariant): boolean {

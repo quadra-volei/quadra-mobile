@@ -190,7 +190,7 @@ export default function MapScreen() {
   if (nearby.isError) {
     return (
       <StateContainer>
-        <Text className="font-body text-body-bold text-text-primary text-center mb-6">
+        <Text className="font-body-semibold text-body-bold text-text-primary text-center mb-6">
           Não foi possível carregar as partidas por perto.
         </Text>
         <View className="w-full">
@@ -287,7 +287,7 @@ export default function MapScreen() {
           <View className="flex-1 flex-row items-center h-14 pl-1 pr-5 bg-white rounded-pill shadow-card">
             {backButton('h-12 w-12')}
             <View className="flex-1">
-              <Text numberOfLines={1} className="font-body text-body-bold text-text-primary">
+              <Text numberOfLines={1} className="font-body-semibold text-body-bold text-text-primary">
                 Perto de você
               </Text>
               <Text numberOfLines={1} className="font-body text-caption text-text-muted">

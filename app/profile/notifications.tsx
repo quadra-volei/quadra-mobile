@@ -1,8 +1,7 @@
-import { BlurTargetView } from 'expo-blur';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { ScrollView, Switch, Text, View } from 'react-native';
 
-import { GlassBackHeader } from '@/components/ui/GlassBackHeader';
+import { BackHeader } from '@/components/ui/BackHeader';
 import { useNotificationPrefsStore } from '@/stores/notificationPrefs';
 import { colors } from '@/theme/colors';
 
@@ -31,7 +30,7 @@ function ToggleRow({
   return (
     <View className="flex-row items-center px-4 py-4">
       <View className="flex-1 pr-4">
-        <Text className="font-body text-h3 text-text-primary">{title}</Text>
+        <Text className="font-body-extrabold text-h3 text-text-primary">{title}</Text>
         <Text className="mt-0.5 font-body text-caption text-text-muted">
           {subtitle}
         </Text>
@@ -56,16 +55,15 @@ export default function NotificationsScreen() {
   const setRanking = useNotificationPrefsStore((s) => s.setRanking);
 
   const [headerHeight, setHeaderHeight] = useState(0);
-  const blurTarget = useRef<View>(null);
 
   return (
     <View className="flex-1 bg-bg-light">
-      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         <ScrollView
           contentContainerClassName="pb-24"
           contentContainerStyle={{ paddingTop: headerHeight }}
         >
-          <Text className="font-body text-eyebrow text-text-muted uppercase px-4 mt-4 mb-2">
+          <Text className="font-body-bold text-eyebrow text-text-muted uppercase px-4 mt-4 mb-2">
             Notificações push
           </Text>
           <View className="mx-4 bg-white rounded-card shadow-card overflow-hidden">
@@ -91,11 +89,10 @@ export default function NotificationsScreen() {
             />
           </View>
         </ScrollView>
-      </BlurTargetView>
+      </View>
 
-      <GlassBackHeader
+      <BackHeader
         title="Notificações"
-        blurTarget={blurTarget}
         onHeight={setHeaderHeight}
       />
     </View>

@@ -6,6 +6,7 @@ import { CourtImage } from '@/components/ui/CourtImage';
 import { Tag } from '@/components/ui/Tag';
 import type { UpcomingMatch } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
+import { PRESS_RIPPLE } from '@/theme/layout';
 
 export type MatchCardCompactProps = {
   match: UpcomingMatch;
@@ -63,6 +64,7 @@ export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactPro
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={`${match.name}, ${formatStartsAt(match.startsAt)}`}
+      android_ripple={PRESS_RIPPLE}
       className="w-[262px] bg-white rounded-card shadow-card overflow-hidden"
     >
       {/* cover */}

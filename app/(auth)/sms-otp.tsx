@@ -188,7 +188,7 @@ export default function SmsOtpScreen() {
         </Text>
         <Text className="font-body text-body text-text-muted mt-2">
           Enviamos um código de 6 dígitos por SMS para{" "}
-          <Text className="font-body text-body-bold text-text-primary">
+          <Text className="font-body-semibold text-body-bold text-text-primary">
             {displayPhone}
           </Text>
           .

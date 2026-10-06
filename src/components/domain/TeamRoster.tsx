@@ -26,7 +26,7 @@ export function TeamRoster({
   return (
     <View className="flex-1" testID={testID}>
       {/* ── Team header ── */}
-      <Text className="font-body text-eyebrow text-text-primary uppercase mb-3">
+      <Text className="font-body-bold text-eyebrow text-text-primary uppercase mb-3">
         {teamName || `Time ${teamId}`}
       </Text>
 

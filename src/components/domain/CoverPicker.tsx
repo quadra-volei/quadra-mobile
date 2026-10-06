@@ -45,7 +45,7 @@ export function CoverPicker({ uri, onPress, testID }: CoverPickerProps) {
       )}
 
       {/* Eyebrow (top-right). */}
-      <Text className="absolute right-4 top-3 font-body text-eyebrow text-text-on-dark uppercase">
+      <Text className="absolute right-4 top-3 font-body-bold text-eyebrow text-text-on-dark uppercase">
         Capa da partida
       </Text>
 
@@ -54,7 +54,7 @@ export function CoverPicker({ uri, onPress, testID }: CoverPickerProps) {
         <View className="w-full flex-1 items-center justify-center rounded-card border border-dashed border-white/40">
           <View className="flex-row items-center gap-2">
             <Pencil size={16} color={colors.textOnDark} />
-            <Text className="font-body text-body-bold text-text-on-dark">
+            <Text className="font-body-semibold text-body-bold text-text-on-dark">
               Trocar capa
             </Text>
           </View>

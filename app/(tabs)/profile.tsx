@@ -1,7 +1,6 @@
-import { BlurTargetView } from "expo-blur";
 import { router } from "expo-router";
 import { Bell, Settings } from "lucide-react-native";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -9,16 +8,17 @@ import { LevelBar } from "@/components/domain/LevelBar";
 import { MatchHistoryRow } from "@/components/domain/MatchHistoryRow";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
-import { GlassHeader } from "@/components/ui/GlassHeader";
+import { SkeletonBlock } from "@/components/ui/Skeleton";
+import { StateMessage } from "@/components/ui/StateMessage";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { useRecentMatches } from "@/features/profile/api/getRecentMatches";
-import { useRegisterNavBlurTarget } from "@/stores/navBlurTarget";
 import { useGroupRanking } from "@/features/ranking/api/getGroupRanking";
 import type { RankingRow } from "@/features/ranking/types/ranking";
 import { useAuthStore } from "@/stores/auth";
 import { colors } from "@/theme/colors";
 import { DEFAULT_AVATAR } from "@/theme/defaultAvatars";
-import { TAB_BAR_CLEARANCE } from "@/theme/layout";
+import { ICON_HIT_SLOP, ICON_RIPPLE, TAB_BAR_CLEARANCE } from "@/theme/layout";
 
 function goRanking() {
   router.push("/profile/ranking");
@@ -35,11 +35,6 @@ function noop() {}
 function goMatchSummary(id: string) {
   // "Minhas partidas" lists past matches — open the read-only summary, not the live detail.
   router.push({ pathname: "/matches/[id]/summary", params: { id } });
-}
-
-/** Neutral rounded skeleton block (DESIGN_SYSTEM skeleton shapes TBD — flag). */
-function SkeletonBlock({ className }: { className: string }) {
-  return <View className={`bg-bg-light-alt rounded-card ${className}`} />;
 }
 
 function SectionTitleRow({
@@ -61,19 +56,6 @@ function SectionTitleRow({
           {action.label}
         </Button>
       ) : null}
-    </View>
-  );
-}
-
-function ErrorRow({ onRetry }: { onRetry: () => void }) {
-  return (
-    <View className="px-4 py-6 items-center" accessibilityLiveRegion="polite">
-      <Text className="font-body text-body text-text-muted text-center">
-        Não foi possível carregar
-      </Text>
-      <Button variant="ghost" onPress={onRetry}>
-        Tentar novamente
-      </Button>
     </View>
   );
 }
@@ -115,6 +97,8 @@ function ProfileHeader() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Notificações"
+          hitSlop={ICON_HIT_SLOP}
+          android_ripple={ICON_RIPPLE}
           onPress={() => {}}
         >
           <Bell size={24} color={colors.surfaceDark} />
@@ -122,6 +106,8 @@ function ProfileHeader() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Configurações"
+          hitSlop={ICON_HIT_SLOP}
+          android_ripple={ICON_RIPPLE}
           onPress={goSettings}
         >
           <Settings size={24} color={colors.surfaceDark} />
@@ -155,14 +141,18 @@ function ProgressSection() {
   if (isError) {
     return (
       <View className="mx-4 bg-white rounded-card shadow-card">
-        <ErrorRow onRetry={() => refetch()} />
+        <StateMessage
+          message="Não foi possível carregar"
+          actionLabel="Tentar novamente"
+          onAction={() => refetch()}
+        />
       </View>
     );
   }
 
   return (
     <View className="mx-4 bg-white rounded-card shadow-card p-4">
-      <Text className="font-display text-h1 text-text-primary uppercase mb-3">
+      <Text className="font-display text-h2 text-text-primary uppercase mb-3">
         Seu progresso
       </Text>
 
@@ -212,19 +202,18 @@ function RecentMatchesSection() {
   if (isError) {
     return (
       <View className="mx-4 mt-2 bg-white rounded-card shadow-card">
-        <ErrorRow onRetry={() => refetch()} />
+        <StateMessage
+          message="Não foi possível carregar"
+          actionLabel="Tentar novamente"
+          onAction={() => refetch()}
+        />
       </View>
     );
   }
   if (data.length === 0) {
     return (
-      <View
-        className="mx-4 mt-2 bg-white rounded-card shadow-card px-4 py-6"
-        accessibilityLiveRegion="polite"
-      >
-        <Text className="font-body text-caption text-text-muted text-center">
-          Você ainda não jogou nenhuma partida
-        </Text>
+      <View className="mx-4 mt-2 bg-white rounded-card shadow-card">
+        <StateMessage message="Você ainda não jogou nenhuma partida" />
       </View>
     );
   }
@@ -274,7 +263,7 @@ function RankingPreviewRow({ row, isMe }: { row: RankingRow; isMe: boolean }) {
       </Text>
       <Avatar name={row.name} size="sm" level={row.level} />
       <View className="flex-1 ml-3">
-        <Text className="font-body text-body-bold text-text-on-dark">
+        <Text className="font-body-semibold text-body-bold text-text-on-dark">
           {row.name}
           {isMe ? " · você" : ""}
         </Text>
@@ -306,14 +295,12 @@ function RankingSection() {
   if (isError) {
     return (
       <View className="mx-4 mt-2 rounded-card overflow-hidden bg-surface-dark">
-        <View className="p-4 items-center" accessibilityLiveRegion="polite">
-          <Text className="font-body text-body text-text-on-dark text-center">
-            Não foi possível carregar
-          </Text>
-          <Button variant="outlineLime" onPress={() => refetch()}>
-            Tentar novamente
-          </Button>
-        </View>
+        <StateMessage
+          message="Não foi possível carregar"
+          actionLabel="Tentar novamente"
+          onAction={() => refetch()}
+          tone="dark"
+        />
       </View>
     );
   }
@@ -326,11 +313,10 @@ function RankingSection() {
         Ranking semanal
       </Text>
       {data.length === 0 ? (
-        <View className="py-4 items-center" accessibilityLiveRegion="polite">
-          <Text className="font-body text-caption text-white/60 text-center">
-            Entre em uma partida recorrente para aparecer no ranking
-          </Text>
-        </View>
+        <StateMessage
+          message="Entre em uma partida recorrente para aparecer no ranking"
+          tone="dark"
+        />
       ) : (
         <View className="gap-1">
           {data.map((row) => (
@@ -360,12 +346,10 @@ function RankingSection() {
 export default function ProfileScreen() {
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
-  const blurTarget = useRef<View>(null);
-  useRegisterNavBlurTarget(blurTarget);
 
   return (
     <View className="flex-1 bg-bg-light">
-      <BlurTargetView ref={blurTarget} className="flex-1 bg-bg-light">
+      <View className="flex-1 bg-bg-light">
         <ScrollView
           contentContainerStyle={{
             paddingTop: headerHeight,
@@ -385,11 +369,11 @@ export default function ProfileScreen() {
           <SectionTitleRow title="Meus amigos" />
           <RankingSection />
         </ScrollView>
-      </BlurTargetView>
+      </View>
 
-      <GlassHeader blurTarget={blurTarget} onHeight={setHeaderHeight}>
+      <ScreenHeader onHeight={setHeaderHeight}>
         <ProfileHeader />
-      </GlassHeader>
+      </ScreenHeader>
     </View>
   );
 }

@@ -1,8 +1,7 @@
-import { BlurTargetView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Bell, Plus, Search, Settings } from "lucide-react-native";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -10,11 +9,12 @@ import { JogarIcon } from "@/components/icons/JogarIcon";
 import { MatchCard } from "@/components/domain/MatchCard";
 import { MatchCardCompact } from "@/components/domain/MatchCardCompact";
 import { Button } from "@/components/ui/Button";
-import { GlassHeader } from "@/components/ui/GlassHeader";
+import { SkeletonBlock } from "@/components/ui/Skeleton";
+import { StateMessage } from "@/components/ui/StateMessage";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useNearbyMatches } from "@/features/matches/api/getNearby";
 import { useUpcomingMatches } from "@/features/matches/api/getUpcoming";
 import { useDeviceCoords } from "@/features/matches/lib/useDeviceCoords";
-import { useRegisterNavBlurTarget } from "@/stores/navBlurTarget";
 import type {
   NearbyMatch,
   UpcomingMatch,
@@ -26,7 +26,12 @@ import {
   SEARCH_TILE_GRADIENT,
   SEARCH_TILE_LOCATIONS,
 } from "@/theme/colors";
-import { TAB_BAR_CLEARANCE } from "@/theme/layout";
+import {
+  ICON_HIT_SLOP,
+  ICON_RIPPLE,
+  PRESS_RIPPLE,
+  TAB_BAR_CLEARANCE,
+} from "@/theme/layout";
 
 // Where "perto de você" searches when the device location is not available:
 // São Paulo centre. Home never prompts for location (S5 spec "Permissions").
@@ -48,11 +53,6 @@ function goSettings() {
   router.push("/profile/settings");
 }
 
-/** Neutral rounded skeleton block (DESIGN_SYSTEM skeleton shapes TBD — flag). */
-function SkeletonBlock({ className }: { className: string }) {
-  return <View className={`bg-bg-light-alt rounded-card ${className}`} />;
-}
-
 function SectionHeader({
   title,
   actionLabel,
@@ -64,29 +64,11 @@ function SectionHeader({
 }) {
   return (
     <View className="flex-row items-center justify-between px-4 mt-6">
-      {/* In-screen section title: Climate Crisis 14px, one step below the
-          "INÍCIO" screen header (18px) — matches the prototype's SectionTitle. */}
-      <Text
-        className="font-display text-text-primary uppercase"
-        style={{ fontSize: 14, letterSpacing: 0.6 }}
-      >
+      <Text className="font-display text-h2 text-text-primary uppercase">
         {title}
       </Text>
       <Button variant="ghost" onPress={onAction}>
         {actionLabel}
-      </Button>
-    </View>
-  );
-}
-
-function ErrorRow({ onRetry }: { onRetry: () => void }) {
-  return (
-    <View className="px-4 py-6 items-center" accessibilityLiveRegion="polite">
-      <Text className="font-body text-body text-text-muted text-center">
-        Não foi possível carregar
-      </Text>
-      <Button variant="ghost" onPress={onRetry}>
-        Tentar novamente
       </Button>
     </View>
   );
@@ -105,8 +87,9 @@ function DualCtaTiles() {
         onPress={goCreate}
         accessibilityRole="button"
         accessibilityLabel="Criar partida"
-        className="flex-1 rounded-[22px] overflow-hidden"
-        style={{ minHeight: 138, boxShadow: "0 10px 26px rgba(0,50,209,0.3)" }}
+        android_ripple={PRESS_RIPPLE}
+        className="flex-1 rounded-card overflow-hidden"
+        style={{ minHeight: 138, boxShadow: "0 4px 16px rgba(26,26,255,0.28)" }}
       >
         <LinearGradient
           colors={CREATE_TILE_GRADIENT}
@@ -139,7 +122,7 @@ function DualCtaTiles() {
               >
                 Criar
               </Text>
-              <Text className="font-body text-body-bold text-white">
+              <Text className="font-body-semibold text-body-bold text-white">
                 partida
               </Text>
             </View>
@@ -147,13 +130,14 @@ function DualCtaTiles() {
         </LinearGradient>
       </Pressable>
 
-      {/* Buscar — lime→pale-lime→white gradient, glassy search badge */}
+      {/* Buscar — lime→pale-lime→white gradient, plain white search badge */}
       <Pressable
         onPress={goExplore}
         accessibilityRole="button"
         accessibilityLabel="Buscar partida"
-        className="flex-1 rounded-[22px] overflow-hidden border-[1.5px] border-primary/15"
-        style={{ minHeight: 138, boxShadow: "0 6px 18px rgba(10,10,60,0.06)" }}
+        android_ripple={PRESS_RIPPLE}
+        className="flex-1 rounded-card overflow-hidden border border-line shadow-card"
+        style={{ minHeight: 138 }}
       >
         <LinearGradient
           colors={SEARCH_TILE_GRADIENT}
@@ -163,13 +147,7 @@ function DualCtaTiles() {
           style={{ flex: 1 }}
         >
           <View className="flex-1 justify-between px-4 pt-[18px] pb-4">
-            <View
-              className="w-[42px] h-[42px] rounded-[14px] items-center justify-center bg-white/70 border border-white"
-              style={{
-                boxShadow:
-                  "inset 0 1px 1px rgba(255,255,255,0.7), 0 2px 6px rgba(10,10,60,0.08)",
-              }}
-            >
+            <View className="w-[42px] h-[42px] rounded-[14px] items-center justify-center bg-white border border-line">
               <Search size={23} color={colors.surfaceDark} strokeWidth={2.2} />
             </View>
             <View>
@@ -179,7 +157,7 @@ function DualCtaTiles() {
               >
                 Buscar
               </Text>
-              <Text className="font-body text-body-bold text-text-primary">
+              <Text className="font-body-semibold text-body-bold text-text-primary">
                 partida
               </Text>
             </View>
@@ -196,14 +174,18 @@ function UpcomingSection() {
   if (isPending) {
     return (
       <View className="flex-row px-4 gap-3 mt-2">
-        <SkeletonBlock className="w-64 h-44" />
-        <SkeletonBlock className="w-64 h-44" />
+        <SkeletonBlock className="w-[262px] h-[248px]" />
+        <SkeletonBlock className="w-[262px] h-[248px]" />
       </View>
     );
   }
 
   if (isError) {
-    return <ErrorRow onRetry={() => refetch()} />;
+    return <StateMessage
+      message="Não foi possível carregar"
+      actionLabel="Tentar novamente"
+      onAction={() => refetch()}
+    />;
   }
 
   return (
@@ -217,17 +199,11 @@ function UpcomingSection() {
         <MatchCardCompact match={item} onPress={goMatch} />
       )}
       ListEmptyComponent={
-        <View
-          className="px-4 py-6 items-center"
-          accessibilityLiveRegion="polite"
-        >
-          <Text className="font-body text-caption text-text-muted text-center">
-            Você ainda não tem partidas marcadas
-          </Text>
-          <Button variant="ghost" onPress={goCreate}>
-            Criar partida
-          </Button>
-        </View>
+        <StateMessage
+          message="Você ainda não tem partidas marcadas"
+          actionLabel="Criar partida"
+          onAction={goCreate}
+        />
       }
     />
   );
@@ -243,7 +219,7 @@ function NearbySection() {
 
   if (isPending) {
     return (
-      <View className="flex-row flex-wrap px-4 gap-3 mt-2">
+      <View className="flex-row flex-wrap justify-between px-4 gap-y-3 mt-2">
         <View className="w-[48%]">
           <SkeletonBlock className="h-[172px]" />
         </View>
@@ -255,21 +231,25 @@ function NearbySection() {
   }
 
   if (isError) {
-    return <ErrorRow onRetry={() => refetch()} />;
+    return <StateMessage
+      message="Não foi possível carregar"
+      actionLabel="Tentar novamente"
+      onAction={() => refetch()}
+    />;
   }
 
   if (data.length === 0) {
     return (
-      <View className="px-4 py-6 items-center" accessibilityLiveRegion="polite">
-        <Text className="font-body text-caption text-text-muted text-center">
-          Nenhuma partida perto de você ainda
-        </Text>
-      </View>
+      <StateMessage
+        message="Nenhuma partida perto de você ainda"
+        actionLabel="Criar partida"
+        onAction={goCreate}
+      />
     );
   }
 
   return (
-    <View className="flex-row flex-wrap px-4 gap-3 mt-2">
+    <View className="flex-row flex-wrap justify-between px-4 gap-y-3 mt-2">
       {data.map((m: NearbyMatch) => (
         <View key={m.id} className="w-[48%]">
           <MatchCard match={m} onPress={goMatch} />
@@ -282,12 +262,10 @@ function NearbySection() {
 export default function HomeScreen() {
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
-  const blurTarget = useRef<View>(null);
-  useRegisterNavBlurTarget(blurTarget);
 
   return (
     <View className="flex-1 bg-bg-light">
-      <BlurTargetView ref={blurTarget} className="flex-1 bg-bg-light">
+      <View className="flex-1 bg-bg-light">
         <ScrollView
           contentContainerStyle={{
             paddingTop: headerHeight,
@@ -313,21 +291,20 @@ export default function HomeScreen() {
           />
           <NearbySection />
         </ScrollView>
-      </BlurTargetView>
+      </View>
 
-      {/* Glass header — Climate Crisis 18px, matching the prototype's Header. */}
-      <GlassHeader blurTarget={blurTarget} onHeight={setHeaderHeight}>
+      {/* Screen header */}
+      <ScreenHeader onHeight={setHeaderHeight}>
         <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
-          <Text
-            className="font-display text-text-primary uppercase"
-            style={{ fontSize: 18, letterSpacing: 1 }}
-          >
+          <Text className="font-display text-h1 text-text-primary uppercase">
             INÍCIO
           </Text>
           <View className="flex-row items-center gap-3">
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Notificações"
+              hitSlop={ICON_HIT_SLOP}
+              android_ripple={ICON_RIPPLE}
               onPress={() => {}}
             >
               <Bell size={24} color={colors.surfaceDark} />
@@ -335,13 +312,15 @@ export default function HomeScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Configurações"
+              hitSlop={ICON_HIT_SLOP}
+              android_ripple={ICON_RIPPLE}
               onPress={goSettings}
             >
               <Settings size={24} color={colors.surfaceDark} />
             </Pressable>
           </View>
         </View>
-      </GlassHeader>
+      </ScreenHeader>
     </View>
   );
 }
