@@ -11,6 +11,7 @@ import { GlassHeader } from '@/components/ui/GlassHeader';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { SearchField } from '@/components/ui/SearchField';
 import { useNearbyMatches } from '@/features/matches/api/getNearby';
+import { useDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
 import { useRegisterNavBlurTarget } from '@/stores/navBlurTarget';
 import type { NearbyMatch } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
@@ -97,7 +98,12 @@ function ResultsArea({
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterId>('todos');
 
-  const { data, isPending, isError, refetch } = useNearbyMatches(PLACEHOLDER_GEO);
+  const coords = useDeviceCoords();
+  const { data, isPending, isError, refetch } = useNearbyMatches(
+    coords
+      ? { ...PLACEHOLDER_GEO, lat: coords.latitude, lon: coords.longitude }
+      : PLACEHOLDER_GEO,
+  );
 
   const results = useMemo(
     () => deriveResults(data ?? [], query, activeFilter),

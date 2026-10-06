@@ -35,8 +35,8 @@ import { SearchField } from '@/components/ui/SearchField';
 import { StepperField } from '@/components/ui/StepperField';
 import { TextField } from '@/components/ui/TextField';
 import { useCreateMatch } from '@/features/matches/api/createMatch';
+import { formatPriceLabel } from '@/features/matches/api/matchesApi';
 import {
-  formatPriceLabel,
   resolveMatchStartsAt,
   type CreatedMatch,
 } from '@/features/matches/lib/buildMatchDetail';
@@ -52,7 +52,6 @@ import {
 import type { MatchFormat, MatchLevel } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
 import { useAuthStore } from '@/stores/auth';
-import { useCreatedMatchesStore } from '@/stores/createdMatchesStore';
 
 // ════════════════════════════════════════════════════════════
 // Conversational primitives (inlined — single-use to this flow, mirroring the
@@ -336,7 +335,6 @@ function CreatedView({ match }: { match: CreatedMatch }) {
 // CRIAR PARTIDA — formulário vivo (progressive disclosure)
 // ════════════════════════════════════════════════════════════
 export default function CreateMatchScreen() {
-  const addCreatedMatch = useCreatedMatchesStore((s) => s.addCreatedMatch);
   const organizerId = useAuthStore((s) => s.userId);
 
   const createMatch = useCreateMatch();
@@ -507,7 +505,6 @@ export default function CreateMatchScreen() {
             coverUri,
             input: formValues,
           };
-          addCreatedMatch(record);
           setCreated(record);
         },
       },
@@ -1056,7 +1053,8 @@ export default function CreateMatchScreen() {
               className="mt-4 font-body text-caption text-danger"
               accessibilityLiveRegion="polite"
             >
-              Não foi possível criar a partida. Tente novamente.
+              {createMatch.error?.message ??
+                'Não foi possível criar a partida. Tente novamente.'}
             </Text>
           ) : null}
         </ScrollView>

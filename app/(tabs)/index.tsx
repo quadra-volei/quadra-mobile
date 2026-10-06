@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/Button";
 import { GlassHeader } from "@/components/ui/GlassHeader";
 import { useNearbyMatches } from "@/features/matches/api/getNearby";
 import { useUpcomingMatches } from "@/features/matches/api/getUpcoming";
+import { useDeviceCoords } from "@/features/matches/lib/useDeviceCoords";
 import { useRegisterNavBlurTarget } from "@/stores/navBlurTarget";
 import type {
   NearbyMatch,
@@ -233,8 +234,12 @@ function UpcomingSection() {
 }
 
 function NearbySection() {
-  const { data, isPending, isError, refetch } =
-    useNearbyMatches(PLACEHOLDER_GEO);
+  const coords = useDeviceCoords();
+  const { data, isPending, isError, refetch } = useNearbyMatches(
+    coords
+      ? { ...PLACEHOLDER_GEO, lat: coords.latitude, lon: coords.longitude }
+      : PLACEHOLDER_GEO,
+  );
 
   if (isPending) {
     return (

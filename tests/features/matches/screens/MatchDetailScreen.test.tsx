@@ -1048,3 +1048,54 @@ describe('S12 — Match Detail screen', () => {
     });
   });
 });
+
+describe('S12 — joining against the real backend', () => {
+  const visitor = { myParticipationType: null, myStatus: null } as const;
+
+  it('offers joining while the window is still open when the backend allows it', async () => {
+    mockDetail.data = participantFixture({
+      ...visitor,
+      confirmationWindowClosed: false,
+      canJoin: true,
+    });
+    await renderScreen();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('join-match'));
+    });
+
+    expect(mockJoin.mutate).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks for the invite code of a private match and joins with it', async () => {
+    mockDetail.data = participantFixture({
+      ...visitor,
+      canJoin: false,
+      requiresInviteCode: true,
+    });
+    await renderScreen();
+
+    expect(screen.queryByTestId('join-match')).toBeNull();
+    await act(async () => {
+      fireEvent.changeText(screen.getByTestId('invite-code'), 'ab12cd34');
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('join-with-code'));
+    });
+
+    expect(mockJoin.mutate).toHaveBeenCalledWith({ inviteCode: 'ab12cd34' });
+  });
+
+  it('shows the place in the waiting list instead of a join button', async () => {
+    mockDetail.data = participantFixture({
+      ...visitor,
+      canJoin: false,
+      myWaitingListPosition: 2,
+    });
+    await renderScreen();
+
+    expect(screen.getByText('Na fila de espera · 2º')).toBeTruthy();
+    expect(screen.queryByTestId('join-match')).toBeNull();
+  });
+});
+
