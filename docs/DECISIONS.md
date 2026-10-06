@@ -79,3 +79,10 @@ Placeholders that are NOT mocks (the backend has no such data yet, the app shows
 | --- | --- | --- |
 | 35 | "Enviar feedback" (Perfil → Configurações) **sends to the backend** (`POST /api/v1/feedback`): the type and message of the form plus the app version (from `app.json`) and the platform. A failed send shows the reason on the screen (no connection, daily limit, expired session). | The backend now stores feedback. Version and platform place a reported problem without asking the user. With this there is no mocked call left in the app. |
 
+
+## 2026-10-06 — Test APK
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 36 | The EAS **`preview` profile builds an installable APK that talks to the hosted test API** (`EXPO_PUBLIC_API_URL` in the profile's `env`). | A phone build that needs no computer running. The URL is not a secret. |
+| 37 | The **Google Maps Android key comes from the `GOOGLE_MAPS_ANDROID_API_KEY` environment variable** (`app.config.js`), never from a committed file. Without it the build still works, but the map screen is blank. | A standalone build needs its own Maps key (Expo Go brings one); keys do not belong in the repository. |
