@@ -22,7 +22,7 @@ export default function NetworkScreen() {
       {/* Placeholder / empty state — vertically centered below the header */}
       <BlurTargetView
         ref={blurTarget}
-        className="flex-1 items-center justify-center px-8"
+        className="flex-1 items-center justify-center px-8 bg-bg-light"
         style={{ paddingTop: headerHeight }}
         accessibilityLiveRegion="polite"
       >

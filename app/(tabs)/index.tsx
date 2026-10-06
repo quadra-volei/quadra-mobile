@@ -287,7 +287,7 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-bg-light">
-      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+      <BlurTargetView ref={blurTarget} className="flex-1 bg-bg-light">
         <ScrollView
           contentContainerStyle={{
             paddingTop: headerHeight,

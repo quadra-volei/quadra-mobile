@@ -47,14 +47,14 @@ function TabBarButton({
       accessibilityRole="button"
       accessibilityState={{ selected: focused }}
       accessibilityLabel={label}
-      className="w-12 items-center justify-center py-3"
+      className="flex-1 h-full items-center justify-center"
     >
-      <Icon focused={focused} size={24} />
+      <Icon focused={focused} size={28} />
     </Pressable>
   );
 }
 
-const PILL_RADIUS = 28;
+const PILL_RADIUS = 32;
 // Same taming as `GlassHeader`: Android's Dimezis blur frosts the sampled
 // content much darker than iOS, so it gets a lower radius and a stronger wash.
 const IS_ANDROID = Platform.OS === 'android';
@@ -120,15 +120,12 @@ export default function TabsLayout() {
             pointerEvents="box-none"
             style={{
               position: 'absolute',
-              left: 0,
-              right: 0,
+              left: 16,
+              right: 16,
               bottom: 0,
-              alignItems: 'center',
             }}
           >
-          {/* Auto-width, centered pill — deliberately narrower than the content
-              (no `mx-4` full-bleed), Instagram-style. Width is the sum of the
-              fixed-width tabs + the FAB's center reserve. */}
+          {/* Pill spanning the screen minus a 16 side margin, Instagram-style. */}
           <View
             style={{
               borderRadius: PILL_RADIUS,
@@ -152,17 +149,16 @@ export default function TabsLayout() {
               style={{ borderRadius: PILL_RADIUS, overflow: 'hidden' }}
             >
               {/* The wash carries the same radius so its hairline border follows
-                  the pill instead of being cut off at the corners. Tabs are 48
-                  wide with 24 icons, so px-3 + the 88 reserve leave the same 24
-                  gap at the edges, between icons and around the FAB. */}
+                  the pill instead of being cut off at the corners. The tabs
+                  share the width left by the FAB reserve equally. */}
               <View
-                className={`flex-row items-center px-3 border border-white/60 ${PILL_WASH}`}
+                className={`flex-row items-center h-16 px-2 border border-white/60 ${PILL_WASH}`}
                 style={{ borderRadius: PILL_RADIUS }}
               >
                 {leftTabs.map(renderTab)}
 
                 {/* Center column reserves the FAB's horizontal footprint. */}
-                <View style={{ width: 88, height: 48 }} />
+                <View style={{ width: 80 }} />
 
                 {rightTabs.map(renderTab)}
               </View>
@@ -172,7 +168,7 @@ export default function TabsLayout() {
             <View
               pointerEvents="box-none"
               className="absolute inset-x-0 items-center"
-              style={{ top: -20 }}
+              style={{ top: -18 }}
             >
               <Pressable
                 onPress={() => setMenuOpen(true)}
