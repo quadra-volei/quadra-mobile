@@ -1,7 +1,7 @@
 # DESIGN_SYSTEM.md — Quadra Visual Language
 
 > The visual law of the land. Every color, spacing, typography, and radius the app uses lives here.
-> Agents MUST reference these tokens. Hardcoded hex values are REJECTED by the scope-guardian.
+> Always reference these tokens. Hardcoded hex values are not allowed.
 
 > Source: `Identidade Visual.html` (brand guide) + `data.js` (QUADRA palette object) from the Claude Design prototype.
 

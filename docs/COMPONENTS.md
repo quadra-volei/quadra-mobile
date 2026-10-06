@@ -1,18 +1,17 @@
 # COMPONENTS.md — Living Component Catalog
 
 > **Read before creating any new component.** This file is the source of truth for what reusable pieces exist.
-> The `implementer` updates this file when it ships a new reusable component.
-> The `screen-spec-writer` reads this file to reuse what exists instead of inventing duplicates.
+> Update this file when you ship a new reusable component.
 
 ---
 
 ## How to use this file
 
-### Before specifying a screen
-The spec-writer checks: "Does the screen need a Button? A Card? An Avatar? Is it already here?" If yes → reference by name. If no → propose a new one **in the spec**, justifying why an existing component doesn't fit.
+### Before designing a screen
+Check: "Does the screen need a Button? A Card? An Avatar? Is it already here?" If yes → reference by name. If no → propose a new one, justifying why an existing component doesn't fit.
 
 ### Before implementing
-The implementer checks: "The spec mentions `<MatchCard>`. Is it in the catalog?" If yes → import and use. If no → check the spec for the proposed new component, build it in `src/components/`, and add an entry to this file.
+Check: "The screen needs `<MatchCard>`. Is it in the catalog?" If yes → import and use. If no → check the spec for the proposed new component, build it in `src/components/`, and add an entry to this file.
 
 ### When updating
 Every PR that adds a reusable component MUST add an entry here. The PR is incomplete without it.
