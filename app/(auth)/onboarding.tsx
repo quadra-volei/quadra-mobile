@@ -559,7 +559,7 @@ function PositionGrid({
                 </Text>
               ) : null}
             </View>
-            <Text className="mt-2 font-body text-h3 text-text-primary">
+            <Text className="mt-2 font-body-extrabold text-h3 text-text-primary">
               {option.name}
             </Text>
             <Text className="mt-1 font-body text-caption text-text-muted">
@@ -599,7 +599,7 @@ function LevelList({
               <BarChart3 size={24} color={colors.primary} />
             </View>
             <View className="ml-4 flex-1">
-              <Text className="font-body text-h3 text-text-primary">
+              <Text className="font-body-extrabold text-h3 text-text-primary">
                 {option.name}
               </Text>
               <Text className="mt-1 font-body text-caption text-text-muted">
@@ -654,7 +654,7 @@ function ModalityList({
               </Text>
             </LinearGradient>
             <View className="p-4">
-              <Text className="font-body text-h3 text-text-primary">
+              <Text className="font-body-extrabold text-h3 text-text-primary">
                 {option.name}
               </Text>
               <Text className="mt-1 font-body text-caption text-text-muted">
@@ -829,7 +829,7 @@ function SummaryRow({
         <Text className="font-mono text-mono text-text-on-dark/70 uppercase">
           {label}
         </Text>
-        <Text className="mt-1 font-body text-h3 text-text-on-dark">
+        <Text className="mt-1 font-body-extrabold text-h3 text-text-on-dark">
           {value}
         </Text>
       </View>

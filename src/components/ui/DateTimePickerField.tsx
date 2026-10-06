@@ -138,7 +138,7 @@ export function DateTimePickerField({
   return (
     <View>
       {label ? (
-        <Text className="font-body text-eyebrow text-text-primary uppercase">
+        <Text className="font-body-bold text-eyebrow text-text-primary uppercase">
           {label}
         </Text>
       ) : null}

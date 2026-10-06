@@ -170,7 +170,7 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
         {/* ── Header bar ── */}
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-line/20">
           <BackButton />
-          <Text className="text-eyebrow text-text-muted uppercase">
+          <Text className="font-body-bold text-eyebrow text-text-muted uppercase">
             SET {game.setNumber} - MELHOR DE {game.bestOf}
           </Text>
           <View className="w-6" />
@@ -226,7 +226,7 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
                   </View>
 
                   <View className="flex-1">
-                    <Text className="text-body-bold text-text-on-dark">{team.name}</Text>
+                    <Text className="font-body-semibold text-body-bold text-text-on-dark">{team.name}</Text>
                     {wonPreviousSet ? (
                       <Text className="text-caption text-accent mt-1">
                         Venceu o set e continua em quadra
@@ -259,7 +259,7 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
         <View className="px-4 py-4 border-t border-line/20 gap-3">
           {selectedTeamIds.length === 2 ? (
             <View className="bg-surface-dark-alt rounded-pill px-4 py-3 items-center border border-line/20">
-              <Text className="text-body-bold text-text-on-dark">
+              <Text className="font-body-semibold text-body-bold text-text-on-dark">
                 {teamName(selectedTeamIds[0])} vs {teamName(selectedTeamIds[1])}
               </Text>
             </View>
@@ -357,7 +357,7 @@ function LiveScoreboard({
           <View className="flex-col items-center">
             <View className="flex-row items-center gap-1 mb-1">
               <View className="h-2 w-2 rounded-full bg-danger" />
-              <Text className="text-eyebrow text-danger uppercase">AO VIVO</Text>
+              <Text className="font-body-bold text-eyebrow text-danger uppercase">AO VIVO</Text>
               <Text className="text-caption text-text-muted ml-1">{elapsed}</Text>
             </View>
             <Text className="text-caption text-text-muted">
@@ -400,7 +400,7 @@ function LiveScoreboard({
                   disabled={busy}
                   testID={`add-point-team${index + 1}`}
                 >
-                  <Text className="text-body-bold text-accent">+ ponto</Text>
+                  <Text className="font-body-semibold text-body-bold text-accent">+ ponto</Text>
                 </Pressable>
               ) : (
                 <Text className="text-caption text-text-muted">ao vivo</Text>
@@ -452,7 +452,7 @@ function GameOver({ matchId, game }: { matchId: string; game: LiveGame }) {
   const winner = game.teams.find((team) => team.id === game.winnerTeamId);
   return (
     <Centered>
-      <Text className="text-eyebrow text-accent uppercase">Fim de jogo</Text>
+      <Text className="font-body-bold text-eyebrow text-accent uppercase">Fim de jogo</Text>
       <Text
         className="mt-2 mb-8 text-center font-display text-display text-text-on-dark uppercase"
         testID="game-over-winner"

@@ -42,7 +42,7 @@ The brand defines a **fixed priority order** for accent colors. When a UI needs 
 | --- | --- | --- |
 | `text-primary` | `#1A1A2E` | Main copy on light surfaces |
 | `text-on-dark` | `#FFFFFF` | Copy on dark surfaces |
-| `text-muted` | `#7A7A9A` | Secondary metadata (timestamps, captions, hex labels) |
+| `text-muted` | `#62628A` | Secondary metadata (timestamps, captions, hex labels) |
 | `line` | `rgba(10,10,60,0.10)` | Hairline borders/dividers on light surfaces |
 
 ### Semantic (system states — not part of the brand palette)
@@ -134,10 +134,8 @@ These are **not** system fonts, so they must be bundled:
 > face, one step smaller — so the screen header stays dominant. Both are
 > `font-display` + `uppercase`; only the size differs.
 >
-> **Rollout status:** S5 Home applies these sizes (18/14) inline. The global
-> `text-h1` / `text-h2` tokens still resolve to the pre-prototype 21/16px and
-> will be re-pointed to 18/14 once every screen header/section has been checked
-> against the prototype — until then, don't assume the tokens match the table.
+> **Rollout status:** done — `text-h1` / `text-h2` resolve to 18/14 on every
+> screen (DECISIONS #47). Size tokens carry no `fontWeight`.
 | `text-body` | DM Sans | 14–15px | normal | 400 | Default body |
 | `text-body-bold` | DM Sans | 14–15px | normal | 600 | Emphasis in body |
 | `text-eyebrow` | DM Sans | 11px | UPPERCASE | 700 | Eyebrow / overline label, letter-spacing 1.2 |
@@ -241,12 +239,20 @@ For agents producing screen specs, the Quadra identity has these traits:
 
 ---
 
+## Chrome, states and touch
+
+- **No glass.** Header and tab bar are solid surfaces with a hairline (`border-line`); no backdrop blur (DECISIONS #46).
+- **Loading**: `SkeletonBlock`, sized to the content it replaces, slow opacity pulse.
+- **Empty / error**: `StateMessage` — one body-size line and at most one action.
+- **Press feedback**: Android ripple from `src/theme/layout.ts` (`PRESS_RIPPLE`, `PRESS_RIPPLE_ON_DARK`, `ICON_RIPPLE`); bare 24px icons take `hitSlop={ICON_HIT_SLOP}`.
+
+---
+
 ## What is NOT yet specified
 
 These will be added when relevant. Until then, agents must ask:
 
 - Dark mode tokens (the app currently designs light-first)
 - Animation timing curves
-- Skeleton/loading shapes
 - Empty-state illustrations
 - Pull-to-refresh styling

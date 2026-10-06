@@ -106,7 +106,7 @@ export default function MvpVoteScreen() {
 
           {/* Hero section */}
           <View className="px-4 py-8 items-center">
-            <Text className="text-eyebrow text-accent uppercase">MVP DA PARTIDA</Text>
+            <Text className="font-body-bold text-eyebrow text-accent uppercase">MVP DA PARTIDA</Text>
             <Text className="text-display text-text-on-dark uppercase font-display mt-2">
               QUEM BRILHOU?
             </Text>
@@ -143,7 +143,7 @@ export default function MvpVoteScreen() {
 
           {/* Error message */}
           <View className="flex-1 items-center justify-center px-4">
-            <Text className="text-h3 text-text-on-dark text-center mb-4">
+            <Text className="font-body-extrabold text-h3 text-text-on-dark text-center mb-4">
               Não foi possível carregar os jogadores
             </Text>
             <Button
@@ -175,7 +175,7 @@ export default function MvpVoteScreen() {
 
           {/* Hero section */}
           <View className="px-4 py-8 items-center">
-            <Text className="text-eyebrow text-accent uppercase">MVP DA PARTIDA</Text>
+            <Text className="font-body-bold text-eyebrow text-accent uppercase">MVP DA PARTIDA</Text>
             <Text className="text-display text-text-on-dark uppercase font-display mt-2">
               QUEM BRILHOU?
             </Text>
@@ -191,7 +191,7 @@ export default function MvpVoteScreen() {
           {/* Post-vote confirmation */}
           <View className="flex-1 items-center justify-center px-4">
             <Text
-              className="text-h3 text-text-on-dark text-center"
+              className="font-body-extrabold text-h3 text-text-on-dark text-center"
               accessibilityLiveRegion="polite"
             >
               Você votou em {votedForPlayer.name}.
@@ -220,7 +220,7 @@ export default function MvpVoteScreen() {
 
         {/* Hero section */}
         <View className="px-4 py-8 items-center">
-          <Text className="text-eyebrow text-accent uppercase">MVP DA PARTIDA</Text>
+          <Text className="font-body-bold text-eyebrow text-accent uppercase">MVP DA PARTIDA</Text>
           <Text className="text-display text-text-on-dark uppercase font-display mt-2">
             QUEM BRILHOU?
           </Text>
@@ -263,7 +263,7 @@ export default function MvpVoteScreen() {
                 >
                   <Avatar uri={player.avatarUrl} name={player.name} size="md" />
                   <View className="flex-1">
-                    <Text className="text-h3 text-text-on-dark">{player.name}</Text>
+                    <Text className="font-body-extrabold text-h3 text-text-on-dark">{player.name}</Text>
                     <Text className="text-caption text-text-muted">
                       @{player.handle} · {player.position}
                     </Text>

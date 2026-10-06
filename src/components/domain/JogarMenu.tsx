@@ -1,4 +1,3 @@
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Plus, Search, X } from 'lucide-react-native';
 import type { ReactNode } from 'react';
@@ -35,7 +34,7 @@ function ActionOption({
       className="items-center"
     >
       {children}
-      <Text className="mt-3 font-body text-body-bold text-white">{label}</Text>
+      <Text className="mt-3 font-body-semibold text-body-bold text-white">{label}</Text>
     </Pressable>
   );
 }
@@ -43,7 +42,7 @@ function ActionOption({
 /**
  * Full-screen "BORA JOGAR?" action menu opened by the central Jogar FAB. Instead
  * of jumping straight to create-match, the FAB now offers the two entry points
- * ("Criar partida" / "Buscar partida") over a blurred backdrop, matching the
+ * ("Criar partida" / "Buscar partida") over a navy backdrop, matching the
  * Quadra prototype. Controlled by the tab layout via `visible`.
  */
 export function JogarMenu({
@@ -61,19 +60,16 @@ export function JogarMenu({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      {/* Blurred backdrop — tap anywhere to dismiss. Strong blur so the content
-          behind is almost invisible. iOS blurs the app behind the modal
-          natively; Android has no blurTarget in a separate modal window, so it
-          renders the frosted tint (same tradeoff as the tab bar per CLAUDE.md)
-          — the heavy navy scrim below both obscures the background and keeps
-          the white text legible on either platform. */}
-      <BlurView intensity={100} tint="dark" style={{ flex: 1 }}>
+      {/* Navy backdrop — tap anywhere to dismiss. A plain, nearly opaque scrim
+          (no blur): it hides the screen behind and keeps the white text legible
+          the same way on every device. */}
+      <View className="flex-1">
         <Pressable
           testID={testID}
           accessibilityRole="button"
           accessibilityLabel="Fechar"
           onPress={onClose}
-          className="flex-1 items-center justify-center bg-surface-dark/70 px-8"
+          className="flex-1 items-center justify-center bg-surface-dark/95 px-8"
         >
           {/* Inner content — stopPropagation so taps on the actions don't
               bubble up to the dismiss backdrop. */}
@@ -145,7 +141,7 @@ export function JogarMenu({
             </Pressable>
           </Pressable>
         </Pressable>
-      </BlurView>
+      </View>
     </Modal>
   );
 }

@@ -254,7 +254,7 @@ function CreatedView({ match }: { match: CreatedMatch }) {
         testID="created-recap"
       >
         <Text
-          className="font-body text-h3 text-text-on-dark"
+          className="font-body-extrabold text-h3 text-text-on-dark"
           testID="created-recap-name"
         >
           {input.name}
@@ -277,26 +277,26 @@ function CreatedView({ match }: { match: CreatedMatch }) {
 
         <View className="mt-3 flex-row justify-between">
           <View>
-            <Text className="font-body text-eyebrow text-text-on-dark/60 uppercase">
+            <Text className="font-body-bold text-eyebrow text-text-on-dark/60 uppercase">
               Quando
             </Text>
             <Text
-              className="mt-1 font-body text-body-bold text-text-on-dark"
+              className="mt-1 font-body-semibold text-body-bold text-text-on-dark"
               testID="created-recap-when"
             >
               {formatCreatedWhen(startsAt)}
             </Text>
           </View>
           <View>
-            <Text className="font-body text-eyebrow text-text-on-dark/60 uppercase">
+            <Text className="font-body-bold text-eyebrow text-text-on-dark/60 uppercase">
               Vagas
             </Text>
-            <Text className="mt-1 font-body text-body-bold text-text-on-dark">
+            <Text className="mt-1 font-body-semibold text-body-bold text-text-on-dark">
               {input.players} jogadores
             </Text>
           </View>
           <View>
-            <Text className="font-body text-eyebrow text-text-on-dark/60 uppercase">
+            <Text className="font-body-bold text-eyebrow text-text-on-dark/60 uppercase">
               Valor
             </Text>
             <Text

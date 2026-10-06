@@ -1,5 +1,4 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { BlurTargetView } from 'expo-blur';
 import { router } from 'expo-router';
 import {
   Bell,
@@ -11,12 +10,13 @@ import {
   MessageSquare,
   User,
 } from 'lucide-react-native';
-import { type ReactNode, useRef, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
-import { GlassBackHeader } from '@/components/ui/GlassBackHeader';
+import { SkeletonBlock } from '@/components/ui/Skeleton';
+import { BackHeader } from '@/components/ui/BackHeader';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import { positionLabel } from '@/features/profile/schema/onboarding';
 import { logout } from '@/lib/auth/logout';
@@ -27,15 +27,10 @@ import { colors } from '@/theme/colors';
 // (expo-constants/expo-application are not in the locked stack); update on bumps.
 const APP_VERSION = '1.0.0';
 
-/** Neutral rounded skeleton block (DESIGN_SYSTEM skeleton shapes TBD — flag). */
-function SkeletonBlock({ className }: { className: string }) {
-  return <View className={`bg-bg-light-alt rounded-card ${className}`} />;
-}
-
 // ── Eyebrow section label (CONTA / PREFERÊNCIAS / SUPORTE) ──
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <Text className="font-body text-eyebrow text-text-muted uppercase px-4 mt-6 mb-2">
+    <Text className="font-body-bold text-eyebrow text-text-muted uppercase px-4 mt-6 mb-2">
       {children}
     </Text>
   );
@@ -75,7 +70,7 @@ function SettingsRow({
     >
       <View className="mr-4">{icon}</View>
       <View className="flex-1">
-        <Text className="font-body text-h3 text-text-primary">{title}</Text>
+        <Text className="font-body-extrabold text-h3 text-text-primary">{title}</Text>
         {subtitle ? (
           <Text className="mt-0.5 font-body text-caption text-text-muted">
             {subtitle}
@@ -183,7 +178,7 @@ function SummaryCard() {
     <View className="mx-4 mt-2 bg-white rounded-card shadow-card p-4 flex-row items-center gap-3">
       <Avatar uri={data.avatarUrl} name={data.firstName} size="md" />
       <View className="flex-1">
-        <Text className="font-body text-h3 text-text-primary">{fullName}</Text>
+        <Text className="font-body-extrabold text-h3 text-text-primary">{fullName}</Text>
         {subtitle ? (
           <Text className="font-body text-caption text-text-muted">
             {subtitle}
@@ -199,7 +194,6 @@ export default function SettingsScreen() {
   const theme = useThemeStore((s) => s.theme);
   const setTheme = useThemeStore((s) => s.setTheme);
   const [headerHeight, setHeaderHeight] = useState(0);
-  const blurTarget = useRef<View>(null);
 
   const onLogout = () => {
     void logout(queryClient);
@@ -207,7 +201,7 @@ export default function SettingsScreen() {
 
   return (
     <View className="flex-1 bg-bg-light">
-      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         <ScrollView
           contentContainerClassName="pb-24"
           contentContainerStyle={{ paddingTop: headerHeight }}
@@ -228,7 +222,7 @@ export default function SettingsScreen() {
           {/* PREFERÊNCIAS */}
           <SectionLabel>Preferências</SectionLabel>
           <View className="mx-4 bg-white rounded-card shadow-card p-4">
-            <Text className="font-body text-h3 text-text-primary">Aparência</Text>
+            <Text className="font-body-extrabold text-h3 text-text-primary">Aparência</Text>
             <View className="flex-row gap-3 mt-3">
               <ThemeTile
                 value="light"
@@ -313,16 +307,15 @@ export default function SettingsScreen() {
             className="mx-4 mt-6 bg-white rounded-card shadow-card px-4 py-4 flex-row items-center"
           >
             <ChevronLeft size={24} color={colors.danger} />
-            <Text className="font-body text-body-bold text-danger ml-2">
+            <Text className="font-body-semibold text-body-bold text-danger ml-2">
               Sair da conta
             </Text>
           </Pressable>
         </ScrollView>
-      </BlurTargetView>
+      </View>
 
-      <GlassBackHeader
+      <BackHeader
         title="Configurações"
-        blurTarget={blurTarget}
         onHeight={setHeaderHeight}
       />
     </View>

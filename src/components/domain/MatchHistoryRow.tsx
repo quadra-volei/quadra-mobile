@@ -3,6 +3,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import type { RecentMatch } from '@/features/profile/types/profile';
 import { colors } from '@/theme/colors';
+import { PRESS_RIPPLE } from '@/theme/layout';
 
 export type MatchHistoryRowProps = {
   match: RecentMatch;
@@ -65,6 +66,7 @@ export function MatchHistoryRow({ match, onPress, testID }: MatchHistoryRowProps
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={`${match.name}, ${RESULT_LABEL[match.result]} ${match.setScore}`}
+      android_ripple={PRESS_RIPPLE}
       className="flex-row items-center px-4 py-3"
     >
       <View className="h-10 w-10 rounded-full bg-bg-light-alt items-center justify-center">
@@ -72,7 +74,7 @@ export function MatchHistoryRow({ match, onPress, testID }: MatchHistoryRowProps
       </View>
 
       <View className="flex-1 ml-3">
-        <Text className="font-body text-body-bold text-text-primary" numberOfLines={1}>
+        <Text className="font-body-semibold text-body-bold text-text-primary" numberOfLines={1}>
           {match.name}
         </Text>
         <Text className="font-body text-caption text-text-muted">{subtitle}</Text>

@@ -3,11 +3,13 @@
 // LinearGradient `colors`). Screens NEVER inline hex; they import from here.
 export const colors = {
   surfaceDark: '#0A0A3C', // surface-dark / navy (court-image gradient end)
+  surfaceDarkAlt: '#111145', // surface-dark-alt (skeleton fill on navy)
+  bgLightAlt: '#E8EEF8', // bg-light-alt (skeleton fill on light)
   primary: '#1A1AFF', // primary
   accent: '#AADD00', // accent (lime)
   accentLight: '#C6F135', // accent-light / brightLime (nearby distance + price)
   textOnDark: '#FFFFFF', // text-on-dark / white (icon on dark)
-  textMuted: '#7A7A9A', // text-muted (muted lucide icons: clock, users)
+  textMuted: '#62628A', // text-muted (muted lucide icons: clock, users)
   success: '#16A34A', // success (trend-up arrow)
   danger: '#DC2626', // danger (trend-down arrow)
 } as const;

@@ -1,12 +1,12 @@
-import { BlurTargetView } from "expo-blur";
 import { router } from "expo-router";
 import { ChevronLeft, Lock, Share2 } from "lucide-react-native";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Pressable, ScrollView, Share, Text, View } from "react-native";
 
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
-import { GlassHeader } from "@/components/ui/GlassHeader";
+import { SkeletonBlock } from "@/components/ui/Skeleton";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { positionLabel } from "@/features/profile/schema/onboarding";
 import type { MyProfile } from "@/features/profile/types/profile";
@@ -22,11 +22,6 @@ async function shareCard(name: string, overall: number) {
   } catch {
     // User dismissed the sheet or the platform share failed — nothing to do.
   }
-}
-
-/** Neutral rounded skeleton block on the dark card background. */
-function SkeletonBlock({ className }: { className: string }) {
-  return <View className={`bg-surface-dark-alt rounded-card ${className}`} />;
 }
 
 function ErrorBlock({ onRetry }: { onRetry: () => void }) {
@@ -174,32 +169,30 @@ function CardBody({ profile }: { profile: MyProfile }) {
 export default function CardScreen() {
   const { data, isPending, isError, refetch } = useMyProfile();
   const [headerHeight, setHeaderHeight] = useState(0);
-  const blurTarget = useRef<View>(null);
 
   return (
     <View className="flex-1 bg-surface-dark">
-      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         <ScrollView
           contentContainerClassName="px-5 pb-10"
           contentContainerStyle={{ paddingTop: headerHeight }}
         >
           {isPending ? (
-            <SkeletonBlock className="h-96 mt-2" />
+            <SkeletonBlock tone="dark" className="h-96 mt-2" />
           ) : isError ? (
             <ErrorBlock onRetry={() => refetch()} />
           ) : (
             <CardBody profile={data} />
           )}
         </ScrollView>
-      </BlurTargetView>
+      </View>
 
-      <GlassHeader
+      <ScreenHeader
         tint="dark"
-        blurTarget={blurTarget}
         onHeight={setHeaderHeight}
       >
         <CardHeader />
-      </GlassHeader>
+      </ScreenHeader>
     </View>
   );
 }

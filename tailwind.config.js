@@ -23,7 +23,7 @@ module.exports = {
         // Text
         'text-primary': '#1A1A2E',
         'text-on-dark': '#FFFFFF',
-        'text-muted': '#7A7A9A',
+        'text-muted': '#62628A',
         line: 'rgba(10,10,60,0.10)',
 
         // Semantic
@@ -65,18 +65,20 @@ module.exports = {
       },
 
       fontSize: {
-        display: ['36px', { lineHeight: '44px', fontWeight: '400' }],
-        h1: ['21px', { lineHeight: '28px', fontWeight: '400' }],
-        // h2 → Climate Crisis in-screen section title, one step below the h1
-        // screen header (see DESIGN_SYSTEM "Heading hierarchy").
-        h2: ['16px', { lineHeight: '22px', fontWeight: '400' }],
-        h3: ['17px', { lineHeight: '24px', fontWeight: '800' }],
-        body: ['15px', { lineHeight: '22px', fontWeight: '400' }],
-        'body-bold': ['15px', { lineHeight: '22px', fontWeight: '600' }],
-        eyebrow: ['11px', { lineHeight: '16px', fontWeight: '700' }],
-        caption: ['12px', { lineHeight: '16px', fontWeight: '400' }],
-        mono: ['11px', { lineHeight: '16px', fontWeight: '500' }],
-        num: ['32px', { lineHeight: '40px', fontWeight: '400' }],
+        display: ['36px', { lineHeight: '44px' }],
+        // Screen header 18 / in-screen section title 14 (DESIGN_SYSTEM
+        // "Heading hierarchy"). Sizes carry no fontWeight: every weight is its
+        // own font face (font-body-semibold, font-body-extrabold, …) — a numeric
+        // weight on the 400 face makes Android draw a synthetic bold.
+        h1: ['18px', { lineHeight: '24px' }],
+        h2: ['14px', { lineHeight: '20px' }],
+        h3: ['17px', { lineHeight: '24px' }],
+        body: ['15px', { lineHeight: '22px' }],
+        'body-bold': ['15px', { lineHeight: '22px' }],
+        eyebrow: ['11px', { lineHeight: '16px' }],
+        caption: ['12px', { lineHeight: '16px' }],
+        mono: ['11px', { lineHeight: '16px' }],
+        num: ['32px', { lineHeight: '40px' }],
       },
 
       spacing: {

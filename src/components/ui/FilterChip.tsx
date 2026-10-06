@@ -1,5 +1,7 @@
 import { Pressable, Text } from 'react-native';
 
+import { PRESS_RIPPLE } from '@/theme/layout';
+
 export type FilterChipProps = {
   label: string;
   selected: boolean;
@@ -34,7 +36,8 @@ export function FilterChip({
       testID={testID}
       accessibilityRole="button"
       accessibilityState={{ selected, disabled: Boolean(disabled) }}
-      className={`h-9 px-4 rounded-pill items-center justify-center ${
+      android_ripple={PRESS_RIPPLE}
+      className={`h-9 px-4 rounded-pill items-center justify-center overflow-hidden ${
         disabled
           ? 'bg-bg-light-alt'
           : selected

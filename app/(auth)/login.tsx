@@ -197,7 +197,7 @@ export default function LoginScreen() {
             </Animated.Text>
 
             <Animated.Text
-              className="font-body text-body-bold text-text-on-dark mt-4"
+              className="font-body-semibold text-body-bold text-text-on-dark mt-4"
               style={subtitleStyle}
             >
               Encontre partidas de vôlei perto de você, monte seu time e suba no
@@ -265,7 +265,7 @@ export default function LoginScreen() {
                   Use seu telefone para entrar ou criar conta.
                 </Text>
 
-                <Text className="font-body text-eyebrow text-text-primary uppercase mt-6">
+                <Text className="font-body-bold text-eyebrow text-text-primary uppercase mt-6">
                   Número de telefone
                 </Text>
 

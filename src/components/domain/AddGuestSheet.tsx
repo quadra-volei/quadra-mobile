@@ -125,7 +125,7 @@ export function AddGuestSheet({
           </View>
 
           {/* ── Posição (opcional) ── */}
-          <Text className="mt-4 font-body text-eyebrow text-text-primary uppercase">
+          <Text className="mt-4 font-body-bold text-eyebrow text-text-primary uppercase">
             Posição (opcional)
           </Text>
           <View className="mt-2 flex-row flex-wrap gap-2">

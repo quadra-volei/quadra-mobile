@@ -45,7 +45,7 @@ export function StepperField({
     <View className="flex-1 rounded-chip border border-line bg-white px-4 py-3">
       <Text
         numberOfLines={1}
-        className="font-body text-eyebrow text-text-muted uppercase"
+        className="font-body-bold text-eyebrow text-text-muted uppercase"
       >
         {label}
       </Text>

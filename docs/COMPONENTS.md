@@ -184,30 +184,42 @@ Each entry follows this structure:
   ```
 - **Notes**: On-brand match-cover placeholder (ports the prototype's `CourtImage`). A `tint → navy` `expo-linear-gradient` fill behind a faint volleyball court-line motif drawn with plain Views (outer box + center line + two dashed attack lines — **no `react-native-svg`**, so it renders cheap and is test-safe). Overlaid `children` are positioned absolutely by the caller; `radius` is `0` when the cover sits flush at a card's top. Gradient end color from `src/theme/colors.ts`.
 
-### `GlassHeader`
-- **Path**: `src/components/ui/GlassHeader.tsx`
-- **Category**: ui
-- **Props**: `{ children: ReactNode; blurTarget?: RefObject<View | null>; onHeight?: (height: number) => void; tint?: 'light' | 'dark' }`
-- **Used in**: All tab screens (S5 Home, S6 Explore, S7 Network, S8 Profile) and all profile stack screens (via `GlassBackHeader`: S9 Ranking, S10 Settings/Edit/Notifications/Feedback; directly with `tint="dark"`: S8b Player card)
+### `ScreenHeader`
+- **Path**: `src/components/ui/ScreenHeader.tsx`
+- **Purpose**: Pinned, solid app header (screen color + bottom hairline).
+- **Props**: `{ children: ReactNode; onHeight?: (height: number) => void; tint?: 'light' | 'dark' }`
+- **Used in**: All tab screens (S5 Home, S6 Explore, S7 Network, S8 Profile) and all profile stack screens (via `BackHeader`; directly with `tint="dark"`: S8b Player card)
 - **Example**:
   ```tsx
-  <GlassHeader blurTarget={blurTarget} onHeight={setHeaderHeight}>
-    <ProfileHeader />
-  </GlassHeader>
+  <ScreenHeader onHeight={setHeaderHeight}>
+    {/* title + right cluster */}
+  </ScreenHeader>
   ```
-- **Notes**: Absolutely-positioned translucent app header (glassmorphism chrome from the prototype: `rgba(255,255,255,.55)` + blur). The `expo-blur` `BlurView` supplies real backdrop blur; the inner white/navy wash + hairline border approximate the tint. Because it floats (`position:absolute`, `zIndex:10`), the screen must (1) wrap its scroll content in `expo-blur`'s `<BlurTargetView ref={blurTarget}>` and pass that ref (Android `dimezisBlurView` needs an explicit backdrop; iOS blurs natively and ignores it), and (2) offset the scroll content by the height reported via `onHeight` (`contentContainerStyle={{ paddingTop: headerHeight }}`). Applies the top safe-area inset itself — the screen must NOT also wrap in a `SafeAreaView edges={['top']}`. `tint="dark"` tints the blur + wash (`bg-surface-dark/40`) for navy screens. Requires a Dev Client rebuild (native `BlurView`).
+- **Notes**: Absolutely positioned (`zIndex:10`), so the screen offsets its scroll content by the height reported via `onHeight` (`contentContainerStyle={{ paddingTop: headerHeight }}`). Applies the top safe-area inset itself — the screen must NOT also wrap in a `SafeAreaView edges={['top']}`. Solid on purpose, no blur (DECISIONS #46).
 
-### `GlassBackHeader`
-- **Path**: `src/components/ui/GlassBackHeader.tsx`
-- **Category**: ui
-- **Props**: `{ title: string; tint?: 'light' | 'dark'; right?: ReactNode; blurTarget?: RefObject<View | null>; onHeight?: (height: number) => void }`
-- **Used in**: S9 Ranking, S10 Settings / Edit profile / Notifications / Feedback (pushed profile stack screens)
+### `BackHeader`
+- **Path**: `src/components/ui/BackHeader.tsx`
+- **Purpose**: Standard header for pushed stack screens.
+- **Props**: `{ title: string; tint?: 'light' | 'dark'; right?: ReactNode; onHeight?: (height: number) => void }`
 - **Example**:
   ```tsx
-  <GlassBackHeader title="Configurações" blurTarget={blurTarget} onHeight={setHeaderHeight} />
-  <GlassBackHeader title="Ranking" right={<Bell size={24} color={colors.surfaceDark} />} blurTarget={blurTarget} onHeight={setHeaderHeight} />
+  <BackHeader title="Configurações" onHeight={setHeaderHeight} />
   ```
-- **Notes**: Standard glass header for pushed stack screens — a bare `ChevronLeft` back affordance (`accessibilityLabel="Voltar"`, `router.back()`) + `font-display text-h1 uppercase` title + optional right-aligned `right` cluster, composed over `GlassHeader`. Mirrors the tab headers' bare-chevron affordance so every screen's header reads as one system (replaced the earlier boxed-white back buttons on settings/edit/notifications/feedback). The consuming screen still owns the `BlurTargetView` + `headerHeight` wiring (see `GlassHeader`). For screens whose header row diverges (e.g. the S8b player card's smaller `font-body-bold` title on dark), wire `GlassHeader` directly with `tint="dark"` instead of this component.
+- **Notes**: Bare `ChevronLeft` back affordance (`accessibilityLabel="Voltar"`, `router.back()`, 48dp touch target) + `font-display text-h1 uppercase` title + optional `right` cluster, composed over `ScreenHeader`.
+
+### `SkeletonBlock`
+- **Path**: `src/components/ui/Skeleton.tsx`
+- **Purpose**: Loading placeholder with a slow opacity pulse.
+- **Props**: `{ className?: string; tone?: 'light' | 'dark'; testID?: string }`
+- **Example**: `<SkeletonBlock className="h-[172px]" />`
+- **Notes**: Size it to the content it stands in for so nothing jumps when data arrives. `tone="dark"` on navy surfaces.
+
+### `StateMessage`
+- **Path**: `src/components/ui/StateMessage.tsx`
+- **Purpose**: The single empty / error block.
+- **Props**: `{ message: string; actionLabel?: string; onAction?: () => void; tone?: 'light' | 'dark' }`
+- **Example**: `<StateMessage message="Não foi possível carregar" actionLabel="Tentar novamente" onAction={() => refetch()} />`
+- **Notes**: Body-size line, polite live region, at most one action (ghost on light, lime outline on dark).
 
 ### `Tag`
 - **Path**: `src/components/ui/Tag.tsx`

@@ -35,7 +35,7 @@ export function ToggleField({
     <View className="mt-2 flex-row items-center rounded-card border border-line bg-white px-4 py-4">
       {icon ? <View className="mr-3">{icon}</View> : null}
       <View className="flex-1">
-        <Text className="font-body text-h3 text-text-primary">{title}</Text>
+        <Text className="font-body-extrabold text-h3 text-text-primary">{title}</Text>
         {caption ? (
           <Text className="mt-0.5 font-body text-caption text-text-muted">
             {caption}

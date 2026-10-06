@@ -14,7 +14,7 @@ export type DateFieldProps = {
   testID?: string;
 };
 
-const TEXT_MUTED = '#7A7A9A'; // text-muted token — placeholder color
+const TEXT_MUTED = '#62628A'; // text-muted token — placeholder color
 
 /** Masks raw digits as `DD/MM/AAAA` (max 8 digits → day/month/year). */
 function maskDate(input: string): string {
@@ -49,7 +49,7 @@ export function DateField({
 
   return (
     <View>
-      <Text className="font-body text-eyebrow text-text-primary uppercase">
+      <Text className="font-body-bold text-eyebrow text-text-primary uppercase">
         {label}
       </Text>
 
