@@ -1,72 +1,72 @@
 import { useQuery } from '@tanstack/react-query';
 
-import type { RecentMatch } from '@/features/profile/types/profile';
-
-// MOCK: deterministic fake latency so RNTL can assert the loading placeholder,
-// the populated history list, and navigation without flakiness. Tests may zero
-// this via the param. No randomness, no network, no EXPO_PUBLIC_API_URL.
-// Mirrors src/features/matches/api/getUpcoming.ts.
-const MOCK_LATENCY_MS = 400;
+import type { MatchResult, RecentMatch } from '@/features/profile/types/profile';
+import { authorizedApiClient } from '@/lib/api/authorizedClient';
 
 /** Query key (ARCHITECTURE convention). */
 export const recentMatchesQueryKey = ['profile', 'recentMatches'] as const;
 
-// MOCK: fixed stub of the user's recent match results.
-// TODO(real-api): the real F1.6 payload (match history) replaces this. Keep the
-// shape; swap only the body behind this hook signature.
-const MOCK_RECENT: RecentMatch[] = [
-  {
-    id: 'rm-1',
-    name: 'Vôlei de Quinta',
-    playedAt: '2026-06-18T19:30:00-03:00',
-    format: '6X6',
-    result: 'VITORIA',
-    setScore: '3-1',
-  },
-  {
-    id: 'rm-2',
-    name: 'Racha da Galera',
-    playedAt: '2026-06-16T20:00:00-03:00',
-    format: '4X4',
-    result: 'DERROTA',
-    setScore: '1-3',
-  },
-  {
-    id: 'rm-3',
-    name: 'Treino Misto',
-    playedAt: '2026-06-13T18:00:00-03:00',
-    format: '6X6',
-    result: 'VITORIA',
-    setScore: '3-0',
-  },
-];
+/** How many rows the profile's "partidas recentes" shows. */
+const RECENT_COUNT = 5;
+
+/** One item of `GET /api/v1/profiles/me/match-history`. */
+type ApiMatchHistoryEntry = {
+  matchId: string;
+  matchName: string;
+  matchDateTime: string;
+  outcome: 'Win' | 'Loss' | 'Draw';
+  /** Null on matches recorded before the format / set score were tracked. */
+  format: string | null;
+  setsWon: number | null;
+  setsLost: number | null;
+};
+
+const RESULT: Record<ApiMatchHistoryEntry['outcome'], MatchResult> = {
+  Win: 'VITORIA',
+  Loss: 'DERROTA',
+  Draw: 'EMPATE',
+};
+
+const FORMATS: readonly string[] = ['2X2', '4X4', '6X6'];
+
+export function toRecentMatch(entry: ApiMatchHistoryEntry): RecentMatch {
+  return {
+    id: entry.matchId,
+    name: entry.matchName,
+    playedAt: entry.matchDateTime,
+    // A match with no declared format is shown as the default 6x6.
+    format:
+      entry.format && FORMATS.includes(entry.format)
+        ? (entry.format as RecentMatch['format'])
+        : '6X6',
+    result: RESULT[entry.outcome] ?? 'DERROTA',
+    setScore:
+      entry.setsWon != null && entry.setsLost != null
+        ? `${entry.setsWon}-${entry.setsLost}`
+        : '',
+  };
+}
 
 /**
- * Fetches the user's recent match history (read-only).
- *
- * MOCK: this iteration ships fully mocked. The queryFn simulates ~400ms latency
- * and resolves a fixed stub list with no network call or backend path.
- *
- * TODO(real-api): replace the mock body below with the real F1.6 history call
- * behind this unchanged hook signature, once the backend match module lands.
- * See S8 spec "Backend dependencies".
+ * Fetches the user's most recent finished matches
+ * (`GET /api/v1/profiles/me/match-history`, newest first). A match shows up
+ * here once its organizer generated the summary.
  */
-async function getRecentMatches(latencyMs: number): Promise<RecentMatch[]> {
-  // MOCK: fixed-latency resolve, no network.
-  await new Promise((resolve) => setTimeout(resolve, latencyMs));
-  // MOCK: fixed stub array.
-  return MOCK_RECENT;
+async function getRecentMatches(): Promise<RecentMatch[]> {
+  const { items } = await authorizedApiClient<{ items: ApiMatchHistoryEntry[] }>(
+    `/api/v1/profiles/me/match-history?page=1&pageSize=${RECENT_COUNT}`,
+  );
+  return items.map(toRecentMatch);
 }
 
 export type UseRecentMatchesOptions = {
-  /** Override the mock latency (tests pass 0 to remove the fake delay). */
+  /** @deprecated No effect — kept so existing callers compile. The query is real now. */
   latencyMs?: number;
 };
 
-export function useRecentMatches(options: UseRecentMatchesOptions = {}) {
-  const latencyMs = options.latencyMs ?? MOCK_LATENCY_MS;
+export function useRecentMatches(_options: UseRecentMatchesOptions = {}) {
   return useQuery({
     queryKey: recentMatchesQueryKey,
-    queryFn: () => getRecentMatches(latencyMs),
+    queryFn: getRecentMatches,
   });
 }

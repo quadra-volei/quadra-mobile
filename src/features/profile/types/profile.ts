@@ -52,8 +52,8 @@ export type MyProfile = {
   position?: Position;
 };
 
-/** Win/loss outcome of a played match. */
-export type MatchResult = 'VITORIA' | 'DERROTA';
+/** Outcome of a played match (EMPATE: the game was ended level, with no winner). */
+export type MatchResult = 'VITORIA' | 'DERROTA' | 'EMPATE';
 
 /**
  * One read-only row of the user's recent match history.
