@@ -1,7 +1,7 @@
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import { ChevronLeft, Volleyball } from 'lucide-react-native';
-import { useEffect, useState } from 'react';
+import { ChevronLeft, LocateFixed, Volleyball } from 'lucide-react-native';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -84,6 +84,7 @@ export default function MapScreen() {
     { latitude: number; longitude: number } | null
   >(null);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
+  const mapRef = useRef<MapView>(null);
 
   const nearby = useNearbyMatches({
     lat: (userLocation ?? DEFAULT_CENTER).latitude,
@@ -209,13 +210,13 @@ export default function MapScreen() {
     router.push({ pathname: '/matches/[id]', params: { id } });
   }
 
-  const backButton = (
+  const backButton = (className: string) => (
     <Pressable
       onPress={() => router.back()}
       accessibilityRole="button"
       accessibilityLabel="Voltar"
       testID="map-back"
-      className="m-4 h-10 w-10 rounded-full bg-white shadow-card items-center justify-center"
+      className={`rounded-full items-center justify-center ${className}`}
     >
       <ChevronLeft size={24} color={colors.surfaceDark} />
     </Pressable>
@@ -224,7 +225,7 @@ export default function MapScreen() {
   if (!isMapAvailable()) {
     return (
       <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-bg-light">
-        {backButton}
+        {backButton('m-4 h-10 w-10 bg-white shadow-card')}
         <ScrollView>
           <View className="px-4 pb-6 gap-4">
             <Text className="font-body text-body text-text-muted">
@@ -249,8 +250,10 @@ export default function MapScreen() {
   return (
     <View className="flex-1 bg-bg-light">
       <MapView
+        ref={mapRef}
         style={{ flex: 1 }}
         showsUserLocation
+        showsMyLocationButton={false}
         region={{ ...center, ...REGION_DELTA }}
         onPress={() => setSelectedMatchId(null)}
       >
@@ -273,28 +276,51 @@ export default function MapScreen() {
         })}
       </MapView>
 
-      {/* Back control */}
-      <SafeAreaView edges={['top']} className="absolute top-0 left-0">
-        {backButton}
-      </SafeAreaView>
-
-      {/* Count badge */}
-      <View className="absolute top-16 left-4 bg-accent rounded-pill px-3 py-1 shadow-card">
-        <Text className="font-mono text-mono text-text-primary uppercase">
-          {matches.length} partidas por perto
-        </Text>
-      </View>
-
-      {/* Empty overlay — granted but no matches in radius (sits below the badge) */}
-      {matches.length === 0 && (
-        <View className="absolute top-24 left-4 right-4 items-center">
-          <View className="bg-white rounded-pill px-6 py-3 shadow-card">
-            <Text className="font-body text-body text-text-primary text-center">
-              Nenhuma partida perto de você ainda
-            </Text>
+      {/* Floating top bar: back + title/count pill, and the recenter button.
+          Laid out in flow inside the safe area so nothing sits under the status bar. */}
+      <SafeAreaView
+        edges={['top']}
+        pointerEvents="box-none"
+        className="absolute top-0 left-0 right-0"
+      >
+        <View pointerEvents="box-none" className="flex-row items-center gap-3 px-4 pt-2">
+          <View className="flex-1 flex-row items-center h-14 pl-1 pr-5 bg-white rounded-pill shadow-card">
+            {backButton('h-12 w-12')}
+            <View className="flex-1">
+              <Text numberOfLines={1} className="font-body text-body-bold text-text-primary">
+                Perto de você
+              </Text>
+              <Text numberOfLines={1} className="font-body text-caption text-text-muted">
+                {matches.length === 1
+                  ? '1 partida por perto'
+                  : `${matches.length} partidas por perto`}
+              </Text>
+            </View>
           </View>
+          <Pressable
+            onPress={() =>
+              mapRef.current?.animateToRegion({ ...center, ...REGION_DELTA })
+            }
+            accessibilityRole="button"
+            accessibilityLabel="Centralizar na minha localização"
+            testID="map-recenter"
+            className="h-14 w-14 rounded-full bg-white shadow-card items-center justify-center"
+          >
+            <LocateFixed size={22} color={colors.surfaceDark} />
+          </Pressable>
         </View>
-      )}
+
+        {/* Empty notice — granted but no matches in radius */}
+        {matches.length === 0 && (
+          <View pointerEvents="none" className="items-center px-4 pt-3">
+            <View className="bg-white rounded-pill px-6 py-3 shadow-card">
+              <Text className="font-body text-body text-text-primary text-center">
+                Nenhuma partida perto de você ainda
+              </Text>
+            </View>
+          </View>
+        )}
+      </SafeAreaView>
 
       {/* Bottom preview card — only when a pin is selected */}
       {selected && (
