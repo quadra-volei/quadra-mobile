@@ -55,6 +55,7 @@ never run `eas init`).
 EXPO_PUBLIC_API_URL=https://quadra-api-xj6e.onrender.com
 EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=
 EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=
+EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY=
 ```
 
 The URL above is the hosted test API (it sleeps when idle; the first request can take up to a
@@ -86,7 +87,7 @@ Android emulator, the machine's LAN IP on a phone). Log in with the test environ
 ## Do NOT
 
 - Do not write secrets or keys in any file. The Maps key comes from the
-  `GOOGLE_MAPS_ANDROID_API_KEY` build variable; `.env.local` stays out of git.
+  `EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY` build variable; `.env.local` stays out of git.
 - Do not store tokens in AsyncStorage.
 - Do not bring back mocked data, a mock auth shortcut, MSW or any Cognito variable.
 - Do not show invented numbers: where the backend has no data, show the neutral placeholder

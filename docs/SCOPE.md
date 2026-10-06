@@ -28,7 +28,7 @@ shows something listed below as out of the MVP, this file wins.
 | S13.5 + S14 Scoreboard | `app/matches/[id]/scoreboard.tsx` | Pick the pair per set (3+ teams), organizer scores, undo, end set, live refresh over SignalR |
 | S15 MVP vote | `app/matches/[id]/mvp-vote.tsx` | One vote, no guests; organizer closes the vote and generates the summary |
 | S16 Summary | `app/matches/[id]/summary.tsx` | Result, sets, MVP, share through the system sheet |
-| S17 Map | `app/explore/map.tsx` | Full-screen map, asks for location permission |
+| S17 Map | `app/explore/map.tsx` | Full-screen map, asks for location permission. An Android build without the Maps key shows the nearby matches as a list |
 
 ## Pending
 
