@@ -28,9 +28,9 @@ import {
 } from "@/theme/colors";
 import { TAB_BAR_CLEARANCE } from "@/theme/layout";
 
-// Placeholder geo while nearby is mocked — no device location read on Home (S5
-// spec "Permissions"; the real lat/lon arrive with S17's permission flow).
-const PLACEHOLDER_GEO = { lat: -23.55, lon: -46.63, radiusKm: 5 };
+// Where "perto de você" searches when the device location is not available:
+// São Paulo centre. Home never prompts for location (S5 spec "Permissions").
+const DEFAULT_GEO = { lat: -23.55, lon: -46.63, radiusKm: 5 };
 
 function goCreate() {
   router.push("/matches/create");
@@ -237,8 +237,8 @@ function NearbySection() {
   const coords = useDeviceCoords();
   const { data, isPending, isError, refetch } = useNearbyMatches(
     coords
-      ? { ...PLACEHOLDER_GEO, lat: coords.latitude, lon: coords.longitude }
-      : PLACEHOLDER_GEO,
+      ? { ...DEFAULT_GEO, lat: coords.latitude, lon: coords.longitude }
+      : DEFAULT_GEO,
   );
 
   if (isPending) {

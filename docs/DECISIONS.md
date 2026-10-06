@@ -19,7 +19,7 @@ Format: date · decision · why.
 | 7 | The organizer is shown as a pending Regular until they confirm ("Vou jogar"). | Organizing is not playing — same behaviour the mocked screen had. |
 | 8 | Player level dots are **not shown on the roster** for now. | The roster API returns the level tier (Beginner…), not the numeric level the dot encodes; the numeric level does not exist in the backend yet. |
 | 9 | Refused actions on the detail (wrong code, confirmations not open, match full) show the backend's reason as a line above the footer buttons. | Before, the mocked mutations could not fail, so there was no error surface. |
-| 10 | `EXPO_PUBLIC_DEV_MOCK_AUTH` still skips login, but matches screens now need a real session to load. | There is no mocked match data left to show. |
+| 10 | ~~`EXPO_PUBLIC_DEV_MOCK_AUTH` still skips login~~ — removed later, see #31. | — |
 
 
 ## 2026-10-06 — Block 2: address search in "create match"
@@ -62,5 +62,14 @@ Format: date · decision · why.
 | 29 | The @ field (onboarding and edit profile) **warns while typing** when the @ belongs to someone else, 400 ms after the last keystroke, from 3 characters. It is a hint only: it does not block the button, and saving still validates on the backend. | Never block a save on a check that may be offline or stale; the save already answers "taken" for real. |
 | 30 | **"Trocar foto" uploads the picked photo when saving** the profile (signed URL from the backend, file sent straight to the storage). Where the backend has **no photo storage (the current test environment)** the upload is skipped silently and the profile keeps the photo it had. | Photos are optional in the backend. The upload path is covered by tests but could not be tried against a real bucket. |
 
-Still mocked: the feedback form (`sendFeedback`), which has no backend endpoint.
+## 2026-10-06 — Mock removal: the API is the only data source
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 31 | **`EXPO_PUBLIC_DEV_MOCK_AUTH` was removed.** There is no mock mode any more; to work on a screen, log in (the test environment's fake SMS code makes that a few seconds). | The shortcut created a session with a fake token. With no mocked data left, every screen under it only showed "could not load" — it had become a trap, not a shortcut. |
+| 32 | The only mocked call left is the **feedback form** (`sendFeedback`): it reports success and discards the text. It is marked as such at the top of the file. | The backend has no feedback endpoint. |
+| 33 | Removed: the unused `matchStore` (a copy of the game kept on the phone that nothing read any more) with its doc, the no-op `latencyMs` options left on the hooks, and the unused `msw` dev dependency. Jest tests keep their own mocks (they stub the hooks or `fetch`) and never touch the network. | Dead code from the mocked phase. |
+| 34 | Three pieces of **fake on-screen data** were bound to real data: the ranking screen's group name (was a fixed "Vôlei de quinta") now is the ranked match's name; Explore's badge now reads "N jogos por perto" (was "ao vivo", though nothing said they were live); Explore's preview card now shows the closest real match's distance and price (was a fixed "Beach Vôlei SP ★ 4.9 (341)"). Explore's "Hoje" chip now filters matches that start today (was a no-op). | They looked like data but were literals. |
+
+Placeholders that are NOT mocks (the backend has no such data yet, the app shows a neutral value): Level/XP bar (Level 1, 0 XP), SRV/REC on the card (= overall), "Meu desempenho" in the summary (zeros), ranking trend arrows (absent).
 

@@ -29,7 +29,7 @@ type ApiRankingEntry = {
   position: string | null;
 };
 
-type ApiRanking = { items: ApiRankingEntry[] };
+type ApiRanking = { matchName: string; items: ApiRankingEntry[] };
 
 export function toRankingRow(entry: ApiRankingEntry, userId: string | null): RankingRow {
   const subtitle = [
@@ -62,15 +62,23 @@ async function getGroupRanking(params: GroupRankingParams): Promise<RankingRow[]
   return (ranking?.items ?? []).map((entry) => toRankingRow(entry, userId));
 }
 
-export type UseGroupRankingOptions = {
-  /** @deprecated No effect — kept so existing callers compile. The query is real now. */
-  latencyMs?: number;
-};
+/**
+ * The name of the group the ranking is about (the recurring match), or
+ * undefined while loading / when the user is in no ranking.
+ */
+export function useRankingGroupName(): string | undefined {
+  const { data } = useQuery({
+    queryKey: ['ranking', 'group', 'name'] as const,
+    queryFn: async () =>
+      (await authorizedApiClient<ApiRanking | undefined>('/api/v1/rankings/mine?page=1&pageSize=1'))
+        ?.matchName ?? null,
+    staleTime: 60_000,
+  });
+  return data ?? undefined;
+}
 
 export function useGroupRanking(
-  params: GroupRankingParams,
-  _options: UseGroupRankingOptions = {},
-) {
+  params: GroupRankingParams) {
   return useQuery({
     queryKey: groupRankingQueryKey(params),
     queryFn: () => getGroupRanking(params),

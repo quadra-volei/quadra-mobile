@@ -9,7 +9,7 @@
  *    Todos selected by default; selecting a functional chip (Perto/Iniciante/6x6)
  *    updates the highlight + filtered results; "Hoje" toggles highlight but is a
  *    documented no-op (result set unchanged).
- *  - Inline map preview with "N jogos ao vivo" badge + STATIC venue card with
+ *  - Inline map preview with "N jogos por perto" badge + STATIC venue card with
  *    "Ver" CTA; tapping preview / badge / "Ver" navigates to /explore/map (S17).
  *  - "N partidas encontradas" count reflects current filtered length + updates.
  *  - Grade/Lista toggle switches 2-col grid <-> 1-col list of the same MatchCards.
@@ -434,7 +434,7 @@ describe('S6 — Explore screen', () => {
   // --------------------------------------------------------------- map preview
   /**
    * Covers: S6 — Explore
-   * Criterion: "An inline map preview renders with a 'N jogos ao vivo' badge and a
+   * Criterion: "An inline map preview renders with a 'N jogos por perto' badge and a
    *  floating selected-venue card with a 'Ver' CTA."
    */
   it('renders the map preview with a live-games badge and a static venue card + Ver CTA', async () => {
@@ -443,10 +443,10 @@ describe('S6 — Explore screen', () => {
     // preview surface is an accessible button
     expect(screen.getByLabelText('Abrir mapa de partidas')).toBeTruthy();
     // live-games badge (count reflects loaded list = 3)
-    expect(screen.getByText('3 jogos ao vivo')).toBeTruthy();
+    expect(screen.getByText('3 jogos por perto')).toBeTruthy();
     // static venue card copy + Ver CTA
-    expect(screen.getByText('Beach Vôlei SP')).toBeTruthy();
-    expect(screen.getByText('★ 4.9 (341) · 3,4 km · R$ 40')).toBeTruthy();
+    // The card features the closest match of the list (Quadra do Parque, 1,2 km).
+    expect(screen.getByText('1,2 km · Grátis')).toBeTruthy();
     expect(screen.getByText('Ver')).toBeTruthy();
   });
 

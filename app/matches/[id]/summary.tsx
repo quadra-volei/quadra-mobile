@@ -37,7 +37,7 @@ import { colors } from '@/theme/colors';
  * MVP, and the vote ranking — with a text-only OS share action and a CTA back to
  * the profile (which resets out of the match stack).
  *
- * Route param: id (match id). Summary is MOCKED this iteration (F1.6).
+ * Route param: id (match id). Summary comes from the backend (F1.6).
  */
 export default function MatchSummaryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

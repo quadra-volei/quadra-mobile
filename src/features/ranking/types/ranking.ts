@@ -1,11 +1,10 @@
 // Ranking domain types consumed by the S8 "Ranking semanal" preview card and
-// (later) the S9 full group ranking. Mirrors the shape the S8 mockup shows so
-// the real F2.3 (group ranking) payload can slot in unchanged behind the mocked
-// hook signature. Shared with S9. No `any`.
+// the S9 full group ranking. The hook (src/features/ranking/api/getGroupRanking.ts)
+// maps the backend F2.3 payload into this shape. No `any`.
 
 /**
  * One row of the weekly group ranking.
- * `isMe` is a mock convenience flag; the screen derives the real highlight from
+ * `isMe` is filled by the hook; the screen also derives the highlight from
  * `useAuthStore().userId` matched against `playerId` (see S8 spec impl notes).
  */
 export type RankingRow = {
@@ -20,13 +19,12 @@ export type RankingRow = {
   score: number;
   /** Player level — drives the tier-colored level badge on the row avatar. */
   level?: number;
-  /** Mock-only convenience flag; screen prefers the userId match. */
+  /** The row is the signed-in user. */
   isMe?: boolean;
   /**
    * Movement since the previous ranking period. Absent → render "—" (flat).
    * Additive/optional so the S8 preview (which doesn't render trend) is
-   * unaffected. The mock populates it for the S9 full list.
-   * TODO(real-api): F2.3 supplies the real trend semantics.
+   * unaffected. Not filled today: the backend keeps no ranking history.
    */
   trend?: { direction: 'up' | 'down' | 'flat'; delta: number };
 };

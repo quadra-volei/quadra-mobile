@@ -95,6 +95,8 @@ export type ApiNearbyMatch = {
   latitude: number;
   longitude: number;
   distanceKm: number;
+  /** ISO start timestamp. */
+  dateTime?: string;
   maxPlayers: number;
   price: number | null;
   confirmedCount: number;
@@ -258,6 +260,7 @@ export function toNearbyMatch(item: ApiNearbyMatch): NearbyMatch {
     tint: tintForLevel(level),
     lat: item.latitude,
     lon: item.longitude,
+    startsAt: item.dateTime,
   };
 }
 

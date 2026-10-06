@@ -17,12 +17,7 @@ async function getMatchDetail(id: string): Promise<MatchDetail> {
   return toMatchDetail(await fetchMatchDetail(id), useAuthStore.getState().userId);
 }
 
-export type UseMatchDetailOptions = {
-  /** @deprecated No effect — kept so existing callers compile. The query is real now. */
-  latencyMs?: number;
-};
-
-export function useMatchDetail(id: string, _options: UseMatchDetailOptions = {}) {
+export function useMatchDetail(id: string) {
   return useQuery({
     queryKey: matchDetailQueryKey(id),
     queryFn: () => getMatchDetail(id),

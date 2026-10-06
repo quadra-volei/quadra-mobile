@@ -148,6 +148,7 @@ const mockRanking: {
 };
 
 jest.mock('@/features/ranking/api/getGroupRanking', () => ({
+  useRankingGroupName: () => 'Vôlei de quinta',
   useGroupRanking: (params: unknown) => {
     mockRanking.lastParams = params;
     return {

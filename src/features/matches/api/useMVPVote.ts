@@ -46,12 +46,7 @@ async function getMatchPlayers(matchId: string): Promise<MatchPlayer[]> {
     .filter((player): player is MatchPlayer => player !== undefined);
 }
 
-export type UseMatchPlayersOptions = {
-  /** @deprecated No effect — kept so existing callers compile. The query is real now. */
-  latencyMs?: number;
-};
-
-export function useMatchPlayers(matchId: string, _options: UseMatchPlayersOptions = {}) {
+export function useMatchPlayers(matchId: string) {
   return useQuery({
     queryKey: matchPlayersQueryKey(matchId),
     queryFn: () => getMatchPlayers(matchId),
@@ -60,16 +55,11 @@ export function useMatchPlayers(matchId: string, _options: UseMatchPlayersOption
   });
 }
 
-export type UseMVPVoteMutationOptions = {
-  /** @deprecated No effect — kept so existing callers compile. The vote is real now. */
-  latencyMs?: number;
-};
-
 /**
  * Votes for the MVP (`POST /matches/{id}/mvp-voting/votes`). Voting again
  * replaces the previous vote while the voting is open.
  */
-export function useVoteMVPMutation(matchId: string, _options: UseMVPVoteMutationOptions = {}) {
+export function useVoteMVPMutation(matchId: string) {
   const queryClient = useQueryClient();
   return useMutation<VoteMVPResponse, Error, string>({
     mutationFn: async (votedForPlayerId) => {

@@ -9,14 +9,13 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { GlassBackHeader } from '@/components/ui/GlassBackHeader';
-import { useGroupRanking } from '@/features/ranking/api/getGroupRanking';
+import {
+  useGroupRanking,
+  useRankingGroupName,
+} from '@/features/ranking/api/getGroupRanking';
 import type { RankingRow as RankingRowData } from '@/features/ranking/types/ranking';
 import { useAuthStore } from '@/stores/auth';
 import { colors, HERO_GRADIENT } from '@/theme/colors';
-
-// MOCK: single recurring-match group for MVP. The selector becomes a real picker
-// only once a user belongs to ≥2 groups; here it is present but inert.
-const MOCK_GROUP_NAME = 'Vôlei de quinta';
 
 function noop() {}
 
@@ -46,7 +45,8 @@ function ScopeTabs({
   );
 }
 
-// ── Group selector (Amigos tab only; inert single-group for MVP-mock) ──
+// ── Group selector: names the group being ranked. Inert — a user is ranked in
+// one group at a time (the recurring match they scored in most recently). ──
 function GroupSelector({ groupName }: { groupName: string }) {
   return (
     <View className="px-4 pb-2">
@@ -162,6 +162,7 @@ export default function RankingScreen() {
   // Local UI state: the only functional scope is "amigos" (Bairro/Geral disabled).
   const [scope, setScope] = useState<'amigos'>('amigos');
   const { data, isPending, isError, refetch } = useGroupRanking({ preview: false });
+  const groupName = useRankingGroupName();
 
   const isMe = (row: RankingRowData) =>
     userId != null ? row.playerId === userId : Boolean(row.isMe);
@@ -180,7 +181,7 @@ export default function RankingScreen() {
           contentContainerStyle={{ paddingTop: headerHeight }}
         >
           <ScopeTabs scope={scope} onSelectAmigos={() => setScope('amigos')} />
-          <GroupSelector groupName={MOCK_GROUP_NAME} />
+          {groupName ? <GroupSelector groupName={groupName} /> : null}
 
           {isPending ? (
             <RankingSkeleton />

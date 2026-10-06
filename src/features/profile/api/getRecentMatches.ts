@@ -59,12 +59,7 @@ async function getRecentMatches(): Promise<RecentMatch[]> {
   return items.map(toRecentMatch);
 }
 
-export type UseRecentMatchesOptions = {
-  /** @deprecated No effect — kept so existing callers compile. The query is real now. */
-  latencyMs?: number;
-};
-
-export function useRecentMatches(_options: UseRecentMatchesOptions = {}) {
+export function useRecentMatches() {
   return useQuery({
     queryKey: recentMatchesQueryKey,
     queryFn: getRecentMatches,

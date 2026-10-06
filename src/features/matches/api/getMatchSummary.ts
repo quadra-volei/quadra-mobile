@@ -131,16 +131,11 @@ async function getMatchSummary(matchId: string): Promise<MatchSummary> {
   };
 }
 
-export type UseMatchSummaryOptions = {
-  /** @deprecated No effect — kept so existing callers compile. The query is real now. */
-  latencyMs?: number;
-};
-
 /**
  * Query hook to fetch the read-only match summary (result, final score, per-set
  * breakdown, most-voted MVP, vote ranking). Consumed by S16.
  */
-export function useMatchSummary(matchId: string, _options: UseMatchSummaryOptions = {}) {
+export function useMatchSummary(matchId: string) {
   return useQuery({
     queryKey: matchSummaryQueryKey(matchId),
     queryFn: () => getMatchSummary(matchId),

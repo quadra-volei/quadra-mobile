@@ -25,9 +25,6 @@ export type UpdateProfileResult = {
  *
  * Rejects with a pt-BR message ready for display — e.g. when the `@handle` is
  * already taken (409).
- *
- * TODO(real-api): upload `avatarUri` through POST /api/v1/profiles/me/photo/upload-url
- * once photo storage is configured.
  */
 async function updateProfile(
   input: EditProfileInput,
