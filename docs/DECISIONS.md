@@ -55,5 +55,12 @@ Format: date · decision · why.
 | 27 | "Partidas recentes" shows the **last 5 finished matches** from the match history; a match appears once its organizer generated the summary. A game ended level shows as **EMPATE** (new, neutral colour). | The backend records history at summary time and has a Draw outcome the app did not have. |
 | 28 | The **player card** screen was already real (it reads the profile); nothing changed. | — |
 
+## 2026-10-06 — Block 5: @ check while typing, profile photo
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 29 | The @ field (onboarding and edit profile) **warns while typing** when the @ belongs to someone else, 400 ms after the last keystroke, from 3 characters. It is a hint only: it does not block the button, and saving still validates on the backend. | Never block a save on a check that may be offline or stale; the save already answers "taken" for real. |
+| 30 | **"Trocar foto" uploads the picked photo when saving** the profile (signed URL from the backend, file sent straight to the storage). Where the backend has **no photo storage (the current test environment)** the upload is skipped silently and the profile keeps the photo it had. | Photos are optional in the backend. The upload path is covered by tests but could not be tried against a real bucket. |
+
 Still mocked: the feedback form (`sendFeedback`), which has no backend endpoint.
 

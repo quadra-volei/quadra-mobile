@@ -9,7 +9,12 @@ import {
   Globe,
 } from "lucide-react-native";
 import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
+
+import {
+  HANDLE_TAKEN_MESSAGE,
+  useHandleTaken,
+} from "@/features/profile/api/handleAvailability";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import Animated, {
   useAnimatedKeyboard,
@@ -267,6 +272,8 @@ function PersonalDataStep({
   onBack,
   onContinue,
 }: PersonalDataStepProps) {
+  // Live hint: the typed @ already belongs to someone else.
+  const handleTaken = useHandleTaken(useWatch({ control, name: "handle" }));
   // Lift the white card with the keyboard so focused fields and the CTA stay
   // visible (native resize is disabled app-wide by useAnimatedKeyboard).
   const keyboard = useAnimatedKeyboard();
@@ -380,7 +387,10 @@ function PersonalDataStep({
                 placeholder="renan"
                 autoCapitalize="none"
                 maxLength={20}
-                error={errors.handle?.message}
+                error={
+                  errors.handle?.message ??
+                  (handleTaken ? HANDLE_TAKEN_MESSAGE : undefined)
+                }
                 testID="onboarding-handle"
                 leftAdornment={
                   <Text className="font-num text-body text-primary">@</Text>

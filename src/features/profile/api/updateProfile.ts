@@ -6,6 +6,7 @@ import {
   putMyProfile,
   toApiDate,
   toProfileError,
+  uploadProfilePhoto,
 } from '@/features/profile/api/profileApi';
 import type { EditProfileInput } from '@/features/profile/schema/editProfile';
 
@@ -34,6 +35,8 @@ async function updateProfile(
   try {
     // The PUT replaces the photo reference, so the current one is sent back.
     const current = await fetchMyProfile();
+    // A newly picked photo is uploaded first; without photo storage the current one stays.
+    const uploadedKey = input.avatarUri ? await uploadProfilePhoto(input.avatarUri) : null;
     const saved = await putMyProfile({
       firstName: input.firstName,
       lastName: input.lastName,
@@ -43,7 +46,7 @@ async function updateProfile(
       // Not editable in S10: null keeps the modality; the level cannot change.
       modality: null,
       level: null,
-      photoObjectKey: current.photoObjectKey,
+      photoObjectKey: uploadedKey ?? current.photoObjectKey,
     });
     return { profile: { ...input, id: saved.userId, handle: saved.handle ?? input.handle } };
   } catch (error) {

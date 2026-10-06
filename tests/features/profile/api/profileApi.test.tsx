@@ -24,6 +24,7 @@ import { useCreateProfile } from '@/features/profile/api/createProfile';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import type { ApiProfile } from '@/features/profile/api/profileApi';
 import { useUpdateProfile } from '@/features/profile/api/updateProfile';
+import { useHandleTaken } from '@/features/profile/api/handleAvailability';
 import type { EditProfileInput } from '@/features/profile/schema/editProfile';
 import type { OnboardingProfileInput } from '@/features/profile/schema/onboarding';
 import { saveTokens } from '@/lib/auth/tokenStorage';
@@ -82,7 +83,7 @@ function respond(status: number, body?: unknown) {
 type Call = { url: string; method: string; authorization?: string; body?: unknown };
 
 function calls(): Call[] {
-  return (fetchMock.mock.calls as [string, RequestInit][]).map(([url, init]) => ({
+  return (fetchMock.mock.calls as [string, RequestInit?][]).map(([url, init = {}]) => ({
     url,
     method: init.method ?? 'GET',
     authorization: (init.headers as Record<string, string> | undefined)?.Authorization,
@@ -196,11 +197,13 @@ describe('useUpdateProfile (edit profile)', () => {
    *  is the login identity and is not part of the profile.
    */
   it('PUTs the edited fields, keeping modality, level and the current photo', async () => {
-    fetchMock.mockImplementation(async (_url: string, init: RequestInit) =>
-      init.method === 'PUT'
+    fetchMock.mockImplementation(async (url: string, init: RequestInit) => {
+      // No photo storage in this environment: the picked photo is not uploaded.
+      if (url.endsWith('/photo/upload-url')) return respond(503);
+      return init.method === 'PUT'
         ? respond(200, { ...apiProfile, handle: 'renan_d', position: 'LIB' })
-        : respond(200, apiProfile),
-    );
+        : respond(200, apiProfile);
+    });
 
     const settled = await runMutation(useUpdateProfile, editInput);
 
@@ -273,5 +276,53 @@ describe('useMyProfile', () => {
 
     expect(result.current.data?.phone).toBeUndefined();
     expect(result.current.data?.avatarUrl).toBeUndefined();
+  });
+});
+
+describe('profile photo upload', () => {
+  /**
+   * Covers: S10 "Trocar foto" — with photo storage, the picked file is PUT to
+   * the signed URL and its object key is saved on the profile.
+   */
+  it('uploads the picked photo and saves its key', async () => {
+    fetchMock.mockImplementation(async (url: string, init: RequestInit = {}) => {
+      if (url.endsWith('/photo/upload-url')) {
+        return respond(201, { uploadUrl: 'https://storage.test/put-here', objectKey: 'profiles/new.jpg' });
+      }
+      if (url === editInput.avatarUri) return { ok: true, blob: async () => ({ size: 3 }) };
+      if (url === 'https://storage.test/put-here') return respond(200);
+      return init.method === 'PUT' ? respond(200, apiProfile) : respond(200, apiProfile);
+    });
+
+    const settled = await runMutation(useUpdateProfile, editInput);
+
+    expect(settled.status).toBe('fulfilled');
+    const upload = calls().find((c) => c.url === 'https://storage.test/put-here');
+    expect(upload?.method).toBe('PUT');
+    expect(calls().find((c) => c.url.endsWith('/api/v1/profiles/me') && c.method === 'PUT')?.body)
+      .toMatchObject({ photoObjectKey: 'profiles/new.jpg' });
+  });
+});
+
+describe('useHandleTaken', () => {
+  /**
+   * Covers: S4 / S10 — the @ field warns while typing when the @ is taken.
+   */
+  it('asks the backend a moment after typing and reports a taken @', async () => {
+    fetchMock.mockResolvedValue(respond(200, { handle: 'renan', available: false }));
+
+    const { result } = await renderHook(() => useHandleTaken('@Renan'), { wrapper });
+    expect(result.current).toBe(false);
+
+    await waitFor(() => expect(result.current).toBe(true));
+    expect(calls()[0]?.url).toContain('/api/v1/profiles/handle-availability?handle=renan');
+  });
+
+  it('does not ask for fewer than 3 characters', async () => {
+    const { result } = await renderHook(() => useHandleTaken('re'), { wrapper });
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    expect(result.current).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
