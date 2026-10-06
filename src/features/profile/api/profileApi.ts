@@ -120,17 +120,29 @@ export async function uploadProfilePhoto(localUri: string): Promise<string | nul
     if (error instanceof ApiError && error.status === 503) {
       return null;
     }
+    if (error instanceof ApiError && error.status !== 401) {
+      throw new Error(`Não foi possível preparar o envio da foto (erro ${error.status}).`);
+    }
     throw error;
   }
 
-  const file = await (await fetch(localUri)).blob();
-  const upload = await fetch(target.uploadUrl, {
-    method: 'PUT',
-    headers: { 'Content-Type': PHOTO_CONTENT_TYPE },
-    body: file,
-  });
+  // React Native streams a local file when the body is `{ uri, type, name }`.
+  // Reading it first with `fetch(localUri).blob()` fails on Android builds
+  // ("Network request failed" for file:// URIs), which is what broke the upload.
+  const file = { uri: localUri, type: PHOTO_CONTENT_TYPE, name: 'photo.jpg' };
+  let upload: Response;
+  try {
+    upload = await fetch(target.uploadUrl, {
+      method: 'PUT',
+      // The URL is signed for exactly this Content-Type.
+      headers: { 'Content-Type': PHOTO_CONTENT_TYPE },
+      body: file as unknown as BodyInit,
+    });
+  } catch {
+    throw new Error('Não foi possível enviar a foto. Verifique sua internet e tente de novo.');
+  }
   if (!upload.ok) {
-    throw new Error('Não foi possível enviar a foto. Tente de novo.');
+    throw new Error(`Não foi possível enviar a foto (erro ${upload.status}). Tente de novo.`);
   }
   return target.objectKey;
 }
