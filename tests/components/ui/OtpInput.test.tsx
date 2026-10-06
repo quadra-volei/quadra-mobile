@@ -1,9 +1,9 @@
 /**
- * OtpInput — segmented 4-box auto-advancing OTP field.
+ * OtpInput — segmented 6-box auto-advancing OTP field.
  *
  * This is the reusable auth primitive proposed by docs/specs/S3-sms-otp.md
  * ("complex enough to deserve its own tests"). The screen-level acceptance
- * criteria around the boxes (4 boxes, auto-advance, backspace-back) are covered
+ * criteria around the boxes (6 boxes, auto-advance, backspace-back) are covered
  * here at the component boundary; the screen test covers them again through the
  * real screen wiring.
  *
@@ -70,16 +70,18 @@ async function renderControlled(
 describe('OtpInput', () => {
   /**
    * Covers: S3 — SMS Verification
-   * Criterion: "Exactly 4 boxes are rendered (no 5/6-digit variant)."
+   * Criterion: "Exactly 6 boxes are rendered (no 4-digit variant)."
    */
-  it('renders exactly 4 digit boxes', async () => {
+  it('renders exactly 6 digit boxes', async () => {
     const { getByTestId, queryByTestId } = await renderControlled();
     expect(getByTestId('otp-box-0')).toBeTruthy();
     expect(getByTestId('otp-box-1')).toBeTruthy();
     expect(getByTestId('otp-box-2')).toBeTruthy();
     expect(getByTestId('otp-box-3')).toBeTruthy();
-    // no 5th box -> not a 5/6-digit variant
-    expect(queryByTestId('otp-box-4')).toBeNull();
+    expect(getByTestId('otp-box-4')).toBeTruthy();
+    expect(getByTestId('otp-box-5')).toBeTruthy();
+    // no 7th box -> exactly the backend's 6-digit code
+    expect(queryByTestId('otp-box-6')).toBeNull();
   });
 
   /**
@@ -126,15 +128,15 @@ describe('OtpInput', () => {
 
   /**
    * Covers: S3 — SMS Verification
-   * Criterion: "onFilled fires when all 4 digits are entered" (drives auto-submit).
+   * Criterion: "onFilled fires when all 6 digits are entered" (drives auto-submit).
    */
-  it('fires onFilled with the full code when the 4th digit lands', async () => {
-    const { getByTestId, onFilled, onChangeText } = await renderControlled('123');
+  it('fires onFilled with the full code when the 6th digit lands', async () => {
+    const { getByTestId, onFilled, onChangeText } = await renderControlled('12345');
 
-    fireEvent.changeText(getByTestId('otp-box-3'), '4');
+    fireEvent.changeText(getByTestId('otp-box-5'), '6');
 
-    expect(onChangeText).toHaveBeenLastCalledWith('1234');
-    expect(onFilled).toHaveBeenCalledWith('1234');
+    expect(onChangeText).toHaveBeenLastCalledWith('123456');
+    expect(onFilled).toHaveBeenCalledWith('123456');
   });
 
   /**
@@ -143,21 +145,21 @@ describe('OtpInput', () => {
    * Verifies the danger border class is applied to the boxes when `error` is set.
    */
   it('applies the danger border on error', async () => {
-    const { getByTestId, setValue } = await renderControlled('1234');
+    const { getByTestId, setValue } = await renderControlled('123456');
     // no error initially
     expect(getByTestId('otp-box-0').props.className).not.toMatch(/border-danger/);
 
-    await setValue('1234', { error: true });
+    await setValue('123456', { error: true });
     expect(getByTestId('otp-box-0').props.className).toMatch(/border-danger/);
   });
 
   /**
    * Covers: S3 — SMS Verification
-   * Criterion: each box exposes an accessible label ("Dígito N de 4").
+   * Criterion: each box exposes an accessible label ("Dígito N de 6").
    */
   it('labels each box for screen readers', async () => {
     const { getByLabelText } = await renderControlled();
-    expect(getByLabelText('Dígito 1 de 4')).toBeTruthy();
-    expect(getByLabelText('Dígito 4 de 4')).toBeTruthy();
+    expect(getByLabelText('Dígito 1 de 6')).toBeTruthy();
+    expect(getByLabelText('Dígito 6 de 6')).toBeTruthy();
   });
 });

@@ -25,6 +25,7 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { MOCK_ORGANIZER_USER_ID } from '@/features/matches/api/getMatchDetail';
 import { getAccessToken } from '@/lib/auth/getAccessToken';
 import { verifySession } from '@/lib/auth/verifySession';
 import { useAuthStore } from '@/stores/auth';
@@ -32,6 +33,10 @@ import { useAuthStore } from '@/stores/auth';
 SplashScreen.preventAutoHideAsync();
 
 const AUTH_BOOTSTRAP_TIMEOUT_MS = 2000;
+
+// Never active in a release build (`__DEV__` is false there).
+const DEV_MOCK_AUTH =
+  __DEV__ && process.env.EXPO_PUBLIC_DEV_MOCK_AUTH === 'true';
 
 function timeout(ms: number): Promise<never> {
   return new Promise((_, reject) => {
@@ -47,6 +52,16 @@ function timeout(ms: number): Promise<never> {
  */
 async function runAuthBootstrap(): Promise<void> {
   const { setAuth, clearAuth } = useAuthStore.getState();
+  if (DEV_MOCK_AUTH) {
+    // Opt-in escape hatch for working on the (still mocked) screens without a
+    // backend: skips login as the organizer of the mocked matches.
+    setAuth({
+      userId: MOCK_ORGANIZER_USER_ID,
+      accessToken: 'mock-dev-token',
+      hasProfile: true,
+    });
+    return;
+  }
   try {
     const accessToken = await getAccessToken();
     if (!accessToken) {
@@ -59,7 +74,8 @@ async function runAuthBootstrap(): Promise<void> {
     ]);
     setAuth({
       userId: session.userId,
-      accessToken,
+      // verifySession hands back a new token when the stored one had expired.
+      accessToken: session.accessToken ?? accessToken,
       hasProfile: session.hasProfile,
     });
   } catch {
@@ -110,15 +126,6 @@ export default function RootLayout() {
       // Kick off the one-shot auth bootstrap; the splash route awaits the
       // shared promise to drive its redirect.
       void getAuthBootstrap();
-
-      // DEVELOPMENT: set a mock user if none exists (for testing without real auth)
-      if (!useAuthStore.getState().userId) {
-        useAuthStore.getState().setAuth({
-          userId: 'user-organizer',
-          accessToken: 'mock-dev-token',
-          hasProfile: true,
-        });
-      }
     }
   }, [fontsLoaded]);
 

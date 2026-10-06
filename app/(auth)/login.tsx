@@ -20,7 +20,10 @@ import { GoogleMark } from "@/components/icons/GoogleMark";
 import { QuadraLogo } from "@/components/icons/QuadraLogo";
 import { Button } from "@/components/ui/Button";
 import { PhoneInput } from "@/components/ui/PhoneInput";
-import { useGoogleSignIn } from "@/features/auth/api/googleSignIn";
+import {
+  GoogleSignInCancelledError,
+  useGoogleSignIn,
+} from "@/features/auth/api/googleSignIn";
 import { useRequestOtp } from "@/features/auth/api/requestOtp";
 import { useRiseIn } from "@/hooks/useRiseIn";
 import { useAuthStore } from "@/stores/auth";
@@ -47,6 +50,7 @@ type LoginPhoneForm = z.infer<typeof loginPhoneSchema>;
 
 export default function LoginScreen() {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
 
   const requestOtp = useRequestOtp();
   const googleSignIn = useGoogleSignIn();
@@ -106,6 +110,7 @@ export default function LoginScreen() {
   });
 
   const onGoogle = () => {
+    setGoogleError(null);
     googleSignIn.mutate(undefined, {
       onSuccess: ({ session, user }) => {
         setAuth({
@@ -117,6 +122,14 @@ export default function LoginScreen() {
           router.replace("/(tabs)");
         } else {
           router.replace("/onboarding");
+        }
+      },
+      onError: (err) => {
+        // Backing out of the Google account picker is not an error.
+        if (!(err instanceof GoogleSignInCancelledError)) {
+          setGoogleError(
+            err.message || "Não foi possível entrar com o Google.",
+          );
         }
       },
     });
@@ -309,6 +322,17 @@ export default function LoginScreen() {
                 >
                   Entrar com Google
                 </Button>
+
+                {/* inline (no toast) status when Google sign-in fails */}
+                {googleError ? (
+                  <Text
+                    className="font-body text-caption text-danger text-center mt-2"
+                    accessibilityLiveRegion="polite"
+                    testID="google-error"
+                  >
+                    {googleError}
+                  </Text>
+                ) : null}
 
                 <Text className="font-body text-caption text-text-muted text-center mt-6">
                   Ao continuar, você aceita os{" "}

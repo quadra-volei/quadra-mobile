@@ -10,6 +10,8 @@
  *  - Valid phone submit -> mocked useRequestOtp resolves -> push /sms-otp w/ phone.
  *  - "Entrar com Google" -> mocked useGoogleSignIn resolves -> replace
  *    /onboarding (hasProfile false) or /(tabs) (hasProfile true).
+ *  - A failed Google sign-in surfaces an inline message (no toast); backing out
+ *    of the Google account picker surfaces nothing.
  *  - Invalid phone surfaces via PhoneInput error prop only -- NO toast.
  *  - No "Esqueceu a senha?", no Apple button, no email/password fields.
  *  - "ou" divider, Google button, Terms/Privacy disclaimer present.
@@ -120,6 +122,9 @@ type GoogleResult = {
   user: { id: string; name: string; hasProfile: boolean };
 };
 
+// Stand-in for the real cancellation error class (the screen checks `instanceof`).
+class MockGoogleSignInCancelledError extends Error {}
+
 // `mock`-prefixed holder so jest.mock factories may reference it (hoisting rule).
 const mockAuth = {
   requestOtpBehavior: 'resolve' as 'resolve' | 'reject',
@@ -127,6 +132,7 @@ const mockAuth = {
   requestOtpIsPending: false,
   googleHasProfile: false,
   googleIsPending: false,
+  googleBehavior: 'resolve' as 'resolve' | 'reject' | 'cancel',
   requestOtpMutate: jest.fn(
     (_input: { phone: string }, opts?: MutateOpts<{ ok: true }>) => {
       if (mockAuth.requestOtpBehavior === 'reject') {
@@ -137,6 +143,14 @@ const mockAuth = {
     },
   ),
   googleSignInMutate: jest.fn((_input: void, opts?: MutateOpts<GoogleResult>) => {
+    if (mockAuth.googleBehavior === 'cancel') {
+      opts?.onError?.(new MockGoogleSignInCancelledError());
+      return;
+    }
+    if (mockAuth.googleBehavior === 'reject') {
+      opts?.onError?.(new Error('Não foi possível entrar com o Google.'));
+      return;
+    }
     opts?.onSuccess?.({
       session: { token: 'mock-google-session' },
       user: { id: 'mock', name: 'Jogador', hasProfile: mockAuth.googleHasProfile },
@@ -151,6 +165,10 @@ jest.mock('@/features/auth/api/requestOtp', () => ({
   }),
 }));
 jest.mock('@/features/auth/api/googleSignIn', () => ({
+  // Getter: resolved lazily, after the class below the hoisted mocks exists.
+  get GoogleSignInCancelledError() {
+    return MockGoogleSignInCancelledError;
+  },
   useGoogleSignIn: () => ({
     mutate: mockAuth.googleSignInMutate,
     isPending: mockAuth.googleIsPending,
@@ -173,6 +191,7 @@ beforeEach(() => {
   mockAuth.requestOtpIsPending = false;
   mockAuth.googleIsPending = false;
   mockAuth.googleHasProfile = false;
+  mockAuth.googleBehavior = 'resolve';
   useAuthStore.getState().clearAuth();
 });
 
@@ -343,6 +362,44 @@ describe('S2 — Login screen', () => {
     const state = useAuthStore.getState();
     expect(state.isAuthenticated).toBe(true);
     expect(state.hasProfile).toBe(true);
+  });
+
+  // ------------------------------------------------------ Google: failure
+  /**
+   * Covers: S2 — Login
+   * Criterion: "A failed Google sign-in shows an inline message under the Google
+   *  button — no toast — and keeps the user on the sheet."
+   */
+  it('Google sign-in failure -> inline message, no navigation, not authenticated', async () => {
+    mockAuth.googleBehavior = 'reject';
+    await render(<LoginScreen />);
+    await openSheet();
+
+    fireEvent.press(screen.getByTestId('google-signin'));
+
+    const errorNode = await screen.findByTestId('google-error');
+    expect(errorNode.props.accessibilityLiveRegion).toBe('polite');
+    expect(screen.getByText('Não foi possível entrar com o Google.')).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+  });
+
+  /**
+   * Covers: S2 — Login
+   * Criterion: "Dismissing the Google account picker is not an error: nothing is
+   *  shown and the user stays on the sheet."
+   */
+  it('Google sign-in cancelled -> no message and no navigation', async () => {
+    mockAuth.googleBehavior = 'cancel';
+    await render(<LoginScreen />);
+    await openSheet();
+
+    fireEvent.press(screen.getByTestId('google-signin'));
+
+    await waitFor(() => expect(mockAuth.googleSignInMutate).toHaveBeenCalledTimes(1));
+    expect(screen.queryByTestId('google-error')).toBeNull();
+    expect(mockReplace).not.toHaveBeenCalled();
   });
 
   // ------------------------------------------------------ invalid phone / no toast

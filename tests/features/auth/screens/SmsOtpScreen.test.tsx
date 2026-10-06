@@ -5,18 +5,18 @@
  *  - Navy->blue hero strip with back chevron + message icon, white card with the
  *    "CONFIRME SEU NÚMERO" display headline.
  *  - Subtitle echoes the phone passed from S2 via route params.
- *  - Four separate digit boxes; typing auto-advances focus; backspace on an empty
+ *  - Six separate digit boxes; typing auto-advances focus; backspace on an empty
  *    box moves focus back.
- *  - "Verificar" disabled until all 4 digits entered, then the gradient CTA.
+ *  - "Verificar" disabled until all 6 digits entered, then the gradient CTA.
  *  - Submitting calls the mocked useVerifyOtp; on resolution routes to Onboarding
  *    (hasProfile false) or Home (hasProfile true).
- *  - Incorrect code (not "1234") surfaces the error state (red border + shake) and
+ *  - Incorrect code (not "123456") surfaces the error state (red border + shake) and
  *    renders NO toast.
  *  - Resend control shows "Reenviar em M:SS" counting down (~30s), non-interactive
  *    during countdown; at 0 becomes the active "Reenviar código" link.
  *  - Tapping "Reenviar código" calls mocked useResendOtp and restarts the countdown.
  *  - "Usar outro número" and the back chevron both return to S2 (login).
- *  - Exactly 4 boxes (no 5/6-digit variant).
+ *  - Exactly 6 boxes (no 4-digit variant).
  *
  * All auth is mocked at the hook boundary (no network, no MSW). Navigation and
  * route params are mocked via expo-router. Native modules (gradient, reanimated,
@@ -106,14 +106,14 @@ type VerifyResult = {
 };
 
 const mockAuth = {
-  // The mocked verify resolves only for the canonical "1234" (mirrors the real
+  // The mocked verify resolves only for the canonical "123456" (mirrors the real
   // mock mutationFn), rejecting otherwise so the error branch is reachable.
   verifyHasProfile: false,
   verifyIsPending: false,
   resendIsPending: false,
   resendBehavior: 'resolve' as 'resolve' | 'reject',
   verifyMutate: jest.fn((input: { phone: string; code: string }, opts?: MutateOpts<VerifyResult>) => {
-    if (input.code === '1234') {
+    if (input.code === '123456') {
       opts?.onSuccess?.({
         session: { token: 'mock-otp-session' },
         user: { id: 'mock', name: 'Jogador', hasProfile: mockAuth.verifyHasProfile },
@@ -258,24 +258,26 @@ describe('S3 — SMS Verification screen', () => {
   it('echoes the phone from route params, formatted, in the subtitle', async () => {
     await renderScreen();
 
-    expect(screen.getByText(/Enviamos um código de 4 dígitos por SMS para/i)).toBeTruthy();
+    expect(screen.getByText(/Enviamos um código de 6 dígitos por SMS para/i)).toBeTruthy();
     // formatted display of +5531231213312
     expect(screen.getByText('+55 (31) 23121-3312')).toBeTruthy();
   });
 
-  // ---------------------------------------------------------------- 4 boxes
+  // ---------------------------------------------------------------- 6 boxes
   /**
    * Covers: S3 — SMS Verification
-   * Criterion: "Exactly 4 boxes are rendered (no 5/6-digit variant)."
+   * Criterion: "Exactly 6 boxes are rendered (no 4-digit variant)."
    */
-  it('renders exactly 4 digit boxes', async () => {
+  it('renders exactly 6 digit boxes', async () => {
     await renderScreen();
 
     expect(screen.getByTestId('otp-input-box-0')).toBeTruthy();
     expect(screen.getByTestId('otp-input-box-1')).toBeTruthy();
     expect(screen.getByTestId('otp-input-box-2')).toBeTruthy();
     expect(screen.getByTestId('otp-input-box-3')).toBeTruthy();
-    expect(screen.queryByTestId('otp-input-box-4')).toBeNull();
+    expect(screen.getByTestId('otp-input-box-4')).toBeTruthy();
+    expect(screen.getByTestId('otp-input-box-5')).toBeTruthy();
+    expect(screen.queryByTestId('otp-input-box-6')).toBeNull();
   });
 
   // ---------------------------------------------------- auto-advance + backspace
@@ -301,20 +303,20 @@ describe('S3 — SMS Verification screen', () => {
   // ---------------------------------------------------------------- CTA gating
   /**
    * Covers: S3 — SMS Verification
-   * Criterion: "'Verificar' is disabled until all 4 digits are entered, then
+   * Criterion: "'Verificar' is disabled until all 6 digits are entered, then
    *  becomes the gradient CTA."
    */
-  it('keeps "Verificar" disabled until 4 digits are entered, then enables it', async () => {
+  it('keeps "Verificar" disabled until 6 digits are entered, then enables it', async () => {
     await renderScreen();
 
     const cta = () => screen.getByTestId('verify-otp');
     expect(cta().props.accessibilityState?.disabled).toBe(true);
 
-    await typeCode('123');
+    await typeCode('12345');
     expect(cta().props.accessibilityState?.disabled).toBe(true);
 
-    // 4th digit non-canonical so it does NOT auto-submit+navigate away here.
-    await typeCode('1239');
+    // 6th digit non-canonical so it does NOT auto-submit+navigate away here.
+    await typeCode('123459');
     expect(screen.getByText('Verificar')).toBeTruthy();
     expect(cta().props.accessibilityState?.disabled).toBe(false);
   });
@@ -329,11 +331,11 @@ describe('S3 — SMS Verification screen', () => {
     mockAuth.verifyHasProfile = false;
     await renderScreen();
 
-    await typeCode('1234'); // canonical -> onFilled auto-submits
+    await typeCode('123456'); // canonical -> onFilled auto-submits
 
     await waitFor(() =>
       expect(mockAuth.verifyMutate).toHaveBeenCalledWith(
-        { phone: '+5531231213312', code: '1234' },
+        { phone: '+5531231213312', code: '123456' },
         expect.anything(),
       ),
     );
@@ -357,7 +359,7 @@ describe('S3 — SMS Verification screen', () => {
     await renderScreen();
 
     await press('verify-otp'); // incomplete -> guarded no-op
-    await typeCode('1234');
+    await typeCode('123456');
 
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/(tabs)'));
     expect(mockReplace).not.toHaveBeenCalledWith('/onboarding');
@@ -367,13 +369,13 @@ describe('S3 — SMS Verification screen', () => {
   // ------------------------------------------------------ wrong code / error
   /**
    * Covers: S3 — SMS Verification
-   * Criterion: "Entering an incorrect code (anything other than '1234') surfaces
+   * Criterion: "Entering an incorrect code (anything other than '123456') surfaces
    *  the error state (red border + shake) and renders no toast."
    */
   it('surfaces the inline error on a wrong code and renders no toast', async () => {
     await renderScreen();
 
-    await typeCode('9999'); // non-canonical -> mutation rejects
+    await typeCode('999999'); // non-canonical -> mutation rejects
 
     await waitFor(() => expect(mockAuth.verifyMutate).toHaveBeenCalledTimes(1));
 
@@ -397,7 +399,7 @@ describe('S3 — SMS Verification screen', () => {
   it('clears the error state when the user edits a digit after a wrong code', async () => {
     await renderScreen();
 
-    await typeCode('9999');
+    await typeCode('999999');
     await waitFor(() =>
       expect(screen.getByTestId('otp-input-box-0').props.className).toMatch(/border-danger/),
     );

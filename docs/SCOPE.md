@@ -42,7 +42,7 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 
 ### S2 — Login
 - **Reference**: `docs/references/screens/S2-login/login.png` (welcome/intro state) + `docs/references/screens/S2-login/login-acesse-sua-conta.png` (phone login bottom sheet)- **Route**: `app/(auth)/login.tsx`
-- **Backend deps**: backend Auth module (FA.2, FA.3)
+- **Backend deps**: backend Auth module (FA.3 — own JWT; there is no separate signup, the first login creates the account)
 - **IN**: welcome/intro state — logo + wordmark, display headline "O JOGO COMEÇA AQUI.", subtitle, single "Entrar e jogar" CTA that opens the phone login bottom sheet
 - **IN**: phone login bottom sheet ("ACESSE SUA CONTA") — phone number input with country selector default BR (+55)
 - **IN**: "Entrar na Quadra" gradient CTA → triggers SMS OTP flow
@@ -55,13 +55,13 @@ When the prototype and SCOPE disagree: **SCOPE wins** (the prototype may show La
 ### S3 — SMS Verification
 - **Reference**: `docs/references/screens/S3-sms-otp/sms-otp.png` + `sms-otp-preenchido.png` (filled state)- **Route**: `app/(auth)/sms-otp.tsx`
 - **Backend deps**: FA.3 (SMS OTP endpoint)
-- **IN**: title "CONFIRME SEU NÚMERO" + subtitle echoing the phone entered ("Enviamos um código de 4 dígitos por SMS para +55 (XX) ...")
-- **IN**: 4 separate digit input boxes auto-advancing
-- **IN**: "Verificar" CTA enabled only when all 4 digits filled (gradient when enabled, grey when disabled)
+- **IN**: title "CONFIRME SEU NÚMERO" + subtitle echoing the phone entered ("Enviamos um código de 6 dígitos por SMS para +55 (XX) ...")
+- **IN**: 6 separate digit input boxes auto-advancing (the mockup shows 4; the backend SMS code has 6 digits)
+- **IN**: "Verificar" CTA enabled only when all 6 digits filled (gradient when enabled, grey when disabled)
 - **IN**: "Reenviar código" link — disabled with countdown ("Reenviar em 0:26", ~30s) then becomes active
 - **IN**: "Usar outro número" link → back to S2
 - **IN**: error state for wrong code (shake animation + red border) — no mockup reference; follow DESIGN_SYSTEM error tokens
-- **OUT**: codes longer than 4 digits (locked by Cognito config)
+- **OUT**: codes of any length other than 6 digits (the backend sends 6-digit codes via Twilio Verify)
 
 ### S4 — Onboarding (post-signup, first time only)
 - **Reference**: `docs/references/screens/S4-onboarding/dados-pessoais-cadastro.png` (personal data), `dados-posicao.png` (Passo 1/3 — position), `dados-nivel-jogo-cadastro.png` (Passo 2/3 — level), `dados-modalidade-favorita-cadastro.png` (Passo 3/3 — modality), `dados-perfil-pronto.png` (completion)- **Route**: `app/(auth)/onboarding.tsx`
