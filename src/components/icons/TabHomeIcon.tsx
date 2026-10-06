@@ -1,0 +1,35 @@
+import Svg, { Defs, LinearGradient, Path, Stop } from 'react-native-svg';
+
+import {
+  TAB_GRAD_END,
+  TAB_GRAD_START,
+  TAB_MUTED,
+  TAB_MUTED_OPACITY,
+  type TabIconProps,
+} from './tabIcon';
+
+const GID = 'tab-home-grad';
+
+const D =
+  'M17.7837 0.962731C17.4838 0.657513 17.1278 0.415396 16.7359 0.250209C16.3441 0.0850215 15.9241 0 15.5 0C15.0759 0 14.6559 0.0850215 14.2641 0.250209C13.8722 0.415396 13.5162 0.657513 13.2163 0.962731L0 14.4127V27.0569C0 28.1027 0.408258 29.1056 1.13496 29.8451C1.86166 30.5846 2.84729 31 3.875 31H27.125C28.1527 31 29.1383 30.5846 29.865 29.8451C30.5917 29.1056 31 28.1027 31 27.0569V14.4127L17.7837 0.962731ZM27.125 27.0569H20.6667V22.8746C20.6667 21.5436 20.1471 20.2672 19.2222 19.3261C18.2974 18.385 17.043 17.8563 15.7351 17.8563H15.2649C13.957 17.8563 12.7026 18.385 11.7778 19.3261C10.8529 20.2672 10.3333 21.5436 10.3333 22.8746V27.0569H3.875V16.0451L15.5 4.21579L27.125 16.0451V27.0569Z';
+
+/** "Início" bottom-nav icon (ported from docs/uploads/Home*.svg). */
+export function TabHomeIcon({ focused, size = 26, testID }: TabIconProps) {
+  return (
+    <Svg testID={testID} width={size} height={size} viewBox="0 0 31 31" fill="none">
+      {focused ? (
+        <Defs>
+          <LinearGradient id={GID} x1="15.5" y1="0" x2="15.5" y2="31" gradientUnits="userSpaceOnUse">
+            <Stop stopColor={TAB_GRAD_START} />
+            <Stop offset="1" stopColor={TAB_GRAD_END} />
+          </LinearGradient>
+        </Defs>
+      ) : null}
+      <Path
+        d={D}
+        fill={focused ? `url(#${GID})` : TAB_MUTED}
+        fillOpacity={focused ? 1 : TAB_MUTED_OPACITY}
+      />
+    </Svg>
+  );
+}

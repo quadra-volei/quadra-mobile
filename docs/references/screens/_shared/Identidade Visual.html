@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Quadra — Identidade Visual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700&family=Russo+One&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  @font-face{
+    font-family:'Climate Crisis';
+    src:url('uploads/ClimateCrisis-Regular-VariableFont_YEAR.ttf') format('truetype');
+    font-weight:400; font-display:swap;
+  }
+
+  :root{
+    --blue:#1A1AFF; --navy:#0A0A3C; --lime:#AADD00; --brightLime:#C6F135;
+    --orange:#FF6B00; --violet:#6B1AFF; --cyan:#00B4D8;
+    --lightBg:#EFF3FC; --midNavy:#111145; --text:#1A1A2E; --muted:#7A7A9A;
+    --line:rgba(10,10,60,.10);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0; padding:0;}
+  body{
+    font-family:'DM Sans',system-ui,sans-serif; color:var(--text);
+    background:var(--lightBg); -webkit-font-smoothing:antialiased; text-wrap:pretty;
+    line-height:1.5;
+  }
+  .display{font-family:'Climate Crisis',Impact,sans-serif; font-weight:400; text-transform:uppercase; line-height:1.02; letter-spacing:0;}
+  .num{font-family:'Russo One',sans-serif; font-weight:400;}
+  .word{font-family:'Baloo 2',system-ui,sans-serif; font-weight:600;}
+  .mono{font-family:'DM Mono',ui-monospace,Menlo,monospace;}
+
+  .wrap{max-width:1120px; margin:0 auto; padding:0 32px;}
+
+  /* ── eyebrow / section heads ── */
+  .eyebrow{font-weight:700; font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:var(--muted);}
+  .sec{padding:84px 0 8px;}
+  .sec-num{font-family:'DM Mono',monospace; font-size:13px; color:var(--blue); letter-spacing:1px;}
+  .sec-title{font-family:'Climate Crisis',Impact,sans-serif; text-transform:uppercase; font-size:38px; color:var(--navy); margin:6px 0 10px; line-height:1;}
+  .sec-lead{font-size:15.5px; color:var(--muted); max-width:620px; margin:0 0 30px;}
+
+  .card{background:#fff; border-radius:20px; box-shadow:0 2px 14px rgba(10,10,60,.06);}
+  .grid{display:grid; gap:18px;}
+
+  /* ─────────── HERO ─────────── */
+  .hero{
+    position:relative; overflow:hidden; color:#fff;
+    background:linear-gradient(165deg,#0c0c52 0%, var(--navy) 55%, #08083a 100%);
+  }
+  .hero-inner{position:relative; z-index:2; padding:72px 32px 76px;}
+  .blob{position:absolute; border-radius:50%; filter:blur(70px); opacity:.32; pointer-events:none;}
+  .hero .logo-row{display:flex; align-items:center; gap:14px;}
+  .hero h1.display{font-size:74px; color:#fff; margin:30px 0 0; max-width:760px;}
+  .hero h1 .hl{color:var(--brightLime);}
+  .hero p{font-size:17px; color:rgba(255,255,255,.74); max-width:540px; margin:18px 0 0;}
+  .hero-meta{display:flex; flex-wrap:wrap; gap:10px; margin-top:30px;}
+  .chip{display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius:30px;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14);
+    font-size:12.5px; font-weight:600; color:rgba(255,255,255,.9);}
+  .chip .dot{width:10px; height:10px; border-radius:50%;}
+
+  /* ─────────── COLORS ─────────── */
+  .pri-grid{grid-template-columns:repeat(4,1fr);}
+  .swatch{border-radius:18px; overflow:hidden; box-shadow:0 2px 14px rgba(10,10,60,.07); background:#fff;}
+  .swatch .cap{height:148px; position:relative;}
+  .swatch .cap .ord{position:absolute; top:14px; left:16px; font-family:'DM Mono',monospace; font-size:12px; letter-spacing:1px;}
+  .swatch .meta{padding:14px 16px 16px;}
+  .swatch .nm{font-weight:700; font-size:14.5px; color:var(--navy);}
+  .swatch .hex{font-family:'DM Mono',monospace; font-size:12.5px; color:var(--muted); margin-top:2px;}
+  .swatch .use{font-size:12.5px; color:var(--muted); margin-top:8px; line-height:1.45;}
+
+  .neutrals{grid-template-columns:repeat(5,1fr); margin-top:18px;}
+  .nt{border-radius:14px; overflow:hidden; border:1px solid var(--line); background:#fff;}
+  .nt .bar{height:64px;}
+  .nt .lb{padding:10px 12px;}
+  .nt .lb .nm{font-weight:700; font-size:12.5px; color:var(--navy);}
+  .nt .lb .hex{font-family:'DM Mono',monospace; font-size:11px; color:var(--muted); margin-top:1px;}
+
+  .callout{display:flex; gap:14px; align-items:flex-start; padding:18px 20px; border-radius:16px;
+    background:rgba(26,26,255,.05); border:1px solid rgba(26,26,255,.14); margin-top:24px;}
+  .callout .ic{flex-shrink:0; width:34px; height:34px; border-radius:10px; background:var(--blue);
+    display:flex; align-items:center; justify-content:center;}
+  .callout p{margin:0; font-size:14px; color:var(--text);}
+  .callout b{color:var(--blue);}
+
+  .scale-cols{grid-template-columns:1fr 1fr; align-items:start; margin-top:14px;}
+  .mini-h{font-weight:800; font-size:13px; color:var(--navy); letter-spacing:.3px; margin:0 0 4px;}
+  .mini-s{font-size:12.5px; color:var(--muted); margin:0 0 14px;}
+  .tiers{display:flex; flex-direction:column; gap:8px;}
+  .tier{display:flex; align-items:center; gap:12px; background:#fff; border:1px solid var(--line); border-radius:12px; padding:9px 12px;}
+  .tier .sw{width:26px; height:26px; border-radius:8px; flex-shrink:0;}
+  .tier .nm{font-weight:700; font-size:13px; color:var(--navy); flex:1;}
+  .tier .hex{font-family:'DM Mono',monospace; font-size:11.5px; color:var(--muted);}
+  .pos-wrap{display:flex; flex-wrap:wrap; gap:10px;}
+  .pos{display:inline-flex; align-items:center; gap:9px; background:#fff; border:1px solid var(--line); border-radius:30px; padding:7px 14px 7px 8px;}
+  .pos .ab{width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:11.5px; color:#fff;}
+  .pos .tx{font-size:13px; font-weight:600; color:var(--navy);}
+
+  /* ─────────── TYPE ─────────── */
+  .type-row{display:grid; grid-template-columns:200px 1fr; gap:28px; padding:26px 0; border-top:1px solid var(--line); align-items:center;}
+  .type-row:first-child{border-top:none;}
+  .type-meta .fam{font-weight:800; font-size:15px; color:var(--navy);}
+  .type-meta .role{font-size:12.5px; color:var(--muted); margin-top:3px;}
+  .type-meta .tags{margin-top:12px; display:flex; flex-wrap:wrap; gap:6px;}
+  .ttag{font-family:'DM Mono',monospace; font-size:10.5px; color:var(--blue); background:rgba(26,26,255,.08); padding:3px 8px; border-radius:6px;}
+  .specimen{min-width:0;}
+
+  /* ─────────── HIERARCHY ─────────── */
+  .hier{display:flex; flex-direction:column;}
+  .hl-row{display:grid; grid-template-columns:1fr 230px; gap:24px; align-items:baseline; padding:20px 0; border-top:1px solid var(--line);}
+  .hl-row:first-child{border-top:none;}
+  .hl-spec{color:var(--navy); min-width:0; overflow:hidden;}
+  .hl-info .nm{font-weight:700; font-size:13.5px; color:var(--navy);}
+  .hl-info .det{font-family:'DM Mono',monospace; font-size:11.5px; color:var(--muted); margin-top:3px; line-height:1.5;}
+
+  /* ─────────── BUTTONS ─────────── */
+  .btn{display:inline-flex; align-items:center; justify-content:center; gap:9px;
+    font-family:'DM Sans',sans-serif; font-weight:700; font-size:15px; border-radius:18px;
+    padding:16px 22px; border:none; cursor:default;}
+  .btn-primary{background:linear-gradient(120deg,var(--navy),var(--blue)); color:#fff; box-shadow:0 4px 16px rgba(26,26,255,.28);}
+  .btn-grad{background:linear-gradient(120deg,var(--blue),var(--lime)); color:#fff; box-shadow:0 4px 16px rgba(170,221,0,.3);}
+  .btn-outline{background:transparent; color:var(--blue); border:2px solid var(--blue); padding:14px 22px;}
+  .btn-outlineW{background:transparent; color:#fff; border:2px solid rgba(255,255,255,.85); padding:14px 22px;}
+  .btn-ghost{background:transparent; color:var(--blue); font-weight:600; font-size:13px; padding:8px 10px;}
+  .btn svg{display:block;}
+
+  .btn-grid{grid-template-columns:repeat(2,1fr); gap:16px;}
+  .btn-cell{border:1px solid var(--line); border-radius:18px; padding:24px; display:flex; flex-direction:column; gap:16px; background:#fff;}
+  .btn-cell.dark{background:var(--navy); border-color:transparent;}
+  .btn-cell .lbl{font-family:'DM Mono',monospace; font-size:11.5px; letter-spacing:.5px;}
+  .btn-cell .lbl .k{color:var(--blue); font-weight:700;}
+  .btn-cell.dark .lbl{color:rgba(255,255,255,.6);}
+  .btn-cell.dark .lbl .k{color:var(--brightLime);}
+  .btn-cell .desc{font-size:12.5px; color:var(--muted);}
+  .btn-cell.dark .desc{color:rgba(255,255,255,.55);}
+
+  /* tokens */
+  .tok-grid{grid-template-columns:repeat(3,1fr); margin-top:6px;}
+  .tok{border:1px solid var(--line); border-radius:16px; padding:20px; background:#fff;}
+  .tok .h{font-weight:800; font-size:13px; color:var(--navy); margin-bottom:14px; letter-spacing:.3px;}
+  .tok .line{display:flex; justify-content:space-between; align-items:center; gap:10px; padding:7px 0; font-size:12.5px;}
+  .tok .line + .line{border-top:1px solid var(--line);}
+  .tok .line .k{color:var(--text); font-weight:600;}
+  .tok .line .v{font-family:'DM Mono',monospace; font-size:11.5px; color:var(--muted);}
+  .demo-radius{display:flex; gap:10px; margin-top:14px;}
+  .demo-radius span{flex:1; height:46px; background:rgba(26,26,255,.1); border:1.5px solid rgba(26,26,255,.25);}
+
+  .pill{display:inline-flex; align-items:center; gap:5px; background:var(--lime); color:var(--navy);
+    font-weight:700; font-size:10px; letter-spacing:1px; text-transform:uppercase; padding:5px 10px; border-radius:20px;}
+
+  footer{margin-top:90px; background:var(--navy); color:rgba(255,255,255,.6); padding:40px 0;}
+  footer .wrap{display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;}
+  footer .word{font-size:24px; color:#fff;}
+
+  @media(max-width:820px){
+    .pri-grid{grid-template-columns:repeat(2,1fr);}
+    .neutrals{grid-template-columns:repeat(3,1fr);}
+    .scale-cols,.btn-grid,.tok-grid{grid-template-columns:1fr;}
+    .type-row,.hl-row{grid-template-columns:1fr;}
+    .hero h1.display{font-size:48px;}
+    .sec-title{font-size:30px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════ HERO ════════════ -->
+<header class="hero">
+  <div class="blob" style="background:var(--blue); width:360px; height:360px; top:-120px; right:-80px;"></div>
+  <div class="blob" style="background:var(--lime); width:300px; height:300px; bottom:-140px; left:-90px; opacity:.2;"></div>
+  <div class="hero-inner wrap">
+    <div class="logo-row">
+      <svg width="44" height="42" viewBox="0 0 169 163" fill="none">
+        <path d="M47.9316 0.5777L98.0858 15.1204L60.4704 144.847L10.3162 130.304C2.7288 128.104 -1.6426 120.163 0.5575 112.575L30.2026 10.3364C32.4026 2.749 40.3442 -1.6224 47.9316 0.5777Z" fill="#0032D1"/>
+        <path d="M120.52 162.24L71.13 147.92L78.55 122.31L141.68 140.61L138.24 152.47C136.04 160.06 128.1 164.43 120.51 162.23L120.52 162.24Z" fill="#ACEA00"/>
+        <path d="M108.737 18.2061L158.123 32.5259C165.711 34.726 170.082 42.6675 167.882 50.255L144.728 130.106L81.5986 111.801L108.737 18.2061Z" fill="#0032D1"/>
+      </svg>
+      <span class="word" style="font-size:30px; color:#fff;">quadra</span>
+    </div>
+    <h1 class="display">Sistema de<br/>identidade <span class="hl">visual</span></h1>
+    <p>O guia único da marca Quadra — fontes, cores, prioridades, botões e hierarquia. Tudo o que define o visual do app num só lugar.</p>
+    <div class="hero-meta">
+      <span class="chip"><span class="dot" style="background:var(--blue);"></span>Azul Elétrico</span>
+      <span class="chip"><span class="dot" style="background:var(--lime);"></span>Verde Limão</span>
+      <span class="chip"><span class="dot" style="background:var(--orange);"></span>Laranja</span>
+      <span class="chip"><span class="dot" style="background:var(--violet);"></span>Roxo</span>
+    </div>
+  </div>
+</header>
+
+<main>
+
+<!-- ════════════ 01 · LOGO ════════════ -->
+<section class="sec wrap">
+  <div class="sec-num">01</div>
+  <h2 class="sec-title">Logo &amp; marca</h2>
+  <p class="sec-lead">A marca combina o símbolo (três blocos em movimento, em azul e lima) com o wordmark em Baloo 2, sempre em caixa-baixa.</p>
+  <div class="grid" style="grid-template-columns:1.2fr 1fr;">
+    <div class="card" style="padding:46px; display:flex; align-items:center; justify-content:center; gap:20px;">
+      <svg width="84" height="81" viewBox="0 0 169 163" fill="none">
+        <path d="M47.9316 0.5777L98.0858 15.1204L60.4704 144.847L10.3162 130.304C2.7288 128.104 -1.6426 120.163 0.5575 112.575L30.2026 10.3364C32.4026 2.749 40.3442 -1.6224 47.9316 0.5777Z" fill="#0032D1"/>
+        <path d="M120.52 162.24L71.13 147.92L78.55 122.31L141.68 140.61L138.24 152.47C136.04 160.06 128.1 164.43 120.51 162.23L120.52 162.24Z" fill="#ACEA00"/>
+        <path d="M108.737 18.2061L158.123 32.5259C165.711 34.726 170.082 42.6675 167.882 50.255L144.728 130.106L81.5986 111.801L108.737 18.2061Z" fill="#0032D1"/>
+      </svg>
+      <span class="word" style="font-size:56px; color:var(--navy);">quadra</span>
+    </div>
+    <div class="card" style="padding:46px; background:var(--navy); display:flex; align-items:center; justify-content:center; gap:18px;">
+      <svg width="60" height="58" viewBox="0 0 169 163" fill="none">
+        <path d="M47.9316 0.5777L98.0858 15.1204L60.4704 144.847L10.3162 130.304C2.7288 128.104 -1.6426 120.163 0.5575 112.575L30.2026 10.3364C32.4026 2.749 40.3442 -1.6224 47.9316 0.5777Z" fill="#3a5bff"/>
+        <path d="M120.52 162.24L71.13 147.92L78.55 122.31L141.68 140.61L138.24 152.47C136.04 160.06 128.1 164.43 120.51 162.23L120.52 162.24Z" fill="#ACEA00"/>
+        <path d="M108.737 18.2061L158.123 32.5259C165.711 34.726 170.082 42.6675 167.882 50.255L144.728 130.106L81.5986 111.801L108.737 18.2061Z" fill="#3a5bff"/>
+      </svg>
+      <span class="word" style="font-size:40px; color:#fff;">quadra</span>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ 02 · CORES ════════════ -->
+<section class="sec wrap">
+  <div class="sec-num">02</div>
+  <h2 class="sec-title">Cores</h2>
+  <p class="sec-lead">O azul elétrico é a cor-base da marca. Quando uma interface precisa de cores adicionais, elas seguem uma ordem de prioridade fixa.</p>
+
+  <div class="eyebrow" style="margin-bottom:14px;">Paleta de prioridade</div>
+  <div class="grid pri-grid">
+    <div class="swatch">
+      <div class="cap" style="background:var(--blue);"><span class="ord" style="color:rgba(255,255,255,.7);">01</span></div>
+      <div class="meta"><div class="nm">Azul Elétrico</div><div class="hex">#1A1AFF</div><div class="use">Cor primária. CTAs, ativos, links, base de tudo.</div></div>
+    </div>
+    <div class="swatch">
+      <div class="cap" style="background:var(--lime);"><span class="ord" style="color:rgba(10,10,60,.55);">02</span></div>
+      <div class="meta"><div class="nm">Verde Limão</div><div class="hex">#AADD00</div><div class="use">Acento de energia. Sucesso, destaques, segunda cor.</div></div>
+    </div>
+    <div class="swatch">
+      <div class="cap" style="background:var(--orange);"><span class="ord" style="color:rgba(255,255,255,.8);">03</span></div>
+      <div class="meta"><div class="nm">Laranja</div><div class="hex">#FF6B00</div><div class="use">Terceira opção quando há 3+ categorias a distinguir.</div></div>
+    </div>
+    <div class="swatch">
+      <div class="cap" style="background:var(--violet);"><span class="ord" style="color:rgba(255,255,255,.8);">04</span></div>
+      <div class="meta"><div class="nm">Roxo</div><div class="hex">#6B1AFF</div><div class="use">Última escolha. Só quando as 3 anteriores já estão em uso.</div></div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <div class="ic">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16v-5M12 8h.01"/><circle cx="12" cy="12" r="9"/></svg>
+    </div>
+    <p><b>Regra de prioridade:</b> use as cores nesta ordem — azul → limão → laranja → roxo. O roxo é sempre o último recurso e nunca deve aparecer como acento secundário avulso. As escalas funcionais abaixo (níveis e posições) são fixas e ficam de fora dessa regra.</p>
+  </div>
+
+  <div class="eyebrow" style="margin:34px 0 14px;">Neutros &amp; superfícies</div>
+  <div class="grid neutrals">
+    <div class="nt"><div class="bar" style="background:#0A0A3C;"></div><div class="lb"><div class="nm">Navy</div><div class="hex">#0A0A3C</div></div></div>
+    <div class="nt"><div class="bar" style="background:#111145;"></div><div class="lb"><div class="nm">Mid Navy</div><div class="hex">#111145</div></div></div>
+    <div class="nt"><div class="bar" style="background:#1A1A2E;"></div><div class="lb"><div class="nm">Texto</div><div class="hex">#1A1A2E</div></div></div>
+    <div class="nt"><div class="bar" style="background:#7A7A9A;"></div><div class="lb"><div class="nm">Muted</div><div class="hex">#7A7A9A</div></div></div>
+    <div class="nt"><div class="bar" style="background:#EFF3FC; border-bottom:1px solid var(--line);"></div><div class="lb"><div class="nm">Light BG</div><div class="hex">#EFF3FC</div></div></div>
+  </div>
+
+  <div class="grid scale-cols">
+    <div>
+      <div class="eyebrow" style="margin:34px 0 14px;">Escala de nível</div>
+      <p class="mini-s">Cor da bolinha de nível do jogador — definida pela faixa, em pares complementares. Fixa.</p>
+      <div class="tiers">
+        <div class="tier"><span class="sw" style="background:#00B4D8;"></span><span class="nm">Nível 1–5</span><span class="hex">#00B4D8</span></div>
+        <div class="tier"><span class="sw" style="background:#FF6B00;"></span><span class="nm">Nível 5–15</span><span class="hex">#FF6B00</span></div>
+        <div class="tier"><span class="sw" style="background:#1A1AFF;"></span><span class="nm">Nível 15–30</span><span class="hex">#1A1AFF</span></div>
+        <div class="tier"><span class="sw" style="background:#AADD00;"></span><span class="nm">Nível 30–50</span><span class="hex">#AADD00</span></div>
+        <div class="tier"><span class="sw" style="background:#6B1AFF;"></span><span class="nm">Nível 50–75</span><span class="hex">#6B1AFF</span></div>
+        <div class="tier"><span class="sw" style="background:linear-gradient(135deg, #AADD00 0%, #1A1AFF 100%);"></span><span class="nm">Nível 75+ <span style="font-weight:600; color:var(--muted);">· elite</span></span><span class="hex">verde → azul</span></div>
+      </div>
+    </div>
+    <div>
+      <div class="eyebrow" style="margin:34px 0 14px;">Cores de posição</div>
+      <p class="mini-s">Não é uma cor fixa. Em <b>superfície clara</b>, a sigla usa o azul elétrico; em <b>fundo escuro</b>, fica <b>branca</b> para garantir contraste.</p>
+      <div class="pos-wrap">
+        <span class="pos"><span class="ab" style="background:#1A1AFF;">LEV</span><span class="tx">Levantador</span></span>
+        <span class="pos"><span class="ab" style="background:#1A1AFF;">OPO</span><span class="tx">Oposto</span></span>
+        <span class="pos"><span class="ab" style="background:#1A1AFF;">PON</span><span class="tx">Ponteiro</span></span>
+      </div>
+      <div style="margin-top:12px; background:#0A0A3C; border-radius:16px; padding:14px 16px; display:flex; flex-wrap:wrap; gap:10px;">
+        <span class="pos" style="background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.14);"><span class="ab" style="background:#fff; color:#0A0A3C;">LEV</span><span class="tx" style="color:#fff;">Levantador</span></span>
+        <span class="pos" style="background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.14);"><span class="ab" style="background:#fff; color:#0A0A3C;">OPO</span><span class="tx" style="color:#fff;">Oposto</span></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ 03 · TIPOGRAFIA ════════════ -->
+<section class="sec wrap">
+  <div class="sec-num">03</div>
+  <h2 class="sec-title">Tipografia</h2>
+  <p class="sec-lead">Cinco famílias com papéis bem separados: display, números, interface, marca e etiquetas.</p>
+
+  <div class="card" style="padding:8px 32px;">
+    <div class="type-row">
+      <div class="type-meta">
+        <div class="fam">Climate Crisis</div>
+        <div class="role">Display — títulos de tela e heróis. Sempre em CAIXA ALTA.</div>
+        <div class="tags"><span class="ttag">.display</span><span class="ttag">uppercase</span></div>
+      </div>
+      <div class="specimen"><div class="display" style="font-size:46px; color:var(--navy);">Bora pra quadra</div></div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">
+        <div class="fam">Russo One</div>
+        <div class="role">Números — placares, stats, níveis e overall.</div>
+        <div class="tags"><span class="ttag">.num</span></div>
+      </div>
+      <div class="specimen"><div class="num" style="font-size:52px; color:var(--blue); letter-spacing:1px;">25&nbsp;·&nbsp;19&nbsp;&nbsp;<span style="color:var(--navy);">68</span></div></div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">
+        <div class="fam">DM Sans</div>
+        <div class="role">Interface — corpo, botões, rótulos, todo o texto de UI.</div>
+        <div class="tags"><span class="ttag">400</span><span class="ttag">600</span><span class="ttag">700</span><span class="ttag">800</span></div>
+      </div>
+      <div class="specimen">
+        <div style="font-size:24px; font-weight:800; color:var(--navy);">Racha de Quinta às 19h30</div>
+        <div style="font-size:15px; color:var(--muted); margin-top:4px;">Times equilibrados por nível e overall dos jogadores.</div>
+      </div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">
+        <div class="fam">Baloo 2</div>
+        <div class="role">Wordmark — exclusivo do logo "quadra".</div>
+        <div class="tags"><span class="ttag">.word</span></div>
+      </div>
+      <div class="specimen"><span class="word" style="font-size:44px; color:var(--navy);">quadra</span></div>
+    </div>
+    <div class="type-row">
+      <div class="type-meta">
+        <div class="fam">DM Mono</div>
+        <div class="role">Etiquetas — micro-labels e legendas técnicas.</div>
+        <div class="tags"><span class="ttag">.mono</span></div>
+      </div>
+      <div class="specimen"><span class="mono" style="font-size:15px; letter-spacing:1.5px; color:var(--muted);">CAPA DA PARTIDA · 4X4 · AREIA</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ 04 · HIERARQUIA ════════════ -->
+<section class="sec wrap">
+  <div class="sec-num">04</div>
+  <h2 class="sec-title">Hierarquia</h2>
+  <p class="sec-lead">A escala de texto que organiza cada tela, do título de impacto ao detalhe legível.</p>
+
+  <div class="card" style="padding:10px 32px;">
+    <div class="hier">
+      <div class="hl-row">
+        <div class="hl-spec display" style="font-size:40px;">Display</div>
+        <div class="hl-info"><div class="nm">Display / Herói</div><div class="det">Climate Crisis · 29–46px<br/>caixa alta</div></div>
+      </div>
+      <div class="hl-row">
+        <div class="hl-spec display" style="font-size:24px;">Título de seção</div>
+        <div class="hl-info"><div class="nm">Título de seção</div><div class="det">Climate Crisis · 20–22px<br/>caixa alta</div></div>
+      </div>
+      <div class="hl-row">
+        <div class="hl-spec" style="font-size:18px; font-weight:800;">Título de card</div>
+        <div class="hl-info"><div class="nm">Título de card</div><div class="det">DM Sans · 16–18px · 800</div></div>
+      </div>
+      <div class="hl-row">
+        <div class="hl-spec" style="font-size:15px; font-weight:500; color:var(--text);">Corpo de texto e descrições da interface.</div>
+        <div class="hl-info"><div class="nm">Corpo</div><div class="det">DM Sans · 14–15px · 400/600</div></div>
+      </div>
+      <div class="hl-row">
+        <div class="hl-spec eyebrow" style="font-size:11px; color:var(--navy);">Label sobrescrito</div>
+        <div class="hl-info"><div class="nm">Label / Eyebrow</div><div class="det">DM Sans · 11px · 700<br/>uppercase · ls 1.2</div></div>
+      </div>
+      <div class="hl-row">
+        <div class="hl-spec" style="font-size:12px; color:var(--muted);">Legenda discreta · metadados</div>
+        <div class="hl-info"><div class="nm">Caption</div><div class="det">DM Sans · 11–12px · muted</div></div>
+      </div>
+      <div class="hl-row">
+        <div class="hl-spec num" style="font-size:40px; color:var(--blue);">24</div>
+        <div class="hl-info"><div class="nm">Número</div><div class="det">Russo One · placares e stats</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ 05 · BOTÕES ════════════ -->
+<section class="sec wrap">
+  <div class="sec-num">05</div>
+  <h2 class="sec-title">Botões</h2>
+  <p class="sec-lead">Cinco variações com papéis distintos. Cantos de 18px, peso 700, altura confortável de toque.</p>
+
+  <div class="grid btn-grid">
+    <div class="btn-cell">
+      <div class="lbl"><span class="k">grad</span> · CTA principal</div>
+      <button class="btn btn-grad">Jogar</button>
+      <div class="desc">Degradê azul → limão. Ação principal da tela (Jogar, Criar partida, Ver a sua carta, Começar partida).</div>
+    </div>
+    <div class="btn-cell">
+      <div class="lbl"><span class="k">primary</span> · sólido</div>
+      <button class="btn btn-primary">Confirmar presença</button>
+      <div class="desc">Degradê navy → azul. Ação afirmativa sobre fundo claro quando o degradê de marca não cabe.</div>
+    </div>
+    <div class="btn-cell">
+      <div class="lbl"><span class="k">outline</span> · secundário</div>
+      <button class="btn btn-outline">Procurar partidas</button>
+      <div class="desc">Contorno azul sobre fundo claro. Ação alternativa ao CTA principal.</div>
+    </div>
+    <div class="btn-cell dark">
+      <div class="lbl"><span class="k">outlineW</span> · sobre escuro</div>
+      <button class="btn btn-outlineW">Voltar ao início</button>
+      <div class="desc">Contorno branco. Mesma função do outline, mas sobre fundo navy.</div>
+    </div>
+    <div class="btn-cell">
+      <div class="lbl"><span class="k">ghost</span> · terciário</div>
+      <button class="btn btn-ghost">Ver tudo</button>
+      <div class="desc">Texto azul, sem fundo. Links e ações de baixa ênfase.</div>
+    </div>
+    <div class="btn-cell">
+      <div class="lbl"><span class="k">com ícone</span> · regra</div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+        <button class="btn btn-grad"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.5"/><circle cx="17" cy="6" r="2.5"/><circle cx="17" cy="18" r="2.5"/><path d="M8.2 11l6.6-3.6M8.2 13l6.6 3.6"/></svg>Compartilhar</button>
+        <button class="btn btn-outline"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1A1AFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="17" height="17" rx="4.5"/><circle cx="8.3" cy="8.3" r="1.4" fill="#1A1AFF" stroke="none"/><circle cx="15.7" cy="8.3" r="1.4" fill="#1A1AFF" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="#1A1AFF" stroke="none"/><circle cx="8.3" cy="15.7" r="1.4" fill="#1A1AFF" stroke="none"/><circle cx="15.7" cy="15.7" r="1.4" fill="#1A1AFF" stroke="none"/></svg>Sortear</button>
+      </div>
+      <div class="desc">Ícones só quando agregam significado (compartilhar, sortear). CTAs de ação direta ficam sem ícone, mais limpos.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════ 06 · TOKENS ════════════ -->
+<section class="sec wrap">
+  <div class="sec-num">06</div>
+  <h2 class="sec-title">Tokens &amp; componentes</h2>
+  <p class="sec-lead">As medidas que mantêm tudo consistente: cantos, sombras, etiquetas.</p>
+
+  <div class="grid tok-grid">
+    <div class="tok">
+      <div class="h">Raio de canto</div>
+      <div class="line"><span class="k">Botão</span><span class="v">18px</span></div>
+      <div class="line"><span class="k">Card</span><span class="v">20px</span></div>
+      <div class="line"><span class="k">Chip / campo</span><span class="v">14–18px</span></div>
+      <div class="line"><span class="k">Pill / tag</span><span class="v">20px+</span></div>
+      <div class="demo-radius">
+        <span style="border-radius:14px;"></span>
+        <span style="border-radius:18px;"></span>
+        <span style="border-radius:20px;"></span>
+      </div>
+    </div>
+    <div class="tok">
+      <div class="h">Sombras</div>
+      <div class="line"><span class="k">Card</span><span class="v">0 2px 12px /.06</span></div>
+      <div class="line"><span class="k">Botão azul</span><span class="v">0 4px 16px /.28</span></div>
+      <div class="line"><span class="k">Botão lima</span><span class="v">0 4px 16px /.30</span></div>
+      <div style="display:flex; gap:12px; margin-top:16px;">
+        <span style="width:50px; height:50px; border-radius:14px; background:#fff; box-shadow:0 2px 12px rgba(10,10,60,.12);"></span>
+        <span style="width:50px; height:50px; border-radius:14px; background:var(--blue); box-shadow:0 4px 16px rgba(26,26,255,.28);"></span>
+        <span style="width:50px; height:50px; border-radius:14px; background:var(--lime); box-shadow:0 4px 16px rgba(170,221,0,.4);"></span>
+      </div>
+    </div>
+    <div class="tok">
+      <div class="h">Tags &amp; pills</div>
+      <div style="display:flex; flex-wrap:wrap; gap:10px; margin:4px 0 16px;">
+        <span class="pill">Você organiza</span>
+        <span class="pill" style="background:var(--blue); color:#fff;">Confirmado</span>
+        <span class="pill" style="background:rgba(26,26,255,.1); color:var(--blue);">4x4</span>
+      </div>
+      <div class="line"><span class="k">Fonte</span><span class="v">DM Sans 700</span></div>
+      <div class="line"><span class="k">Tamanho</span><span class="v">10px · ls 1</span></div>
+      <div class="line"><span class="k">Caixa</span><span class="v">uppercase</span></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span class="word">quadra</span>
+    <span style="font-size:13px;">Identidade visual · documento de referência</span>
+  </div>
+</footer>
+
+</body>
+</html>

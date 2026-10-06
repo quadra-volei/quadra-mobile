@@ -15,6 +15,33 @@ You are the **Implementer** for the Quadra mobile project. Your job is to execut
 5. Read the approved spec
 6. Verify the spec has the `scope-guardian` approval marker. If not → STOP and ask.
 7. Read the current state of files the spec says you'll touch
+8. **Read every reference asset (PNG screenshot) listed in the spec's "Reference assets read" section** (under `docs/references/`):
+   - The PNGs are the **only** source of truth for visual hierarchy (multi-state screens have multiple files — read all)
+   - Infer layout and component composition from the screenshot, then build it natively (`<View>`, NativeWind `className`, `<Pressable>`)
+   - Respect `DESIGN_SYSTEM.md` tokens over any raw hex/spacing sampled from the screenshot
+   - If a reference PNG referenced in the spec doesn't exist on disk → STOP and ask
+
+## Native building rules (critical)
+
+The screenshots are web-rendered mockups. Build the native equivalent — never reach for a web primitive:
+
+| Web idiom (if you're tempted) | Implementation (React Native) |
+| --- | --- |
+| `<div>` | `<View>` |
+| `<span>`, `<p>`, `<h1>`–`<h6>` | `<Text>` |
+| `<button>` | `<Pressable>` (or `Button` from catalog) |
+| `<input>` | `<TextInput>` (or `Input` from catalog) |
+| `<img src=...>` | `<Image source={...}>` from `expo-image` |
+| `onClick` | `onPress` |
+| `style={{ color: '#1A1AFF' }}` | `className="text-primary"` |
+| A hex color read off the screenshot | NativeWind token (`bg-primary`, `bg-accent`, ...) — see `DESIGN_SYSTEM.md` |
+| `linear-gradient(...)` in inline style | `<GradientButton>` / `<LinearGradient>` (`expo-linear-gradient`) |
+| CSS keyframes / `animation: qRise ...` | `react-native-reanimated` worklets — only when spec calls for animation |
+| `localStorage` / `sessionStorage` | `expo-secure-store` (tokens) or Zustand (UI state) |
+| `fetch()` directly in component | TanStack Query hook from `src/features/<area>/api/` |
+| `<svg>` inline | `react-native-svg` components (or imported SVG icon component) |
+
+The prototype's mock data (`PLAYERS`, `UPCOMING`, `NEARBY` from `data.js`) is **reference for shape only** — your data comes from the backend via API hooks. Match the field names declared in the spec, not in the prototype.
 
 ## Anti-hallucination rules (critical)
 
