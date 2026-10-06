@@ -18,12 +18,20 @@ jest.mock('expo-secure-store', () =>
   require('../../../support/inMemorySecureStore'),
 );
 
+// The native uploader: staged per test (status / thrown error).
+const mockUpload = jest.fn();
+jest.mock('expo-file-system/legacy', () => ({
+  FileSystemUploadType: { BINARY_CONTENT: 0, MULTIPART: 1 },
+  uploadAsync: (...args: unknown[]) => mockUpload(...args),
+}));
+
 import * as SecureStore from 'expo-secure-store';
 
 import { useCreateProfile } from '@/features/profile/api/createProfile';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import type { ApiProfile } from '@/features/profile/api/profileApi';
 import { useSendFeedback } from '@/features/profile/api/sendFeedback';
+import { photoContentType } from '@/features/profile/api/profileApi';
 import { useUpdateProfile } from '@/features/profile/api/updateProfile';
 import { useHandleTaken } from '@/features/profile/api/handleAvailability';
 import type { EditProfileInput } from '@/features/profile/schema/editProfile';
@@ -124,6 +132,8 @@ async function runMutation<TData, TInput>(
 beforeEach(async () => {
   (SecureStore as unknown as { __reset: () => void }).__reset();
   fetchMock.mockReset();
+  mockUpload.mockReset();
+  mockUpload.mockResolvedValue({ status: 200, body: '', headers: {} });
   globalThis.fetch = fetchMock as unknown as typeof fetch;
   await saveTokens({ accessToken: 'access-jwt', refreshToken: 'refresh-opaque' });
 });
@@ -290,21 +300,21 @@ describe('profile photo upload', () => {
       if (url.endsWith('/photo/upload-url')) {
         return respond(201, { uploadUrl: 'https://storage.test/put-here', objectKey: 'profiles/new.jpg' });
       }
-      if (url === 'https://storage.test/put-here') return respond(200);
       return init.method === 'PUT' ? respond(200, apiProfile) : respond(200, apiProfile);
     });
 
     const settled = await runMutation(useUpdateProfile, editInput);
 
     expect(settled.status).toBe('fulfilled');
-    // The local file is handed to the network layer by URI, never read into memory.
-    const upload = (fetchMock.mock.calls as [string, RequestInit][]).find(
-      ([url]) => url === 'https://storage.test/put-here',
-    )?.[1];
-    expect(upload?.method).toBe('PUT');
-    expect(upload?.headers).toEqual({ 'Content-Type': 'image/jpeg' });
-    expect(upload?.body).toEqual({ uri: editInput.avatarUri, type: 'image/jpeg', name: 'photo.jpg' });
-    expect(fetchMock.mock.calls.some(([url]) => url === editInput.avatarUri)).toBe(false);
+    // The file goes from disk to the signed URL as the raw body of a PUT.
+    expect(mockUpload).toHaveBeenCalledWith('https://storage.test/put-here', editInput.avatarUri, {
+      httpMethod: 'PUT',
+      uploadType: 0,
+      headers: { 'Content-Type': 'image/jpeg' },
+    });
+    expect(calls().find((c) => c.url.endsWith('/photo/upload-url'))?.body).toEqual({
+      contentType: 'image/jpeg',
+    });
     expect(calls().find((c) => c.url.endsWith('/api/v1/profiles/me') && c.method === 'PUT')?.body)
       .toMatchObject({ photoObjectKey: 'profiles/new.jpg' });
   });
@@ -320,18 +330,43 @@ describe('profile photo upload failures', () => {
       if (url.endsWith('/photo/upload-url')) {
         return respond(201, { uploadUrl: 'https://storage.test/put-here', objectKey: 'profiles/new.jpg' });
       }
-      if (url === 'https://storage.test/put-here') return respond(403);
       return respond(200, apiProfile);
     });
 
+    mockUpload.mockResolvedValue({ status: 403, body: '<Error><Code>SignatureDoesNotMatch</Code></Error>', headers: {} });
+
     const settled = await runMutation(useUpdateProfile, editInput);
 
-    expect(settled.status === 'rejected' && (settled.reason as Error).message).toBe(
-      'Não foi possível enviar a foto (erro 403). Tente de novo.',
-    );
+    const message = settled.status === 'rejected' ? (settled.reason as Error).message : '';
+    expect(message).toContain('Não foi possível enviar a foto (erro 403). Tente de novo.');
+    expect(message).toContain('SignatureDoesNotMatch');
     expect(
       calls().some((c) => c.url.endsWith('/api/v1/profiles/me') && c.method === 'PUT'),
     ).toBe(false);
+  });
+});
+
+describe('profile photo upload: device failure and file type', () => {
+  it('a thrown upload shows the friendly text plus the technical detail', async () => {
+    fetchMock.mockImplementation(async (url: string) =>
+      url.endsWith('/photo/upload-url')
+        ? respond(201, { uploadUrl: 'https://storage.test/put-here', objectKey: 'profiles/new.jpg' })
+        : respond(200, apiProfile),
+    );
+    mockUpload.mockRejectedValue(new Error('java.net.UnknownHostException: storage.test'));
+
+    const settled = await runMutation(useUpdateProfile, editInput);
+
+    const message = settled.status === 'rejected' ? (settled.reason as Error).message : '';
+    expect(message).toContain('Não foi possível enviar a foto. Verifique sua internet');
+    expect(message).toContain('UnknownHostException');
+  });
+
+  it('asks for a URL signed for the real type of the picked file', () => {
+    expect(photoContentType('file:///cache/ImagePicker/abc.JPG')).toBe('image/jpeg');
+    expect(photoContentType('file:///cache/ImagePicker/abc.png')).toBe('image/png');
+    expect(photoContentType('file:///cache/abc.webp?x=1')).toBe('image/webp');
+    expect(photoContentType('content://media/external/images/42')).toBe('image/jpeg');
   });
 });
 
