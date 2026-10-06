@@ -8,11 +8,6 @@ import type {
   DrawTeamsResponse,
 } from '@/features/matches/types/team';
 
-export type UseDrawTeamsOptions = {
-  /** @deprecated No effect — kept so existing callers compile. The draw is real now. */
-  latencyMs?: number;
-};
-
 export type DrawTeamsVariables = {
   /** The match roster (guests included), used to name the drawn players. */
   players: PresencePlayer[];
@@ -25,7 +20,7 @@ export type DrawTeamsVariables = {
  * level; "Manual" (the organizer taps Sortear) asks for a random draw. Players
  * beyond `teamCount × perTeam` sit out.
  */
-export function useDrawTeams(id: string, _options: UseDrawTeamsOptions = {}) {
+export function useDrawTeams(id: string) {
   return useMutation<DrawTeamsResponse, Error, DrawTeamsVariables>({
     mutationFn: async ({ players, request }) => {
       try {

@@ -141,9 +141,9 @@ npm run start       # expo start (requires Dev Client)
 ## Environment variables (`.env.local`, gitignored)
 
 ```
-EXPO_PUBLIC_API_URL=https://api.quadra.dev
+EXPO_PUBLIC_API_URL=https://quadra-api-xj6e.onrender.com
 EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=
 EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=
 ```
 
-> Auth is handled by the Quadra backend (own JWT; SMS OTP + Google) — there are no Cognito variables. For a local backend, point `EXPO_PUBLIC_API_URL` at an address the device can reach (e.g. `http://10.0.2.2:5075` on the Android emulator, or the machine's LAN IP on a physical phone) — `localhost` is the phone itself. Optional, dev builds only: `EXPO_PUBLIC_DEV_MOCK_AUTH=true` skips login with a fake user (`app/_layout.tsx`), for working on the still-mocked screens without a backend — screens already wired to the API (profile, matches) do not load under it; it is ignored in release builds.
+> Auth is handled by the Quadra backend (own JWT; SMS OTP + Google) — there are no Cognito variables. For a local backend, point `EXPO_PUBLIC_API_URL` at an address the device can reach (e.g. `http://10.0.2.2:5075` on the Android emulator, or the machine's LAN IP on a physical phone) — `localhost` is the phone itself. The value above is the hosted test API (Render; it sleeps when idle, so the first request can take up to a minute). After changing `.env.local` restart Metro with a clean cache (`npx expo start -c`). There is no mock mode: every screen reads the API (log in with the fake SMS code of the test environment), except the feedback form, which has no endpoint yet.

@@ -15,7 +15,6 @@ import {
 } from '@/features/matches/api/useMVPVote';
 import { useAuthStore } from '@/stores/auth';
 import { colors } from '@/theme/colors';
-import { useMatchStore } from '@/stores/matchStore';
 
 /**
  * What comes after the vote. The organizer closes the voting and generates the
@@ -57,9 +56,6 @@ function WrapUp({ matchId }: { matchId: string }) {
 }
 
 export default function MvpVoteScreen() {
-  // ── Global match state ──
-  const { voteForMVP } = useMatchStore();
-
   const { id } = useLocalSearchParams<{ id: string }>();
   const userId = useAuthStore((state) => state.userId);
 
@@ -89,8 +85,6 @@ export default function MvpVoteScreen() {
         setVotedForPlayer(player ?? { id: response.votedForPlayerId, name: response.votedForName, handle: '', position: 'LEV' });
         setHasVoted(true);
 
-        // Persist vote to global store
-        voteForMVP(selectedPlayerId);
       },
     });
   };

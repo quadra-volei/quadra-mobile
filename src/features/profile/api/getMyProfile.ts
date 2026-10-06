@@ -67,12 +67,7 @@ async function getMyProfile(): Promise<MyProfile> {
   return toMyProfile(profile, account.phoneNumber);
 }
 
-export type UseMyProfileOptions = {
-  /** @deprecated No effect — kept so existing callers compile. The query is real now. */
-  latencyMs?: number;
-};
-
-export function useMyProfile(_options: UseMyProfileOptions = {}) {
+export function useMyProfile() {
   return useQuery({
     queryKey: myProfileQueryKey,
     queryFn: getMyProfile,

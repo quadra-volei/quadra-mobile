@@ -1,7 +1,7 @@
 // Profile domain types consumed by the S8 Profile header + "Seu progresso" card
 // and the "MINHAS PARTIDAS" history rows. These mirror the field shapes the S8
-// mockup shows so the real F2.1/F2.2 (profile + progress) and F1.6 (match
-// history) payloads can slot in unchanged behind the mocked hook signatures.
+// mockup shows; the profile hooks (src/features/profile/api/*) map the backend
+// payloads into them.
 // No `any`.
 
 import type { MatchFormat } from '@/features/matches/types/match';
@@ -10,7 +10,7 @@ import type { Position } from '@/features/profile/schema/onboarding';
 /**
  * The authenticated user's identity + progress snapshot.
  * Feeds the S8 header (avatar + greeting) and the "Seu progresso" card
- * (GERAL number + Level/XP bar). MOCK now; real F2.1/F2.2 later.
+ * (GERAL number + Level/XP bar).
  */
 export type MyProfile = {
   id: string;
@@ -23,7 +23,7 @@ export type MyProfile = {
   /**
    * Per-skill ratings shown in the "Seu progresso" 2×2 grid (ace/blk/ata/def)
    * and the full 6-stat grid on the player card (adds srv/rec). Russo One
-   * numbers. MOCK now; real F2.2 progress payload supplies these later.
+   * numbers.
    */
   ace: number;
   blk: number;
@@ -39,7 +39,7 @@ export type MyProfile = {
   xpToNext: number;
 
   // ── Edit-profile fields (S10) — additive; S8 reads only the fields above.
-  // Optional so existing S8 consumers stay unaffected; the mock populates them.
+  // Optional so existing S8 consumers stay unaffected.
   /** Family name, shown in S10's summary ("Renan Dias") + edit SOBRENOME. */
   lastName?: string;
   /** @handle without the leading '@' (e.g. "renan"). */
@@ -57,7 +57,7 @@ export type MatchResult = 'VITORIA' | 'DERROTA' | 'EMPATE';
 
 /**
  * One read-only row of the user's recent match history.
- * Feeds the "MINHAS PARTIDAS" list via `MatchHistoryRow`. MOCK now; F1.6 later.
+ * Feeds the "MINHAS PARTIDAS" list via `MatchHistoryRow`.
  */
 export type RecentMatch = {
   id: string;

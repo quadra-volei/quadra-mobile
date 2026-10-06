@@ -18,7 +18,6 @@ import type { DrawMode } from '@/features/matches/types/matchDetail';
 import type { Team } from '@/features/matches/types/team';
 import { colors } from '@/theme/colors';
 import { useStartSet } from '@/features/matches/api/liveGame';
-import { useMatchStore } from '@/stores/matchStore';
 
 /**
  * S13 — In-Game Teams
@@ -33,9 +32,6 @@ import { useMatchStore } from '@/stores/matchStore';
  * - "Começar partida" shows confirmation dialog, then navigates to scoreboard
  */
 export default function TeamsScreen() {
-  // ── Global match state ──
-  const { setTeams: storeSetTeams, initializeMatch } = useMatchStore();
-
   const params = useLocalSearchParams<{
     id?: string;
     teamCount?: string;
@@ -57,7 +53,7 @@ export default function TeamsScreen() {
     (drawMode === 'MANUAL' || drawMode === 'AUTO');
 
   // ── Server state: match detail & teams ──
-  const matchQuery = useMatchDetail(matchId, { latencyMs: 0 });
+  const matchQuery = useMatchDetail(matchId);
   const confirmedPlayers = matchQuery.data?.players ?? [];
 
   // A draw is an imperative action (mutation): AUTO fires it once on mount,
@@ -127,8 +123,6 @@ export default function TeamsScreen() {
       {
         onSuccess: (result) => {
           setTeams(result.teams);
-          // Persist to global store
-          storeSetTeams(result.teams);
         },
         onError: () => {
           Alert.alert(
@@ -161,13 +155,6 @@ export default function TeamsScreen() {
             if (teams.length === 2 && first && second) {
               await startSet.mutateAsync([first.id, second.id]);
             }
-
-            // Persist match and teams to global store
-            initializeMatch({
-              matchId,
-              bestOf: 3,
-            });
-            storeSetTeams(teams);
 
             router.push({ pathname: '/matches/[id]/scoreboard', params: { id: matchId } });
           } catch (err) {

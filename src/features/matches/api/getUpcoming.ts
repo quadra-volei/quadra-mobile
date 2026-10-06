@@ -14,12 +14,7 @@ async function getUpcomingMatches(): Promise<UpcomingMatch[]> {
   return (await fetchMyMatches()).map(toUpcomingMatch);
 }
 
-export type UseUpcomingMatchesOptions = {
-  /** @deprecated No effect — kept so existing callers compile. The query is real now. */
-  latencyMs?: number;
-};
-
-export function useUpcomingMatches(_options: UseUpcomingMatchesOptions = {}) {
+export function useUpcomingMatches() {
   return useQuery({
     queryKey: upcomingMatchesQueryKey,
     queryFn: getUpcomingMatches,

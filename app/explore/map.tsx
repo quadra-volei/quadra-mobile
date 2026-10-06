@@ -13,7 +13,7 @@ import type { NearbyMatch } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
 
 // Fallback map center (São Paulo) used only to seed the nearby query before the
-// device location resolves. The F1.7 mock ignores these params regardless.
+// device location resolves.
 const DEFAULT_CENTER = { latitude: -23.5605, longitude: -46.6433 };
 const REGION_DELTA = { latitudeDelta: 0.05, longitudeDelta: 0.05 };
 const NEARBY_RADIUS_KM = 5;

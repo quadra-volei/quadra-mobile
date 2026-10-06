@@ -1,7 +1,6 @@
-// Shared match domain types consumed by the S5 Home cards and the mocked read
-// hooks (src/features/matches/api/*). These mirror the field shapes shown in the
-// S5 mockup so the real F1.7 / F1.1 / F1.6 payloads can slot in unchanged behind
-// the hook signatures. No `any`.
+// Shared match domain types consumed by the S5 Home cards. The read hooks
+// (src/features/matches/api/*) map the backend payloads into these shapes.
+// No `any`.
 
 /** Match format (players-per-side) shown as a mono pill on the dark card. */
 export type MatchFormat = '2X2' | '4X4' | '6X6';
@@ -55,4 +54,6 @@ export type NearbyMatch = {
    */
   lat: number;
   lon: number;
+  /** ISO start timestamp (drives the "Hoje" filter on Explore). */
+  startsAt?: string;
 };

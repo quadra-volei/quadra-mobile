@@ -22,15 +22,8 @@ async function getNearbyMatches(params: NearbyMatchesParams): Promise<NearbyMatc
   return (await fetchNearbyMatches(params)).map(toNearbyMatch);
 }
 
-export type UseNearbyMatchesOptions = {
-  /** @deprecated No effect — kept so existing callers compile. The query is real now. */
-  latencyMs?: number;
-};
-
 export function useNearbyMatches(
-  params: NearbyMatchesParams,
-  _options: UseNearbyMatchesOptions = {},
-) {
+  params: NearbyMatchesParams) {
   return useQuery({
     queryKey: nearbyMatchesQueryKey(params),
     queryFn: () => getNearbyMatches(params),

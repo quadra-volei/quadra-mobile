@@ -33,10 +33,6 @@ SplashScreen.preventAutoHideAsync();
 
 const AUTH_BOOTSTRAP_TIMEOUT_MS = 2000;
 
-// Never active in a release build (`__DEV__` is false there).
-const DEV_MOCK_AUTH =
-  __DEV__ && process.env.EXPO_PUBLIC_DEV_MOCK_AUTH === 'true';
-
 function timeout(ms: number): Promise<never> {
   return new Promise((_, reject) => {
     setTimeout(() => reject(new Error('auth-bootstrap-timeout')), ms);
@@ -51,16 +47,6 @@ function timeout(ms: number): Promise<never> {
  */
 async function runAuthBootstrap(): Promise<void> {
   const { setAuth, clearAuth } = useAuthStore.getState();
-  if (DEV_MOCK_AUTH) {
-    // Opt-in escape hatch for working on screens without logging in. Screens
-    // that call the API fail to load under it (there is no real session).
-    setAuth({
-      userId: 'user-organizer',
-      accessToken: 'mock-dev-token',
-      hasProfile: true,
-    });
-    return;
-  }
   try {
     const accessToken = await getAccessToken();
     if (!accessToken) {
