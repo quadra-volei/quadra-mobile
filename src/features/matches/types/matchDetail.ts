@@ -122,4 +122,14 @@ export type MatchDetail = {
   inviteCode?: string;
   /** The current user's place in the waiting list, when queued. */
   myWaitingListPosition?: number | null;
+  /** Where the game is; null/absent until the organizer starts it. */
+  game?: MatchGameStage | null;
 };
+
+/**
+ * The step of the game a match is at, which decides where its CTA leads:
+ * - LIVE — being played (live scoreboard);
+ * - VOTING — over, MVP voting open;
+ * - SUMMARY — the organizer generated the summary.
+ */
+export type MatchGameStage = 'LIVE' | 'VOTING' | 'SUMMARY';

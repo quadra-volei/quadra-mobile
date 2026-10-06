@@ -7,6 +7,7 @@ import type {
 } from '@/features/matches/types/match';
 import type {
   MatchDetail,
+  MatchGameStage,
   ParticipationType,
   PlayerPosition,
   PresencePlayer,
@@ -69,6 +70,12 @@ export type ApiMatchDetail = {
   myPresence: { playerType: ApiPlayerType; status: ApiPresenceStatus } | null;
   myWaitingListPosition: number | null;
   canJoin: boolean;
+  /** Null until a scoreboard exists. */
+  game?: {
+    scoreboardState: 'NotStarted' | 'InProgress' | 'Ended';
+    mvpVotingState: 'None' | 'Open' | 'Closed';
+    hasSummary: boolean;
+  } | null;
 };
 
 /** One item of `GET /matches/mine`. */
@@ -338,7 +345,14 @@ export function toMatchDetail(api: ApiMatchDetail, userId: string | null): Match
       acceptingPlayers && byCode && !myPresence && !isOrganizer && !waiting,
     inviteCode: api.inviteCode ?? undefined,
     myWaitingListPosition: api.myWaitingListPosition,
+    game: toGameStage(api.game),
   };
+}
+
+function toGameStage(game: ApiMatchDetail['game']): MatchGameStage | null {
+  if (!game) return null;
+  if (game.hasSummary) return 'SUMMARY';
+  return game.scoreboardState === 'Ended' ? 'VOTING' : 'LIVE';
 }
 
 // ── requests ────────────────────────────────────────────────────────────────

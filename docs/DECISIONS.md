@@ -21,7 +21,6 @@ Format: date · decision · why.
 | 9 | Refused actions on the detail (wrong code, confirmations not open, match full) show the backend's reason as a line above the footer buttons. | Before, the mocked mutations could not fail, so there was no error surface. |
 | 10 | `EXPO_PUBLIC_DEV_MOCK_AUTH` still skips login, but matches screens now need a real session to load. | There is no mocked match data left to show. |
 
-Still mocked after this block: teams/draw, scoreboard, MVP vote, summary (block 3), ranking, history and player card (block 4).
 
 ## 2026-10-06 — Block 2: address search in "create match"
 
@@ -30,3 +29,22 @@ Still mocked after this block: teams/draw, scoreboard, MVP vote, summary (block 
 | 11 | The LOCAL field **suggests addresses while typing** (from 3 characters, 350 ms after the last keystroke) through the backend proxy `/api/v1/places`. Picking one fills the field and stores the venue's coordinates in the form (`latitude`/`longitude`). | The match is pinned to the real venue on the map instead of to where the organizer happened to be. |
 | 12 | **Free text is still accepted.** If nothing is picked, the search fails or returns nothing, the match is created with the typed text and the device position (block 1 behaviour). Editing the text after picking drops the picked coordinates. | A court inside a condominium or a nickname for a place will not be in any map service; creating a match must never depend on the search. |
 | 13 | Suggestions are biased to the device position only when location was already granted (no prompt while typing). | Same rule as Home/Explore. |
+
+## 2026-10-06 — Block 3: in-game (teams, live scoreboard, MVP vote, summary)
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 14 | The teams draw happens **on the backend**: "Automático" asks for teams balanced by level, "Manual" (the Sortear button) for a random draw. Each draw replaces the previous one. | One source of truth for who is on which team (the scoreboard, the vote and the stats use it). |
+| 15 | **"Começar partida" starts the game for real.** With two teams it starts right from the teams screen; with three or four the organizer first picks who plays the first set. | With two teams there is nothing to pick. |
+| 16 | The **scoreboard screen follows the game on the backend** instead of route params and local state: not started / playing / waiting for the next pair / ended. It was rewritten on one query (`useLiveGame`); the mocked hooks it used (`getCurrentSet`, `addPoint`, `undoPoint`, `selectTeamsForSet`, `assignTeam`) and their two test files were removed. | The mocked screen kept the score in memory and rebuilt the teams from the player list, so nothing survived leaving the screen and nobody else could watch. |
+| 17 | Only the **organizer scores**. A point is sent to the server and the screen shows what the server answers (no optimistic score). Everybody else sees the same screen read-only. | The server applies the volleyball rules (25 points, 2 ahead, deciding set to 15); guessing them on the phone would show a wrong score when a set ends. |
+| 18 | **"Desfazer" takes back the last point only**, and "Encerrar set" asks for confirmation and gives the set to whoever is ahead. | Mirrors the backend rules; ending a set early is how a pickup game plays shorter sets. |
+| 19 | **Live updates use the SignalR message only as a signal**: on `ScoreboardUpdated` the app re-reads the game over REST. If the hub is unreachable the screen still works, it just does not refresh by itself. | A missed or out-of-order message can never leave a wrong score on screen. |
+| 20 | Between sets (3+ teams) the organizer can **"Encerrar partida"**: the team with the most sets wins. | With rotating teams a game may not reach the sets of the format before people leave. |
+| 21 | When the game ends everyone goes to the **MVP vote**. Candidates are the players with an account who were on a team (no guests). The organizer has **"Encerrar votação e ver resumo"**, which closes the voting and generates the summary; that is the step that records wins, losses and MVP for everyone. | The backend only writes stats and ranking when the summary is generated. |
+| 22 | The match detail's main button follows the game: **"Ver placar ao vivo" → "Votar no MVP" → "Ver resumo"**. A confirmed player who is not the organizer sees "Aguardando o início da partida" (before: "Iniciar partida", which led to a draw they are not allowed to make). | One place to get back into the game from, for everybody. |
+| 23 | In the summary, **"MEU DESEMPENHO" shows zeros** (points, blocks, defenses, aces, XP). | The backend records the score by team, not who made each point, and has no XP yet. |
+| 24 | In a game with **rotating teams the summary** shows the result and MVP correctly, but its set list does not say which teams played each set. | Backend limitation recorded in its DECISIONS (#30). |
+
+Still mocked after this block: ranking, history ("Minhas partidas") and the player card (block 4); the Explore screen's map entry and the feedback form.
+

@@ -565,7 +565,7 @@ describe('S12 — Match Detail screen', () => {
    *  prototype's post-confirm state) with the decline still available below;
    *  tapping decline calls useDeclinePresence.
    */
-  it('flips the CTA to Iniciar partida for a Regular CONFIRMADO participant', async () => {
+  it('shows a confirmed participant that the game has not started yet', async () => {
     mockDetail.data = participantFixture({
       myParticipationType: 'REGULAR',
       myStatus: 'CONFIRMADO',
@@ -574,7 +574,8 @@ describe('S12 — Match Detail screen', () => {
 
     const start = screen.getByTestId('start-match');
     expect(variantOf(start)).toBe('primary');
-    expect(screen.getByText('Iniciar partida')).toBeTruthy();
+    expect(start.props.accessibilityState?.disabled).toBe(true);
+    expect(screen.getByText('Aguardando o início da partida')).toBeTruthy();
     expect(screen.queryByTestId('confirm-presence')).toBeNull();
 
     await act(async () => {
@@ -588,19 +589,24 @@ describe('S12 — Match Detail screen', () => {
    * Criterion: "Iniciar partida" continues the SCOPE flow into S13 (teams)
    *  rather than jumping straight to the scoreboard.
    */
-  it('navigates to S13 teams from Iniciar partida', async () => {
+  it.each([
+    ['LIVE', 'Ver placar ao vivo', '/matches/[id]/scoreboard'],
+    ['VOTING', 'Votar no MVP', '/matches/[id]/mvp-vote'],
+    ['SUMMARY', 'Ver resumo', '/matches/[id]/summary'],
+  ] as const)('a game at %s takes over the CTA (%s)', async (game, label, pathname) => {
     mockDetail.data = participantFixture({
       myParticipationType: 'REGULAR',
       myStatus: 'CONFIRMADO',
+      game,
     });
     await renderScreen();
 
+    expect(screen.getByText(label)).toBeTruthy();
+    expect(screen.queryByTestId('start-match')).toBeNull();
     await act(async () => {
-      fireEvent.press(screen.getByTestId('start-match'));
+      fireEvent.press(screen.getByTestId('game-cta'));
     });
-    expect(mockPush).toHaveBeenCalledWith(
-      expect.objectContaining({ pathname: '/matches/[id]/teams' }),
-    );
+    expect(mockPush).toHaveBeenCalledWith({ pathname, params: { id: 'near-1' } });
   });
 
   /**

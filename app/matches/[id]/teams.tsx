@@ -17,6 +17,7 @@ import { useDrawTeams } from '@/features/matches/api/drawTeams';
 import type { DrawMode } from '@/features/matches/types/matchDetail';
 import type { Team } from '@/features/matches/types/team';
 import { colors } from '@/theme/colors';
+import { useStartSet } from '@/features/matches/api/liveGame';
 import { useMatchStore } from '@/stores/matchStore';
 
 /**
@@ -62,6 +63,7 @@ export default function TeamsScreen() {
   // A draw is an imperative action (mutation): AUTO fires it once on mount,
   // MANUAL fires it on each "Sortear" tap.
   const draw = useDrawTeams(matchId);
+  const startSet = useStartSet(matchId);
 
   // ── Local UI state ──
   const [teams, setTeams] = useState<Team[]>([]);
@@ -152,8 +154,13 @@ export default function TeamsScreen() {
         onPress: async () => {
           setIsStarting(true);
           try {
-            // MOCK: simulate latency for confirmation/persistence
-            await new Promise((resolve) => setTimeout(resolve, 500));
+            // Two teams: nothing to pick, so the game starts right here. With
+            // three or more the organizer first picks who plays the first set
+            // (S13.5, on the scoreboard route).
+            const [first, second] = teams;
+            if (teams.length === 2 && first && second) {
+              await startSet.mutateAsync([first.id, second.id]);
+            }
 
             // Persist match and teams to global store
             initializeMatch({
@@ -162,22 +169,14 @@ export default function TeamsScreen() {
             });
             storeSetTeams(teams);
 
-            // TODO(real-api): POST final team assignments to F1.3 endpoint here if
-            // teams were modified via drag-to-swap. For now, just navigate.
-
-            // Navigate to scoreboard (S14)
-            // TODO(scoreboard): Once S14 (scoreboard) route is fully implemented,
-            // Expo Router's type generation will recognize this pathname.
-            const scorePath = '/matches/[id]/scoreboard';
-            router.push({
-              pathname: scorePath as any,
-              params: { id: matchId, teamCount: String(teamCount), perTeam: String(perTeam), drawMode },
-            });
+            router.push({ pathname: '/matches/[id]/scoreboard', params: { id: matchId } });
           } catch (err) {
             setIsStarting(false);
             Alert.alert(
               'Erro ao iniciar',
-              'Não foi possível começar a partida. Tente novamente.',
+              err instanceof Error
+                ? err.message
+                : 'Não foi possível começar a partida. Tente novamente.',
             );
           }
         },

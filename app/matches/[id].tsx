@@ -344,6 +344,19 @@ export default function MatchDetailScreen() {
     });
   };
 
+  // ── A game under way (or over) takes over the forward CTA ──
+  const GAME_CTA = {
+    LIVE: { label: 'Ver placar ao vivo', pathname: '/matches/[id]/scoreboard' },
+    VOTING: { label: 'Votar no MVP', pathname: '/matches/[id]/mvp-vote' },
+    SUMMARY: { label: 'Ver resumo', pathname: '/matches/[id]/summary' },
+  } as const;
+  const gameCta = match.game ? GAME_CTA[match.game] : null;
+  const goToGame = () => {
+    if (gameCta) {
+      router.push({ pathname: gameCta.pathname, params: { id: match.id } });
+    }
+  };
+
   // ── Participant footer CTA logic (SCOPE-driven; explicit booleans) ──
   const isRegular = match.myParticipationType === 'REGULAR';
   const showConfirm =
@@ -689,7 +702,11 @@ export default function MatchDetailScreen() {
             {actionError}
           </Text>
         ) : null}
-        {isOrganizer ? (
+        {gameCta ? (
+          <Button variant="grad" onPress={goToGame} testID="game-cta">
+            {gameCta.label}
+          </Button>
+        ) : isOrganizer ? (
           <>
             <Button variant="grad" onPress={goToTeams} testID="build-teams">
               Montar os times
@@ -738,13 +755,16 @@ export default function MatchDetailScreen() {
           </>
         ) : isConfirmed ? (
           <>
+            {/* Only the organizer starts the game; once it starts this becomes
+                the live-scoreboard CTA above. */}
             <Button
               variant="primary"
-              onPress={goToTeams}
+              onPress={() => {}}
+              disabled
               leftIcon={<Play size={18} color={colors.textOnDark} />}
               testID="start-match"
             >
-              Iniciar partida
+              Aguardando o início da partida
             </Button>
             <View className="mt-1">
               <Button
