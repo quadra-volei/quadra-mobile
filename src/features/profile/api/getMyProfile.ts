@@ -59,7 +59,7 @@ export function toMyProfile(api: ApiProfile, phoneNumber: string | null): MyProf
  * position. The phone shown in S10 is the login phone, read from the account
  * (`GET /api/v1/auth/me`); a Google account has none.
  */
-async function getMyProfile(): Promise<MyProfile> {
+export async function getMyProfile(): Promise<MyProfile> {
   const [profile, account] = await Promise.all([
     fetchMyProfile(),
     authorizedApiClient<CurrentAccount>('/api/v1/auth/me'),

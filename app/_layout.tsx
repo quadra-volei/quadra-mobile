@@ -25,6 +25,7 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { prefetchProfileTab } from '@/features/profile/api/prefetchProfileTab';
 import { getAccessToken } from '@/lib/auth/getAccessToken';
 import { verifySession } from '@/lib/auth/verifySession';
 import { useAuthStore } from '@/stores/auth';
@@ -113,6 +114,15 @@ export default function RootLayout() {
       void getAuthBootstrap();
     }
   }, [fontsLoaded]);
+
+  // Signed in with a finished profile (app open or right after login): load the
+  // profile tab's data now, so opening the tab does not start from empty.
+  const signedIn = useAuthStore((s) => s.isAuthenticated && s.hasProfile);
+  useEffect(() => {
+    if (signedIn) {
+      prefetchProfileTab(queryClient);
+    }
+  }, [signedIn]);
 
   if (!fontsLoaded) {
     return null;

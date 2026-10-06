@@ -84,21 +84,33 @@ function ProfileHeader() {
 
   return (
     <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
-      <View className="flex-row items-center gap-3">
-        <Avatar
-          uri={data?.avatarUrl}
-          name={data?.firstName}
-          size="md"
-          level={data?.level}
-          defaultSource={DEFAULT_AVATAR}
-        />
-        <View>
-          <Text className="font-body text-caption text-text-muted">Olá,</Text>
-          <Text className="font-display text-h1 text-text-primary uppercase">
-            {data?.firstName ?? "..."}
-          </Text>
+      {data ? (
+        <View className="flex-row items-center gap-3">
+          <Avatar
+            uri={data.avatarUrl}
+            name={data.firstName}
+            size="md"
+            level={data.level}
+            defaultSource={DEFAULT_AVATAR}
+          />
+          <View>
+            <Text className="font-body text-caption text-text-muted">Olá,</Text>
+            <Text className="font-display text-h1 text-text-primary uppercase">
+              {data.firstName}
+            </Text>
+          </View>
         </View>
-      </View>
+      ) : (
+        // No profile yet (loading or failed): neutral shapes, never a stand-in
+        // name or the default avatar passed off as the user's.
+        <View
+          className="flex-row items-center gap-3"
+          testID="profile-header-skeleton"
+        >
+          <View className="h-12 w-12 rounded-full bg-bg-light-alt" />
+          <SkeletonBlock className="h-8 w-32" />
+        </View>
+      )}
       <View className="flex-row items-center gap-3">
         <Pressable
           accessibilityRole="button"
