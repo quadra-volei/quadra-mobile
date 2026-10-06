@@ -14,9 +14,8 @@ Every screen reads the real API (sibling repo `quadra-api`); there is no mock mo
 | Existing components (reuse before creating) | `docs/COMPONENTS.md` |
 | Layout of each screen | PNGs in `docs/references/screens/<id>/` |
 
-`docs/specs/` holds the screen specs from when the screens ran on mocked data; behavior has
-changed since. Where they disagree, the code and DECISIONS win. `docs/archive/` is history
-only — do not read it by default.
+`docs/archive/` is history only (old screen specs from the mocked phase, the four-agent
+workflow) — never treat it as current and do not read it by default.
 
 ## Stack (do not change without asking)
 

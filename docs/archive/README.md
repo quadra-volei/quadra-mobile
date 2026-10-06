@@ -9,3 +9,5 @@ work. Current docs are one level up.
 | `ARCHITECTURE-2026-10-06-com-exemplos.md` | Architecture with long code samples | Samples no longer matched the code (MSW, optimistic score updates, placeholder API URL, detail screen with tabs) |
 | `ANALISE-scope-vs-telas.md` | July audit of SCOPE against the design screenshots | One-off analysis; its open items were decided and it cites prototype files that do not exist |
 | `WORKFLOW-setup-inicial.md` | How to scaffold the project and the order to build the screens | The project exists and every screen is built |
+| `specs/` | Screen specs S1 to S17 | Written for the mocked phase; behavior changed when the screens were wired to the API |
+| `claude-workflow/` | The four-agent `/screen` flow (agents, command, hook) | No longer used; its test agent still required MSW, which was removed |
