@@ -106,7 +106,8 @@ jest.mock('expo-router', () => {
   };
 });
 
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { Keyboard } from 'react-native';
 
 import TabsLayout from '../../../../app/(tabs)/_layout';
 
@@ -193,6 +194,31 @@ describe('S5 — Bottom tab bar + Jogar FAB', () => {
 
     expect(mockPush).toHaveBeenCalledTimes(1);
     expect(mockPush).toHaveBeenCalledWith('/explore');
+  });
+
+  /**
+   * The floating bar hides while the keyboard is open (it would otherwise ride
+   * on top of the keyboard on Android) and comes back when it closes.
+   */
+  it('hides the bar while the keyboard is open', async () => {
+    const listeners: Record<string, () => void> = {};
+    const spy = jest
+      .spyOn(Keyboard, 'addListener')
+      .mockImplementation(((event: string, cb: () => void) => {
+        listeners[event] = cb;
+        return { remove: jest.fn() };
+      }) as never);
+
+    await render(<TabsLayout />);
+    expect(screen.getByLabelText('Jogar')).toBeTruthy();
+
+    await act(async () => listeners.keyboardDidShow?.());
+    expect(screen.queryByLabelText('Jogar')).toBeNull();
+
+    await act(async () => listeners.keyboardDidHide?.());
+    expect(screen.getByLabelText('Jogar')).toBeTruthy();
+
+    spy.mockRestore();
   });
 
   /**

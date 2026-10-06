@@ -2,8 +2,8 @@ import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, Tabs } from 'expo-router';
 import type { ComponentType } from 'react';
-import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Keyboard, Platform, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { JogarMenu } from '@/components/domain/JogarMenu';
@@ -54,6 +54,13 @@ function TabBarButton({
   );
 }
 
+const PILL_RADIUS = 28;
+// Same taming as `GlassHeader`: Android's Dimezis blur frosts the sampled
+// content much darker than iOS, so it gets a lower radius and a stronger wash.
+const IS_ANDROID = Platform.OS === 'android';
+const BLUR_INTENSITY = IS_ANDROID ? 22 : 80;
+const PILL_WASH = IS_ANDROID ? 'bg-white/70' : 'bg-white/50';
+
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
   // The focused tab screen publishes its `BlurTargetView` ref here so Android's
@@ -62,12 +69,24 @@ export default function TabsLayout() {
   // The central FAB opens the "BORA JOGAR?" action menu instead of jumping
   // straight to create-match.
   const [menuOpen, setMenuOpen] = useState(false);
+  // Android resizes the window for the keyboard, which would lift the floating
+  // bar on top of it (Explore's search) — hide the bar while typing instead.
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardOpen(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardOpen(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   return (
     <>
     <Tabs
       screenOptions={{ headerShown: false }}
       tabBar={({ state, navigation }) => {
+        if (keyboardOpen) return null;
         const leftTabs = TABS.slice(0, 2);
         const rightTabs = TABS.slice(2);
 
@@ -112,31 +131,38 @@ export default function TabsLayout() {
               fixed-width tabs + the FAB's center reserve. */}
           <View
             style={{
-              borderRadius: 28,
+              borderRadius: PILL_RADIUS,
               marginBottom: insets.bottom + 12,
-              boxShadow: '0 8px 24px rgba(10,10,60,0.16)',
+              boxShadow: '0 6px 20px rgba(10,10,60,0.12)',
             }}
           >
             {/* Glass pill — iOS blurs natively. On Android the real backdrop
                 blur (`dimezisBlurView`) samples the focused screen's
                 `BlurTargetView`, published via the nav-blur-target store; until
                 a screen registers one we omit the method so it renders the
-                frosted `bg-white/40` tint instead of warning + falling back to
+                frosted white tint instead of warning + falling back to
                 "none". Clipped to the rounded shape; the FAB is a sibling
                 overlay so the clip doesn't cut off its poke. */}
             <BlurView
-              intensity={80}
+              intensity={BLUR_INTENSITY}
               tint="light"
               {...(navBlurTarget
                 ? { blurMethod: 'dimezisBlurView' as const, blurTarget: navBlurTarget }
                 : {})}
-              style={{ borderRadius: 28, overflow: 'hidden' }}
+              style={{ borderRadius: PILL_RADIUS, overflow: 'hidden' }}
             >
-              <View className="flex-row items-center px-2 bg-white/40 border border-white/40">
+              {/* The wash carries the same radius so its hairline border follows
+                  the pill instead of being cut off at the corners. Tabs are 48
+                  wide with 24 icons, so px-3 + the 88 reserve leave the same 24
+                  gap at the edges, between icons and around the FAB. */}
+              <View
+                className={`flex-row items-center px-3 border border-white/60 ${PILL_WASH}`}
+                style={{ borderRadius: PILL_RADIUS }}
+              >
                 {leftTabs.map(renderTab)}
 
                 {/* Center column reserves the FAB's horizontal footprint. */}
-                <View className="w-20" style={{ height: 44 }} />
+                <View style={{ width: 88, height: 48 }} />
 
                 {rightTabs.map(renderTab)}
               </View>
