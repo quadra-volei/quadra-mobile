@@ -23,6 +23,7 @@ import * as SecureStore from 'expo-secure-store';
 import { useCreateProfile } from '@/features/profile/api/createProfile';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import type { ApiProfile } from '@/features/profile/api/profileApi';
+import { useSendFeedback } from '@/features/profile/api/sendFeedback';
 import { useUpdateProfile } from '@/features/profile/api/updateProfile';
 import { useHandleTaken } from '@/features/profile/api/handleAvailability';
 import type { EditProfileInput } from '@/features/profile/schema/editProfile';
@@ -324,5 +325,43 @@ describe('useHandleTaken', () => {
 
     expect(result.current).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe('useSendFeedback', () => {
+  /**
+   * Covers: S10 "Enviar feedback" — the form is POSTed to the backend with the
+   * app version and platform; the daily limit is a readable message.
+   */
+  it('POSTs the feedback with app version and platform', async () => {
+    fetchMock.mockResolvedValueOnce(respond(201, { id: 'fb-1', createdAt: '2026-10-06T12:00:00Z' }));
+
+    const settled = await runMutation(useSendFeedback, {
+      type: 'problem' as const,
+      message: 'O placar travou.',
+    });
+
+    expect(settled).toMatchObject({ status: 'fulfilled', value: { id: 'fb-1' } });
+    const post = calls()[0];
+    expect(post?.url).toContain('/api/v1/feedback');
+    expect(post?.method).toBe('POST');
+    expect(post?.authorization).toBe('Bearer access-jwt');
+    expect(post?.body).toEqual({
+      type: 'problem',
+      message: 'O placar travou.',
+      appVersion: expect.stringMatching(/^[0-9]+[.][0-9]+[.][0-9]+/),
+      platform: expect.stringMatching(/^(ios|android|web)$/),
+    });
+  });
+
+  it('turns the daily limit (429) into a readable message', async () => {
+    fetchMock.mockResolvedValueOnce(respond(429));
+
+    const settled = await runMutation(useSendFeedback, {
+      type: 'praise' as const,
+      message: 'Muito bom!',
+    });
+
+    expect(settled.status === 'rejected' && (settled.reason as Error).message).toMatch(/muitos feedbacks hoje/);
   });
 });

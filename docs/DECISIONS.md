@@ -67,9 +67,15 @@ Format: date · decision · why.
 | # | Decision | Why |
 | --- | --- | --- |
 | 31 | **`EXPO_PUBLIC_DEV_MOCK_AUTH` was removed.** There is no mock mode any more; to work on a screen, log in (the test environment's fake SMS code makes that a few seconds). | The shortcut created a session with a fake token. With no mocked data left, every screen under it only showed "could not load" — it had become a trap, not a shortcut. |
-| 32 | The only mocked call left is the **feedback form** (`sendFeedback`): it reports success and discards the text. It is marked as such at the top of the file. | The backend has no feedback endpoint. |
+| 32 | ~~The feedback form stays mocked~~ — integrated later, see #35. | — |
 | 33 | Removed: the unused `matchStore` (a copy of the game kept on the phone that nothing read any more) with its doc, the no-op `latencyMs` options left on the hooks, and the unused `msw` dev dependency. Jest tests keep their own mocks (they stub the hooks or `fetch`) and never touch the network. | Dead code from the mocked phase. |
 | 34 | Three pieces of **fake on-screen data** were bound to real data: the ranking screen's group name (was a fixed "Vôlei de quinta") now is the ranked match's name; Explore's badge now reads "N jogos por perto" (was "ao vivo", though nothing said they were live); Explore's preview card now shows the closest real match's distance and price (was a fixed "Beach Vôlei SP ★ 4.9 (341)"). Explore's "Hoje" chip now filters matches that start today (was a no-op). | They looked like data but were literals. |
 
 Placeholders that are NOT mocks (the backend has no such data yet, the app shows a neutral value): Level/XP bar (Level 1, 0 XP), SRV/REC on the card (= overall), "Meu desempenho" in the summary (zeros), ranking trend arrows (absent).
+
+## 2026-10-06 — Feedback form
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 35 | "Enviar feedback" (Perfil → Configurações) **sends to the backend** (`POST /api/v1/feedback`): the type and message of the form plus the app version (from `app.json`) and the platform. A failed send shows the reason on the screen (no connection, daily limit, expired session). | The backend now stores feedback. Version and platform place a reported problem without asking the user. With this there is no mocked call left in the app. |
 
