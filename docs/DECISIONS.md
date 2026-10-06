@@ -22,3 +22,11 @@ Format: date · decision · why.
 | 10 | `EXPO_PUBLIC_DEV_MOCK_AUTH` still skips login, but matches screens now need a real session to load. | There is no mocked match data left to show. |
 
 Still mocked after this block: teams/draw, scoreboard, MVP vote, summary (block 3), ranking, history and player card (block 4).
+
+## 2026-10-06 — Block 2: address search in "create match"
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 11 | The LOCAL field **suggests addresses while typing** (from 3 characters, 350 ms after the last keystroke) through the backend proxy `/api/v1/places`. Picking one fills the field and stores the venue's coordinates in the form (`latitude`/`longitude`). | The match is pinned to the real venue on the map instead of to where the organizer happened to be. |
+| 12 | **Free text is still accepted.** If nothing is picked, the search fails or returns nothing, the match is created with the typed text and the device position (block 1 behaviour). Editing the text after picking drops the picked coordinates. | A court inside a condominium or a nickname for a place will not be in any map service; creating a match must never depend on the search. |
+| 13 | Suggestions are biased to the device position only when location was already granted (no prompt while typing). | Same rule as Home/Explore. |

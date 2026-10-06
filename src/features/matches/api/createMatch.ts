@@ -27,13 +27,15 @@ export type CreateMatchResult = {
 export const FALLBACK_COORDS: Coords = { latitude: -23.55, longitude: -46.63 };
 
 /**
- * Where the match is, for the map and "perto de você".
- *
- * ponytail: the LOCAL field is free text, so the match is pinned to where the
- * organizer is when creating it (or the fallback when location is denied).
- * Replaced by the venue's own coordinates once the address search lands.
+ * Where the match is, for the map and "perto de você": the venue picked in the
+ * address search. A location typed as free text has no coordinates, so the
+ * match is then pinned to where the organizer is (or the fallback when location
+ * is denied).
  */
-async function resolveMatchCoords(): Promise<Coords> {
+async function resolveMatchCoords(payload: CreateMatchPayload): Promise<Coords> {
+  if (payload.latitude != null && payload.longitude != null) {
+    return { latitude: payload.latitude, longitude: payload.longitude };
+  }
   try {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== Location.PermissionStatus.GRANTED) {
@@ -62,7 +64,7 @@ async function createMatch(payload: CreateMatchPayload): Promise<CreateMatchResu
   }
 
   try {
-    const coords = await resolveMatchCoords();
+    const coords = await resolveMatchCoords(payload);
     const match = await postMatch(toApiCreateMatch(payload, startsAt, coords));
     return { match: { id: match.id } };
   } catch (error) {

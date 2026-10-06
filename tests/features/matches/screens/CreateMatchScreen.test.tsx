@@ -186,6 +186,27 @@ const mockCreate = {
   }),
 };
 
+// Address search (S11 LOCAL field): suggestions are staged per test; picking one
+// resolves to the staged coordinates.
+const mockPlaces: { data: unknown[]; coords: { latitude: number; longitude: number } | null } = {
+  data: [],
+  coords: null,
+};
+
+jest.mock('@/features/matches/api/searchPlaces', () => ({
+  newPlaceSessionToken: () => 'session-test',
+  placeLabel: (place: { title: string; subtitle: string }) =>
+    place.subtitle ? `${place.title} · ${place.subtitle}` : place.title,
+  usePlaceSuggestions: (_text: string, options: { enabled?: boolean }) => ({
+    data: options.enabled === false ? undefined : mockPlaces.data,
+  }),
+  resolvePlace: async () => mockPlaces.coords,
+}));
+
+jest.mock('@/features/matches/lib/useDeviceCoords', () => ({
+  useDeviceCoords: () => null,
+}));
+
 jest.mock('@/features/matches/api/createMatch', () => ({
   useCreateMatch: () => ({
     mutate: mockCreate.mutate,
@@ -217,6 +238,8 @@ beforeEach(() => {
   mockCreate.mutate.mockClear();
   mockCreate.isPending = false;
   mockCreate.isError = false;
+  mockPlaces.data = [];
+  mockPlaces.coords = null;
   mockCreate.behavior = 'resolve';
   mockCreate.resultId = 'mine-mock-1';
 });
@@ -530,5 +553,60 @@ describe('S11 — Create-match (formulário vivo)', () => {
     expect(
       screen.getByTestId('create-submit').props.accessibilityState?.disabled,
     ).toBe(false);
+  });
+});
+
+describe('S11 — LOCAL address search', () => {
+  /** The payload the screen handed to the create mutation. */
+  function submitted(): Record<string, unknown> {
+    return (mockCreate.mutate.mock.calls as [Record<string, unknown>][])[0]![0];
+  }
+
+  const arena = {
+    id: 'osm:W123',
+    title: 'Arena Sky Beach',
+    subtitle: 'Pinheiros · São Paulo',
+    latitude: -23.56,
+    longitude: -46.69,
+  };
+
+  it('picking a suggestion fills the field and sends the venue coordinates', async () => {
+    mockPlaces.data = [arena];
+    mockPlaces.coords = { latitude: -23.56, longitude: -46.69 };
+    await renderScreen();
+    await completeOneOffFlow();
+
+    await type('match-location', 'arena sky');
+    await press('place-osm:W123');
+
+    expect(screen.getByTestId('match-location').props.value).toBe(
+      'Arena Sky Beach · Pinheiros · São Paulo',
+    );
+    expect(screen.queryByTestId('place-suggestions')).toBeNull();
+
+    await press('create-submit');
+    expect(submitted()).toMatchObject({
+      location: 'Arena Sky Beach · Pinheiros · São Paulo',
+      latitude: -23.56,
+      longitude: -46.69,
+    });
+  });
+
+  it('editing the text after picking drops the coordinates (free text again)', async () => {
+    mockPlaces.data = [arena];
+    mockPlaces.coords = { latitude: -23.56, longitude: -46.69 };
+    await renderScreen();
+    await completeOneOffFlow();
+    await type('match-location', 'arena sky');
+    await press('place-osm:W123');
+
+    mockPlaces.data = [];
+    await type('match-location', 'Quadra do meu prédio');
+    await press('create-submit');
+
+    const sent = submitted();
+    expect(sent.location).toBe('Quadra do meu prédio');
+    expect(sent.latitude).toBeUndefined();
+    expect(sent.longitude).toBeUndefined();
   });
 });

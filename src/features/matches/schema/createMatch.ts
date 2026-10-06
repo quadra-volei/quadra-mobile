@@ -13,11 +13,9 @@ import { LEVELS } from '@/features/profile/schema/onboarding';
  * `whenType` (+ `customDate` when "Outra data"), Recurring needs `recDays` +
  * `recStart`, and a private match needs an `inviteMode`.
  *
- * ⚠️ Backend alignment gate unchanged from the previous iteration: the real F1.1
- * create-match call is BLOCKED only by the unresolved structured-venue/geo
- * question (the free-text LOCAL field cannot supply it). Everything else ships in
- * the final payload shape. This schema defines the *frontend* shape so the form
- * is buildable/testable now; it asserts no real endpoint. See the S11 spec.
+ * The LOCAL field is free text with address suggestions: picking one also sets
+ * `latitude`/`longitude`; typed text alone is still accepted. The API body is
+ * built from this input by `toApiCreateMatch` (`api/matchesApi.ts`).
  *
  * Enums are reused, not redeclared: `format` mirrors `MatchFormat`
  * (`@/features/matches/types/match`) and `level` mirrors the shared `LEVELS`
@@ -101,6 +99,9 @@ export const createMatchSchema = z
     name: z.string().trim().min(1, 'Dê um nome à partida'),
     // ── Bloco 2 · local ──
     location: z.string().trim().min(1, 'Informe o local'),
+    // Set when the location was picked from the address search; absent for free text.
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
     // ── Bloco 3 · tipo + agenda ──
     type: z.enum(MATCH_TYPES),
     // OneOff scheduling

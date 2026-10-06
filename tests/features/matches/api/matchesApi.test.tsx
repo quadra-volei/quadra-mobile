@@ -11,7 +11,9 @@
  *  - confirming joins; a full match (409) resolves with the waiting-list
  *    position; a wrong invite code (403) becomes a readable pt-BR message;
  *  - declining a match the user is not in (404) is not an error;
- *  - adding a guest POSTs it and refreshes the detail.
+ *  - adding a guest POSTs it and refreshes the detail;
+ *  - the address search asks the backend proxy, and a picked venue's coordinates
+ *    go in the create body instead of the device's.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react-native';
@@ -49,6 +51,11 @@ import {
   useJoinMatch,
 } from '@/features/matches/api/presence';
 import { saveTokens } from '@/lib/auth/tokenStorage';
+import {
+  placeLabel,
+  resolvePlace,
+  usePlaceSuggestions,
+} from '@/features/matches/api/searchPlaces';
 import { useAuthStore } from '@/stores/auth';
 
 const ME = '7b1f3c1e-0000-4000-8000-000000000001';
@@ -519,5 +526,74 @@ describe('useAddGuest', () => {
     const settled = await runMutation(() => useAddGuest(MATCH_ID), { name: 'Maria' });
 
     expect(rejectionMessage(settled)).toBe('A partida já está cheia.');
+  });
+});
+
+describe('address search', () => {
+  const suggestion = {
+    id: 'ChIJ_1',
+    title: 'Arena Sky Beach',
+    subtitle: 'Pinheiros, São Paulo',
+    latitude: null,
+    longitude: null,
+  };
+
+  it('asks the backend proxy for suggestions near the user', async () => {
+    fetchMock.mockResolvedValueOnce(respond(200, { items: [suggestion] }));
+
+    const { result } = await renderHook(
+      () =>
+        usePlaceSuggestions(' arena sky ', {
+          near: { latitude: -23.55, longitude: -46.63 },
+          sessionToken: 'sess-1',
+        }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(call().url).toContain(
+      '/api/v1/places/autocomplete?q=arena%20sky&lat=-23.55&lon=-46.63&sessionToken=sess-1',
+    );
+    expect(result.current.data).toEqual([suggestion]);
+    expect(placeLabel(suggestion)).toBe('Arena Sky Beach · Pinheiros, São Paulo');
+  });
+
+  it('does not search for fewer than 3 characters', async () => {
+    const { result } = await renderHook(
+      () => usePlaceSuggestions('ar', { near: null, sessionToken: 'sess-1' }),
+      { wrapper },
+    );
+
+    expect(result.current.fetchStatus).toBe('idle');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('resolves coordinates from the suggestion, the details call, or not at all', async () => {
+    await expect(
+      resolvePlace({ ...suggestion, latitude: -23.56, longitude: -46.69 }, 'sess-1'),
+    ).resolves.toEqual({ latitude: -23.56, longitude: -46.69 });
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fetchMock.mockResolvedValueOnce(
+      respond(200, { id: 'ChIJ_1', latitude: -23.57, longitude: -46.62 }),
+    );
+    await expect(resolvePlace(suggestion, 'sess-1')).resolves.toEqual({
+      latitude: -23.57,
+      longitude: -46.62,
+    });
+    expect(call().url).toContain('/api/v1/places/ChIJ_1?sessionToken=sess-1');
+
+    fetchMock.mockResolvedValueOnce(respond(503, {}));
+    await expect(resolvePlace(suggestion, 'sess-1')).resolves.toBeNull();
+  });
+
+  it('a picked venue sets the match coordinates without reading the device location', async () => {
+    (Location.requestForegroundPermissionsAsync as jest.Mock).mockClear();
+    fetchMock.mockResolvedValueOnce(respond(201, apiMatch));
+
+    await runMutation(useCreateMatch, { ...payload, latitude: -23.56, longitude: -46.69 });
+
+    expect(call().body).toMatchObject({ latitude: -23.56, longitude: -46.69 });
+    expect(Location.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
   });
 });
