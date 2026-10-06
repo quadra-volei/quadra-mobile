@@ -227,6 +227,13 @@ const mockDrawTeams = {
   mutate: jest.fn(),
 };
 
+// Starting the game (two teams: straight from this screen).
+const mockStartSet = { mutateAsync: jest.fn(async (_pair: [string, string]) => ({})) };
+
+jest.mock('@/features/matches/api/liveGame', () => ({
+  useStartSet: () => mockStartSet,
+}));
+
 jest.mock('@/features/matches/api/drawTeams', () => ({
   useDrawTeams: jest.fn(() => mockDrawTeams),
 }));
@@ -921,7 +928,8 @@ describe('S13 — In-Game Teams screen', () => {
     const pushCall = mockPush.mock.calls[0][0];
     expect(pushCall.pathname).toBe('/matches/[id]/scoreboard');
     expect(pushCall.params.id).toBe('match-1');
-    expect(pushCall.params.teamCount).toBe('2');
+    // Two teams: the game was started on the backend with that pair.
+    expect(mockStartSet.mutateAsync).toHaveBeenCalledWith(['team-1', 'team-2']);
   });
 
   // -------------------------------------------------- criterion 12: Loading state

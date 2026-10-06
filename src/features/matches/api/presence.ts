@@ -1,55 +1,75 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { matchDetailQueryKey } from '@/features/matches/api/getMatchDetail';
-import type { MyPresence } from '@/stores/presenceStore';
-import { usePresenceStore } from '@/stores/presenceStore';
-
-// MOCK: deterministic fake latency so RNTL can assert the footer CTA loading
-// state and the post-mutation invalidation without flakiness. No randomness, no
-// network, no EXPO_PUBLIC_API_URL. Mirrors createMatch.ts / getMatchDetail.ts.
-const MOCK_LATENCY_MS = 500;
+import {
+  fetchMatchDetail,
+  putMyPresence,
+  toMatchError,
+} from '@/features/matches/api/matchesApi';
+import { ApiError } from '@/lib/api/client';
 
 export type PresenceMutationResult = {
   match: { id: string };
+  /** Set when the match was full and the player was queued instead. */
+  waitingListPosition?: number;
 };
 
+/** What a join can carry: the invite code of a private match. */
+export type JoinMatchInput = { inviteCode?: string };
+
 /**
- * Confirms / declines / joins share one MOCK shape: simulate latency, record the
- * new presence in the session `presenceStore`, then resolve a stub echoing the
- * match id. No network, no backend path.
- *
- * The store write is what makes the mutation *mean* something: `getMatchDetail`
- * merges that store at fetch time, so confirming adds the user to the confirmed
- * grid and declining removes them. Without it the invalidation below would just
- * refetch the same fixed fixture and nothing would change on screen.
- *
- * TODO(real-api): replace each mock body below with the real F1.4 presence calls
- * behind these unchanged hook signatures, once the backend match module lands.
- * The store write goes away with the mock — the server becomes the truth.
+ * Confirms the signed-in user on a match (`PUT /matches/{id}/presences/me`).
+ * Someone not on the list yet joins by confirming. A full match answers 409 and
+ * queues the player: that is reported as a result (`waitingListPosition`), not
+ * as a failure. The same 409 also means "confirmations are not open".
  */
-async function mockPresenceWrite(
-  id: string,
-  presence: MyPresence,
-): Promise<PresenceMutationResult> {
-  // MOCK: fixed-latency resolve, no network.
-  await new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS));
-  // MOCK: the session store stands in for the backend's presence record.
-  usePresenceStore.getState().setPresence(id, presence);
-  // MOCK: stub echoing the match id.
+async function confirm(id: string, inviteCode?: string): Promise<PresenceMutationResult> {
+  try {
+    await putMyPresence(id, 'Confirmed', inviteCode);
+    return { match: { id } };
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 409) {
+      const detail = await fetchMatchDetail(id).catch(() => null);
+      if (detail?.myWaitingListPosition != null) {
+        return { match: { id }, waitingListPosition: detail.myWaitingListPosition };
+      }
+    }
+    throw toMatchError(error, {
+      403: inviteCode
+        ? 'Código de convite inválido.'
+        : 'Essa partida é só para convidados.',
+      409: 'As confirmações dessa partida não estão abertas.',
+    });
+  }
+}
+
+/** Declines; declining a match you were never in is already the wanted state. */
+async function decline(id: string): Promise<PresenceMutationResult> {
+  try {
+    await putMyPresence(id, 'Declined');
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status !== 404) {
+      throw toMatchError(error, {
+        409: 'As confirmações dessa partida já fecharam.',
+      });
+    }
+  }
   return { match: { id } };
 }
 
 /**
- * Builds a presence mutation bound to a match id. On success it invalidates the
- * match detail query (so the grid/footer refresh) and the broader `['matches']`
- * key (so S5 Home lists refresh too).
+ * Builds a presence mutation bound to a match id. Whatever the outcome it
+ * refreshes the match detail (grid/footer) and the broader `['matches']` key
+ * (S5 Home lists).
  */
-function usePresenceMutation(id: string, presence: MyPresence) {
+function usePresenceMutation<TInput>(
+  id: string,
+  mutationFn: (input: TInput) => Promise<PresenceMutationResult>,
+) {
   const queryClient = useQueryClient();
-  return useMutation<PresenceMutationResult, Error, void>({
-    // MOCK (F1.4): swap this mutationFn for the real presence call later.
-    mutationFn: () => mockPresenceWrite(id, presence),
-    onSuccess: () => {
+  return useMutation<PresenceMutationResult, Error, TInput>({
+    mutationFn,
+    onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: matchDetailQueryKey(id) });
       void queryClient.invalidateQueries({ queryKey: ['matches'] });
     },
@@ -57,27 +77,25 @@ function usePresenceMutation(id: string, presence: MyPresence) {
 }
 
 /**
- * Confirms the current user's presence (F1.4) — this is what puts them in the
- * confirmed list. Used by invited Regulars AND by the organizer, who does not
+ * Confirms the current user's presence — this is what puts them in the confirmed
+ * list. Used by players already on the list AND by the organizer, who does not
  * play unless they say so.
  */
 export function useConfirmPresence(id: string) {
-  return usePresenceMutation(id, { status: 'CONFIRMADO' });
+  return usePresenceMutation<void>(id, () => confirm(id));
 }
 
 /**
- * Declines the current user's presence (F1.4) — removes them from the confirmed
- * list, freeing the slot. Available whether or not they had confirmed, and to
- * the organizer as well.
+ * Declines the current user's presence — removes them from the confirmed list,
+ * freeing the slot.
  */
 export function useDeclinePresence(id: string) {
-  return usePresenceMutation(id, { status: 'RECUSADO' });
+  return usePresenceMutation<void>(id, () => decline(id));
 }
 
-/** Joins an open drop-in slot (non-Regular user, window closed) (F1.4). */
+/** Joins a match the user is not part of yet; a private one needs its invite code. */
 export function useJoinMatch(id: string) {
-  return usePresenceMutation(id, {
-    status: 'CONFIRMADO',
-    participation: 'DROPIN',
-  });
+  return usePresenceMutation<JoinMatchInput | void>(id, (input) =>
+    confirm(id, input?.inviteCode?.trim().toUpperCase()),
+  );
 }

@@ -1,5 +1,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import * as Location from 'expo-location';
 
+import {
+  type Coords,
+  postMatch,
+  toApiCreateMatch,
+  toMatchError,
+} from '@/features/matches/api/matchesApi';
+import { resolveMatchStartsAt } from '@/features/matches/lib/buildMatchDetail';
 import type { CreateMatchInput } from '@/features/matches/schema/createMatch';
 
 /**
@@ -7,7 +15,7 @@ import type { CreateMatchInput } from '@/features/matches/schema/createMatch';
  * optional local cover image URI (set by the picker, not a validated field).
  */
 export type CreateMatchPayload = CreateMatchInput & {
-  /** Local URI of the picked cover image (optional). */
+  /** Local URI of the picked cover image (optional). Not uploaded yet. */
   coverUri?: string;
 };
 
@@ -15,32 +23,55 @@ export type CreateMatchResult = {
   match: { id: string };
 };
 
-// MOCK: deterministic fake latency so RNTL can assert the loading spinner and
-// the success branch without flakiness. No randomness, no network, no
-// EXPO_PUBLIC_API_URL. Mirrors src/features/profile/api/createProfile.ts.
-const MOCK_LATENCY_MS = 600;
+/** São Paulo centre — where a match lands when the device location is unavailable. */
+export const FALLBACK_COORDS: Coords = { latitude: -23.55, longitude: -46.63 };
 
 /**
- * Creates a match from the validated create-match input.
- *
- * MOCK: this iteration ships fully mocked match creation. The mutationFn
- * simulates ~600ms latency and always resolves a stub `{ match: { id } }`
- * echoing a generated id. No network call, no backend path is asserted.
- *
- * TODO(real-api): replace the mock body below with the real F1.1 create-match
- * call behind this unchanged hook signature. The real call is BLOCKED only by
- * the unresolved structured-venue/geo question (the free-text LOCAL field cannot
- * supply it) — `type` + `confirmationOpensHoursBefore` are resolved and ship in
- * the final payload shape. Do not wire until the backend SCOPE is aligned.
+ * Where the match is, for the map and "perto de você": the venue picked in the
+ * address search. A location typed as free text has no coordinates, so the
+ * match is then pinned to where the organizer is (or the fallback when location
+ * is denied).
  */
-async function createMatch(
-  _payload: CreateMatchPayload,
-): Promise<CreateMatchResult> {
-  // MOCK: fixed-latency resolve, no network.
-  await new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS));
-  // MOCK: stub match echoing a generated id. Must start with 'mine-' to be
-  // recognized as an organizer match in getMatchDetail.
-  return { match: { id: `mine-${Date.now()}` } };
+async function resolveMatchCoords(payload: CreateMatchPayload): Promise<Coords> {
+  if (payload.latitude != null && payload.longitude != null) {
+    return { latitude: payload.latitude, longitude: payload.longitude };
+  }
+  try {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== Location.PermissionStatus.GRANTED) {
+      return FALLBACK_COORDS;
+    }
+    const position =
+      (await Location.getLastKnownPositionAsync()) ??
+      (await Location.getCurrentPositionAsync());
+    return {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+    };
+  } catch {
+    return FALLBACK_COORDS;
+  }
+}
+
+/**
+ * Creates a match from the validated create-match input (`POST /api/v1/matches`).
+ * The cover image is not sent: the backend has no match cover yet.
+ */
+async function createMatch(payload: CreateMatchPayload): Promise<CreateMatchResult> {
+  const startsAt = resolveMatchStartsAt(payload);
+  if (new Date(startsAt).getTime() <= Date.now()) {
+    throw new Error('Esse horário já passou. Escolha um horário no futuro.');
+  }
+
+  try {
+    const coords = await resolveMatchCoords(payload);
+    const match = await postMatch(toApiCreateMatch(payload, startsAt, coords));
+    return { match: { id: match.id } };
+  } catch (error) {
+    throw toMatchError(error, {
+      400: 'Confira os dados da partida e tente de novo.',
+    });
+  }
 }
 
 export function useCreateMatch() {

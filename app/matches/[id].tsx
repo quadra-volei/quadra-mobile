@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/Button';
 import { CourtImage } from '@/components/ui/CourtImage';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { StepperField } from '@/components/ui/StepperField';
+import { TextField } from '@/components/ui/TextField';
 import { useAddGuest } from '@/features/matches/api/addGuest';
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
 import {
@@ -273,6 +274,9 @@ export default function MatchDetailScreen() {
   const joinMatch = useJoinMatch(matchId);
   const addGuest = useAddGuest(matchId);
 
+  // Invite code typed by someone joining a private match.
+  const [inviteCode, setInviteCode] = useState('');
+
   // Organizer "add guest to fill a vaga" sheet (S12).
   const [guestSheetOpen, setGuestSheetOpen] = useState(false);
 
@@ -316,7 +320,9 @@ export default function MatchDetailScreen() {
 
   const onShare = () => {
     void Share.share({
-      message: `Bora jogar? "${match.name}" na Quadra. (match:${match.id})`,
+      message:
+        `Bora jogar? "${match.name}" na Quadra. (match:${match.id})` +
+        (match.inviteCode ? ` Código de convite: ${match.inviteCode}` : ''),
     });
   };
 
@@ -338,6 +344,19 @@ export default function MatchDetailScreen() {
     });
   };
 
+  // ── A game under way (or over) takes over the forward CTA ──
+  const GAME_CTA = {
+    LIVE: { label: 'Ver placar ao vivo', pathname: '/matches/[id]/scoreboard' },
+    VOTING: { label: 'Votar no MVP', pathname: '/matches/[id]/mvp-vote' },
+    SUMMARY: { label: 'Ver resumo', pathname: '/matches/[id]/summary' },
+  } as const;
+  const gameCta = match.game ? GAME_CTA[match.game] : null;
+  const goToGame = () => {
+    if (gameCta) {
+      router.push({ pathname: gameCta.pathname, params: { id: match.id } });
+    }
+  };
+
   // ── Participant footer CTA logic (SCOPE-driven; explicit booleans) ──
   const isRegular = match.myParticipationType === 'REGULAR';
   const showConfirm =
@@ -350,8 +369,17 @@ export default function MatchDetailScreen() {
   const showJoin =
     !isRegular &&
     !isConfirmed &&
-    match.openDropInSlots > 0 &&
-    match.confirmationWindowClosed;
+    (match.canJoin ??
+      (match.openDropInSlots > 0 && match.confirmationWindowClosed));
+  const showJoinByCode = !isRegular && !isConfirmed && match.requiresInviteCode;
+  const waitingPosition = isConfirmed ? null : match.myWaitingListPosition;
+  // The last thing the user tried that the backend refused.
+  const actionError = (
+    confirmPresence.error ??
+    declinePresence.error ??
+    joinMatch.error ??
+    addGuest.error
+  )?.message;
   const mutationBusy =
     confirmPresence.isPending || declinePresence.isPending || joinMatch.isPending;
 
@@ -665,7 +693,20 @@ export default function MatchDetailScreen() {
         className="absolute bottom-0 left-0 right-0 border-t border-line bg-white px-5 pt-4"
         style={{ paddingBottom: Math.max(insets.bottom, 10) + 10 }}
       >
-        {isOrganizer ? (
+        {actionError ? (
+          <Text
+            className="mb-2 font-body text-caption text-danger"
+            accessibilityLiveRegion="polite"
+            testID="action-error"
+          >
+            {actionError}
+          </Text>
+        ) : null}
+        {gameCta ? (
+          <Button variant="grad" onPress={goToGame} testID="game-cta">
+            {gameCta.label}
+          </Button>
+        ) : isOrganizer ? (
           <>
             <Button variant="grad" onPress={goToTeams} testID="build-teams">
               Montar os times
@@ -714,13 +755,16 @@ export default function MatchDetailScreen() {
           </>
         ) : isConfirmed ? (
           <>
+            {/* Only the organizer starts the game; once it starts this becomes
+                the live-scoreboard CTA above. */}
             <Button
               variant="primary"
-              onPress={goToTeams}
+              onPress={() => {}}
+              disabled
               leftIcon={<Play size={18} color={colors.textOnDark} />}
               testID="start-match"
             >
-              Iniciar partida
+              Aguardando o início da partida
             </Button>
             <View className="mt-1">
               <Button
@@ -730,6 +774,33 @@ export default function MatchDetailScreen() {
                 testID="decline-presence"
               >
                 Não vou poder ir
+              </Button>
+            </View>
+          </>
+        ) : waitingPosition != null ? (
+          <Button variant="primary" onPress={() => {}} disabled testID="waiting-list">
+            {`Na fila de espera · ${waitingPosition}º`}
+          </Button>
+        ) : showJoinByCode ? (
+          <>
+            <TextField
+              label="Código de convite"
+              value={inviteCode}
+              onChangeText={setInviteCode}
+              placeholder="Peça o código a quem organiza"
+              autoCapitalize="none"
+              maxLength={16}
+              testID="invite-code"
+            />
+            <View className="mt-2">
+              <Button
+                variant="primary"
+                onPress={() => joinMatch.mutate({ inviteCode })}
+                loading={joinMatch.isPending}
+                disabled={inviteCode.trim().length === 0}
+                testID="join-with-code"
+              >
+                Entrar com o código
               </Button>
             </View>
           </>

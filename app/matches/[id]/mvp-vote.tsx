@@ -7,6 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import {
+  useFinishMatch,
+  useIsOrganizer,
   useMatchPlayers,
   useVoteMVPMutation,
   type MatchPlayer,
@@ -14,6 +16,45 @@ import {
 import { useAuthStore } from '@/stores/auth';
 import { colors } from '@/theme/colors';
 import { useMatchStore } from '@/stores/matchStore';
+
+/**
+ * What comes after the vote. The organizer closes the voting and generates the
+ * summary (that is what records the result for everyone); the others can open
+ * the summary once it exists.
+ */
+function WrapUp({ matchId }: { matchId: string }) {
+  const isOrganizer = useIsOrganizer(matchId);
+  const finishMatch = useFinishMatch(matchId);
+  const goToSummary = () =>
+    router.replace({ pathname: '/matches/[id]/summary', params: { id: matchId } });
+
+  return (
+    <View className="px-4 pb-6 bg-surface-dark">
+      {isOrganizer ? (
+        <Button
+          variant="outlineW"
+          onPress={() => finishMatch.mutate(undefined, { onSuccess: goToSummary })}
+          loading={finishMatch.isPending}
+          testID="mvp-finish-button"
+        >
+          Encerrar votação e ver resumo
+        </Button>
+      ) : (
+        <Button variant="ghost" onPress={goToSummary} testID="mvp-summary-button">
+          Ver resumo da partida
+        </Button>
+      )}
+      {finishMatch.error ? (
+        <Text
+          className="mt-2 text-center text-caption text-danger"
+          accessibilityLiveRegion="polite"
+        >
+          {finishMatch.error.message}
+        </Text>
+      ) : null}
+    </View>
+  );
+}
 
 export default function MvpVoteScreen() {
   // ── Global match state ──
@@ -165,6 +206,7 @@ export default function MvpVoteScreen() {
               Aguardando outros jogadores...
             </Text>
           </View>
+          <WrapUp matchId={id ?? ''} />
         </SafeAreaView>
       </View>
     );
@@ -255,7 +297,17 @@ export default function MvpVoteScreen() {
           >
             Selecionar MVP
           </Button>
+          {voteMutation.error ? (
+            <Text
+              className="mt-2 text-center text-caption text-danger"
+              accessibilityLiveRegion="polite"
+              testID="mvp-vote-error"
+            >
+              {voteMutation.error.message}
+            </Text>
+          ) : null}
         </View>
+        <WrapUp matchId={id ?? ''} />
       </SafeAreaView>
     </View>
   );

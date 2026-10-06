@@ -1,8 +1,6 @@
 // Match-detail domain types consumed by the S12 Match Detail screen and the
-// mocked read/write hooks (src/features/matches/api/getMatchDetail.ts,
-// presence.ts, updateTeamConfig.ts). These payload/type shapes are FINAL — only
-// the transport is mocked this iteration — so the real F1.2 / F1.3 / F1.4
-// payloads can slot in unchanged behind the hook signatures. No `any`.
+// matches hooks (src/features/matches/api/*), which map the backend payloads
+// into them. No `any`.
 
 import type { MatchFormat, MatchLevel } from '@/features/matches/types/match';
 
@@ -115,4 +113,23 @@ export type MatchDetail = {
 
   /** Organizer team-config defaults (carried into S13). */
   teamConfig: TeamConfig;
+
+  /** A non-participant may take a slot now (a full match queues them). */
+  canJoin?: boolean;
+  /** Private match joined by code: the join CTA asks for the code first. */
+  requiresInviteCode?: boolean;
+  /** The invite code of a private match — only the organizer receives it. */
+  inviteCode?: string;
+  /** The current user's place in the waiting list, when queued. */
+  myWaitingListPosition?: number | null;
+  /** Where the game is; null/absent until the organizer starts it. */
+  game?: MatchGameStage | null;
 };
+
+/**
+ * The step of the game a match is at, which decides where its CTA leads:
+ * - LIVE — being played (live scoreboard);
+ * - VOTING — over, MVP voting open;
+ * - SUMMARY — the organizer generated the summary.
+ */
+export type MatchGameStage = 'LIVE' | 'VOTING' | 'SUMMARY';

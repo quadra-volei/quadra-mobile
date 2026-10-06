@@ -52,7 +52,7 @@ export default function MatchSummaryScreen() {
 
   // ── Error ──
   if (summaryQuery.isError || !summaryQuery.data) {
-    return <SummaryError matchId={matchId} />;
+    return <SummaryError matchId={matchId} message={summaryQuery.error?.message} />;
   }
 
   return <SummaryContent matchId={matchId} summary={summaryQuery.data} />;
@@ -357,7 +357,7 @@ function SummarySkeleton() {
 }
 
 /** Error state: centered message + recoverable retry. */
-function SummaryError({ matchId }: { matchId: string }) {
+function SummaryError({ matchId, message }: { matchId: string; message?: string }) {
   const queryClient = useQueryClient();
   return (
     <View className="flex-1 bg-surface-dark">
@@ -365,7 +365,7 @@ function SummaryError({ matchId }: { matchId: string }) {
         <SummaryHeader />
         <View className="flex-1 items-center justify-center px-4">
           <Text className="text-h3 text-text-on-dark text-center mb-4">
-            Não foi possível carregar o resumo
+            {message ?? 'Não foi possível carregar o resumo'}
           </Text>
           <Button
             variant="outlineW"

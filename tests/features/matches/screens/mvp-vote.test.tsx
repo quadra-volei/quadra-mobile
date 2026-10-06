@@ -72,9 +72,19 @@ const mockVoteMutationState = {
   mutate: jest.fn(),
 };
 
+// Wrap-up (after the vote): who organizes closes the voting and opens the summary.
+const mockIsOrganizer = { value: false };
+const mockFinishMatch = {
+  mutate: jest.fn((_input: unknown, options?: { onSuccess?: () => void }) => options?.onSuccess?.()),
+  isPending: false,
+  error: null,
+};
+
 jest.mock('@/features/matches/api/useMVPVote', () => ({
   useMatchPlayers: () => mockMatchPlayersState,
   useVoteMVPMutation: () => mockVoteMutationState,
+  useIsOrganizer: () => mockIsOrganizer.value,
+  useFinishMatch: () => mockFinishMatch,
 }));
 
 // --- Test Setup -----------------------------------------------------------

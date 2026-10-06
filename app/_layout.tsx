@@ -25,7 +25,6 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { MOCK_ORGANIZER_USER_ID } from '@/features/matches/api/getMatchDetail';
 import { getAccessToken } from '@/lib/auth/getAccessToken';
 import { verifySession } from '@/lib/auth/verifySession';
 import { useAuthStore } from '@/stores/auth';
@@ -53,10 +52,10 @@ function timeout(ms: number): Promise<never> {
 async function runAuthBootstrap(): Promise<void> {
   const { setAuth, clearAuth } = useAuthStore.getState();
   if (DEV_MOCK_AUTH) {
-    // Opt-in escape hatch for working on the (still mocked) screens without a
-    // backend: skips login as the organizer of the mocked matches.
+    // Opt-in escape hatch for working on screens without logging in. Screens
+    // that call the API fail to load under it (there is no real session).
     setAuth({
-      userId: MOCK_ORGANIZER_USER_ID,
+      userId: 'user-organizer',
       accessToken: 'mock-dev-token',
       hasProfile: true,
     });

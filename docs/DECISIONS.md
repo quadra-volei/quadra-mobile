@@ -1,0 +1,50 @@
+# Decisions
+
+Decisions taken while wiring the app to the real API without stopping to ask. Each one is the
+recommended default and can be reversed. Backend-side decisions live in
+`quadra-api/docs/DECISIONS.md`.
+
+Format: date · decision · why.
+
+## 2026-10-06 — Block 1: matches (create, lists, detail, presence, guests)
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 1 | The matches hooks (`useCreateMatch`, `useUpcomingMatches`, `useNearbyMatches`, `useMatchDetail`, `useConfirmPresence`, `useDeclinePresence`, `useJoinMatch`, `useAddGuest`) call the API; their signatures and the screen models (`UpcomingMatch`, `NearbyMatch`, `MatchDetail`) did not change. The session stores that stood in for the backend (`createdMatchesStore`, `presenceStore`, `guestsStore`) were deleted. | Screens and their tests keep working; one mapping layer (`src/features/matches/api/matchesApi.ts`) translates the API. |
+| 2 | **A created match is pinned to where the organizer is** when they create it (asks for location permission on submit; São Paulo centre if denied). | The LOCAL field is free text and the backend requires coordinates. Temporary: block 2 (address search) replaces it with the venue's own coordinates. |
+| 3 | The cover image picked in the create form is **not sent**. | The backend has no match cover and no photo storage is configured. |
+| 4 | Home and Explore search **around the device only when location permission was already granted**; otherwise around São Paulo centre. They never prompt — the map screen (S17) owns the permission request. | Keeps the S5/S6 "no permission prompt" rule while showing real nearby matches to who already allowed location. |
+| 5 | On the match detail, someone who is not in the match sees **"Entrar na partida" whenever the backend says they may join** (also while the confirmation window is open, not only after it closes). A full match puts them on the waiting list and the footer shows their place. | Follows the backend rule that anyone joins an open match by confirming. |
+| 6 | A **private match by code** shows a code field + "Entrar com o código" to visitors; the organizer's share message includes the code. | The smallest UI that makes the "código de convite" option of the create form usable end to end. |
+| 7 | The organizer is shown as a pending Regular until they confirm ("Vou jogar"). | Organizing is not playing — same behaviour the mocked screen had. |
+| 8 | Player level dots are **not shown on the roster** for now. | The roster API returns the level tier (Beginner…), not the numeric level the dot encodes; the numeric level does not exist in the backend yet. |
+| 9 | Refused actions on the detail (wrong code, confirmations not open, match full) show the backend's reason as a line above the footer buttons. | Before, the mocked mutations could not fail, so there was no error surface. |
+| 10 | `EXPO_PUBLIC_DEV_MOCK_AUTH` still skips login, but matches screens now need a real session to load. | There is no mocked match data left to show. |
+
+
+## 2026-10-06 — Block 2: address search in "create match"
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 11 | The LOCAL field **suggests addresses while typing** (from 3 characters, 350 ms after the last keystroke) through the backend proxy `/api/v1/places`. Picking one fills the field and stores the venue's coordinates in the form (`latitude`/`longitude`). | The match is pinned to the real venue on the map instead of to where the organizer happened to be. |
+| 12 | **Free text is still accepted.** If nothing is picked, the search fails or returns nothing, the match is created with the typed text and the device position (block 1 behaviour). Editing the text after picking drops the picked coordinates. | A court inside a condominium or a nickname for a place will not be in any map service; creating a match must never depend on the search. |
+| 13 | Suggestions are biased to the device position only when location was already granted (no prompt while typing). | Same rule as Home/Explore. |
+
+## 2026-10-06 — Block 3: in-game (teams, live scoreboard, MVP vote, summary)
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 14 | The teams draw happens **on the backend**: "Automático" asks for teams balanced by level, "Manual" (the Sortear button) for a random draw. Each draw replaces the previous one. | One source of truth for who is on which team (the scoreboard, the vote and the stats use it). |
+| 15 | **"Começar partida" starts the game for real.** With two teams it starts right from the teams screen; with three or four the organizer first picks who plays the first set. | With two teams there is nothing to pick. |
+| 16 | The **scoreboard screen follows the game on the backend** instead of route params and local state: not started / playing / waiting for the next pair / ended. It was rewritten on one query (`useLiveGame`); the mocked hooks it used (`getCurrentSet`, `addPoint`, `undoPoint`, `selectTeamsForSet`, `assignTeam`) and their two test files were removed. | The mocked screen kept the score in memory and rebuilt the teams from the player list, so nothing survived leaving the screen and nobody else could watch. |
+| 17 | Only the **organizer scores**. A point is sent to the server and the screen shows what the server answers (no optimistic score). Everybody else sees the same screen read-only. | The server applies the volleyball rules (25 points, 2 ahead, deciding set to 15); guessing them on the phone would show a wrong score when a set ends. |
+| 18 | **"Desfazer" takes back the last point only**, and "Encerrar set" asks for confirmation and gives the set to whoever is ahead. | Mirrors the backend rules; ending a set early is how a pickup game plays shorter sets. |
+| 19 | **Live updates use the SignalR message only as a signal**: on `ScoreboardUpdated` the app re-reads the game over REST. If the hub is unreachable the screen still works, it just does not refresh by itself. | A missed or out-of-order message can never leave a wrong score on screen. |
+| 20 | Between sets (3+ teams) the organizer can **"Encerrar partida"**: the team with the most sets wins. | With rotating teams a game may not reach the sets of the format before people leave. |
+| 21 | When the game ends everyone goes to the **MVP vote**. Candidates are the players with an account who were on a team (no guests). The organizer has **"Encerrar votação e ver resumo"**, which closes the voting and generates the summary; that is the step that records wins, losses and MVP for everyone. | The backend only writes stats and ranking when the summary is generated. |
+| 22 | The match detail's main button follows the game: **"Ver placar ao vivo" → "Votar no MVP" → "Ver resumo"**. A confirmed player who is not the organizer sees "Aguardando o início da partida" (before: "Iniciar partida", which led to a draw they are not allowed to make). | One place to get back into the game from, for everybody. |
+| 23 | In the summary, **"MEU DESEMPENHO" shows zeros** (points, blocks, defenses, aces, XP). | The backend records the score by team, not who made each point, and has no XP yet. |
+| 24 | In a game with **rotating teams the summary** shows the result and MVP correctly, but its set list does not say which teams played each set. | Backend limitation recorded in its DECISIONS (#30). |
+
+Still mocked after this block: ranking, history ("Minhas partidas") and the player card (block 4); the Explore screen's map entry and the feedback form.
+

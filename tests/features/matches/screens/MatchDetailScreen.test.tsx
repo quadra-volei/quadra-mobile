@@ -565,7 +565,7 @@ describe('S12 — Match Detail screen', () => {
    *  prototype's post-confirm state) with the decline still available below;
    *  tapping decline calls useDeclinePresence.
    */
-  it('flips the CTA to Iniciar partida for a Regular CONFIRMADO participant', async () => {
+  it('shows a confirmed participant that the game has not started yet', async () => {
     mockDetail.data = participantFixture({
       myParticipationType: 'REGULAR',
       myStatus: 'CONFIRMADO',
@@ -574,7 +574,8 @@ describe('S12 — Match Detail screen', () => {
 
     const start = screen.getByTestId('start-match');
     expect(variantOf(start)).toBe('primary');
-    expect(screen.getByText('Iniciar partida')).toBeTruthy();
+    expect(start.props.accessibilityState?.disabled).toBe(true);
+    expect(screen.getByText('Aguardando o início da partida')).toBeTruthy();
     expect(screen.queryByTestId('confirm-presence')).toBeNull();
 
     await act(async () => {
@@ -588,19 +589,24 @@ describe('S12 — Match Detail screen', () => {
    * Criterion: "Iniciar partida" continues the SCOPE flow into S13 (teams)
    *  rather than jumping straight to the scoreboard.
    */
-  it('navigates to S13 teams from Iniciar partida', async () => {
+  it.each([
+    ['LIVE', 'Ver placar ao vivo', '/matches/[id]/scoreboard'],
+    ['VOTING', 'Votar no MVP', '/matches/[id]/mvp-vote'],
+    ['SUMMARY', 'Ver resumo', '/matches/[id]/summary'],
+  ] as const)('a game at %s takes over the CTA (%s)', async (game, label, pathname) => {
     mockDetail.data = participantFixture({
       myParticipationType: 'REGULAR',
       myStatus: 'CONFIRMADO',
+      game,
     });
     await renderScreen();
 
+    expect(screen.getByText(label)).toBeTruthy();
+    expect(screen.queryByTestId('start-match')).toBeNull();
     await act(async () => {
-      fireEvent.press(screen.getByTestId('start-match'));
+      fireEvent.press(screen.getByTestId('game-cta'));
     });
-    expect(mockPush).toHaveBeenCalledWith(
-      expect.objectContaining({ pathname: '/matches/[id]/teams' }),
-    );
+    expect(mockPush).toHaveBeenCalledWith({ pathname, params: { id: 'near-1' } });
   });
 
   /**
@@ -1048,3 +1054,54 @@ describe('S12 — Match Detail screen', () => {
     });
   });
 });
+
+describe('S12 — joining against the real backend', () => {
+  const visitor = { myParticipationType: null, myStatus: null } as const;
+
+  it('offers joining while the window is still open when the backend allows it', async () => {
+    mockDetail.data = participantFixture({
+      ...visitor,
+      confirmationWindowClosed: false,
+      canJoin: true,
+    });
+    await renderScreen();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('join-match'));
+    });
+
+    expect(mockJoin.mutate).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks for the invite code of a private match and joins with it', async () => {
+    mockDetail.data = participantFixture({
+      ...visitor,
+      canJoin: false,
+      requiresInviteCode: true,
+    });
+    await renderScreen();
+
+    expect(screen.queryByTestId('join-match')).toBeNull();
+    await act(async () => {
+      fireEvent.changeText(screen.getByTestId('invite-code'), 'ab12cd34');
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('join-with-code'));
+    });
+
+    expect(mockJoin.mutate).toHaveBeenCalledWith({ inviteCode: 'ab12cd34' });
+  });
+
+  it('shows the place in the waiting list instead of a join button', async () => {
+    mockDetail.data = participantFixture({
+      ...visitor,
+      canJoin: false,
+      myWaitingListPosition: 2,
+    });
+    await renderScreen();
+
+    expect(screen.getByText('Na fila de espera · 2º')).toBeTruthy();
+    expect(screen.queryByTestId('join-match')).toBeNull();
+  });
+});
+

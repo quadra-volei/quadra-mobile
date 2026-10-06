@@ -36,7 +36,15 @@ import { StepperField } from '@/components/ui/StepperField';
 import { TextField } from '@/components/ui/TextField';
 import { useCreateMatch } from '@/features/matches/api/createMatch';
 import {
-  formatPriceLabel,
+  newPlaceSessionToken,
+  placeLabel,
+  resolvePlace,
+  usePlaceSuggestions,
+  type PlaceSuggestion,
+} from '@/features/matches/api/searchPlaces';
+import { useDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
+import { formatPriceLabel } from '@/features/matches/api/matchesApi';
+import {
   resolveMatchStartsAt,
   type CreatedMatch,
 } from '@/features/matches/lib/buildMatchDetail';
@@ -52,7 +60,6 @@ import {
 import type { MatchFormat, MatchLevel } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
 import { useAuthStore } from '@/stores/auth';
-import { useCreatedMatchesStore } from '@/stores/createdMatchesStore';
 
 // ════════════════════════════════════════════════════════════
 // Conversational primitives (inlined — single-use to this flow, mirroring the
@@ -336,7 +343,6 @@ function CreatedView({ match }: { match: CreatedMatch }) {
 // CRIAR PARTIDA — formulário vivo (progressive disclosure)
 // ════════════════════════════════════════════════════════════
 export default function CreateMatchScreen() {
-  const addCreatedMatch = useCreatedMatchesStore((s) => s.addCreatedMatch);
   const organizerId = useAuthStore((s) => s.userId);
 
   const createMatch = useCreateMatch();
@@ -352,6 +358,15 @@ export default function CreateMatchScreen() {
   const [created, setCreated] = useState<CreatedMatch | null>(null);
   // LOCAL free-text mirror (bridged into RHF); SearchField is not RHF-native.
   const [location, setLocation] = useState('');
+  // Address search: suggestions follow the typed text until one is picked.
+  const [placePicked, setPlacePicked] = useState(false);
+  const [placeSession] = useState(newPlaceSessionToken);
+  const deviceCoords = useDeviceCoords();
+  const places = usePlaceSuggestions(location, {
+    near: deviceCoords,
+    sessionToken: placeSession,
+    enabled: !placePicked,
+  });
   const [coverUri, setCoverUri] = useState<string | undefined>(undefined);
   const [permissionDenied, setPermissionDenied] = useState(false);
   // "Outro horário" toggles a masked time input inside the schedule block.
@@ -494,6 +509,16 @@ export default function CreateMatchScreen() {
     }
   };
 
+  const pickPlace = async (place: PlaceSuggestion) => {
+    const label = placeLabel(place);
+    setPlacePicked(true);
+    setLocation(label);
+    setValue('location', label, { shouldValidate: true });
+    const coords = await resolvePlace(place, placeSession);
+    setValue('latitude', coords?.latitude);
+    setValue('longitude', coords?.longitude);
+  };
+
   const onSubmit = (formValues: CreateMatchInput) => {
     createMatch.mutate(
       { ...formValues, coverUri },
@@ -507,7 +532,6 @@ export default function CreateMatchScreen() {
             coverUri,
             input: formValues,
           };
-          addCreatedMatch(record);
           setCreated(record);
         },
       },
@@ -600,9 +624,39 @@ export default function CreateMatchScreen() {
                 onChangeText={(t) => {
                   setLocation(t);
                   setValue('location', t, { shouldValidate: true });
+                  // Edited text no longer is the picked venue.
+                  setPlacePicked(false);
+                  setValue('latitude', undefined);
+                  setValue('longitude', undefined);
                 }}
                 testID="match-location"
               />
+              {!placePicked && places.data && places.data.length > 0 ? (
+                <View
+                  className="mt-2 rounded-card bg-white shadow-card"
+                  testID="place-suggestions"
+                >
+                  {places.data.map((place) => (
+                    <Pressable
+                      key={place.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={placeLabel(place)}
+                      onPress={() => void pickPlace(place)}
+                      className="border-b border-line px-4 py-3"
+                      testID={`place-${place.id}`}
+                    >
+                      <Text className="font-body text-body text-text-primary">
+                        {place.title}
+                      </Text>
+                      {place.subtitle ? (
+                        <Text className="font-body text-caption text-text-muted">
+                          {place.subtitle}
+                        </Text>
+                      ) : null}
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
             </Reveal>
           </View>
 
@@ -1056,7 +1110,8 @@ export default function CreateMatchScreen() {
               className="mt-4 font-body text-caption text-danger"
               accessibilityLiveRegion="polite"
             >
-              Não foi possível criar a partida. Tente novamente.
+              {createMatch.error?.message ??
+                'Não foi possível criar a partida. Tente novamente.'}
             </Text>
           ) : null}
         </ScrollView>
