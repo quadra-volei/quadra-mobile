@@ -13,12 +13,14 @@ export type MatchHistoryRowProps = {
 const RESULT_LABEL: Record<RecentMatch['result'], string> = {
   VITORIA: 'VITÓRIA',
   DERROTA: 'DERROTA',
+  EMPATE: 'EMPATE',
 };
 
 // Win → success (green), Loss → danger (red). NativeWind tokens, no inline hex.
 const RESULT_CLASS: Record<RecentMatch['result'], string> = {
   VITORIA: 'text-success',
   DERROTA: 'text-danger',
+  EMPATE: 'text-text-muted',
 };
 
 /**

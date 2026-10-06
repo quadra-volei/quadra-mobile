@@ -46,5 +46,14 @@ Format: date · decision · why.
 | 23 | In the summary, **"MEU DESEMPENHO" shows zeros** (points, blocks, defenses, aces, XP). | The backend records the score by team, not who made each point, and has no XP yet. |
 | 24 | In a game with **rotating teams the summary** shows the result and MVP correctly, but its set list does not say which teams played each set. | Backend limitation recorded in its DECISIONS (#30). |
 
-Still mocked after this block: ranking, history ("Minhas partidas") and the player card (block 4); the Explore screen's map entry and the feedback form.
+## 2026-10-06 — Block 4: ranking, recent matches, player card
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 25 | The ranking (profile preview and full screen) is **the ranking of the recurring match where I scored most recently** (`GET /rankings/mine`); empty until I finish one. No trend arrows and no level dot on the rows. | The screens do not pick a group, and the backend has no ranking history (trend) or numeric level. |
+| 26 | Because the backend does not generate the next occurrences of a recurring match (earlier human ruling), **a ranking today holds the points of one game**. | Backend DECISIONS #32. |
+| 27 | "Partidas recentes" shows the **last 5 finished matches** from the match history; a match appears once its organizer generated the summary. A game ended level shows as **EMPATE** (new, neutral colour). | The backend records history at summary time and has a Draw outcome the app did not have. |
+| 28 | The **player card** screen was already real (it reads the profile); nothing changed. | — |
+
+Still mocked: the feedback form (`sendFeedback`), which has no backend endpoint.
 
