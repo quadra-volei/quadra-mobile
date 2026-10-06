@@ -16,6 +16,7 @@
     "expo": "~56.0.9",
     "expo-blur": "~56.0.3",
     "expo-dev-client": "~56.0.19",
+    "expo-file-system": "~56.0.11",
     "expo-font": "~56.0.6",
     "expo-image": "~56.0.10",
     "expo-image-picker": "~56.0.18",

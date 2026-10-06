@@ -3,6 +3,8 @@ import type {
   Modality,
   Position,
 } from '@/features/profile/schema/onboarding';
+import { FileSystemUploadType, uploadAsync } from 'expo-file-system/legacy';
+
 import { ApiError } from '@/lib/api/client';
 import { authorizedApiClient } from '@/lib/api/authorizedClient';
 
@@ -110,11 +112,12 @@ export function putMyProfile(body: ApiProfileUpdate): Promise<ApiProfile> {
  * is then saved with the photo it already had.
  */
 export async function uploadProfilePhoto(localUri: string): Promise<string | null> {
+  const contentType = photoContentType(localUri);
   let target: { uploadUrl: string; objectKey: string };
   try {
     target = await authorizedApiClient('/api/v1/profiles/me/photo/upload-url', {
       method: 'POST',
-      body: JSON.stringify({ contentType: PHOTO_CONTENT_TYPE }),
+      body: JSON.stringify({ contentType }),
     });
   } catch (error) {
     if (error instanceof ApiError && error.status === 503) {
@@ -126,29 +129,50 @@ export async function uploadProfilePhoto(localUri: string): Promise<string | nul
     throw error;
   }
 
-  // React Native streams a local file when the body is `{ uri, type, name }`.
-  // Reading it first with `fetch(localUri).blob()` fails on Android builds
-  // ("Network request failed" for file:// URIs), which is what broke the upload.
-  const file = { uri: localUri, type: PHOTO_CONTENT_TYPE, name: 'photo.jpg' };
-  let upload: Response;
+  // The file is streamed from disk by the native module as the raw request
+  // body, which is what a signed storage URL expects. React Native's `fetch`
+  // cannot do this on Android (no reliable file:// → blob, and `{ uri }` is only
+  // understood inside multipart FormData).
+  let status: number;
+  let responseBody: string;
   try {
-    upload = await fetch(target.uploadUrl, {
-      method: 'PUT',
+    const result = await uploadAsync(target.uploadUrl, localUri, {
+      httpMethod: 'PUT',
+      uploadType: FileSystemUploadType.BINARY_CONTENT,
       // The URL is signed for exactly this Content-Type.
-      headers: { 'Content-Type': PHOTO_CONTENT_TYPE },
-      body: file as unknown as BodyInit,
+      headers: { 'Content-Type': contentType },
     });
-  } catch {
-    throw new Error('Não foi possível enviar a foto. Verifique sua internet e tente de novo.');
+    status = result.status;
+    responseBody = result.body;
+  } catch (error) {
+    throw new Error(
+      'Não foi possível enviar a foto. Verifique sua internet e tente de novo.' +
+        technicalDetail(error instanceof Error ? error.message : String(error)),
+    );
   }
-  if (!upload.ok) {
-    throw new Error(`Não foi possível enviar a foto (erro ${upload.status}). Tente de novo.`);
+  if (status < 200 || status >= 300) {
+    throw new Error(
+      `Não foi possível enviar a foto (erro ${status}). Tente de novo.` +
+        technicalDetail(responseBody),
+    );
   }
   return target.objectKey;
 }
 
-// The picker (expo-image-picker with editing on) hands back a JPEG.
-const PHOTO_CONTENT_TYPE = 'image/jpeg';
+/** The image type of a picked file, by extension; the picker's edited output is JPEG. */
+export function photoContentType(uri: string): 'image/jpeg' | 'image/png' | 'image/webp' {
+  const extension = uri.split(/[?#]/)[0]?.split('.').pop()?.toLowerCase();
+  if (extension === 'png') return 'image/png';
+  if (extension === 'webp') return 'image/webp';
+  return 'image/jpeg';
+}
+
+// ponytail: the raw error is shown to the user while the upload is being
+// stabilised on real devices. Return '' here once it is known to work.
+function technicalDetail(detail: string): string {
+  const text = detail.replace(/\s+/g, ' ').trim().slice(0, 200);
+  return text ? `\n[detalhe técnico: ${text}]` : '';
+}
 
 /**
  * Turns a failed profile save into an `Error` whose message can be shown to the
