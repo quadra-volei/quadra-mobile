@@ -1,5 +1,5 @@
+import { authorizedApiClient } from '@/lib/api/authorizedClient';
 import { ApiError } from '@/lib/api/client';
-import { hasCompletedOnboarding } from '@/lib/auth/onboardingFlag';
 import { saveTokens } from '@/lib/auth/tokenStorage';
 
 /** Body the backend returns from every token-issuing auth endpoint (FA.3). */
@@ -32,9 +32,27 @@ export type AuthResult = {
 };
 
 /**
+ * Whether the signed-in user already completed onboarding, read from the
+ * backend profile. A profile that is missing (404) counts as "not yet".
+ */
+async function hasCompletedOnboarding(): Promise<boolean> {
+  try {
+    const profile = await authorizedApiClient<{ onboardingCompleted: boolean }>(
+      '/api/v1/profiles/me',
+    );
+    return profile.onboardingCompleted;
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return false;
+    }
+    throw error;
+  }
+}
+
+/**
  * Finishes a login: stores the token pair in expo-secure-store and shapes the
- * result the auth screens consume. A brand-new account never has a profile; a
- * returning one has it if this device saw its onboarding finish.
+ * result the auth screens consume. A brand-new account never has a profile; for
+ * a returning one the backend says whether onboarding was completed.
  */
 export async function completeLogin(tokens: AuthTokensResponse): Promise<AuthResult> {
   await saveTokens({
@@ -42,9 +60,7 @@ export async function completeLogin(tokens: AuthTokensResponse): Promise<AuthRes
     refreshToken: tokens.refreshToken,
   });
 
-  const hasProfile = tokens.isNewUser
-    ? false
-    : await hasCompletedOnboarding(tokens.userId);
+  const hasProfile = tokens.isNewUser ? false : await hasCompletedOnboarding();
 
   return {
     session: { token: tokens.accessToken },

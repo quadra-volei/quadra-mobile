@@ -1,5 +1,12 @@
 # Screen Spec: S8 — Profile
 
+> ## Amendment — 2026-10-06: real profile API (supersedes the mock-first notes below)
+>
+> Johny decided the backend follows the mobile profile shape, so the "Backend alignment gate" is resolved and the S8 header and "Seu progresso" card talks to the real backend (F2.1). Where this amendment and the original text disagree, the amendment wins.
+>
+> - **`useMyProfile` is real**: name, avatar, GERAL and the ACE/BLK/ATA/DEF grid come from `GET /api/v1/profiles/me`. The ratings are derived by the backend from the declared level and position; they do not grow with play yet.
+> - **Still placeholders**: the "Level N · XP" bar shows Level 1 / 0 XP (the backend has no XP system yet), and the player card's SRV/REC cells show GERAL (the backend rates four skills). "MINHAS PARTIDAS" is still mocked.
+
 > ### 🔄 Scope update — 2026-07-08 (owner decision)
 > The owner re-included three prototype elements that this spec originally cut as
 > "Layer 3", to match `Quadra.html`. Now shipped (with code + tests):

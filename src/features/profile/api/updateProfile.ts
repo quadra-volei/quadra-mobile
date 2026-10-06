@@ -1,37 +1,54 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { myProfileQueryKey } from '@/features/profile/api/getMyProfile';
+import {
+  fetchMyProfile,
+  putMyProfile,
+  toApiDate,
+  toProfileError,
+} from '@/features/profile/api/profileApi';
 import type { EditProfileInput } from '@/features/profile/schema/editProfile';
 
 export type UpdateProfileResult = {
   profile: { id: string } & EditProfileInput;
 };
 
-// MOCK: deterministic fake latency so RNTL can assert the CTA loading state and
-// the success branch without flakiness. No randomness, no network, no
-// EXPO_PUBLIC_API_URL. Mirrors src/features/profile/api/createProfile.ts.
-const MOCK_LATENCY_MS = 600;
-
 /**
- * Updates the authenticated user's profile from the validated edit input.
+ * Saves the edit-profile form (S10) with `PUT /api/v1/profiles/me`.
  *
- * MOCK: this iteration ships fully mocked. The mutationFn simulates ~600ms
- * latency and resolves a stub `{ profile }` echoing the input (including the
- * picked `avatarUri`). No network call, no backend path is asserted.
+ * Two form fields are not persisted yet:
+ *  - `phone` — it is the login identity and belongs to the Auth backend; the
+ *    profile endpoint has no phone, so the value is echoed back unchanged.
+ *  - `avatarUri` — photo upload is not wired (the backend's photo storage is
+ *    optional and currently off); the current photo is kept.
  *
- * TODO(real-api): replace the mock body below with the real `PATCH
- * /api/v1/profile/me` call behind this unchanged hook signature. The real call
- * is BLOCKED until the backend Profile model gains `@handle`, `lastName`,
- * `birthDate`, `modality`/`position`, and an avatar upload field (see the S4
- * spec's "Backend alignment gate"). Do not wire until the backend SCOPE aligns.
+ * Rejects with a pt-BR message ready for display — e.g. when the `@handle` is
+ * already taken (409).
+ *
+ * TODO(real-api): upload `avatarUri` through POST /api/v1/profiles/me/photo/upload-url
+ * once photo storage is configured.
  */
 async function updateProfile(
   input: EditProfileInput,
 ): Promise<UpdateProfileResult> {
-  // MOCK: fixed-latency resolve, no network.
-  await new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS));
-  // MOCK: stub profile echoing the validated input (incl. avatarUri).
-  return { profile: { id: 'mock-profile', ...input } };
+  try {
+    // The PUT replaces the photo reference, so the current one is sent back.
+    const current = await fetchMyProfile();
+    const saved = await putMyProfile({
+      firstName: input.firstName,
+      lastName: input.lastName,
+      handle: input.handle,
+      birthDate: toApiDate(input.birthDate),
+      position: input.position,
+      // Not editable in S10: null keeps the modality; the level cannot change.
+      modality: null,
+      level: null,
+      photoObjectKey: current.photoObjectKey,
+    });
+    return { profile: { ...input, id: saved.userId, handle: saved.handle ?? input.handle } };
+  } catch (error) {
+    throw toProfileError(error);
+  }
 }
 
 export function useUpdateProfile() {

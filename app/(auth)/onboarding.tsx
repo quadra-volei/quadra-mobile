@@ -29,7 +29,6 @@ import {
   type OnboardingProfileInput,
   type Position,
 } from "@/features/profile/schema/onboarding";
-import { markOnboardingCompleted } from "@/lib/auth/onboardingFlag";
 import { useAuthStore } from "@/stores/auth";
 import { colors, CTA_GRADIENT, HERO_GRADIENT } from "@/theme/colors";
 
@@ -111,7 +110,6 @@ export default function OnboardingScreen() {
   const [step, setStep] = useState<Step>(0);
   const createProfile = useCreateProfile();
   const setHasProfile = useAuthStore((s) => s.setHasProfile);
-  const userId = useAuthStore((s) => s.userId);
 
   const {
     control,
@@ -179,10 +177,6 @@ export default function OnboardingScreen() {
   const onValid = (data: OnboardingProfileInput) => {
     createProfile.mutate(data, {
       onSuccess: () => {
-        if (userId) {
-          // Remembered on this device until the backend can report it (F2.1).
-          void markOnboardingCompleted(userId);
-        }
         setHasProfile(true);
         router.replace("/(tabs)");
       },
@@ -209,6 +203,7 @@ export default function OnboardingScreen() {
         modality={values.modality}
         loading={createProfile.isPending}
         error={createProfile.isError}
+        errorMessage={createProfile.error?.message}
         onEnter={handleSubmit(onValid)}
       />
     );
@@ -680,6 +675,7 @@ function CompletionStep({
   modality,
   loading,
   error,
+  errorMessage,
   onEnter,
 }: {
   position: Position | undefined;
@@ -687,6 +683,8 @@ function CompletionStep({
   modality: Modality | undefined;
   loading: boolean;
   error: boolean;
+  /** Why the save failed (e.g. the @ is already taken); a generic text when absent. */
+  errorMessage?: string;
   onEnter: () => void;
 }) {
   const positionOption = POSITION_OPTIONS.find((o) => o.code === position);
@@ -774,7 +772,7 @@ function CompletionStep({
               className="mb-3 text-center font-body text-caption text-danger"
               accessibilityLiveRegion="polite"
             >
-              Não foi possível criar seu perfil. Tente novamente.
+              {errorMessage || "Não foi possível criar seu perfil. Tente novamente."}
             </Text>
           ) : null}
 

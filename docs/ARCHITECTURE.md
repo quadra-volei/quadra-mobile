@@ -136,7 +136,7 @@ Token valid? ──No──→ Login screen
     ↓
    Yes
     ↓
-Verify with backend GET /api/v1/auth/me
+Verify with backend GET /api/v1/profiles/me
 (expired access token → refresh once, then retry)
     ↓
 Profile exists? ──No──→ Onboarding
@@ -153,7 +153,7 @@ Home (tabs)
 - **NEVER** `AsyncStorage` for tokens — those are clear-text on Android.
 - Token refresh on 401: single-flight pattern in `lib/auth/refreshSession.ts`. Multiple concurrent requests share one refresh — required, because the backend **rotates** the refresh token on every use (a refresh token works exactly once), so the new pair is saved before anything else runs.
 - The tokens are the Quadra backend’s own (JWT access token, ~15 min; opaque refresh token, 30 days). There is no Cognito. Login is SMS OTP or Google (`src/features/auth/api/`); the first successful login creates the account.
-- "Profile exists?" is answered on-device for now (`lib/auth/onboardingFlag.ts`) — the backend has no Profile module yet (F2.1).
+- "Profile exists?" is `onboardingCompleted` on `GET /api/v1/profiles/me` — the same call that verifies the session. Authenticated calls go through `lib/api/authorizedClient.ts`, which attaches the access token and refreshes once on 401.
 
 ### Logout
 
