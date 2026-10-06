@@ -95,3 +95,9 @@ Placeholders that are NOT mocks (the backend has no such data yet, the app shows
 | 39 | The picked photo is sent to the signed URL **by URI** (`body: { uri, type, name }`, which React Native streams from disk) instead of being read first with `fetch(localUri).blob()`. | The backend and the storage were verified end to end; the upload failed on the phone, where reading a `file://` URI through `fetch` breaks on Android builds. No new package. |
 | 40 | The edit-profile screen shows **the reason of a failed save** (which step: preparing the upload, sending the photo with its HTTP status, no connection, @ taken) instead of one fixed sentence. A failed photo upload does not save the profile without the photo. | The fixed sentence hid which step had failed. |
 | 41 | Correction of #39: the photo is uploaded with **`uploadAsync` from `expo-file-system/legacy`** (binary content, PUT). The `{ uri, type, name }` raw body of #39 did not work on a real phone: React Native only understands that shape inside multipart FormData. The URL is now requested for the file's real type (jpeg / png / webp, by extension). The technical error shown under the friendly text during testing was removed once the upload was confirmed on a phone (2026-10-06). | Verified on a phone that #39 threw on the PUT. The signed storage URL needs the raw file as the body, which only the native uploader can stream. |
+
+## 2026-10-06 — Floating tab bar polish
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 42 | The floating tab bar **hides while the keyboard is open** and uses the same Android blur taming as `GlassHeader` (lower blur radius, stronger white wash). Its hairline border follows the pill's rounded corners and the icons, edges and FAB are spaced by the same 24. | On Android the window resizes for the keyboard, so the bar rode on top of it in Explore's search; the stronger Dimezis blur made the pill look grey next to the header; the border was cut at the corners. |
