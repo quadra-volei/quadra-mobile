@@ -134,7 +134,6 @@ export async function uploadProfilePhoto(localUri: string): Promise<string | nul
   // cannot do this on Android (no reliable file:// → blob, and `{ uri }` is only
   // understood inside multipart FormData).
   let status: number;
-  let responseBody: string;
   try {
     const result = await uploadAsync(target.uploadUrl, localUri, {
       httpMethod: 'PUT',
@@ -143,18 +142,11 @@ export async function uploadProfilePhoto(localUri: string): Promise<string | nul
       headers: { 'Content-Type': contentType },
     });
     status = result.status;
-    responseBody = result.body;
-  } catch (error) {
-    throw new Error(
-      'Não foi possível enviar a foto. Verifique sua internet e tente de novo.' +
-        technicalDetail(error instanceof Error ? error.message : String(error)),
-    );
+  } catch {
+    throw new Error('Não foi possível enviar a foto. Verifique sua internet e tente de novo.');
   }
   if (status < 200 || status >= 300) {
-    throw new Error(
-      `Não foi possível enviar a foto (erro ${status}). Tente de novo.` +
-        technicalDetail(responseBody),
-    );
+    throw new Error(`Não foi possível enviar a foto (erro ${status}). Tente de novo.`);
   }
   return target.objectKey;
 }
@@ -167,12 +159,6 @@ export function photoContentType(uri: string): 'image/jpeg' | 'image/png' | 'ima
   return 'image/jpeg';
 }
 
-// ponytail: the raw error is shown to the user while the upload is being
-// stabilised on real devices. Return '' here once it is known to work.
-function technicalDetail(detail: string): string {
-  const text = detail.replace(/\s+/g, ' ').trim().slice(0, 200);
-  return text ? `\n[detalhe técnico: ${text}]` : '';
-}
 
 /**
  * Turns a failed profile save into an `Error` whose message can be shown to the

@@ -339,7 +339,8 @@ describe('profile photo upload failures', () => {
 
     const message = settled.status === 'rejected' ? (settled.reason as Error).message : '';
     expect(message).toContain('Não foi possível enviar a foto (erro 403). Tente de novo.');
-    expect(message).toContain('SignatureDoesNotMatch');
+    // The storage's raw answer is not shown to the user.
+    expect(message).not.toContain('SignatureDoesNotMatch');
     expect(
       calls().some((c) => c.url.endsWith('/api/v1/profiles/me') && c.method === 'PUT'),
     ).toBe(false);
@@ -347,7 +348,7 @@ describe('profile photo upload failures', () => {
 });
 
 describe('profile photo upload: device failure and file type', () => {
-  it('a thrown upload shows the friendly text plus the technical detail', async () => {
+  it('a thrown upload shows only the friendly text', async () => {
     fetchMock.mockImplementation(async (url: string) =>
       url.endsWith('/photo/upload-url')
         ? respond(201, { uploadUrl: 'https://storage.test/put-here', objectKey: 'profiles/new.jpg' })
@@ -359,7 +360,7 @@ describe('profile photo upload: device failure and file type', () => {
 
     const message = settled.status === 'rejected' ? (settled.reason as Error).message : '';
     expect(message).toContain('Não foi possível enviar a foto. Verifique sua internet');
-    expect(message).toContain('UnknownHostException');
+    expect(message).not.toContain('UnknownHostException');
   });
 
   it('asks for a URL signed for the real type of the picked file', () => {
