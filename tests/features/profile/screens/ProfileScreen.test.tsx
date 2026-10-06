@@ -569,6 +569,16 @@ describe('S8 — Profile screen', () => {
    * Only the recent-matches query is pending: its list is replaced by a skeleton
    * while the progress card and ranking still render.
    */
+  it('shows a skeleton header, not a stand-in name, while the profile loads', async () => {
+    mockProfile.data = undefined;
+    mockProfile.isPending = true;
+    await render(<ProfileScreen />);
+
+    expect(screen.getByTestId('profile-header-skeleton')).toBeTruthy();
+    expect(screen.queryByText('Olá,')).toBeNull();
+    expect(screen.queryByText('...')).toBeNull();
+  });
+
   it('shows the MINHAS PARTIDAS loading placeholder independently', async () => {
     mockRecent.isPending = true;
     await render(<ProfileScreen />);

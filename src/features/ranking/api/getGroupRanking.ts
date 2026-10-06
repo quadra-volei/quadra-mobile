@@ -54,7 +54,7 @@ export function toRankingRow(entry: ApiRankingEntry, userId: string | null): Ran
  * recently. Empty until they finish a recurring match — the backend answers
  * 204 then.
  */
-async function getGroupRanking(params: GroupRankingParams): Promise<RankingRow[]> {
+export async function getGroupRanking(params: GroupRankingParams): Promise<RankingRow[]> {
   const ranking = await authorizedApiClient<ApiRanking | undefined>(
     `/api/v1/rankings/mine?page=1&pageSize=${params.preview ? PREVIEW_SIZE : FULL_SIZE}`,
   );

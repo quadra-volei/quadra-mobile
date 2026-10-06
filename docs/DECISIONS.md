@@ -101,3 +101,9 @@ Placeholders that are NOT mocks (the backend has no such data yet, the app shows
 | # | Decision | Why |
 | --- | --- | --- |
 | 42 | The floating tab bar **hides while the keyboard is open** and uses the same Android blur taming as `GlassHeader` (lower blur radius, stronger white wash). Its hairline border follows the pill's rounded corners and the icons, edges and FAB are spaced by the same 24. | On Android the window resizes for the keyboard, so the bar rode on top of it in Explore's search; the stronger Dimezis blur made the pill look grey next to the header; the border was cut at the corners. |
+
+## 2026-10-06 — Profile loading
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 43 | The profile tab's data (profile, recent matches, ranking preview) is **prefetched as soon as the user is signed in** with a finished profile (app open or right after login, `app/_layout.tsx`), and the profile header shows **skeleton shapes instead of "..." and the default avatar** while there is no profile. No disk cache: the in-memory query cache serves later opens and refreshes in the background. | The tab only started its requests when first opened, and the header showed a stand-in name and avatar that were then swapped for the real ones. Persisting the cache would need a new package or profile data in AsyncStorage; not needed once the data is loaded ahead. |

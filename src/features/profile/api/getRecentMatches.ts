@@ -52,7 +52,7 @@ export function toRecentMatch(entry: ApiMatchHistoryEntry): RecentMatch {
  * (`GET /api/v1/profiles/me/match-history`, newest first). A match shows up
  * here once its organizer generated the summary.
  */
-async function getRecentMatches(): Promise<RecentMatch[]> {
+export async function getRecentMatches(): Promise<RecentMatch[]> {
   const { items } = await authorizedApiClient<{ items: ApiMatchHistoryEntry[] }>(
     `/api/v1/profiles/me/match-history?page=1&pageSize=${RECENT_COUNT}`,
   );
