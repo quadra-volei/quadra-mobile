@@ -2,7 +2,15 @@ import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { ChevronLeft, Volleyball } from 'lucide-react-native';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Linking,
+  Platform,
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+} from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -17,6 +25,18 @@ import { colors } from '@/theme/colors';
 const DEFAULT_CENTER = { latitude: -23.5605, longitude: -46.6433 };
 const REGION_DELTA = { latitudeDelta: 0.05, longitudeDelta: 0.05 };
 const NEARBY_RADIUS_KM = 5;
+
+/**
+ * Android draws the map with the Google Maps SDK, which throws natively (closing
+ * the app) when the build has no key. A build without the key shows the nearby
+ * matches as a list instead. iOS uses Apple Maps and needs no key.
+ */
+function isMapAvailable(): boolean {
+  return (
+    Platform.OS !== 'android' ||
+    !!process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY
+  );
+}
 
 type PermissionState = 'undetermined' | 'granted' | 'denied';
 
@@ -189,6 +209,43 @@ export default function MapScreen() {
     router.push({ pathname: '/matches/[id]', params: { id } });
   }
 
+  const backButton = (
+    <Pressable
+      onPress={() => router.back()}
+      accessibilityRole="button"
+      accessibilityLabel="Voltar"
+      testID="map-back"
+      className="m-4 h-10 w-10 rounded-full bg-white shadow-card items-center justify-center"
+    >
+      <ChevronLeft size={24} color={colors.surfaceDark} />
+    </Pressable>
+  );
+
+  if (!isMapAvailable()) {
+    return (
+      <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-bg-light">
+        {backButton}
+        <ScrollView>
+          <View className="px-4 pb-6 gap-4">
+            <Text className="font-body text-body text-text-muted">
+              {matches.length === 0
+                ? 'O mapa não está disponível nesta versão do app. Nenhuma partida perto de você ainda.'
+                : 'O mapa não está disponível nesta versão do app. Estas são as partidas perto de você.'}
+            </Text>
+            {matches.map((match) => (
+              <MatchCard
+                key={match.id}
+                match={match}
+                onPress={goMatch}
+                testID={`map-list-${match.id}`}
+              />
+            ))}
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <View className="flex-1 bg-bg-light">
       <MapView
@@ -218,15 +275,7 @@ export default function MapScreen() {
 
       {/* Back control */}
       <SafeAreaView edges={['top']} className="absolute top-0 left-0">
-        <Pressable
-          onPress={() => router.back()}
-          accessibilityRole="button"
-          accessibilityLabel="Voltar"
-          testID="map-back"
-          className="m-4 h-10 w-10 rounded-full bg-white shadow-card items-center justify-center"
-        >
-          <ChevronLeft size={24} color={colors.surfaceDark} />
-        </Pressable>
+        {backButton}
       </SafeAreaView>
 
       {/* Count badge */}

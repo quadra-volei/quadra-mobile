@@ -1,10 +1,12 @@
 // Extends app.json with what must not be committed.
 //
-// GOOGLE_MAPS_ANDROID_API_KEY: the "Maps SDK for Android" key the map screen needs in a
-// standalone build (Expo Go ships its own key; an APK without one shows a blank map).
-// Set it as an EAS environment variable / secret, or in the shell for a local build.
+// EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY: the "Maps SDK for Android" key the map screen
+// needs in a standalone build (Expo Go ships its own key). Set it in `.env.local` for a
+// local build (then `npx expo prebuild -p android`, which writes it to the manifest), or as
+// an EAS environment variable. It is EXPO_PUBLIC so the map screen can also see whether the
+// build has a key: without one it shows a list instead of the map (app/explore/map.tsx).
 module.exports = ({ config }) => {
-  const mapsKey = process.env.GOOGLE_MAPS_ANDROID_API_KEY;
+  const mapsKey = process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY;
   if (!mapsKey) {
     return config;
   }

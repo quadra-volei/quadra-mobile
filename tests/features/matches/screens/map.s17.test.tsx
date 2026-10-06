@@ -21,7 +21,7 @@
  * never the native map canvas. Read hook is mocked at the boundary; no MSW.
  */
 import React from 'react';
-import { Linking } from 'react-native';
+import { Linking, Platform } from 'react-native';
 
 // --- Native / module mocks -------------------------------------------------
 
@@ -284,6 +284,28 @@ describe('S17 — Map of Nearby Matches', () => {
     // No permission copy on the granted map.
     expect(screen.queryByText('Permitir localização')).toBeNull();
     expect(screen.queryByText('Abrir configurações')).toBeNull();
+  });
+
+  /**
+   * Covers: S17 — Map of Nearby Matches
+   * An Android build without the Google Maps key must not mount the native map
+   * (it closes the app); the nearby matches are listed instead.
+   */
+  it('lists the nearby matches instead of the map on Android without a Maps key', async () => {
+    const os = Platform.OS;
+    Platform.OS = 'android';
+    delete process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY;
+    try {
+      mockGetForeground.mockResolvedValue({ status: 'granted' });
+      await renderScreen();
+
+      await waitFor(() =>
+        expect(screen.getByTestId('map-list-near-open')).toBeTruthy(),
+      );
+      expect(screen.queryByTestId('map-view')).toBeNull();
+    } finally {
+      Platform.OS = os;
+    }
   });
 
   /**
