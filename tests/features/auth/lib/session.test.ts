@@ -6,7 +6,8 @@
  *  - refresh exchanges the stored refresh token, and stores the ROTATED pair;
  *  - concurrent refreshes share one request (a refresh token works only once);
  *  - a rejected refresh token clears the stored session;
- *  - verifySession renews an expired access token once, then reports the new one.
+ *  - verifySession reads the profile (GET /api/v1/profiles/me) to learn whether
+ *    onboarding was completed, renewing an expired access token once.
  */
 jest.mock('expo-secure-store', () =>
   require('../../../support/inMemorySecureStore'),
@@ -14,7 +15,6 @@ jest.mock('expo-secure-store', () =>
 
 import * as SecureStore from 'expo-secure-store';
 
-import { markOnboardingCompleted } from '@/lib/auth/onboardingFlag';
 import { refreshSession } from '@/lib/auth/refreshSession';
 import { saveTokens } from '@/lib/auth/tokenStorage';
 import { verifySession } from '@/lib/auth/verifySession';
@@ -110,16 +110,16 @@ describe('refreshSession', () => {
 describe('verifySession', () => {
   /**
    * Covers: S1 — Splash
-   * Criterion: "With a valid token ... verifies it with GET /api/v1/auth/me."
+   * Criterion: "With a valid token and existing profile ... redirects to Home."
+   * The session check and `hasProfile` come from GET /api/v1/profiles/me.
    */
   it('returns the user for a valid access token without refreshing', async () => {
-    await markOnboardingCompleted(USER_ID);
-    fetchMock.mockResolvedValue(respond(200, { userId: USER_ID, provider: 'phone' }));
+    fetchMock.mockResolvedValue(respond(200, { userId: USER_ID, onboardingCompleted: true }));
 
     const session = await verifySession('old-access');
 
     expect(session).toEqual({ userId: USER_ID, hasProfile: true });
-    const init = firstRequestTo('/api/v1/auth/me');
+    const init = firstRequestTo('/api/v1/profiles/me');
     expect((init.headers as Record<string, string>).Authorization).toBe('Bearer old-access');
     expect(requestTo('/api/v1/auth/refresh')).toHaveLength(0);
   });
@@ -136,7 +136,7 @@ describe('verifySession', () => {
       }
       const authorization = (init.headers as Record<string, string>).Authorization;
       return authorization === 'Bearer new-access'
-        ? respond(200, { userId: USER_ID })
+        ? respond(200, { userId: USER_ID, onboardingCompleted: false })
         : respond(401);
     });
 
@@ -152,7 +152,7 @@ describe('verifySession', () => {
 
   /**
    * Covers: S1 — Splash
-   * Criterion: "With ... a failed GET /api/v1/auth/me, redirects to login."
+   * Criterion: "With ... a failed session check, redirects to login."
    */
   it('throws when the session cannot be renewed', async () => {
     fetchMock.mockResolvedValue(respond(401));

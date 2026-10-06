@@ -1,5 +1,14 @@
 # Screen Spec: S10 — Settings (minimal MVP)
 
+> ## Amendment — 2026-10-06: real profile API (supersedes the mock-first notes below)
+>
+> Johny decided the backend follows the mobile profile shape, so the "Backend alignment gate" is resolved and the edit-profile form talks to the real backend (F2.1). Where this amendment and the original text disagree, the amendment wins.
+>
+> - **`useMyProfile` is real**: `GET /api/v1/profiles/me` (name, surname, @handle, birth date, position, photo, skill ratings) plus the login phone from `GET /api/v1/auth/me`.
+> - **`useUpdateProfile` is real**: `PUT /api/v1/profiles/me` with the edited name, surname, @handle, birth date and position. Modality and level are not editable here (sent as `null`; the level can never be re-declared). A taken @handle rejects with "Esse @ já está em uso. Escolha outro.".
+> - **Not persisted yet** (the form still shows them): the **phone** — it is the login identity, owned by the Auth backend, so the profile endpoint has no phone; and the **new avatar** — photo upload is not wired (backend photo storage is optional and currently off), the current photo is kept.
+> - Hook signatures, layout and navigation are unchanged.
+
 ✅ **scope-guardian: APPROVED** — all 11 checklist items pass. Item 3 (backend gate, rule #10) cleared via the owner-approved S5/S6/S8/S9 mocked posture (`useUpdateProfile` mocked; real `PATCH /api/v1/profile/me` gated per the S4 backend gate; logout asserts no endpoint). The three prior blocking issues were resolved by human decision: (1) "Salvar alterações" uses `Button variant="primary"`, not `grad`; (2) theme/notification persistence approved via `@react-native-async-storage/async-storage@2.2.0` (now locked in CLAUDE.md, non-secret prefs only — tokens stay in expo-secure-store); (3) "Trocar foto" made functional via `expo-image-picker@~56.0.18` (now locked in CLAUDE.md). Additionally: Notificações is a chevron→sub-screen with three persisted coarse toggles; feedback is `mailto:`-only; the "Open questions" section was deleted (zero unresolved questions).
 
 ## Origin

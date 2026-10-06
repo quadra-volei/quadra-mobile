@@ -1,40 +1,54 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { myProfileQueryKey } from '@/features/profile/api/getMyProfile';
+import {
+  putMyProfile,
+  toApiDate,
+  toApiLevel,
+  toApiModality,
+  toProfileError,
+} from '@/features/profile/api/profileApi';
 import type { OnboardingProfileInput } from '@/features/profile/schema/onboarding';
 
 export type CreateProfileResult = {
   profile: { id: string } & OnboardingProfileInput;
 };
 
-// MOCK: deterministic fake latency so RNTL can assert the loading spinner and
-// the success branch without flakiness. No randomness, no network, no
-// EXPO_PUBLIC_API_URL. Mirrors the convention in src/features/auth/api/verifyOtp.ts.
-const MOCK_LATENCY_MS = 600;
-
 /**
- * Creates the player profile from the validated onboarding input.
+ * Completes onboarding (S4): saves the validated wizard input to the profile the
+ * backend created at sign-up (`PUT /api/v1/profiles/me`). This is the only
+ * moment the self-declared level is accepted; the backend derives the player's
+ * starting skill ratings from it and from the position.
  *
- * MOCK: this iteration ships fully mocked profile creation. The mutationFn
- * simulates ~600ms latency and always resolves a stub `{ profile }` echoing the
- * input. No network call, no Cognito, no backend path is asserted.
- *
- * TODO(real-api): replace the mock body below with the real F2.1 profile-create
- * call behind this unchanged hook signature. The real call is BLOCKED until the
- * backend Profile model gains `@handle`, `lastName`, `birthDate`, and
- * `modality` (see the S4 spec's "Backend alignment gate"). Do not wire until
- * the backend SCOPE is aligned.
+ * Rejects with a pt-BR message ready for display — e.g. when the `@handle` is
+ * already taken (409).
  */
 async function createProfile(
   input: OnboardingProfileInput,
 ): Promise<CreateProfileResult> {
-  // MOCK: fixed-latency resolve, no network.
-  await new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS));
-  // MOCK: stub profile echoing the validated input.
-  return { profile: { id: 'mock-profile', ...input } };
+  try {
+    const saved = await putMyProfile({
+      firstName: input.firstName,
+      lastName: input.lastName,
+      handle: input.handle,
+      birthDate: toApiDate(input.birthDate),
+      position: input.position,
+      modality: toApiModality(input.modality),
+      level: toApiLevel(input.level),
+      photoObjectKey: null,
+    });
+    return { profile: { ...input, id: saved.userId, handle: saved.handle ?? input.handle } };
+  } catch (error) {
+    throw toProfileError(error);
+  }
 }
 
 export function useCreateProfile() {
+  const queryClient = useQueryClient();
   return useMutation<CreateProfileResult, Error, OnboardingProfileInput>({
     mutationFn: createProfile,
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: myProfileQueryKey });
+    },
   });
 }

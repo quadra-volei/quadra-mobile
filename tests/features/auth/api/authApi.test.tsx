@@ -7,7 +7,7 @@
  *  - request/resend POST the "initiate" step for the phone number;
  *  - verify POSTs the 6-digit code, persists BOTH tokens to expo-secure-store,
  *    and derives `hasProfile` (new account -> false; returning account -> the
- *    onboarding flag remembered on this device);
+ *    backend profile's `onboardingCompleted`);
  *  - Google sign-in sends the native SDK's ID token to the backend;
  *  - backend / network failures become user-facing pt-BR messages.
  */
@@ -48,7 +48,6 @@ import {
 import { useRequestOtp } from '@/features/auth/api/requestOtp';
 import { useResendOtp } from '@/features/auth/api/resendOtp';
 import { useVerifyOtp } from '@/features/auth/api/verifyOtp';
-import { markOnboardingCompleted } from '@/lib/auth/onboardingFlag';
 
 const PHONE = '+5511999990000';
 
@@ -210,9 +209,18 @@ describe('useVerifyOtp', () => {
    * Criterion: "A returning account that already finished onboarding lands on
    *  Home (hasProfile true)."
    */
-  it('reports hasProfile for a returning account that finished onboarding on this device', async () => {
-    await markOnboardingCompleted(TOKENS.userId);
-    fetchMock.mockResolvedValue(respond(200, { ...TOKENS, isNewUser: false }));
+  it.each([
+    ['finished onboarding', true],
+    ['has not finished onboarding', false],
+  ])('asks the backend whether a returning account %s', async (_label, onboardingCompleted) => {
+    fetchMock.mockImplementation(async (url: string, init: RequestInit) => {
+      if (url.endsWith('/api/v1/profiles/me')) {
+        // Read with the access token that was just issued.
+        expect((init.headers as Record<string, string>).Authorization).toBe('Bearer access-jwt');
+        return respond(200, { userId: TOKENS.userId, onboardingCompleted });
+      }
+      return respond(200, { ...TOKENS, isNewUser: false });
+    });
 
     const settled = await run(useVerifyOtp, { phone: PHONE, code: '123456' });
 
@@ -220,18 +228,15 @@ describe('useVerifyOtp', () => {
     expect(
       (settled as PromiseFulfilledResult<{ user: { hasProfile: boolean } }>).value.user
         .hasProfile,
-    ).toBe(true);
+    ).toBe(onboardingCompleted);
   });
 
-  it('keeps hasProfile false for a returning account with no onboarding on this device', async () => {
-    fetchMock.mockResolvedValue(respond(200, { ...TOKENS, isNewUser: false }));
+  it('does not ask for the profile of a brand-new account', async () => {
+    fetchMock.mockResolvedValue(respond(200, TOKENS));
 
-    const settled = await run(useVerifyOtp, { phone: PHONE, code: '123456' });
+    await run(useVerifyOtp, { phone: PHONE, code: '123456' });
 
-    expect(
-      (settled as PromiseFulfilledResult<{ user: { hasProfile: boolean } }>).value.user
-        .hasProfile,
-    ).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   /**

@@ -3,10 +3,9 @@ import { z } from 'zod';
 /**
  * Frontend onboarding profile contract (S4).
  *
- * ⚠️ Backend alignment gate: the real F2.1 profile-create call is BLOCKED until
- * the backend Profile model confirms `@handle`, `lastName`, `birthDate`, and
- * `modality`. This schema defines the *frontend* shape so the wizard is
- * buildable/testable now; it asserts no real endpoint. See the S4 spec.
+ * The backend Profile (F2.1) follows this shape; `useCreateProfile` translates
+ * it to the API vocabulary (ISO date, `Beginner`/`Indoor`…) in
+ * `src/features/profile/api/profileApi.ts`.
  */
 
 export const POSITIONS = ['LEV', 'PON', 'OPO', 'CEN', 'LIB', 'COR'] as const;

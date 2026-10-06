@@ -1,5 +1,15 @@
 # Screen Spec: S4 — Onboarding (post-signup, first time only)
 
+> ## Amendment — 2026-10-06: real profile API (supersedes the mock-first notes below)
+>
+> Johny decided the backend follows the mobile profile shape, so the "Backend alignment gate" is resolved and S4 talks to the real backend (F2.1). Where this amendment and the original text disagree, the amendment wins.
+>
+> - **`useCreateProfile` is real**: `PUT /api/v1/profiles/me` with `{ firstName, lastName, handle, birthDate (YYYY-MM-DD), position, modality (Indoor|Beach), level (Beginner|Intermediate|Advanced), photoObjectKey: null }`, sent with the access token (renewed once on 401). The profile row itself is created by the backend at sign-up; this call completes onboarding. The hook signature and result shape are unchanged.
+> - **The declared level is set once**, here. The backend derives the starting skill ratings (ACE/BLK/ATA/DEF, GERAL) from it and from the position.
+> - **`hasProfile` comes from the backend**: `onboardingCompleted` on `GET /api/v1/profiles/me`, read at login and at app start. The on-device onboarding flag is gone, so a returning user on a new phone goes straight to Home.
+> - **Errors**: a rejected save shows its own message under the final CTA — notably "Esse @ já está em uso. Escolha outro." when the handle is taken (409) — falling back to the generic text. The backend also exposes `GET /api/v1/profiles/handle-availability?handle=`; checking it live while typing is **not wired yet** (needs a design for the field state).
+> - Layout, steps, validation and navigation are unchanged.
+
 > ✅ **scope-guardian: APPROVED** (round 1) — all 11 checklist items passed; mock-first acceptable, backend-alignment gate (F2.1 fields) respected, no real endpoint asserted.
 
 ## Origin

@@ -16,11 +16,8 @@ import {
  * `PhoneInput` contract) plus an optional `avatarUri` (a local file URI from the
  * image picker).
  *
- * ⚠️ Backend alignment gate: the real F2.1 profile-PATCH call is BLOCKED until
- * the backend Profile model exposes `@handle`, `lastName`, `birthDate`,
- * `modality`/`position`, and an avatar upload field. This schema defines the
- * *frontend* shape so the screen is buildable/testable now; it asserts no real
- * endpoint. See the S4 spec's "Backend alignment gate".
+ * Saved through `useUpdateProfile` (`PUT /api/v1/profiles/me`). `phone` and
+ * `avatarUri` are validated here but not persisted yet — see that hook.
  */
 export const editProfileSchema = z.object({
   firstName: z.string().trim().min(1, 'Informe seu nome'),

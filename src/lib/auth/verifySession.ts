@@ -1,6 +1,5 @@
-import { ApiError, apiClient } from '@/lib/api/client';
-import { hasCompletedOnboarding } from '@/lib/auth/onboardingFlag';
-import { refreshSession } from '@/lib/auth/refreshSession';
+import { authorizedApiClient } from '@/lib/api/authorizedClient';
+import { getAccessToken } from '@/lib/auth/getAccessToken';
 
 export type SessionResult = {
   userId: string;
@@ -12,41 +11,28 @@ export type SessionResult = {
   accessToken?: string;
 };
 
-type CurrentUserResponse = {
+type MyProfileSummary = {
   userId: string;
+  onboardingCompleted: boolean;
 };
 
-function fetchCurrentUser(accessToken: string): Promise<CurrentUserResponse> {
-  return apiClient<CurrentUserResponse>('/api/v1/auth/me', {
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-    },
-  });
-}
-
 /**
- * Verifies the stored session by calling GET /api/v1/auth/me. Access tokens are
- * short-lived, so an expired one (401) is renewed once with the refresh token
- * before giving up. Throws if the session cannot be verified or renewed; the
- * caller should treat any thrown error as "unauthenticated".
+ * Verifies the stored session and reads whether the user finished onboarding,
+ * in one call: `GET /api/v1/profiles/me`. Access tokens are short-lived, so an
+ * expired one is renewed once with the refresh token before giving up. Throws if
+ * the session cannot be verified or renewed; the caller should treat any thrown
+ * error as "unauthenticated".
  */
 export async function verifySession(accessToken: string): Promise<SessionResult> {
-  let currentToken = accessToken;
-  let user: CurrentUserResponse;
+  const profile = await authorizedApiClient<MyProfileSummary>('/api/v1/profiles/me');
 
-  try {
-    user = await fetchCurrentUser(currentToken);
-  } catch (error) {
-    if (!(error instanceof ApiError) || error.status !== 401) {
-      throw error;
-    }
-    currentToken = await refreshSession();
-    user = await fetchCurrentUser(currentToken);
-  }
+  const result: SessionResult = {
+    userId: profile.userId,
+    hasProfile: profile.onboardingCompleted,
+  };
 
-  const hasProfile = await hasCompletedOnboarding(user.userId);
-
-  return currentToken === accessToken
-    ? { userId: user.userId, hasProfile }
-    : { userId: user.userId, hasProfile, accessToken: currentToken };
+  const currentToken = await getAccessToken();
+  return currentToken && currentToken !== accessToken
+    ? { ...result, accessToken: currentToken }
+    : result;
 }
