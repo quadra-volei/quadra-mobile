@@ -32,7 +32,9 @@ import { useAuthStore } from '@/stores/auth';
 
 SplashScreen.preventAutoHideAsync();
 
-const AUTH_BOOTSTRAP_TIMEOUT_MS = 2000;
+// The hosted test API sleeps when idle and takes up to a minute to answer the
+// first request; a shorter cap sent a valid session to Login while it woke up.
+const AUTH_BOOTSTRAP_TIMEOUT_MS = 60_000;
 
 function timeout(ms: number): Promise<never> {
   return new Promise((_, reject) => {
@@ -43,7 +45,7 @@ function timeout(ms: number): Promise<never> {
 /**
  * Runs the one-shot auth bootstrap: read the stored token, validate it against
  * the backend, and resolve the auth store. Any failure (no token, invalid token,
- * network error, or a >2s stall) falls through to the unauthenticated state so
+ * network error, or a stall past the cap) falls through to the unauthenticated state so
  * the splash can redirect to Login. Reports `ready` once the flow settles.
  */
 async function runAuthBootstrap(): Promise<void> {

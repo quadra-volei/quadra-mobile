@@ -26,9 +26,9 @@ const BAR_TRACK_WIDTH = 160;
 
 /**
  * The splash is held this long even when the auth bootstrap resolves instantly,
- * so the brand animation and the bar fill are actually seen. The bootstrap is
- * itself capped at 2s (app/_layout.tsx), so the worst case stays under the 2s
- * ceiling SCOPE S1 puts on the splash.
+ * so the brand animation and the bar fill are actually seen. The splash then
+ * stays until the bootstrap settles, which is capped at 60s (app/_layout.tsx,
+ * DECISIONS #44) for when the hosted API is waking up.
  */
 const MIN_SPLASH_MS = 1800;
 
