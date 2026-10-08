@@ -203,6 +203,15 @@ jest.mock('@/features/matches/api/searchPlaces', () => ({
   resolvePlace: async () => mockPlaces.coords,
 }));
 
+// react-native-maps -> View stubs (the picked-address pin preview).
+jest.mock('react-native-maps', () => {
+  const ReactLocal = require('react');
+  const { View } = require('react-native');
+  const stub = ({ children, ...props }: any) =>
+    ReactLocal.createElement(View, props, children);
+  return { __esModule: true, default: stub, Marker: stub };
+});
+
 jest.mock('@/features/matches/lib/useDeviceCoords', () => ({
   useDeviceCoords: () => null,
 }));
@@ -221,6 +230,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from '@testing-library/react-native';
 
@@ -577,8 +587,13 @@ describe('S11 — LOCAL address search', () => {
     await completeOneOffFlow();
 
     await type('match-location', 'arena sky');
+    expect(screen.queryByTestId('place-pin-preview')).toBeNull();
     await press('place-osm:W123');
 
+    // The picked spot is shown on a map so a wrong pin is caught before publishing.
+    await waitFor(() =>
+      expect(screen.getByTestId('place-pin-preview')).toBeTruthy(),
+    );
     expect(screen.getByTestId('match-location').props.value).toBe(
       'Arena Sky Beach · Pinheiros · São Paulo',
     );
