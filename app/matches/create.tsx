@@ -42,6 +42,9 @@ import {
   usePlaceSuggestions,
   type PlaceSuggestion,
 } from '@/features/matches/api/searchPlaces';
+import MapView, { Marker } from 'react-native-maps';
+
+import { isMapAvailable } from '@/features/matches/lib/isMapAvailable';
 import { useDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
 import { formatPriceLabel } from '@/features/matches/api/matchesApi';
 import {
@@ -667,6 +670,42 @@ export default function CreateMatchScreen() {
                       ) : null}
                     </Pressable>
                   ))}
+                </View>
+              ) : null}
+              {/* Picked address: show where the pin landed so a wrong spot is
+                  caught before the match is published. Static map (liteMode). */}
+              {placePicked &&
+              values.latitude != null &&
+              values.longitude != null &&
+              isMapAvailable() ? (
+                <View className="mt-3" testID="place-pin-preview">
+                  <View
+                    pointerEvents="none"
+                    className="h-40 overflow-hidden rounded-card"
+                  >
+                    <MapView
+                      key={`${values.latitude},${values.longitude}`}
+                      liteMode
+                      style={{ flex: 1 }}
+                      initialRegion={{
+                        latitude: values.latitude,
+                        longitude: values.longitude,
+                        latitudeDelta: 0.005,
+                        longitudeDelta: 0.005,
+                      }}
+                    >
+                      <Marker
+                        coordinate={{
+                          latitude: values.latitude,
+                          longitude: values.longitude,
+                        }}
+                      />
+                    </MapView>
+                  </View>
+                  <Text className="mt-2 font-body text-caption text-text-muted">
+                    Confira se o pino está no lugar certo. Se não estiver, busque
+                    de novo com o número ou o nome da quadra.
+                  </Text>
                 </View>
               ) : null}
             </Reveal>

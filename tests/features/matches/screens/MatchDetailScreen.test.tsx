@@ -82,6 +82,7 @@ jest.mock('lucide-react-native', () => {
     ChevronLeft: stub('chevron-left'),
     Hand: stub('hand'),
     MapPin: stub('map-pin'),
+    Navigation: stub('navigation'),
     Play: stub('play'),
     Share2: stub('share2'),
     UserPlus: stub('user-plus'),
@@ -259,7 +260,7 @@ import {
   render,
   screen,
 } from '@testing-library/react-native';
-import { Share } from 'react-native';
+import { Linking, Share } from 'react-native';
 
 import { useAuthStore } from '@/stores/auth';
 
@@ -1108,6 +1109,22 @@ describe('S12 — joining against the real backend', () => {
 
     expect(screen.getByText('Na fila de espera · 2º')).toBeTruthy();
     expect(screen.queryByTestId('join-match')).toBeNull();
+  });
+
+  /**
+   * "Como chegar" opens the route to the match's coordinates in the Maps app.
+   * Kept last: spying on Linking must not leak into the tests above.
+   */
+  it('opens the route to the match from "Como chegar"', async () => {
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    await renderScreen();
+
+    fireEvent.press(screen.getByTestId('match-directions'));
+
+    expect(openURL).toHaveBeenCalledWith(
+      'https://www.google.com/maps/dir/?api=1&destination=-23.5614,-46.6559',
+    );
+    openURL.mockRestore();
   });
 });
 

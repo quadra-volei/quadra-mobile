@@ -5,7 +5,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
-  Platform,
   Pressable,
   ScrollView,
   Text,
@@ -17,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { MatchCard } from '@/components/domain/MatchCard';
 import { useNearbyMatches } from '@/features/matches/api/getNearby';
+import { isMapAvailable } from '@/features/matches/lib/isMapAvailable';
 import type { NearbyMatch } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
 
@@ -25,18 +25,6 @@ import { colors } from '@/theme/colors';
 const DEFAULT_CENTER = { latitude: -23.5605, longitude: -46.6433 };
 const REGION_DELTA = { latitudeDelta: 0.05, longitudeDelta: 0.05 };
 const NEARBY_RADIUS_KM = 5;
-
-/**
- * Android draws the map with the Google Maps SDK, which throws natively (closing
- * the app) when the build has no key. A build without the key shows the nearby
- * matches as a list instead. iOS uses Apple Maps and needs no key.
- */
-function isMapAvailable(): boolean {
-  return (
-    Platform.OS !== 'android' ||
-    !!process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY
-  );
-}
 
 type PermissionState = 'undetermined' | 'granted' | 'denied';
 
@@ -254,7 +242,9 @@ export default function MapScreen() {
         style={{ flex: 1 }}
         showsUserLocation
         showsMyLocationButton={false}
-        region={{ ...center, ...REGION_DELTA }}
+        // initialRegion, not region: a controlled region snaps the map back to
+        // the centre on every re-render (e.g. when a pin is selected).
+        initialRegion={{ ...center, ...REGION_DELTA }}
         onPress={() => setSelectedMatchId(null)}
       >
         {matches.map((match) => {

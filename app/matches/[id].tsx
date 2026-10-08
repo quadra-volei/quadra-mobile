@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   Hand,
   MapPin,
+  Navigation,
   Play,
   Share2,
   UserPlus,
@@ -16,7 +17,7 @@ import {
 } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AddGuestSheet } from '@/components/domain/AddGuestSheet';
@@ -462,6 +463,24 @@ export default function MatchDetailScreen() {
                   : ''}
               </Text>
             </View>
+            <Pressable
+              onPress={() =>
+                // Universal Maps link: opens the Google Maps app (or the browser)
+                // with the route from where the user is.
+                void Linking.openURL(
+                  `https://www.google.com/maps/dir/?api=1&destination=${match.lat},${match.lon}`,
+                )
+              }
+              accessibilityRole="button"
+              accessibilityLabel="Como chegar"
+              testID="match-directions"
+              className="mt-3 flex-row items-center gap-2 self-start rounded-pill bg-white/90 px-4 py-2"
+            >
+              <Navigation size={15} color={colors.surfaceDark} />
+              <Text className="font-body text-body-bold text-text-primary">
+                Como chegar
+              </Text>
+            </Pressable>
           </View>
         </CourtImage>
 
