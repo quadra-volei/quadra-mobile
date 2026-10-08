@@ -5,16 +5,14 @@ import {
   Calendar,
   Check,
   ChevronLeft,
-  Hand,
   MapPin,
   Navigation,
   Play,
   Share2,
   UserPlus,
-  WandSparkles,
 } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Linking, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -23,8 +21,6 @@ import { PresenceGrid } from '@/components/domain/PresenceGrid';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { CourtImage } from '@/components/ui/CourtImage';
-import { FilterChip } from '@/components/ui/FilterChip';
-import { StepperField } from '@/components/ui/StepperField';
 import { TextField } from '@/components/ui/TextField';
 import { useAddGuest } from '@/features/matches/api/addGuest';
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
@@ -38,7 +34,6 @@ import {
 import type { AddGuestInput } from '@/features/matches/schema/addGuest';
 import type { MatchLevel } from '@/features/matches/types/match';
 import type {
-  DrawMode,
   MatchDetail,
   PlayerPosition,
 } from '@/features/matches/types/matchDetail';
@@ -74,13 +69,27 @@ function formatDistance(distanceKm: number): string {
   return `${distanceKm.toFixed(1).replace('.', ',')} km`;
 }
 
+/** "1h 30min" / "45min". */
+function formatDuration(diffMs: number): string {
+  const totalMinutes = Math.floor(diffMs / 60_000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return hours > 0 ? `${hours}h ${minutes}min` : `${minutes}min`;
+}
+
 /**
  * Pure countdown formatter over the match timestamps. Injecting `now` keeps the
- * output deterministic under test. When the confirmation window is still open it
- * counts down to the window close ("Confirmações fecham em …"); once closed it
- * counts down to game start ("Começa em …").
+ * output deterministic under test. Before the confirmation window opens it
+ * counts down to the opening ("Confirmações abrem em …"); while it is open, to
+ * the close ("Confirmações fecham em …"); once closed, to game start ("Começa
+ * em …").
  */
 export function formatCountdown(match: MatchDetail, now: Date): string {
+  if (match.confirmationOpensAt) {
+    const opensIn = new Date(match.confirmationOpensAt).getTime() - now.getTime();
+    if (opensIn > 0) return `Confirmações abrem em ${formatDuration(opensIn)}`;
+  }
+
   const target = match.confirmationWindowClosed
     ? new Date(match.startsAt)
     : new Date(match.confirmationClosesAt);
@@ -94,12 +103,7 @@ export function formatCountdown(match: MatchDetail, now: Date): string {
       ? 'A partida já começou'
       : 'Confirmações encerradas';
   }
-
-  const totalMinutes = Math.floor(diffMs / 60_000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  const time = hours > 0 ? `${hours}h ${minutes}min` : `${minutes}min`;
-  return `${prefix} ${time}`;
+  return `${prefix} ${formatDuration(diffMs)}`;
 }
 
 /** "Hoje · 19h30" style label for the QUANDO cell. */
@@ -239,26 +243,6 @@ export default function MatchDetailScreen() {
   // Organizer "add guest to fill a vaga" sheet (S12).
   const [guestSheetOpen, setGuestSheetOpen] = useState(false);
 
-  // Organizer team-config — ephemeral local UI state (not API data; not RHF).
-  // Defaults come from the payload once it resolves; seeded lazily on first read.
-  const [teamCount, setTeamCount] = useState<2 | 3 | 4>(2);
-  const [perTeam, setPerTeam] = useState<number>(4);
-  const [drawMode, setDrawMode] = useState<DrawMode>('MANUAL');
-  const [configSeeded, setConfigSeeded] = useState(false);
-  // The config starts folded into a one-line summary; the defaults are enough
-  // for most games, so the organizer only opens it to change something.
-  const [configOpen, setConfigOpen] = useState(false);
-
-  // Seed the team-config from the payload once (organizer view defaults).
-  useEffect(() => {
-    if (!configSeeded && matchQuery.data) {
-      setTeamCount(matchQuery.data.teamConfig.teamCount);
-      setPerTeam(matchQuery.data.teamConfig.perTeam);
-      setDrawMode(matchQuery.data.teamConfig.drawMode);
-      setConfigSeeded(true);
-    }
-  }, [matchQuery.data, configSeeded]);
-
   if (matchQuery.isPending) {
     return <MatchDetailSkeleton />;
   }
@@ -295,15 +279,7 @@ export default function MatchDetailScreen() {
   };
 
   const goToTeams = () => {
-    router.push({
-      pathname: '/matches/[id]/teams',
-      params: {
-        id: match.id,
-        teamCount: String(teamCount),
-        perTeam: String(perTeam),
-        drawMode,
-      },
-    });
+    router.push({ pathname: '/matches/[id]/teams', params: { id: match.id } });
   };
 
   // ── A game under way (or over) takes over the forward CTA ──
@@ -328,6 +304,14 @@ export default function MatchDetailScreen() {
   // Regular — either way the user is in the match and past the join step.
   const isConfirmed =
     match.myParticipationType != null && match.myStatus === 'CONFIRMADO';
+  // Before the window opens the backend refuses every confirmation, so the
+  // footer says when it opens instead of offering a button that fails.
+  const opensLabel =
+    match.confirmationOpensAt && !isConfirmed
+      ? `Confirmações abrem ${formatWhen(match.confirmationOpensAt)
+          .replace('Hoje', 'hoje')
+          .replace(' · ', ' às ')}`
+      : null;
   const showJoin =
     !isRegular &&
     !isConfirmed &&
@@ -545,127 +529,6 @@ export default function MatchDetailScreen() {
             testID="presence-grid"
           />
           <LevelLegend />
-
-          {/* ── Organizer-only: team configuration (→ S13) ── */}
-          {isOrganizer ? (
-            <View className="mt-8">
-              <Pressable
-                onPress={() => setConfigOpen((open) => !open)}
-                accessibilityRole="button"
-                accessibilityState={{ expanded: configOpen }}
-                android_ripple={PRESS_RIPPLE}
-                testID="team-config-toggle"
-                className="flex-row items-center justify-between gap-3 py-2"
-              >
-                <View className="flex-1">
-                  <Text className="font-display text-h2 text-surface-dark uppercase">
-                    Configuração dos times
-                  </Text>
-                  <Text
-                    className="mt-1 font-body text-caption text-text-muted"
-                    testID="team-config-summary"
-                  >
-                    {`${teamCount} times · ${perTeam} por time · sorteio ${
-                      drawMode === 'AUTO' ? 'automático' : 'manual'
-                    }`}
-                  </Text>
-                </View>
-                <Text className="font-body-semibold text-body-bold text-primary">
-                  {configOpen ? 'Fechar' : 'Alterar'}
-                </Text>
-              </Pressable>
-              {configOpen ? (
-                <>
-                  <View className="mt-2 flex-row gap-2">
-                    <FilterChip
-                      label="2 times"
-                      selected={teamCount === 2}
-                      onPress={() => setTeamCount(2)}
-                      testID="team-count-2"
-                    />
-                    <FilterChip
-                      label="3 times"
-                      selected={teamCount === 3}
-                      onPress={() => setTeamCount(3)}
-                      testID="team-count-3"
-                    />
-                    <FilterChip
-                      label="4 times"
-                      selected={teamCount === 4}
-                      onPress={() => setTeamCount(4)}
-                      testID="team-count-4"
-                    />
-                  </View>
-
-                  <View className="mt-4 flex-row">
-                    <StepperField
-                      label="Jogadores por time"
-                      value={perTeam}
-                      onChange={setPerTeam}
-                      min={1}
-                      testID="per-team-stepper"
-                    />
-                  </View>
-                  <Text className="mt-1 font-body text-caption text-text-muted">
-                    {confirmedCount} confirmados no total
-                  </Text>
-
-                  <Text className="mt-6 font-display text-h2 text-surface-dark uppercase">
-                    Como sortear os times
-                  </Text>
-                  {/* Inlined radio rows mirroring ToggleField's chrome (icon + title +
-                      caption on a bg-white rounded-card border row), trailing Check
-                      when selected. Single-use → no catalog entry. */}
-                  <Pressable
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: drawMode === 'MANUAL' }}
-                    onPress={() => setDrawMode('MANUAL')}
-                    testID="draw-mode-manual"
-                    className={`mt-2 flex-row items-center gap-3 rounded-card border p-4 ${
-                      drawMode === 'MANUAL'
-                        ? 'border-primary bg-primary/5'
-                        : 'border-line bg-white'
-                    }`}
-                  >
-                    <Hand size={20} color={colors.primary} />
-                    <View className="flex-1">
-                      <Text className="font-body-extrabold text-h3 text-text-primary">Manual</Text>
-                      <Text className="font-body text-caption text-text-muted">
-                        Você escolhe quem joga em cada time, na mão
-                      </Text>
-                    </View>
-                    {drawMode === 'MANUAL' ? (
-                      <Check size={20} color={colors.primary} />
-                    ) : null}
-                  </Pressable>
-                  <Pressable
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: drawMode === 'AUTO' }}
-                    onPress={() => setDrawMode('AUTO')}
-                    testID="draw-mode-auto"
-                    className={`mt-2 flex-row items-center gap-3 rounded-card border p-4 ${
-                      drawMode === 'AUTO'
-                        ? 'border-primary bg-primary/5'
-                        : 'border-line bg-white'
-                    }`}
-                  >
-                    <WandSparkles size={20} color={colors.primary} />
-                    <View className="flex-1">
-                      <Text className="font-body-extrabold text-h3 text-text-primary">
-                        Automático
-                      </Text>
-                      <Text className="font-body text-caption text-text-muted">
-                        Times equilibrados automaticamente por nível e overall
-                      </Text>
-                    </View>
-                    {drawMode === 'AUTO' ? (
-                      <Check size={20} color={colors.primary} />
-                    ) : null}
-                  </Pressable>
-                </>
-              ) : null}
-            </View>
-          ) : null}
         </View>
       </ScrollView>
 
@@ -704,12 +567,17 @@ export default function MatchDetailScreen() {
                     : confirmPresence.mutate()
                 }
                 loading={confirmPresence.isPending || declinePresence.isPending}
+                disabled={opensLabel != null}
                 testID="organizer-presence"
               >
-                {isConfirmed ? 'Não vou jogar' : 'Vou jogar'}
+                {opensLabel ?? (isConfirmed ? 'Não vou jogar' : 'Vou jogar')}
               </Button>
             </View>
           </>
+        ) : opensLabel ? (
+          <Button variant="primary" onPress={() => {}} disabled testID="not-open-yet">
+            {opensLabel}
+          </Button>
         ) : showConfirm ? (
           <>
             <Button

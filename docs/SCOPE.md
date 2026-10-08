@@ -23,8 +23,8 @@ shows something listed below as out of the MVP, this file wins.
 | S9 Ranking | `app/profile/ranking.tsx` | Ranking of the recurring match where I scored most recently; "Bairro" and "Geral" tabs disabled |
 | S10 Settings | `app/profile/settings.tsx`, `edit.tsx`, `notifications.tsx`, `feedback.tsx` | Edit profile with photo upload, theme (light / dark / auto), feedback form, logout |
 | S11 Create match | `app/matches/create.tsx` | Address search with free text fallback, recurrence, confirmation window, privacy (open / code / guests) |
-| S12 Match detail | `app/matches/[id].tsx` | Presence, join, waiting list, guests, invite code, team setup for the organizer; main button follows the game |
-| S13 Teams | `app/matches/[id]/teams.tsx` | Draw on the backend (balanced or random), 2 to 4 teams |
+| S12 Match detail | `app/matches/[id].tsx` | Presence, join, waiting list, guests, invite code; says when confirmations open; main button follows the game |
+| S13 Teams | `app/matches/[id]/teams.tsx` | Team setup (count, players per team, draw mode) and draw on the backend (balanced or random), 2 to 4 teams |
 | S13.5 + S14 Scoreboard | `app/matches/[id]/scoreboard.tsx` | Pick the pair per set (3+ teams), organizer scores, undo, end set, live refresh over SignalR |
 | S15 MVP vote | `app/matches/[id]/mvp-vote.tsx` | One vote, no guests; organizer closes the vote and generates the summary |
 | S16 Summary | `app/matches/[id]/summary.tsx` | Result, sets, MVP, share through the system sheet |

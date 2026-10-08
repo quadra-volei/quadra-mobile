@@ -6,9 +6,9 @@
  *  - Each column shows its players as a vertical stack of avatars with position badges.
  *  - Column header displays a team name/number.
  *  - Header reads "MONTAR OS TIMES" and back button returns to S12.
- *  - Subtitle displays team count, players-per-team, and draw mode (Manual/Automático).
- *  - If drawMode=AUTO: teams are auto-drawn on mount; loading skeleton displays while draw is in flight.
- *  - If drawMode=MANUAL: "Sortear" button is shown and visible; tapping it calls useDrawTeams.
+ *  - Before a draw the screen shows the configuration (team count, players per
+ *    team, draw mode) seeded from the match, and "Sortear times" draws with it.
+ *  - After a draw: a summary line, the rosters and "Refazer sorteio".
  *  - Tapping "Começar partida" shows confirmation dialog: "Pronto para começar esta partida?".
  *  - After confirming: navigates to `/matches/[id]/scoreboard`.
  *  - Button shows loading spinner while confirmation is in flight.
@@ -58,6 +58,10 @@ jest.mock('lucide-react-native', () => {
   return {
     ChevronLeft: stub('chevron-left'),
     Check: stub('check'),
+    Minus: stub('minus'),
+    Plus: stub('plus'),
+    Scale: stub('scale'),
+    Shuffle: stub('shuffle'),
   };
 });
 
@@ -306,72 +310,82 @@ describe('S13 — In-Game Teams screen', () => {
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
-  // -------------------------------------------------- criterion 5: Subtitle
-
+  // -------------------------------------------------- configuration
   /**
-   * Covers: S13 — In-Game Teams
-   * Criterion: "Subtitle displays team count, players-per-team, and draw mode."
+   * The configuration lives on this screen: it starts from the match's defaults
+   * and "Sortear times" sends what the organizer picked.
    */
-  it('displays the subtitle with team count, per-team size, and draw mode (Manual)', async () => {
-    mockParams = {
-      id: 'match-1',
-      teamCount: '2',
-      perTeam: '4',
-      drawMode: 'MANUAL',
-    };
-
+  it('shows the configuration seeded from the match and draws with what was picked', async () => {
     await act(async () => {
       render(<TeamsScreen />);
     });
 
-    expect(screen.getByText(/2 times de 4 jogadores cada • Modo Manual/)).toBeTruthy();
+    // defaults from the fixture's teamConfig: 2 teams of 4, random draw
+    expect(screen.getByTestId('team-count-2').props.accessibilityState?.selected).toBe(true);
+    expect(screen.getByTestId('draw-mode-manual').props.accessibilityState?.checked).toBe(true);
+    expect(screen.getByText('6 confirmados no total')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('team-count-3'));
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('per-team-stepper-decrement'));
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('draw-mode-auto'));
+    });
+    expect(screen.getByTestId('draw-mode-auto').props.accessibilityRole).toBe('radio');
+    expect(screen.getByTestId('draw-mode-auto').props.accessibilityState?.checked).toBe(true);
+    expect(screen.getByTestId('draw-mode-manual').props.accessibilityState?.checked).toBe(false);
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('draw-teams'));
+    });
+    expect(mockDrawTeams.mutate).toHaveBeenCalledTimes(1);
+    expect(mockDrawTeams.mutate.mock.calls[0][0].request).toEqual({
+      teamCount: 3,
+      perTeam: 3,
+      drawMode: 'AUTO',
+    });
   });
 
-  it('displays the subtitle with Automático when drawMode is AUTO', async () => {
-    mockParams = {
-      id: 'match-1',
-      teamCount: '3',
-      perTeam: '5',
-      drawMode: 'AUTO',
-    };
+  it('does not draw by itself, whatever the default mode', async () => {
+    mockMatchDetail.data = matchDetailFixture({
+      teamConfig: { teamCount: 2, perTeam: 4, drawMode: 'AUTO' },
+    });
+    await act(async () => {
+      render(<TeamsScreen />);
+    });
 
+    expect(mockDrawTeams.mutate).not.toHaveBeenCalled();
+    expect(screen.getByTestId('draw-teams')).toBeTruthy();
+  });
+
+  it('after a draw shows the summary and lets the organizer redo it', async () => {
+    mockDrawTeams.data = {
+      teams: [
+        { id: 'team-1', number: 1, name: 'Time 1', players: [] },
+        { id: 'team-2', number: 2, name: 'Time 2', players: [] },
+      ],
+    };
     await act(async () => {
       render(<TeamsScreen />);
     });
 
     expect(
-      screen.getByText(/3 times de 5 jogadores cada • Modo Automático/),
+      screen.getByText(/2 times de 4 jogadores cada • Sorteio aleatório/),
     ).toBeTruthy();
-  });
-
-  // -------------------------------------------------- criterion 6: AUTO mode
-
-  /**
-   * Covers: S13 — In-Game Teams
-   * Criterion: "If drawMode=AUTO: teams are auto-drawn on mount; loading skeleton
-   *  displays while draw is in flight."
-   */
-  it('auto-draws teams on mount in AUTO mode and displays loading skeleton while pending', async () => {
-    mockParams = {
-      id: 'match-1',
-      teamCount: '2',
-      perTeam: '4',
-      drawMode: 'AUTO',
-    };
-
-    // Start with pending state
-    mockDrawTeams.isPending = true;
-    mockDrawTeams.data = undefined;
+    expect(screen.queryByTestId('team-count-2')).toBeNull();
 
     await act(async () => {
-      render(<TeamsScreen />);
+      fireEvent.press(screen.getByTestId('redraw-teams'));
     });
-
-    // "Sortear" button should NOT be shown in AUTO mode
-    expect(screen.queryByTestId('draw-teams')).toBeNull();
+    expect(screen.getByTestId('team-count-2')).toBeTruthy();
+    expect(screen.getByTestId('draw-teams')).toBeTruthy();
+    expect(screen.getByTestId('start-match').props.accessibilityState?.disabled).toBe(true);
   });
 
-  it('displays teams after AUTO mode draw completes', async () => {
+  it('displays teams after the draw completes', async () => {
     mockParams = {
       id: 'match-1',
       teamCount: '2',
@@ -642,10 +656,10 @@ describe('S13 — In-Game Teams screen', () => {
 
   /**
    * Covers: S13 — In-Game Teams
-   * Criterion: "If drawMode=MANUAL: 'Sortear' button is shown and visible; tapping it
-   *  calls useDrawTeams and updates the team display."
+   * Criterion: "'Sortear times' is shown before a draw; tapping it calls
+   *  useDrawTeams and updates the team display."
    */
-  it('shows the Sortear button in MANUAL mode before teams are drawn', async () => {
+  it('shows the Sortear button before teams are drawn', async () => {
     mockParams = {
       id: 'match-1',
       teamCount: '2',
@@ -661,8 +675,8 @@ describe('S13 — In-Game Teams screen', () => {
 
     const drawButton = screen.getByTestId('draw-teams');
     expect(drawButton).toBeTruthy();
-    // The button text "Sortear" should be visible
-    const sortearText = screen.queryByText('Sortear');
+    // The button text should be visible
+    const sortearText = screen.queryByText('Sortear times');
     expect(sortearText).toBeTruthy();
   });
 
