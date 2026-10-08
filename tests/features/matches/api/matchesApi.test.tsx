@@ -435,6 +435,10 @@ describe('useMatchDetail', () => {
     const match = await detail(apiDetail({ match: { ...apiMatch, status: 'Draft' } }));
 
     expect(match).toMatchObject({ canJoin: false, confirmationWindowClosed: false });
+    // only a match that has not opened yet says when it opens
+    expect(match.confirmationOpensAt).toBe(apiMatch.windowOpensAt);
+    client.clear();
+    expect((await detail(apiDetail())).confirmationOpensAt).toBeUndefined();
   });
 });
 

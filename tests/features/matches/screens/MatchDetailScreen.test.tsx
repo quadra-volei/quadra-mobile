@@ -9,7 +9,7 @@
  *    "venue · distance" line.
  *  - essentials rows (when + countdown, where + "Como chegar", price) and the
  *    "Organizado por {name}" row with the organizer avatar and the position pill
- *    (primary token); the organizer team config starts folded (DECISIONS #52).
+ *    (primary token).
  *  - PresenceGrid: avatars + names + dashed "vaga" slots + "CONFIRMADOS · N/M".
  *  - NO per-player OVR rendered (participant + organizer).
  *  - countdown: BOTH branches via the pure formatCountdown (window open ->
@@ -23,12 +23,11 @@
  *    "Confirmar presença" (the prototype's full-width gradient CTA); the
  *    remaining affirmative CTAs ("Iniciar partida" / "Entrar na partida") use
  *    variant="primary".
- *  - organizer view: "VOCÊ ORGANIZA" badge, "Convidar", team-config block; footer
- *    CTA replaced by "Montar os times".
- *  - team-count chips single-select (default 2); stepper min; draw-mode radio rows
- *    single-select (default Manual) with accessibilityRole="radio" + checked state.
- *  - "Montar os times" -> /matches/[id]/teams carrying { id, teamCount, perTeam,
- *    drawMode }.
+ *  - organizer view: "VOCÊ ORGANIZA" badge, "Convidar"; footer CTA replaced by
+ *    "Montar os times" -> /matches/[id]/teams. The team configuration and the
+ *    draw live on that screen, not here (DECISIONS #53).
+ *  - before the confirmation window opens, nobody is offered a confirm button
+ *    (DECISIONS #54).
  *  - "Convidar" + hero share icon call Share.share (no navigation).
  *  - confirmed avatars are display-only (no navigation on tap).
  *  - no tab bar; no chat UI.
@@ -82,7 +81,6 @@ jest.mock('lucide-react-native', () => {
     Calendar: stub('calendar'),
     Check: stub('check'),
     ChevronLeft: stub('chevron-left'),
-    Hand: stub('hand'),
     MapPin: stub('map-pin'),
     Navigation: stub('navigation'),
     Play: stub('play'),
@@ -90,7 +88,6 @@ jest.mock('lucide-react-native', () => {
     UserPlus: stub('user-plus'),
     Users: stub('users'),
     Volleyball: stub('volleyball'),
-    WandSparkles: stub('wand-sparkles'),
     Zap: stub('zap'),
     Minus: stub('minus'),
     Plus: stub('plus'),
@@ -814,67 +811,30 @@ describe('S12 — Match Detail screen', () => {
   });
 
   // ============================ ORGANIZER VIEW ==============================
-  // The team config starts folded; most organizer tests need it open.
-  async function renderOrganizer(
-    over: Partial<MatchDetail> = {},
-    { openConfig = true } = {},
-  ) {
+  function renderOrganizer(over: Partial<MatchDetail> = {}) {
     mockParams = { id: 'mine-1' };
     mockDetail.data = organizerFixture(over);
     useAuthStore.setState({ userId: ORGANIZER_USER_ID });
-    await renderScreen();
-    if (openConfig) {
-      await act(async () => {
-        fireEvent.press(screen.getByTestId('team-config-toggle'));
-      });
-    }
+    return renderScreen();
   }
 
   /**
-   * The team config is folded into a one-line summary until the organizer asks
-   * to change it; "Montar os times" works straight from the defaults.
-   */
-  it('folds the team config into a summary until the organizer opens it', async () => {
-    await renderOrganizer({}, { openConfig: false });
-
-    expect(screen.getByTestId('team-config-summary').props.children).toBe(
-      '2 times · 4 por time · sorteio manual',
-    );
-    expect(screen.queryByTestId('team-count-2')).toBeNull();
-    expect(screen.queryByTestId('draw-mode-manual')).toBeNull();
-
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('build-teams'));
-    });
-    expect(mockPush).toHaveBeenCalledWith({
-      pathname: '/matches/[id]/teams',
-      params: { id: 'mine-1', teamCount: '2', perTeam: '4', drawMode: 'MANUAL' },
-    });
-
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('team-config-toggle'));
-    });
-    expect(screen.getByTestId('team-count-2')).toBeTruthy();
-  });
-
-  /**
    * Covers: S12 — Match Detail
-   * Criterion: "Organizer view: the 'VOCÊ ORGANIZA' badge, the 'Convidar' button,
-   *  and the team-config block are shown; the participant footer CTA is replaced by
-   *  'Montar os times' (variant='grad')."
+   * Criterion: "Organizer view: the 'VOCÊ ORGANIZA' badge and the 'Convidar'
+   *  button are shown; the participant footer CTA is replaced by 'Montar os
+   *  times' (variant='grad'). No team configuration on this screen."
    */
-  it('renders the organizer view (badge, Convidar, team-config) with the grad footer CTA', async () => {
+  it('renders the organizer view (badge, Convidar) with the grad footer CTA and no team config', async () => {
     await renderOrganizer();
 
     expect(screen.getByText('Você organiza')).toBeTruthy();
     expect(screen.getByTestId('invite')).toBeTruthy();
-    expect(screen.getByText('Configuração dos times')).toBeTruthy();
-    expect(screen.getByText('Como sortear os times')).toBeTruthy();
-
-    // team-count chips, stepper, draw-mode rows present
-    expect(screen.getByTestId('team-count-2')).toBeTruthy();
-    expect(screen.getByTestId('per-team-stepper')).toBeTruthy();
-    expect(screen.getByTestId('draw-mode-manual')).toBeTruthy();
+    // teams are configured and drawn on the next screen
+    expect(screen.queryByText('Configuração dos times')).toBeNull();
+    expect(screen.queryByText('Como sortear os times')).toBeNull();
+    expect(screen.queryByTestId('team-count-2')).toBeNull();
+    expect(screen.queryByTestId('per-team-stepper')).toBeNull();
+    expect(screen.queryByTestId('draw-mode-manual')).toBeNull();
 
     // footer CTA is the organizer forward CTA, variant="grad"
     const build = screen.getByTestId('build-teams');
@@ -941,104 +901,12 @@ describe('S12 — Match Detail screen', () => {
 
   /**
    * Covers: S12 — Match Detail
-   * Criterion: "the 'N confirmados no total' caption" shows in the team-config block.
-   */
-  it('renders the "N confirmados no total" caption', async () => {
-    await renderOrganizer();
-    // organizer fixture has 3 confirmed players
-    expect(screen.getByText('3 confirmados no total')).toBeTruthy();
-  });
-
-  /**
-   * Covers: S12 — Match Detail
    * Criterion: "No per-player OVR number is rendered anywhere ... in the organizer
    *  view."
    */
   it('renders no OVR label in the organizer view', async () => {
     await renderOrganizer();
     expect(screen.queryByText(/OVR/i)).toBeNull();
-  });
-
-  // -------------------------------------------- team-count chips (single-select)
-  /**
-   * Covers: S12 — Match Detail
-   * Criterion: "Team-count chips are single-select (default 2)."
-   */
-  it('defaults the team-count to 2 and single-selects among 2/3/4', async () => {
-    await renderOrganizer();
-
-    expect(
-      screen.getByTestId('team-count-2').props.accessibilityState?.selected,
-    ).toBe(true);
-    expect(
-      screen.getByTestId('team-count-3').props.accessibilityState?.selected,
-    ).toBe(false);
-    expect(
-      screen.getByTestId('team-count-4').props.accessibilityState?.selected,
-    ).toBe(false);
-
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('team-count-3'));
-    });
-    expect(
-      screen.getByTestId('team-count-3').props.accessibilityState?.selected,
-    ).toBe(true);
-    expect(
-      screen.getByTestId('team-count-2').props.accessibilityState?.selected,
-    ).toBe(false);
-  });
-
-  // ------------------------------------------------ players-per-team stepper min
-  /**
-   * Covers: S12 — Match Detail
-   * Criterion: "the players-per-team stepper enforces its min."
-   */
-  it('enforces the players-per-team stepper minimum of 1', async () => {
-    await renderOrganizer({
-      teamConfig: { teamCount: 2, perTeam: 1, drawMode: 'MANUAL' },
-    });
-
-    // already at min=1 -> decrement is disabled
-    expect(
-      screen.getByTestId('per-team-stepper-decrement').props.accessibilityState
-        ?.disabled,
-    ).toBe(true);
-    // value stays at 1 after attempting to decrement
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('per-team-stepper-decrement'));
-    });
-    expect(screen.getByTestId('per-team-stepper').props.children).toEqual([
-      '',
-      1,
-    ]);
-  });
-
-  // ------------------------------------------------ draw-mode rows (single-select)
-  /**
-   * Covers: S12 — Match Detail
-   * Criterion: "the draw-mode rows are single-select (default Manual) and expose
-   *  accessibilityRole='radio' + accessibilityState={{ checked }}."
-   */
-  it('defaults the draw mode to Manual and single-selects the radio rows', async () => {
-    await renderOrganizer();
-
-    const manual = screen.getByTestId('draw-mode-manual');
-    const auto = screen.getByTestId('draw-mode-auto');
-
-    expect(manual.props.accessibilityRole).toBe('radio');
-    expect(auto.props.accessibilityRole).toBe('radio');
-    expect(manual.props.accessibilityState?.checked).toBe(true);
-    expect(auto.props.accessibilityState?.checked).toBe(false);
-
-    await act(async () => {
-      fireEvent.press(auto);
-    });
-    expect(
-      screen.getByTestId('draw-mode-auto').props.accessibilityState?.checked,
-    ).toBe(true);
-    expect(
-      screen.getByTestId('draw-mode-manual').props.accessibilityState?.checked,
-    ).toBe(false);
   });
 
   // ----------------------------------------------------------- Convidar -> Share
@@ -1062,22 +930,14 @@ describe('S12 — Match Detail screen', () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 
-  // ------------------------------------------------------- S13 navigation params
+  // ------------------------------------------------------------ S13 navigation
   /**
    * Covers: S12 — Match Detail
-   * Criterion: "'Montar os times' navigates to S13 (/matches/[id]/teams) carrying
-   *  { id, teamCount, perTeam, drawMode }."
+   * Criterion: "'Montar os times' navigates to S13 (/matches/[id]/teams), where
+   *  the teams are configured and drawn."
    */
-  it('navigates to /matches/[id]/teams with { id, teamCount, perTeam, drawMode }', async () => {
+  it('navigates to /matches/[id]/teams from Montar os times', async () => {
     await renderOrganizer();
-
-    // change config so the params reflect the live selection
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('team-count-4'));
-    });
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('draw-mode-auto'));
-    });
 
     await act(async () => {
       fireEvent.press(screen.getByTestId('build-teams'));
@@ -1086,12 +946,7 @@ describe('S12 — Match Detail screen', () => {
     expect(mockPush).toHaveBeenCalledTimes(1);
     expect(mockPush).toHaveBeenCalledWith({
       pathname: '/matches/[id]/teams',
-      params: {
-        id: 'mine-1',
-        teamCount: '4',
-        perTeam: '4',
-        drawMode: 'AUTO',
-      },
+      params: { id: 'mine-1' },
     });
   });
 });
@@ -1143,6 +998,50 @@ describe('S12 — joining against the real backend', () => {
 
     expect(screen.getByText('Na fila de espera · 2º')).toBeTruthy();
     expect(screen.queryByTestId('join-match')).toBeNull();
+  });
+
+  /**
+   * Before the window opens the backend refuses every confirmation: the screen
+   * says when it opens and offers no button that would fail.
+   */
+  it('tells an invited player when confirmations open instead of offering to confirm', async () => {
+    mockDetail.data = participantFixture({
+      myParticipationType: 'REGULAR',
+      myStatus: 'PENDENTE',
+      confirmationOpensAt: '2026-06-23T16:00:00.000Z',
+    });
+    await renderScreen();
+
+    expect(screen.queryByTestId('confirm-presence')).toBeNull();
+    const notOpen = screen.getByTestId('not-open-yet');
+    expect(notOpen.props.accessibilityState?.disabled).toBe(true);
+    expect(screen.getByText(/^Confirmações abrem \d\d\/\d\d às \d\dh\d\d$/)).toBeTruthy();
+  });
+
+  it('disables the organizer Vou jogar toggle until confirmations open', async () => {
+    mockDetail.data = organizerFixture({
+      myParticipationType: 'REGULAR',
+      myStatus: 'PENDENTE',
+      confirmationWindowClosed: false,
+      confirmationOpensAt: '2026-06-23T16:00:00.000Z',
+    });
+    useAuthStore.setState({ userId: ORGANIZER_USER_ID });
+    await renderScreen();
+
+    const toggle = screen.getByTestId('organizer-presence');
+    expect(toggle.props.accessibilityState?.disabled).toBe(true);
+    expect(screen.queryByText('Vou jogar')).toBeNull();
+    // organizing does not depend on the window
+    expect(screen.getByTestId('build-teams')).toBeTruthy();
+  });
+
+  it('formatCountdown counts down to the opening while confirmations are not open', () => {
+    const match = participantFixture({
+      confirmationOpensAt: '2026-06-23T16:00:00.000Z',
+    });
+    expect(formatCountdown(match, new Date('2026-06-23T14:15:00.000Z'))).toBe(
+      'Confirmações abrem em 1h 45min',
+    );
   });
 
   /**

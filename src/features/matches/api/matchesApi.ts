@@ -325,6 +325,7 @@ export function toMatchDetail(api: ApiMatchDetail, userId: string | null): Match
     priceMonthlyLabel: monthly ? formatPriceLabel(match.priceMonthly) : undefined,
     capacity: match.maxPlayers,
     startsAt: match.dateTime,
+    confirmationOpensAt: match.status === 'Draft' ? match.windowOpensAt : undefined,
     confirmationClosesAt: match.windowClosesAt,
     confirmationWindowClosed: match.status !== 'Draft' && !windowOpen,
     organizerId: match.organizerId,

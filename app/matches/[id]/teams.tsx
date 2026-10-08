@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
-import { useEffect, useRef, useState } from 'react';
+import { Check, ChevronLeft, Scale, Shuffle } from 'lucide-react-native';
+import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Pressable,
@@ -12,6 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TeamRoster } from '@/components/domain/TeamRoster';
 import { Button } from '@/components/ui/Button';
+import { FilterChip } from '@/components/ui/FilterChip';
+import { StepperField } from '@/components/ui/StepperField';
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
 import { useDrawTeams } from '@/features/matches/api/drawTeams';
 import type { DrawMode } from '@/features/matches/types/matchDetail';
@@ -19,74 +22,82 @@ import type { Team } from '@/features/matches/types/team';
 import { colors } from '@/theme/colors';
 import { useStartSet } from '@/features/matches/api/liveGame';
 
+// What each draw mode asks the backend for (drawTeams.ts): MANUAL is a random
+// draw, AUTO balances the teams by level.
+const DRAW_MODES: {
+  mode: DrawMode;
+  title: string;
+  caption: string;
+  testID: string;
+}[] = [
+  {
+    mode: 'MANUAL',
+    title: 'Aleatório',
+    caption: 'Times sorteados ao acaso',
+    testID: 'draw-mode-manual',
+  },
+  {
+    mode: 'AUTO',
+    title: 'Equilibrado',
+    caption: 'Times equilibrados por nível',
+    testID: 'draw-mode-auto',
+  },
+];
+
+const DRAW_MODE_ICON: Record<DrawMode, ReactNode> = {
+  MANUAL: <Shuffle size={20} color={colors.primary} />,
+  AUTO: <Scale size={20} color={colors.primary} />,
+};
+
 /**
  * S13 — In-Game Teams
  *
- * Route params: id, teamCount, perTeam, drawMode (all strings, need parsing).
- * Displays team rosters (N columns) with draw/assignment UI.
- *
- * Flow:
- * - AUTO mode: auto-draw on mount (loading skeleton), display teams, show "Começar partida"
- * - MANUAL mode: show "Sortear" button, on tap call draw, display teams, show "Começar partida"
- * - Back button returns to S12 (no persistence)
- * - "Começar partida" shows confirmation dialog, then navigates to scoreboard
+ * Route params: id. The organizer comes here from S12 once the list of players
+ * is settled, and everything about the teams happens on this screen:
+ * - choose how many teams, how many players each and how to draw them
+ *   (defaults from the match's `teamConfig`);
+ * - "Sortear times" draws on the backend and shows the rosters;
+ * - "Refazer sorteio" brings the configuration back;
+ * - "Começar partida" shows a confirmation dialog, then goes to the scoreboard.
+ * Back returns to S12 (no persistence).
  */
 export default function TeamsScreen() {
-  const params = useLocalSearchParams<{
-    id?: string;
-    teamCount?: string;
-    perTeam?: string;
-    drawMode?: string;
-  }>();
-
-  // ── Route param parsing & validation ──
+  const params = useLocalSearchParams<{ id?: string }>();
   const matchId = params.id ?? '';
-  const teamCount = parseInt(params.teamCount ?? '2', 10) as 2 | 3 | 4;
-  const perTeam = parseInt(params.perTeam ?? '4', 10);
-  const drawMode = (params.drawMode ?? 'MANUAL') as DrawMode;
-
-  // Validate route params
-  const paramsValid =
-    matchId &&
-    (teamCount === 2 || teamCount === 3 || teamCount === 4) &&
-    perTeam > 0 &&
-    (drawMode === 'MANUAL' || drawMode === 'AUTO');
 
   // ── Server state: match detail & teams ──
   const matchQuery = useMatchDetail(matchId);
   const confirmedPlayers = matchQuery.data?.players ?? [];
+  const confirmedCount = confirmedPlayers.filter(
+    (p) => p.status === 'CONFIRMADO',
+  ).length;
+  const defaults = matchQuery.data?.teamConfig;
 
-  // A draw is an imperative action (mutation): AUTO fires it once on mount,
-  // MANUAL fires it on each "Sortear" tap.
   const draw = useDrawTeams(matchId);
   const startSet = useStartSet(matchId);
 
   // ── Local UI state ──
+  // The configuration is what the organizer picked, or the match's default
+  // until they pick something.
+  const [teamCountPick, setTeamCount] = useState<2 | 3 | 4 | null>(null);
+  const [perTeamPick, setPerTeam] = useState<number | null>(null);
+  const [drawModePick, setDrawMode] = useState<DrawMode | null>(null);
+  const teamCount = teamCountPick ?? defaults?.teamCount ?? 2;
+  const perTeam = perTeamPick ?? defaults?.perTeam ?? 4;
+  const drawMode = drawModePick ?? defaults?.drawMode ?? 'MANUAL';
+
   const [teams, setTeams] = useState<Team[]>([]);
   const [isStarting, setIsStarting] = useState(false);
 
-  // Seed teams whenever a draw resolves (both AUTO and MANUAL).
+  // Seed teams whenever a draw resolves.
   useEffect(() => {
     if (draw.data?.teams) {
       setTeams(draw.data.teams);
     }
   }, [draw.data]);
 
-  // AUTO mode: draw once, as soon as the confirmed players are available.
-  const autoDrawFired = useRef(false);
-  useEffect(() => {
-    if (
-      drawMode === 'AUTO' &&
-      !autoDrawFired.current &&
-      confirmedPlayers.length > 0
-    ) {
-      autoDrawFired.current = true;
-      draw.mutate({ players: confirmedPlayers, request: { teamCount, perTeam, drawMode } });
-    }
-  }, [drawMode, confirmedPlayers, teamCount, perTeam, draw]);
-
   // ── Error state ──
-  if (!paramsValid) {
+  if (!matchId) {
     return (
       <View className="flex-1 bg-bg-light">
         <SafeAreaView edges={['top']} className="flex-1 items-center justify-center px-6">
@@ -124,10 +135,10 @@ export default function TeamsScreen() {
         onSuccess: (result) => {
           setTeams(result.teams);
         },
-        onError: () => {
+        onError: (error) => {
           Alert.alert(
             'Erro ao sortear',
-            'Não foi possível montar os times. Tente novamente.',
+            error.message || 'Não foi possível montar os times. Tente novamente.',
           );
         },
       },
@@ -172,8 +183,7 @@ export default function TeamsScreen() {
     ]);
   };
 
-  // ── Loading state (AUTO mode, draw in flight) ──
-  const isDrawing = draw.isPending && drawMode === 'AUTO' && teams.length === 0;
+  const drawn = teams.length > 0;
 
   // ── Render ──
   return (
@@ -198,63 +208,121 @@ export default function TeamsScreen() {
           contentContainerClassName="pb-32"
           showsVerticalScrollIndicator={false}
         >
-          {/* ── Subtitle: team config ── */}
-          <View className="px-4 mt-2">
-            <Text className="font-body text-caption text-text-muted">
-              {teamCount} times de {perTeam} jogadores cada • Modo{' '}
-              {drawMode === 'MANUAL' ? 'Manual' : 'Automático'}
-            </Text>
-          </View>
+          {drawn ? (
+            <>
+              {/* ── What was drawn + the rosters ── */}
+              <View className="px-4 mt-2">
+                <Text
+                  className="font-body text-caption text-text-muted"
+                  testID="team-config-summary"
+                >
+                  {teamCount} times de {perTeam} jogadores cada • Sorteio{' '}
+                  {drawMode === 'MANUAL' ? 'aleatório' : 'equilibrado'}
+                </Text>
+              </View>
 
-          {/* ── Team rosters: N columns (loading skeleton vs. populated) ── */}
-          {isDrawing ? (
-            // Loading skeleton: pulse on team columns
-            <View className="px-4 mt-6 flex-row gap-4">
-              {Array.from({ length: teamCount }).map((_, i) => (
-                <View key={i} className="flex-1 gap-3">
-                  <View className="h-6 bg-bg-light-alt rounded-chip" />
-                  {Array.from({ length: perTeam }).map((_, j) => (
-                    <View key={j} className="items-center">
-                      <View className="h-12 w-12 rounded-full bg-bg-light-alt" />
-                    </View>
-                  ))}
-                </View>
-              ))}
-            </View>
-          ) : teams.length > 0 ? (
-            <View className="flex-row gap-4 px-4 mt-6">
-              {teams.map((team) => (
-                <TeamRoster
-                  key={team.id}
-                  teamId={team.id}
-                  teamName={team.name || `Time ${team.number}`}
-                  players={team.players}
-                  testID={`team-roster-${team.id}`}
+              <View className="flex-row gap-4 px-4 mt-6">
+                {teams.map((team) => (
+                  <TeamRoster
+                    key={team.id}
+                    teamId={team.id}
+                    teamName={team.name || `Time ${team.number}`}
+                    players={team.players}
+                    testID={`team-roster-${team.id}`}
+                  />
+                ))}
+              </View>
+
+              <View className="px-4 mt-8">
+                <Button
+                  variant="outline"
+                  onPress={() => setTeams([])}
+                  testID="redraw-teams"
+                >
+                  Refazer sorteio
+                </Button>
+              </View>
+
+              <View className="px-4 mt-6">
+                <Text className="font-body text-body text-text-muted text-center">
+                  Revise os times e toque em "Começar partida" para iniciar.
+                </Text>
+              </View>
+            </>
+          ) : (
+            <View className="px-4 mt-2">
+              {/* ── Configuration (moved here from the match detail) ── */}
+              <Text className="font-display text-h2 text-surface-dark uppercase">
+                Quantos times
+              </Text>
+              <View className="mt-2 flex-row gap-2">
+                {([2, 3, 4] as const).map((count) => (
+                  <FilterChip
+                    key={count}
+                    label={`${count} times`}
+                    selected={teamCount === count}
+                    onPress={() => setTeamCount(count)}
+                    testID={`team-count-${count}`}
+                  />
+                ))}
+              </View>
+
+              <View className="mt-4 flex-row">
+                <StepperField
+                  label="Jogadores por time"
+                  value={perTeam}
+                  onChange={setPerTeam}
+                  min={1}
+                  testID="per-team-stepper"
                 />
-              ))}
-            </View>
-          ) : null}
+              </View>
+              <Text className="mt-1 font-body text-caption text-text-muted">
+                {confirmedCount} confirmados no total
+              </Text>
 
-          {/* ── Sortear button (MANUAL mode only; shown if teams not yet drawn) ── */}
-          {drawMode === 'MANUAL' && teams.length === 0 && (
-            <View className="px-4 mt-8">
-              <Button
-                variant="outline"
-                onPress={handleDraw}
-                loading={draw.isPending}
-                testID="draw-teams"
-              >
-                Sortear
-              </Button>
+              <Text className="mt-6 font-display text-h2 text-surface-dark uppercase">
+                Como sortear os times
+              </Text>
+              {DRAW_MODES.map(({ mode, title, caption, testID }) => (
+                <Pressable
+                  key={mode}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: drawMode === mode }}
+                  onPress={() => setDrawMode(mode)}
+                  testID={testID}
+                  className={`mt-2 flex-row items-center gap-3 rounded-card border p-4 ${
+                    drawMode === mode
+                      ? 'border-primary bg-primary/5'
+                      : 'border-line bg-white'
+                  }`}
+                >
+                  {DRAW_MODE_ICON[mode]}
+                  <View className="flex-1">
+                    <Text className="font-body-extrabold text-h3 text-text-primary">
+                      {title}
+                    </Text>
+                    <Text className="font-body text-caption text-text-muted">
+                      {caption}
+                    </Text>
+                  </View>
+                  {drawMode === mode ? (
+                    <Check size={20} color={colors.primary} />
+                  ) : null}
+                </Pressable>
+              ))}
+
+              <View className="mt-8">
+                <Button
+                  variant="outline"
+                  onPress={handleDraw}
+                  loading={draw.isPending}
+                  testID="draw-teams"
+                >
+                  Sortear times
+                </Button>
+              </View>
             </View>
           )}
-
-          {/* ── Confirmation text ── */}
-          <View className="px-4 mt-8">
-            <Text className="font-body text-body text-text-muted text-center">
-              Revise os times abaixo e toque em "Começar partida" para iniciar.
-            </Text>
-          </View>
         </ScrollView>
 
         {/* ── Fixed footer CTA ── */}
@@ -263,7 +331,7 @@ export default function TeamsScreen() {
             variant="grad"
             onPress={handleStartMatch}
             loading={isStarting}
-            disabled={teams.length === 0}
+            disabled={!drawn}
             testID="start-match"
           >
             Começar partida

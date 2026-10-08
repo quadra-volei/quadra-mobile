@@ -60,7 +60,7 @@ export type MatchOrganizer = {
   level?: number;
 };
 
-/** Organizer team-configuration defaults (read for S12, carried into S13). */
+/** Team-configuration defaults the organizer starts from on S13. */
 export type TeamConfig = {
   teamCount: 2 | 3 | 4;
   perTeam: number;
@@ -94,6 +94,11 @@ export type MatchDetail = {
 
   /** ISO timestamp the match starts at (drives the "Começa em …" countdown). */
   startsAt: string;
+  /**
+   * ISO timestamp confirmations open at — present only while they have not
+   * opened yet (drives "Confirmações abrem em …" and disables confirming).
+   */
+  confirmationOpensAt?: string;
   /** ISO timestamp confirmations close at (drives "Confirmações fecham em …"). */
   confirmationClosesAt: string;
   /** Whether the confirmation window has already closed. */
