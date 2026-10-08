@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
 import type { Coords } from '@/features/matches/api/matchesApi';
@@ -73,6 +73,8 @@ export function usePlaceSuggestions(
     enabled: (options.enabled ?? true) && query.length >= MIN_QUERY_LENGTH,
     staleTime: 5 * 60_000,
     retry: false,
+    // Keep the last list on screen while the next keystroke's search runs.
+    placeholderData: keepPreviousData,
   });
 }
 

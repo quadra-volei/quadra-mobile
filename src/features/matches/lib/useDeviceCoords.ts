@@ -8,6 +8,10 @@ import type { Coords } from '@/features/matches/api/matchesApi';
  * null. Never prompts: asking for the permission belongs to the map screen
  * (S17), so Home and Explore fall back to a default centre until then.
  */
+// ~110 m: steady enough that GPS jitter does not refetch every nearby query,
+// far below the 0,1 km the distances are shown with.
+const roundCoord = (value: number) => Math.round(value * 1000) / 1000;
+
 export function useDeviceCoords(): Coords | null {
   const [coords, setCoords] = useState<Coords | null>(null);
 
@@ -17,15 +21,22 @@ export function useDeviceCoords(): Coords | null {
       try {
         const { status } = await Location.getForegroundPermissionsAsync();
         if (status !== Location.PermissionStatus.GRANTED) return;
-        const position =
-          (await Location.getLastKnownPositionAsync()) ??
-          (await Location.getCurrentPositionAsync());
-        if (active) {
-          setCoords({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          });
-        }
+        // The last known fix answers at once but may be hours old (another
+        // neighbourhood), so it only seeds the value until the fresh fix lands.
+        const apply = (position: Location.LocationObject | null) => {
+          if (!active || !position) return;
+          const next = {
+            latitude: roundCoord(position.coords.latitude),
+            longitude: roundCoord(position.coords.longitude),
+          };
+          setCoords((prev) =>
+            prev?.latitude === next.latitude && prev.longitude === next.longitude
+              ? prev
+              : next,
+          );
+        };
+        apply(await Location.getLastKnownPositionAsync());
+        apply(await Location.getCurrentPositionAsync());
       } catch {
         // No location available: callers keep their default centre.
       }

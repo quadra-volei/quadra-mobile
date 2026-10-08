@@ -78,8 +78,9 @@ export type MatchDetail = {
   format: MatchFormat;
   level: MatchLevel;
   venue: string;
-  /** "1,2 km" rendered with a comma decimal. */
-  distanceKm: number;
+  /** Where the match is; the screen works out the distance from the device. */
+  lat: number;
+  lon: number;
   /** Hex tint the hero cover gradient runs from (tint → navy). */
   tint: string;
   /** "R$ 25" | "Grátis" — the per-session (avulso) price. */

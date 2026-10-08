@@ -317,8 +317,8 @@ export function toMatchDetail(api: ApiMatchDetail, userId: string | null): Match
     format: toFormat(match.format),
     level,
     venue: match.address,
-    // The detail endpoint is not relative to where the user is.
-    distanceKm: 0,
+    lat: match.latitude,
+    lon: match.longitude,
     tint: tintForLevel(level),
     priceLabel: formatPriceLabel(match.price),
     pricePlan: monthly ? 'RECORRENTE' : 'AVULSO',
