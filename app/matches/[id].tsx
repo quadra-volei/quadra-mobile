@@ -1,6 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
+  Banknote,
   Calendar,
   Check,
   ChevronLeft,
@@ -10,10 +11,7 @@ import {
   Play,
   Share2,
   UserPlus,
-  Users,
-  Volleyball,
   WandSparkles,
-  Zap,
 } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
@@ -46,6 +44,7 @@ import type {
 } from '@/features/matches/types/matchDetail';
 import { useAuthStore } from '@/stores/auth';
 import { colors, COVER_SCRIM, COVER_SCRIM_LOCATIONS } from '@/theme/colors';
+import { ICON_HIT_SLOP, PRESS_RIPPLE } from '@/theme/layout';
 import { LEVEL_LEGEND } from '@/theme/levelTier';
 
 // ── Pure label maps (token-free; presentational copy) ──
@@ -65,7 +64,7 @@ const POSITION_LABEL: Record<PlayerPosition, string> = {
 };
 
 /** Cover height; the hero bleeds under the status bar, as in the prototype. */
-const HERO_HEIGHT = 270;
+const HERO_HEIGHT = 210;
 
 /** Only a hint of the open slots is shown, however empty the match is. */
 const MAX_VAGA_SLOTS = 3;
@@ -123,68 +122,24 @@ function formatWhen(startsAt: string): string {
 
 // ── Inline single-use pieces (not extracted, per the catalog's one-off rule) ──
 
-/** One icon + label + value cell of the 2×2 metadata grid. */
-function InfoCell({
+/**
+ * One line of the essentials block under the cover (when / where / price /
+ * organizer): leading icon, the content, and an optional trailing action.
+ */
+function InfoRow({
   icon,
-  label,
-  value,
+  children,
+  trailing,
 }: {
   icon: ReactNode;
-  label: string;
-  value: string;
+  children: ReactNode;
+  trailing?: ReactNode;
 }) {
   return (
-    <View className="mb-4 w-1/2 flex-row items-center gap-3 pr-2">
-      <View className="w-6 items-center">{icon}</View>
-      <View className="flex-1">
-        <Text className="font-body-semibold text-eyebrow text-text-muted uppercase">
-          {label}
-        </Text>
-        <Text className="font-body-semibold text-body-bold text-text-primary">
-          {value}
-        </Text>
-      </View>
-    </View>
-  );
-}
-
-/**
- * One price of the VALORES section. `accent` marks the plan the match is billed
- * on (the recurring one), which the prototype highlights in primary. "Grátis"
- * reads in `success` rather than the neutral price color.
- */
-function PriceTile({
-  label,
-  value,
-  accent,
-  testID,
-}: {
-  label: string;
-  value: string;
-  accent?: boolean;
-  testID?: string;
-}) {
-  const isFree = value === 'Grátis';
-  const valueColor = isFree
-    ? 'text-success'
-    : accent
-      ? 'text-primary'
-      : 'text-surface-dark';
-  return (
-    <View
-      testID={testID}
-      className={`flex-1 rounded-chip border p-3 ${
-        accent ? 'border-primary bg-primary/5' : 'border-line bg-white'
-      }`}
-    >
-      <Text
-        className={`font-body-bold text-eyebrow uppercase ${
-          accent ? 'text-primary' : 'text-text-muted'
-        }`}
-      >
-        {label}
-      </Text>
-      <Text className={`mt-1 font-num text-h1 ${valueColor}`}>{value}</Text>
+    <View className="flex-row items-center gap-3 border-b border-line py-3">
+      <View className="w-8 items-center">{icon}</View>
+      <View className="flex-1">{children}</View>
+      {trailing}
     </View>
   );
 }
@@ -241,7 +196,7 @@ function MatchDetailSkeleton() {
   return (
     <View className="flex-1 bg-white" testID="match-detail-skeleton">
       <View className="bg-bg-light-alt" style={{ height: HERO_HEIGHT }} />
-      <View className="mx-5 mt-6 h-24 rounded-card bg-bg-light-alt" />
+      <View className="mx-5 mt-6 h-40 rounded-card bg-bg-light-alt" />
       <View className="mx-5 mt-6 h-40 rounded-card bg-bg-light-alt" />
     </View>
   );
@@ -290,6 +245,9 @@ export default function MatchDetailScreen() {
   const [perTeam, setPerTeam] = useState<number>(4);
   const [drawMode, setDrawMode] = useState<DrawMode>('MANUAL');
   const [configSeeded, setConfigSeeded] = useState(false);
+  // The config starts folded into a one-line summary; the defaults are enough
+  // for most games, so the organizer only opens it to change something.
+  const [configOpen, setConfigOpen] = useState(false);
 
   // Seed the team-config from the payload once (organizer view defaults).
   useEffect(() => {
@@ -449,144 +407,111 @@ export default function MatchDetailScreen() {
             <Text className="mt-2 font-display text-h1 text-text-on-dark uppercase">
               {match.name}
             </Text>
-            <View className="mt-1 flex-row items-center gap-1">
-              <MapPin size={15} color={colors.textOnDark} />
-              <Text className="font-body text-body text-text-on-dark/85">
-                {match.venue}
-                {deviceCoords
-                  ? ` · ${formatDistance(
-                      distanceKm(deviceCoords, {
-                        latitude: match.lat,
-                        longitude: match.lon,
-                      }),
-                    )}`
-                  : ''}
-              </Text>
-            </View>
-            <Pressable
-              onPress={() =>
-                // Universal Maps link: opens the Google Maps app (or the browser)
-                // with the route from where the user is.
-                void Linking.openURL(
-                  `https://www.google.com/maps/dir/?api=1&destination=${match.lat},${match.lon}`,
-                )
-              }
-              accessibilityRole="button"
-              accessibilityLabel="Como chegar"
-              testID="match-directions"
-              className="mt-3 flex-row items-center gap-2 self-start rounded-pill bg-white/90 px-4 py-2"
-            >
-              <Navigation size={15} color={colors.surfaceDark} />
-              <Text className="font-body text-body-bold text-text-primary">
-                Como chegar
-              </Text>
-            </Pressable>
           </View>
         </CourtImage>
 
         {/* ── Body sheet ── */}
         <View className="px-5 pb-5 pt-6">
-          {/* 2×2 metadata grid */}
-          <View className="flex-row flex-wrap">
-            <InfoCell
-              icon={<Calendar size={22} color={colors.primary} />}
-              label="Quando"
-              value={formatWhen(match.startsAt)}
-            />
-            <InfoCell
-              icon={<Volleyball size={22} color={colors.primary} />}
-              label="Modo"
-              value={match.format}
-            />
-            <InfoCell
-              icon={<Users size={22} color={colors.primary} />}
-              label="Vagas"
-              value={`${confirmedCount}/${match.capacity}`}
-            />
-            <InfoCell
-              icon={<Zap size={22} color={colors.primary} />}
-              label="Nível"
-              value={levelLabel}
-            />
-          </View>
+          {/* ── Essentials: when, where, price, who organizes ── */}
+          <InfoRow icon={<Calendar size={22} color={colors.primary} />}>
+            <Text className="font-body-semibold text-body-bold text-text-primary">
+              {formatWhen(match.startsAt)}
+            </Text>
+            <Text
+              className="font-body text-caption text-text-muted"
+              testID="countdown"
+            >
+              {countdownLabel}
+            </Text>
+          </InfoRow>
 
-          {/* Countdown strip */}
-          <Text
-            className="mt-1 text-center font-body text-caption text-text-muted"
-            testID="countdown"
-          >
-            {countdownLabel}
-          </Text>
-
-          {/* ── VALORES ── */}
-          <View className="mt-6">
-            <View className="mb-3 flex-row items-center justify-between">
-              <Text className="font-display text-h2 text-surface-dark uppercase">
-                Valores
-              </Text>
-              <View
-                className={`rounded-pill px-3 py-1 ${
-                  isRecurring ? 'bg-primary' : 'bg-bg-light'
-                }`}
+          <InfoRow
+            icon={<MapPin size={22} color={colors.primary} />}
+            trailing={
+              <Pressable
+                onPress={() =>
+                  // Universal Maps link: opens the Google Maps app (or the browser)
+                  // with the route from where the user is.
+                  void Linking.openURL(
+                    `https://www.google.com/maps/dir/?api=1&destination=${match.lat},${match.lon}`,
+                  )
+                }
+                accessibilityRole="button"
+                accessibilityLabel="Como chegar"
+                hitSlop={ICON_HIT_SLOP}
+                android_ripple={PRESS_RIPPLE}
+                testID="match-directions"
+                className="flex-row items-center gap-2 overflow-hidden rounded-pill bg-bg-light px-3 py-2"
               >
-                <Text
-                  className={`font-mono text-mono uppercase ${
-                    isRecurring ? 'text-text-on-dark' : 'text-primary'
-                  }`}
-                >
-                  {isRecurring ? 'Recorrente' : 'Avulso'}
+                <Navigation size={15} color={colors.primary} />
+                <Text className="font-body-semibold text-body-bold text-primary">
+                  Como chegar
                 </Text>
-              </View>
-            </View>
+              </Pressable>
+            }
+          >
+            <Text className="font-body-semibold text-body-bold text-text-primary">
+              {match.venue}
+              {deviceCoords
+                ? ` · ${formatDistance(
+                    distanceKm(deviceCoords, {
+                      latitude: match.lat,
+                      longitude: match.lon,
+                    }),
+                  )}`
+                : ''}
+            </Text>
+          </InfoRow>
 
-            <View className="flex-row gap-3">
-              <PriceTile
-                label="Jogador avulso"
-                value={match.priceLabel}
+          <InfoRow icon={<Banknote size={22} color={colors.primary} />}>
+            {/* Drop-in price first; a recurring match adds the regulars' price. */}
+            <Text className="font-body-semibold text-body-bold text-text-primary">
+              <Text
                 testID="price-single"
-              />
-              {isRecurring && match.priceMonthlyLabel ? (
-                <PriceTile
-                  label="Jogador recorrente"
-                  value={match.priceMonthlyLabel}
-                  accent
-                  testID="price-monthly"
-                />
-              ) : null}
-            </View>
-
-            <View className="mt-3 flex-row items-start gap-2">
-              <MapPin size={13} color={colors.textMuted} />
-              <Text className="flex-1 font-body text-caption text-text-muted">
-                Valor combinado direto com o organizador da partida.
+                className={match.priceLabel === 'Grátis' ? 'text-success' : ''}
+              >
+                {match.priceLabel}
               </Text>
-            </View>
-          </View>
-
-          {/* ── Organizer row ── */}
-          <View className="mt-6 flex-row items-center gap-3 rounded-card bg-white p-4 shadow-card">
-            <Avatar
-              uri={match.organizer.avatarUrl}
-              name={match.organizer.name}
-              size="md"
-              level={match.organizer.level}
-            />
-            <View className="flex-1">
-              <Text className="font-body-medium text-caption text-text-muted">
-                Organizado por
-              </Text>
-              <Text className="font-body-bold text-body-bold text-text-primary">
-                {match.organizer.name}
-              </Text>
-            </View>
-            {positionLabel ? (
-              <View className="rounded-pill bg-bg-light px-3 py-1">
-                <Text className="font-mono text-mono text-primary uppercase">
-                  {positionLabel}
+              {match.priceLabel === 'Grátis' ? '' : ' avulso'}
+              {isRecurring ? ' · ' : ''}
+              {isRecurring ? (
+                <Text testID="price-monthly" className="text-primary">
+                  {match.priceMonthlyLabel}
                 </Text>
-              </View>
-            ) : null}
-          </View>
+              ) : null}
+              {isRecurring ? ' recorrente' : ''}
+            </Text>
+            <Text className="font-body text-caption text-text-muted">
+              Valor combinado direto com o organizador da partida.
+            </Text>
+          </InfoRow>
+
+          <InfoRow
+            icon={
+              <Avatar
+                uri={match.organizer.avatarUrl}
+                name={match.organizer.name}
+                size="sm"
+                level={match.organizer.level}
+              />
+            }
+            trailing={
+              positionLabel ? (
+                <View className="rounded-pill bg-bg-light px-3 py-1">
+                  <Text className="font-mono text-mono text-primary uppercase">
+                    {positionLabel}
+                  </Text>
+                </View>
+              ) : null
+            }
+          >
+            <Text className="font-body text-caption text-text-muted">
+              Organizado por
+            </Text>
+            <Text className="font-body-semibold text-body-bold text-text-primary">
+              {match.organizer.name}
+            </Text>
+          </InfoRow>
 
           {/* ── CONFIRMADOS ── */}
           <View className="mt-6 flex-row items-center justify-between">
@@ -624,95 +549,121 @@ export default function MatchDetailScreen() {
           {/* ── Organizer-only: team configuration (→ S13) ── */}
           {isOrganizer ? (
             <View className="mt-8">
-              <Text className="font-display text-h2 text-surface-dark uppercase">
-                Configuração dos times
-              </Text>
-              <View className="mt-2 flex-row gap-2">
-                <FilterChip
-                  label="2 times"
-                  selected={teamCount === 2}
-                  onPress={() => setTeamCount(2)}
-                  testID="team-count-2"
-                />
-                <FilterChip
-                  label="3 times"
-                  selected={teamCount === 3}
-                  onPress={() => setTeamCount(3)}
-                  testID="team-count-3"
-                />
-                <FilterChip
-                  label="4 times"
-                  selected={teamCount === 4}
-                  onPress={() => setTeamCount(4)}
-                  testID="team-count-4"
-                />
-              </View>
-
-              <View className="mt-4 flex-row">
-                <StepperField
-                  label="Jogadores por time"
-                  value={perTeam}
-                  onChange={setPerTeam}
-                  min={1}
-                  testID="per-team-stepper"
-                />
-              </View>
-              <Text className="mt-1 font-body text-caption text-text-muted">
-                {confirmedCount} confirmados no total
-              </Text>
-
-              <Text className="mt-6 font-display text-h2 text-surface-dark uppercase">
-                Como sortear os times
-              </Text>
-              {/* Inlined radio rows mirroring ToggleField's chrome (icon + title +
-                  caption on a bg-white rounded-card border row), trailing Check
-                  when selected. Single-use → no catalog entry. */}
               <Pressable
-                accessibilityRole="radio"
-                accessibilityState={{ checked: drawMode === 'MANUAL' }}
-                onPress={() => setDrawMode('MANUAL')}
-                testID="draw-mode-manual"
-                className={`mt-2 flex-row items-center gap-3 rounded-card border p-4 ${
-                  drawMode === 'MANUAL'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-line bg-white'
-                }`}
+                onPress={() => setConfigOpen((open) => !open)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: configOpen }}
+                android_ripple={PRESS_RIPPLE}
+                testID="team-config-toggle"
+                className="flex-row items-center justify-between gap-3 py-2"
               >
-                <Hand size={20} color={colors.primary} />
                 <View className="flex-1">
-                  <Text className="font-body-extrabold text-h3 text-text-primary">Manual</Text>
-                  <Text className="font-body text-caption text-text-muted">
-                    Você escolhe quem joga em cada time, na mão
+                  <Text className="font-display text-h2 text-surface-dark uppercase">
+                    Configuração dos times
+                  </Text>
+                  <Text
+                    className="mt-1 font-body text-caption text-text-muted"
+                    testID="team-config-summary"
+                  >
+                    {`${teamCount} times · ${perTeam} por time · sorteio ${
+                      drawMode === 'AUTO' ? 'automático' : 'manual'
+                    }`}
                   </Text>
                 </View>
-                {drawMode === 'MANUAL' ? (
-                  <Check size={20} color={colors.primary} />
-                ) : null}
+                <Text className="font-body-semibold text-body-bold text-primary">
+                  {configOpen ? 'Fechar' : 'Alterar'}
+                </Text>
               </Pressable>
-              <Pressable
-                accessibilityRole="radio"
-                accessibilityState={{ checked: drawMode === 'AUTO' }}
-                onPress={() => setDrawMode('AUTO')}
-                testID="draw-mode-auto"
-                className={`mt-2 flex-row items-center gap-3 rounded-card border p-4 ${
-                  drawMode === 'AUTO'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-line bg-white'
-                }`}
-              >
-                <WandSparkles size={20} color={colors.primary} />
-                <View className="flex-1">
-                  <Text className="font-body-extrabold text-h3 text-text-primary">
-                    Automático
+              {configOpen ? (
+                <>
+                  <View className="mt-2 flex-row gap-2">
+                    <FilterChip
+                      label="2 times"
+                      selected={teamCount === 2}
+                      onPress={() => setTeamCount(2)}
+                      testID="team-count-2"
+                    />
+                    <FilterChip
+                      label="3 times"
+                      selected={teamCount === 3}
+                      onPress={() => setTeamCount(3)}
+                      testID="team-count-3"
+                    />
+                    <FilterChip
+                      label="4 times"
+                      selected={teamCount === 4}
+                      onPress={() => setTeamCount(4)}
+                      testID="team-count-4"
+                    />
+                  </View>
+
+                  <View className="mt-4 flex-row">
+                    <StepperField
+                      label="Jogadores por time"
+                      value={perTeam}
+                      onChange={setPerTeam}
+                      min={1}
+                      testID="per-team-stepper"
+                    />
+                  </View>
+                  <Text className="mt-1 font-body text-caption text-text-muted">
+                    {confirmedCount} confirmados no total
                   </Text>
-                  <Text className="font-body text-caption text-text-muted">
-                    Times equilibrados automaticamente por nível e overall
+
+                  <Text className="mt-6 font-display text-h2 text-surface-dark uppercase">
+                    Como sortear os times
                   </Text>
-                </View>
-                {drawMode === 'AUTO' ? (
-                  <Check size={20} color={colors.primary} />
-                ) : null}
-              </Pressable>
+                  {/* Inlined radio rows mirroring ToggleField's chrome (icon + title +
+                      caption on a bg-white rounded-card border row), trailing Check
+                      when selected. Single-use → no catalog entry. */}
+                  <Pressable
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: drawMode === 'MANUAL' }}
+                    onPress={() => setDrawMode('MANUAL')}
+                    testID="draw-mode-manual"
+                    className={`mt-2 flex-row items-center gap-3 rounded-card border p-4 ${
+                      drawMode === 'MANUAL'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-line bg-white'
+                    }`}
+                  >
+                    <Hand size={20} color={colors.primary} />
+                    <View className="flex-1">
+                      <Text className="font-body-extrabold text-h3 text-text-primary">Manual</Text>
+                      <Text className="font-body text-caption text-text-muted">
+                        Você escolhe quem joga em cada time, na mão
+                      </Text>
+                    </View>
+                    {drawMode === 'MANUAL' ? (
+                      <Check size={20} color={colors.primary} />
+                    ) : null}
+                  </Pressable>
+                  <Pressable
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: drawMode === 'AUTO' }}
+                    onPress={() => setDrawMode('AUTO')}
+                    testID="draw-mode-auto"
+                    className={`mt-2 flex-row items-center gap-3 rounded-card border p-4 ${
+                      drawMode === 'AUTO'
+                        ? 'border-primary bg-primary/5'
+                        : 'border-line bg-white'
+                    }`}
+                  >
+                    <WandSparkles size={20} color={colors.primary} />
+                    <View className="flex-1">
+                      <Text className="font-body-extrabold text-h3 text-text-primary">
+                        Automático
+                      </Text>
+                      <Text className="font-body text-caption text-text-muted">
+                        Times equilibrados automaticamente por nível e overall
+                      </Text>
+                    </View>
+                    {drawMode === 'AUTO' ? (
+                      <Check size={20} color={colors.primary} />
+                    ) : null}
+                  </Pressable>
+                </>
+              ) : null}
             </View>
           ) : null}
         </View>

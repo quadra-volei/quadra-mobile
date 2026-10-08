@@ -7,8 +7,9 @@
  *  - hero header: back chevron (accessibilityLabel "Voltar" -> router.back), share
  *    icon, format mono pill, level lime pill, match name (font-display/uppercase),
  *    "venue · distance" line.
- *  - white info card: QUANDO / MODO / VAGAS / NÍVEL grid + "Organizado por {name}"
- *    row with the organizer avatar and the position pill (primary token).
+ *  - essentials rows (when + countdown, where + "Como chegar", price) and the
+ *    "Organizado por {name}" row with the organizer avatar and the position pill
+ *    (primary token); the organizer team config starts folded (DECISIONS #52).
  *  - PresenceGrid: avatars + names + dashed "vaga" slots + "CONFIRMADOS · N/M".
  *  - NO per-player OVR rendered (participant + organizer).
  *  - countdown: BOTH branches via the pure formatCountdown (window open ->
@@ -77,6 +78,7 @@ jest.mock('lucide-react-native', () => {
   const stub = (name: string) => (props: any) =>
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
   return {
+    Banknote: stub('banknote'),
     Calendar: stub('calendar'),
     Check: stub('check'),
     ChevronLeft: stub('chevron-left'),
@@ -355,9 +357,9 @@ describe('S12 — Match Detail screen', () => {
     // share icon present
     expect(screen.getByLabelText('Compartilhar partida')).toBeTruthy();
 
-    // format mono pill + level lime pill (format also appears in MODO cell)
-    expect(screen.getAllByText('6X6').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Intermediário').length).toBeGreaterThan(0);
+    // format mono pill + level lime pill: said once, on the cover
+    expect(screen.getAllByText('6X6')).toHaveLength(1);
+    expect(screen.getAllByText('Intermediário')).toHaveLength(1);
 
     // match name in font-display + uppercase
     const name = screen
@@ -373,20 +375,18 @@ describe('S12 — Match Detail screen', () => {
   // -------------------------------------------------------------- info card
   /**
    * Covers: S12 — Match Detail
-   * Criterion: "The white info card shows the QUANDO / MODO / VAGAS / NÍVEL grid
-   *  and the 'Organizado por {name}' row with the organizer's avatar and (when
-   *  present) a position pill — colored primary on the light card."
+   * Criterion: "The essentials block lists when, where, the price and the
+   *  'Organizado por {name}' row with the organizer's avatar and (when present)
+   *  a position pill; nothing the cover or the CONFIRMADOS header already says
+   *  (mode, level, slots) is repeated."
    */
-  it('renders the 2x2 metadata grid and the organizer row with a primary position pill', async () => {
+  it('renders the essentials rows and the organizer row with a primary position pill', async () => {
     await renderScreen();
 
-    // grid labels (uppercased via the `uppercase` class, not in the copy)
-    expect(screen.getByText('Quando')).toBeTruthy();
-    expect(screen.getByText('Modo')).toBeTruthy();
-    expect(screen.getByText('Vagas')).toBeTruthy();
-    expect(screen.getByText('Nível')).toBeTruthy();
-    // VAGAS value = confirmedCount/capacity = 3/12
-    expect(screen.getAllByText('3/12').length).toBeGreaterThan(0);
+    // the old 2×2 grid repeated the cover pills and the confirmed count
+    expect(screen.queryByText('Modo')).toBeNull();
+    expect(screen.queryByText('Nível')).toBeNull();
+    expect(screen.queryByText('Vagas')).toBeNull();
 
     // organizer row
     expect(screen.getByText('Organizado por')).toBeTruthy();
@@ -721,18 +721,17 @@ describe('S12 — Match Detail screen', () => {
   // ----------------------------------------------------------------- valores
   /**
    * Covers: S12 — Match Detail
-   * Criterion: "the VALORES section shows the avulso price; for a RECORRENTE
-   *  match it also shows the monthly price, tagged 'Recorrente'."
+   * Criterion: "the price row shows the avulso price; for a RECORRENTE match it
+   *  also shows the regulars' price, each named in the same line."
    */
-  it('renders both price tiles and the Recorrente tag for a recurring match', async () => {
+  it('renders both prices in one line for a recurring match', async () => {
     await renderScreen();
 
-    expect(screen.getByText('Valores')).toBeTruthy();
-    expect(screen.getByText('Recorrente')).toBeTruthy();
     expect(screen.getByTestId('price-single')).toBeTruthy();
     expect(screen.getByText('R$ 25')).toBeTruthy();
     expect(screen.getByTestId('price-monthly')).toBeTruthy();
     expect(screen.getByText('R$ 80')).toBeTruthy();
+    expect(screen.getByText('R$ 25 avulso · R$ 80 recorrente')).toBeTruthy();
     expect(
       screen.getByText('Valor combinado direto com o organizador da partida.'),
     ).toBeTruthy();
@@ -740,19 +739,18 @@ describe('S12 — Match Detail screen', () => {
 
   /**
    * Covers: S12 — Match Detail
-   * Criterion: an AVULSO match shows only the single price tile + "Avulso" tag.
+   * Criterion: an AVULSO match shows only the single price.
    */
-  it('renders only the avulso tile for a single-price match', async () => {
+  it('renders only the avulso price for a single-price match', async () => {
     mockDetail.data = participantFixture({
       pricePlan: 'AVULSO',
       priceMonthlyLabel: undefined,
     });
     await renderScreen();
 
-    expect(screen.getByText('Avulso')).toBeTruthy();
-    expect(screen.getByTestId('price-single')).toBeTruthy();
+    expect(screen.getByText('R$ 25 avulso')).toBeTruthy();
     expect(screen.queryByTestId('price-monthly')).toBeNull();
-    expect(screen.queryByText('Recorrente')).toBeNull();
+    expect(screen.queryByText(/recorrente/)).toBeNull();
   });
 
   /**
@@ -816,12 +814,48 @@ describe('S12 — Match Detail screen', () => {
   });
 
   // ============================ ORGANIZER VIEW ==============================
-  function renderOrganizer(over: Partial<MatchDetail> = {}) {
+  // The team config starts folded; most organizer tests need it open.
+  async function renderOrganizer(
+    over: Partial<MatchDetail> = {},
+    { openConfig = true } = {},
+  ) {
     mockParams = { id: 'mine-1' };
     mockDetail.data = organizerFixture(over);
     useAuthStore.setState({ userId: ORGANIZER_USER_ID });
-    return renderScreen();
+    await renderScreen();
+    if (openConfig) {
+      await act(async () => {
+        fireEvent.press(screen.getByTestId('team-config-toggle'));
+      });
+    }
   }
+
+  /**
+   * The team config is folded into a one-line summary until the organizer asks
+   * to change it; "Montar os times" works straight from the defaults.
+   */
+  it('folds the team config into a summary until the organizer opens it', async () => {
+    await renderOrganizer({}, { openConfig: false });
+
+    expect(screen.getByTestId('team-config-summary').props.children).toBe(
+      '2 times · 4 por time · sorteio manual',
+    );
+    expect(screen.queryByTestId('team-count-2')).toBeNull();
+    expect(screen.queryByTestId('draw-mode-manual')).toBeNull();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('build-teams'));
+    });
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/matches/[id]/teams',
+      params: { id: 'mine-1', teamCount: '2', perTeam: '4', drawMode: 'MANUAL' },
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('team-config-toggle'));
+    });
+    expect(screen.getByTestId('team-count-2')).toBeTruthy();
+  });
 
   /**
    * Covers: S12 — Match Detail
