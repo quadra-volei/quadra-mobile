@@ -153,7 +153,8 @@ function participantFixture(over: Partial<MatchDetail> = {}): MatchDetail {
     format: '6X6',
     level: 'INTERMEDIARIO',
     venue: 'Arena Quadra',
-    distanceKm: 1.2,
+    lat: -23.5614,
+    lon: -46.6559,
     tint: '#1A1AFF',
     priceLabel: 'R$ 25',
     pricePlan: 'RECORRENTE',
@@ -209,6 +210,11 @@ const mockDetail: QueryState = {
   isError: false,
   refetch: jest.fn(),
 };
+
+// Device ~1,2 km north of the fixture match (0.0108° of latitude).
+jest.mock('@/features/matches/lib/useDeviceCoords', () => ({
+  useDeviceCoords: () => ({ latitude: -23.5506, longitude: -46.6559 }),
+}));
 
 jest.mock('@/features/matches/api/getMatchDetail', () => ({
   useMatchDetail: () => ({

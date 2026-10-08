@@ -631,6 +631,18 @@ export default function CreateMatchScreen() {
                 }}
                 testID="match-location"
               />
+              {!placePicked && location.trim().length >= 3 ? (
+                <Text
+                  className="mt-2 font-body text-caption text-text-muted"
+                  testID="place-hint"
+                >
+                  {places.isFetching
+                    ? 'Buscando endereços…'
+                    : places.data && places.data.length > 0
+                      ? 'Escolha um endereço da lista para a partida aparecer no lugar certo do mapa.'
+                      : 'Nenhum endereço encontrado. Tente o nome da rua com o bairro ou a cidade.'}
+                </Text>
+              ) : null}
               {!placePicked && places.data && places.data.length > 0 ? (
                 <View
                   className="mt-2 rounded-card bg-white shadow-card"

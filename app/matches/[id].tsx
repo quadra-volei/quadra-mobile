@@ -29,6 +29,8 @@ import { StepperField } from '@/components/ui/StepperField';
 import { TextField } from '@/components/ui/TextField';
 import { useAddGuest } from '@/features/matches/api/addGuest';
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
+import { distanceKm } from '@/features/matches/lib/distanceKm';
+import { useDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
 import {
   useConfirmPresence,
   useDeclinePresence,
@@ -269,6 +271,7 @@ export default function MatchDetailScreen() {
   const insets = useSafeAreaInsets();
 
   const matchQuery = useMatchDetail(matchId);
+  const deviceCoords = useDeviceCoords();
   const confirmPresence = useConfirmPresence(matchId);
   const declinePresence = useDeclinePresence(matchId);
   const joinMatch = useJoinMatch(matchId);
@@ -448,7 +451,15 @@ export default function MatchDetailScreen() {
             <View className="mt-1 flex-row items-center gap-1">
               <MapPin size={15} color={colors.textOnDark} />
               <Text className="font-body text-body text-text-on-dark/85">
-                {match.venue} · {formatDistance(match.distanceKm)}
+                {match.venue}
+                {deviceCoords
+                  ? ` · ${formatDistance(
+                      distanceKm(deviceCoords, {
+                        latitude: match.lat,
+                        longitude: match.lon,
+                      }),
+                    )}`
+                  : ''}
               </Text>
             </View>
           </View>
