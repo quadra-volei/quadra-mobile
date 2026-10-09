@@ -2,7 +2,9 @@ import { Plus, Search, X } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 
-import { colors } from '@/theme/colors';
+import { HARD_SHADOW, colors } from '@/theme/colors';
+
+const ROUND_ACTION_STYLE = { width: 92, height: 92, ...HARD_SHADOW };
 
 export type JogarMenuProps = {
   visible: boolean;
@@ -41,7 +43,7 @@ function ActionOption({
 /**
  * Full-screen "BORA JOGAR?" action menu opened by the central Jogar FAB. Instead
  * of jumping straight to create-match, the FAB now offers the two entry points
- * ("Criar partida" / "Buscar partida") over a navy backdrop, matching the
+ * ("Criar partida" / "Buscar partida") over a blue backdrop, matching the
  * Quadra prototype. Controlled by the tab layout via `visible`.
  */
 export function JogarMenu({
@@ -59,7 +61,7 @@ export function JogarMenu({
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      {/* Navy backdrop — tap anywhere to dismiss. A plain, nearly opaque scrim
+      {/* Blue backdrop (the navy border of the actions must show) — tap anywhere to dismiss. A plain, nearly opaque scrim
           (no blur): it hides the screen behind and keeps the white text legible
           the same way on every device. */}
       <View className="flex-1">
@@ -68,7 +70,7 @@ export function JogarMenu({
           accessibilityRole="button"
           accessibilityLabel="Fechar"
           onPress={onClose}
-          className="flex-1 items-center justify-center bg-surface-dark/95 px-8"
+          className="flex-1 items-center justify-center bg-primary/90 px-8"
         >
           {/* Inner content — stopPropagation so taps on the actions don't
               bubble up to the dismiss backdrop. */}
@@ -93,8 +95,8 @@ export function JogarMenu({
               {/* Criar — flat lime circle */}
               <ActionOption label="Criar partida" onPress={onCreate}>
                 <View
-                  className="items-center justify-center rounded-full border-2 border-white bg-accent"
-                  style={{ width: 92, height: 92 }}
+                  className="items-center justify-center rounded-full border-2 border-surface-dark bg-accent"
+                  style={ROUND_ACTION_STYLE}
                 >
                   <Plus size={40} color={colors.surfaceDark} strokeWidth={2.4} />
                 </View>
@@ -103,8 +105,8 @@ export function JogarMenu({
               {/* Buscar — solid white circle */}
               <ActionOption label="Buscar partida" onPress={onSearch}>
                 <View
-                  className="items-center justify-center rounded-full border-2 border-accent bg-white"
-                  style={{ width: 92, height: 92 }}
+                  className="items-center justify-center rounded-full border-2 border-surface-dark bg-white"
+                  style={ROUND_ACTION_STYLE}
                 >
                   <Search
                     size={38}
@@ -120,7 +122,7 @@ export function JogarMenu({
               accessibilityRole="button"
               accessibilityLabel="Fechar"
               onPress={onClose}
-              className="mt-10 items-center justify-center rounded-full bg-white/30 border-2 border-white"
+              className="mt-10 items-center justify-center rounded-full bg-white/30 border border-white/40"
               style={{ width: 52, height: 52 }}
             >
               <X size={26} color={colors.textOnDark} strokeWidth={2.4} />

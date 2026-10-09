@@ -206,14 +206,19 @@ NativeWind shadow class becomes Android elevation, which is blurred and cannot b
 
 The same rule covers everything that is pressed like a button:
 
-- **Round buttons** (tab bar "Jogar" FAB, map recenter, stepper +/−): flat fill + 2px navy border;
-  the hard shadow from 56px up (below that it only smudges).
-- **Selection cards** (onboarding position / level / modality, Home "Criar" / "Buscar" tiles):
-  2px navy border + `HARD_SHADOW`, in place of `shadow-card`.
+- **Round buttons** (tab bar "Jogar" FAB, "Bora jogar?" circles, map recenter, stepper +/−): flat
+  fill + 2px navy border; the hard shadow from 56px up (below that it only smudges).
+- **Icon buttons in a box** (Home header bell / settings): 40px white square, `rounded-chip`,
+  2px navy border + `HARD_SHADOW`, 20px icon.
+- **Selection cards** (onboarding position / level / modality): the **selected** card takes the
+  2px navy border + `HARD_SHADOW` and a pale lime fill (`bg-accent/20`), with a lime check
+  circle; unselected cards stay plain white with `shadow-card`.
+- **Action tiles** (Home "Criar" lime / "Buscar" white): 2px navy border + `HARD_SHADOW`.
 - **Dialog** (`Dialog.tsx`): lime for the action, red (`danger`) for `destructive`, both with the
   border and shadow; `ghost` for `cancel`.
-- **On navy** the navy border and shadow cannot be seen: the border turns white (or lime) and
-  there is no shadow ("Bora jogar?" menu, `outlineW`, `outlineLime`).
+- **On navy** the navy border and shadow cannot be seen, so `outlineW` / `outlineLime` carry a
+  light border and no shadow. The "Bora jogar?" menu sits on a blue scrim (`bg-primary/90`) for
+  the same reason.
 - A button written by hand (a `Pressable`) follows the same three parts; prefer `<Button>`.
 
 Icons are used **only** when they add meaning (share, sortear/shuffle). Direct-action CTAs stay icon-free.

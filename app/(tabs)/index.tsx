@@ -20,8 +20,6 @@ import type {
 } from "@/features/matches/types/match";
 import { HARD_SHADOW, colors } from "@/theme/colors";
 import {
-  ICON_HIT_SLOP,
-  ICON_RIPPLE,
   PRESS_RIPPLE,
   TAB_BAR_CLEARANCE,
 } from "@/theme/layout";
@@ -282,20 +280,20 @@ export default function HomeScreen() {
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Notificações"
-              hitSlop={ICON_HIT_SLOP}
-              android_ripple={ICON_RIPPLE}
+              className="h-10 w-10 items-center justify-center rounded-chip border-2 border-surface-dark bg-white"
+              style={HARD_SHADOW}
               onPress={() => {}}
             >
-              <Bell size={24} color={colors.surfaceDark} />
+              <Bell size={20} color={colors.surfaceDark} />
             </Pressable>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Configurações"
-              hitSlop={ICON_HIT_SLOP}
-              android_ripple={ICON_RIPPLE}
+              className="h-10 w-10 items-center justify-center rounded-chip border-2 border-surface-dark bg-white"
+              style={HARD_SHADOW}
               onPress={goSettings}
             >
-              <Settings size={24} color={colors.surfaceDark} />
+              <Settings size={20} color={colors.surfaceDark} />
             </Pressable>
           </View>
         </View>
