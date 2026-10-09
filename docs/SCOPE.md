@@ -4,9 +4,6 @@ State of the MVP on the `dev` branch, as of 2026-10-06. Reasons for each choice 
 `docs/DECISIONS.md`. The detailed IN/OUT catalog per screen this file used to hold is in
 `docs/archive/SCOPE-2026-10-06-catalogo-de-telas.md`.
 
-Layout reference for each screen: the PNGs in `docs/references/screens/<id>/`. When a PNG
-shows something listed below as out of the MVP, this file wins.
-
 ## Done (all wired to the real API)
 
 | Screen | Route | Notes |
