@@ -14,8 +14,10 @@ import MapView, { Marker } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
+import { Tag } from '@/components/ui/Tag';
 import { MatchCard } from '@/components/domain/MatchCard';
 import { useNearbyMatches } from '@/features/matches/api/getNearby';
+import { formatWhen } from '@/features/matches/lib/formatWhen';
 import { isMapAvailable } from '@/features/matches/lib/isMapAvailable';
 import type { NearbyMatch } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
@@ -245,7 +247,13 @@ export default function MapScreen() {
         // initialRegion, not region: a controlled region snaps the map back to
         // the centre on every re-render (e.g. when a pin is selected).
         initialRegion={{ ...center, ...REGION_DELTA }}
-        onPress={() => setSelectedMatchId(null)}
+        // The native toolbar (Android) would sit over the summary card.
+        toolbarEnabled={false}
+        // A pin tap also reaches the map's onPress on some platforms; only a tap
+        // on the map itself closes the card.
+        onPress={(e) => {
+          if (e.nativeEvent.action !== 'marker-press') setSelectedMatchId(null);
+        }}
       >
         {matches.map((match) => {
           const openSlots = match.capacity - match.confirmed;
@@ -319,11 +327,50 @@ export default function MapScreen() {
           className="absolute bottom-0 left-0 right-0"
         >
           <View className="px-4 pb-4">
-            <MatchCard
-              match={selected}
-              onPress={goMatch}
+            <View
+              className="bg-white rounded-card shadow-card p-4"
               testID="map-preview-card"
-            />
+            >
+              <View className="flex-row items-center gap-2">
+                <Tag bg={colors.surfaceDark} color={colors.textOnDark}>
+                  {selected.format}
+                </Tag>
+                <Tag bg={colors.accent} color={colors.surfaceDark}>
+                  {selected.level}
+                </Tag>
+              </View>
+              <Text
+                numberOfLines={1}
+                className="mt-2 font-body-bold text-h3 text-text-primary"
+              >
+                {selected.name}
+              </Text>
+              <View className="mt-1 flex-row flex-wrap items-center gap-x-2">
+                {selected.startsAt ? (
+                  <Text className="font-body text-body text-text-muted">
+                    {formatWhen(selected.startsAt)}
+                  </Text>
+                ) : null}
+                <Text className="font-body text-body text-text-muted">
+                  {selected.distanceKm.toFixed(1).replace('.', ',')} km
+                </Text>
+                <Text className="font-body text-body text-text-muted">
+                  {selected.confirmed}/{selected.capacity} confirmados
+                </Text>
+                <Text className="font-body-semibold text-body-bold text-text-primary">
+                  {selected.priceLabel}
+                </Text>
+              </View>
+              <View className="mt-3">
+                <Button
+                  variant="primary"
+                  onPress={() => goMatch(selected.id)}
+                  testID="map-preview-open"
+                >
+                  Ver partida
+                </Button>
+              </View>
+            </View>
           </View>
         </SafeAreaView>
       )}
