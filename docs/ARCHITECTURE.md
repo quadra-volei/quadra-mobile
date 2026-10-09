@@ -29,7 +29,7 @@ app/index.tsx                         splash + redirect
 app/(auth)/login · sms-otp · onboarding
 app/(tabs)/index · explore · network · profile
 app/matches/create
-app/matches/[id]                      detail (single scroll, no tabs)
+app/matches/[id]                      detail (two tabs: Detalhes, Confirmados)
 app/matches/[id]/teams · scoreboard · mvp-vote · summary
 app/explore/map
 app/profile/card · ranking · settings · edit · notifications · feedback
