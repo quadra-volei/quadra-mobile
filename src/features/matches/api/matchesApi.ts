@@ -237,7 +237,7 @@ export function toUpcomingMatch(item: ApiMyMatch): UpcomingMatch {
     id: item.match.id,
     name: item.match.name,
     startsAt: item.match.dateTime,
-    category: level === 'AVANCADO' ? 'COMPETITIVO' : 'CASUAL',
+    level,
     openSlots: item.openSlots,
     priceLabel: formatPriceLabel(item.match.price),
     avatarUrls: item.confirmedPhotoUrls,

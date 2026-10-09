@@ -19,6 +19,7 @@ import { MatchCard } from '@/components/domain/MatchCard';
 import { useNearbyMatches } from '@/features/matches/api/getNearby';
 import { distanceKm } from '@/features/matches/lib/distanceKm';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
+import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
 import { isMapAvailable } from '@/features/matches/lib/isMapAvailable';
 import type { NearbyMatch } from '@/features/matches/types/match';
 import { HARD_SHADOW, colors } from '@/theme/colors';
@@ -383,8 +384,12 @@ export default function MapScreen() {
                 <Tag bg={colors.surfaceDark} color={colors.textOnDark}>
                   {selected.format}
                 </Tag>
-                <Tag bg={colors.accent} color={colors.surfaceDark}>
-                  {selected.level}
+                <Tag
+                  bg={LEVEL_BADGE[selected.level].bg}
+                  color={LEVEL_BADGE[selected.level].color}
+                  outlined
+                >
+                  {LEVEL_BADGE[selected.level].label}
                 </Tag>
               </View>
               <Text

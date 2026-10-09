@@ -108,7 +108,7 @@ const UPCOMING_FIXTURE: UpcomingMatch[] = [
     id: 'up-1',
     name: 'Vôlei de Quinta',
     startsAt: '2026-06-20T19:30:00-03:00',
-    category: 'CASUAL',
+    level: 'INTERMEDIARIO',
     openSlots: 2,
     priceLabel: 'R$ 15',
     avatarUrls: ['https://example.com/a.png', 'https://example.com/b.png'],
@@ -118,7 +118,7 @@ const UPCOMING_FIXTURE: UpcomingMatch[] = [
     id: 'up-2',
     name: 'Racha da Galera',
     startsAt: '2026-06-21T20:00:00-03:00',
-    category: 'COMPETITIVO',
+    level: 'AVANCADO',
     openSlots: 4,
     priceLabel: 'Grátis',
     avatarUrls: ['https://example.com/c.png'],
@@ -324,9 +324,9 @@ describe('S5 — Home screen', () => {
     // both upcoming fixtures rendered
     expect(screen.getByText('Vôlei de Quinta')).toBeTruthy();
     expect(screen.getByText('Racha da Galera')).toBeTruthy();
-    // compact-card meta (vagas + category pill) confirms it's the compact card
+    // compact-card meta (vagas + level badge) confirms it's the compact card
     expect(screen.getByText('2 vagas')).toBeTruthy();
-    expect(screen.getByText('CASUAL')).toBeTruthy();
+    expect(screen.getByText('Avançado')).toBeTruthy();
   });
 
   /**
@@ -360,7 +360,7 @@ describe('S5 — Home screen', () => {
     expect(screen.getByText('Quadra do Parque')).toBeTruthy();
     // dark-card meta (format/level pills + distance) confirms it's the MatchCard
     expect(screen.getByText('4X4')).toBeTruthy();
-    expect(screen.getByText('INTERMEDIARIO')).toBeTruthy();
+    expect(screen.getByText('Iniciante')).toBeTruthy();
     expect(screen.getByText('1,2 km')).toBeTruthy();
   });
 

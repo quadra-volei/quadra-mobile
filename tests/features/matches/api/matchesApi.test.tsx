@@ -299,7 +299,7 @@ describe('match lists', () => {
         id: MATCH_ID,
         name: 'Racha de Quinta',
         startsAt: apiMatch.dateTime,
-        category: 'COMPETITIVO',
+        level: 'AVANCADO',
         openSlots: 6,
         priceLabel: 'R$ 15',
         avatarUrls: ['https://cdn.test/ana.jpg'],

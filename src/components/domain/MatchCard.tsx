@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { CourtImage } from '@/components/ui/CourtImage';
 import { Tag } from '@/components/ui/Tag';
+import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
 import type { NearbyMatch } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
 import { PRESS_RIPPLE } from '@/theme/layout';
@@ -51,8 +52,8 @@ export function MatchCard({ match, onPress, testID }: MatchCardProps) {
           <Tag bg="rgba(255,255,255,0.92)" color={colors.surfaceDark}>
             {match.format}
           </Tag>
-          <Tag bg={colors.accent} color={colors.surfaceDark}>
-            {match.level}
+          <Tag bg={LEVEL_BADGE[match.level].bg} color={LEVEL_BADGE[match.level].color} outlined>
+            {LEVEL_BADGE[match.level].label}
           </Tag>
         </View>
 

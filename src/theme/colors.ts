@@ -8,6 +8,7 @@ export const colors = {
   primary: '#1A1AFF', // primary
   accent: '#AADD00', // accent (lime)
   accentLight: '#C6F135', // accent-light / brightLime (nearby distance + price)
+  tertiary: '#FF6B00', // tertiary / orange (advanced-level badge)
   textOnDark: '#FFFFFF', // text-on-dark / white (icon on dark)
   textMuted: '#62628A', // text-muted (muted lucide icons: clock, users)
   success: '#16A34A', // success (trend-up arrow)

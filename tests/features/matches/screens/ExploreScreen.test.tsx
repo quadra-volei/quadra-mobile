@@ -335,7 +335,7 @@ describe('S6 — Explore screen', () => {
     await render(<ExploreScreen />);
 
     for (const label of ['Todos', 'Perto', 'Hoje', 'Iniciante', '6x6']) {
-      expect(screen.getByText(label)).toBeTruthy();
+      expect(screen.getAllByText(label).length).toBeGreaterThan(0);
     }
 
     // "Todos" is the active chip; the others are not.
@@ -354,7 +354,8 @@ describe('S6 — Explore screen', () => {
   it('filters to INICIANTE matches and highlights the chip when "Iniciante" is selected', async () => {
     await render(<ExploreScreen />);
 
-    await press(screen.getByText('Iniciante'));
+    // [0] is the chip; the level badge of a card carries the same text
+    await press(screen.getAllByText('Iniciante')[0]!);
 
     // highlight moved
     expect(selectedOfChip('Iniciante')).toBe(true);
@@ -485,7 +486,8 @@ describe('S6 — Explore screen', () => {
 
     expect(screen.getByText('3 partidas encontradas')).toBeTruthy();
 
-    await press(screen.getByText('Iniciante'));
+    // [0] is the chip; the level badge of a card carries the same text
+    await press(screen.getAllByText('Iniciante')[0]!);
     expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
   });
 
@@ -528,7 +530,7 @@ describe('S6 — Explore screen', () => {
     expect(screen.getByText('Arena Sky Beach')).toBeTruthy();
     // dark-card meta (format/level pills + distance) confirms it's the MatchCard
     expect(screen.getByText('4X4')).toBeTruthy();
-    expect(screen.getByText('INTERMEDIARIO')).toBeTruthy();
+    expect(screen.getByText('Intermediário')).toBeTruthy();
     // distance rendered with pt-BR comma (also present in the card meta)
     expect(screen.getAllByText('3,4 km').length).toBeGreaterThan(0);
   });
@@ -692,7 +694,8 @@ describe('S6 — Explore screen', () => {
  * descendant, so we walk up to the nearest node exposing accessibilityState.
  */
 function selectedOfChip(label: string): boolean | undefined {
-  let node: any = screen.getByText(label);
+  // [0]: the chips render above the cards, whose level badge can repeat a label.
+  let node: any = screen.getAllByText(label)[0];
   while (node) {
     const state = node.props?.accessibilityState;
     if (state && 'selected' in state) return state.selected;
