@@ -41,7 +41,6 @@ import type {
 import { useAuthStore } from '@/stores/auth';
 import { colors, COVER_SCRIM, COVER_SCRIM_LOCATIONS } from '@/theme/colors';
 import { ICON_HIT_SLOP, PRESS_RIPPLE } from '@/theme/layout';
-import { LEVEL_LEGEND } from '@/theme/levelTier';
 
 // ── Pure label maps (token-free; presentational copy) ──
 const LEVEL_LABEL: Record<MatchLevel, string> = {
@@ -131,25 +130,37 @@ function InfoRow({
   );
 }
 
-/** Explains the tier-colored level "bolinha" carried by each grid avatar. */
-function LevelLegend() {
+/** One of the two tabs under the cover ("Detalhes" / "Confirmados"). */
+function TabButton({
+  selected,
+  onPress,
+  children,
+  testID,
+}: {
+  selected: boolean;
+  onPress: () => void;
+  children: ReactNode;
+  testID: string;
+}) {
   return (
-    <View
-      testID="level-legend"
-      className="mt-2 flex-row flex-wrap gap-x-3 gap-y-2 border-t border-line pt-3"
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      android_ripple={PRESS_RIPPLE}
+      testID={testID}
+      className={`flex-1 items-center border-b-2 py-3 ${
+        selected ? 'border-primary' : 'border-transparent'
+      }`}
     >
-      {LEVEL_LEGEND.map((tier) => (
-        <View key={tier.label} className="flex-row items-center gap-2">
-          <View
-            className="h-2 w-2 rounded-full"
-            style={{ backgroundColor: tier.color }}
-          />
-          <Text className="font-body text-caption text-text-muted">
-            {tier.label}
-          </Text>
-        </View>
-      ))}
-    </View>
+      <Text
+        className={`font-body-semibold text-body-bold ${
+          selected ? 'text-primary' : 'text-text-muted'
+        }`}
+      >
+        {children}
+      </Text>
+    </Pressable>
   );
 }
 
@@ -225,6 +236,9 @@ export default function MatchDetailScreen() {
 
   // Organizer "add guest to fill a vaga" sheet (S12).
   const [guestSheetOpen, setGuestSheetOpen] = useState(false);
+
+  // The screen opens on the match itself; who is going sits one tap away.
+  const [tab, setTab] = useState<'details' | 'players'>('details');
 
   if (matchQuery.isPending) {
     return <MatchDetailSkeleton />;
@@ -377,8 +391,29 @@ export default function MatchDetailScreen() {
           </View>
         </CourtImage>
 
-        {/* ── Body sheet ── */}
-        <View className="px-5 pb-5 pt-6">
+        {/* ── Tabs ── */}
+        <View className="flex-row border-b border-line px-5" accessibilityRole="tablist">
+          <TabButton
+            selected={tab === 'details'}
+            onPress={() => setTab('details')}
+            testID="tab-details"
+          >
+            Detalhes
+          </TabButton>
+          <TabButton
+            selected={tab === 'players'}
+            onPress={() => setTab('players')}
+            testID="tab-players"
+          >
+            Confirmados ·{' '}
+            <Text testID="confirmed-count">
+              {confirmedCount}/{match.capacity}
+            </Text>
+          </TabButton>
+        </View>
+
+        {tab === 'details' ? (
+        <View className="px-5 pb-5 pt-3">
           {/* ── Essentials: when, where, price, who organizes ── */}
           <InfoRow icon={<Calendar size={22} color={colors.primary} />}>
             <Text className="font-body-semibold text-body-bold text-text-primary">
@@ -480,30 +515,22 @@ export default function MatchDetailScreen() {
             </Text>
           </InfoRow>
 
-          {/* ── CONFIRMADOS ── */}
-          <View className="mt-6 flex-row items-center justify-between">
-            <Text className="font-display text-h2 text-surface-dark uppercase">
-              Confirmados
-            </Text>
-            <View className="flex-row items-center gap-3">
-              <Text
-                className="font-body-bold text-body-bold text-primary"
-                testID="confirmed-count"
+        </View>
+        ) : (
+        <View className="px-5 pb-5 pt-4">
+          {/* ── Who is going; the organizer invites and fills open slots ── */}
+          {isOrganizer ? (
+            <View className="mb-2 self-end">
+              <Button
+                variant="outline"
+                onPress={onShare}
+                leftIcon={<UserPlus size={18} color={colors.primary} />}
+                testID="invite"
               >
-                {confirmedCount}/{match.capacity}
-              </Text>
-              {isOrganizer ? (
-                <Button
-                  variant="outline"
-                  onPress={onShare}
-                  leftIcon={<UserPlus size={18} color={colors.primary} />}
-                  testID="invite"
-                >
-                  Convidar
-                </Button>
-              ) : null}
+                Convidar
+              </Button>
             </View>
-          </View>
+          ) : null}
           <PresenceGrid
             players={match.players}
             capacity={match.capacity}
@@ -511,8 +538,8 @@ export default function MatchDetailScreen() {
             onPressEmpty={isOrganizer ? () => setGuestSheetOpen(true) : undefined}
             testID="presence-grid"
           />
-          <LevelLegend />
         </View>
+        )}
       </ScrollView>
 
       {/* ── Sticky action bar ── */}
