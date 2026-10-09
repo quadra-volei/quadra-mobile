@@ -31,6 +31,11 @@ jest.mock('expo-linear-gradient', () => {
   };
 });
 
+// The location gate (own test: LocationGate.test.tsx) -> passthrough.
+jest.mock('@/components/domain/LocationGate',() => ({
+  LocationGate: ({ children }: any) => children,
+}));
+
 // safe-area insets -> zero (no provider under test).
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),

@@ -5,6 +5,7 @@ import { Keyboard, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { JogarMenu } from '@/components/domain/JogarMenu';
+import { LocationGate } from '@/components/domain/LocationGate';
 import { JogarIcon } from '@/components/icons/JogarIcon';
 import { TabExploreIcon } from '@/components/icons/TabExploreIcon';
 import { TabHomeIcon } from '@/components/icons/TabHomeIcon';
@@ -73,7 +74,8 @@ export default function TabsLayout() {
   }, []);
 
   return (
-    <>
+    // Asks for the location before any tab mounts (DECISIONS #72).
+    <LocationGate>
     <Tabs
       screenOptions={{ headerShown: false }}
       tabBar={({ state, navigation }) => {
@@ -180,6 +182,6 @@ export default function TabsLayout() {
         router.push('/explore');
       }}
     />
-    </>
+    </LocationGate>
   );
 }

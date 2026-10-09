@@ -318,6 +318,13 @@ More UI primitives will live here:
 
 ## Domain components (`src/components/domain/`)
 
+### `LocationGate`
+- **Path**: `src/components/domain/LocationGate.tsx`
+- **Category**: domain
+- **Props**: `{ children: ReactNode }`
+- **Used in**: `app/(tabs)/_layout.tsx` (around the tabs)
+- **Notes**: Asks for the location permission before rendering its children, only while the permission was never answered (DECISIONS #72). Denied: explains what is lost, offers the phone settings, then lets the user in.
+
 ### `MatchCard`
 - **Path**: `src/components/domain/MatchCard.tsx`
 - **Category**: domain
