@@ -157,3 +157,9 @@ Placeholders that are NOT mocks (the backend has no such data yet, the app shows
 | --- | --- | --- |
 | 66 | **The "Rede" tab is a feed of posts** (Johny, 2026-10-09; the social feed is now in scope, built in small approved steps). Step 1: everyone's posts, newest first (author, time, text, one square photo, the match it is tied to), pull to refresh, more on scroll; the author can delete their own post after a confirmation. The header's "+" opens `app/network/new.tsx` (text, one photo, one of my last 5 finished matches). The inert bell left this header. | First experience of the feed. No follows, likes or comments yet (API #40 to #42). |
 | 67 | Where the API has no photo storage the post **cannot carry a photo**: publishing says so and the text-only post still works. | The storage is optional on the backend (profile photos behave the same). |
+
+## 2026-10-09 — Splash: only the mark, on lime
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 68 | **The splash is the brand mark alone, centered on lime (`accent`)**: no wordmark, tagline, progress bar, "CARREGANDO" or entrance animation, and no minimum hold (it was 1.8 s). The native splash (`expo-splash-screen` in `app.json`, `assets/splash-icon.png`) and `app/index.tsx` draw the same picture at the same size, so the hand-off between them is not seen. On lime the mark's lime block is drawn white (`QuadraLogo` `accentColor`), the only allowed recolor. The native part only changes in a new build (`npx expo prebuild -p android` for a local one). | Owner's call: a minimalist splash, icon only, on the project's lime. The hold only existed to show the animation. The lime block would vanish on a lime background. |
