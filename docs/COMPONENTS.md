@@ -251,13 +251,14 @@ Each entry follows this structure:
 ### `Tag`
 - **Path**: `src/components/ui/Tag.tsx`
 - **Category**: ui
-- **Props**: `{ children: ReactNode; bg?: string; color?: string; dot?: boolean }`
-- **Used in**: `MatchCard` (format + level tags), `MatchCardCompact` (category tag)
+- **Props**: `{ children: ReactNode; bg?: string; color?: string; dot?: boolean; outlined?: boolean }`
+- **Used in**: `MatchCard` (format + level tags), `MatchCardCompact` (level badge), map preview card
 - **Example**:
   ```tsx
-  <Tag bg={colors.primary} color={colors.textOnDark} dot>CASUAL</Tag>
+  const badge = LEVEL_BADGE[match.level]; // src/features/matches/lib/levelBadge.ts
+  <Tag bg={badge.bg} color={badge.color} outlined>{badge.label}</Tag>
   ```
-- **Notes**: Small uppercase pill label (ports the prototype's `Tag`): `font-body-bold` (DM Sans 700), 10px, letter-spacing 1, `rounded-pill`. `bg`/`color` are passed in because they vary per use (category/format/level) and the caller owns the DESIGN_SYSTEM priority-color choice; optional leading `dot` in the label color. Purely presentational.
+- **Notes**: Small uppercase pill label (ports the prototype's `Tag`): `font-body-bold` (DM Sans 700), 10px, letter-spacing 1, `rounded-pill`. `bg`/`color` are passed in because they vary per use (format/level) and the caller owns the DESIGN_SYSTEM priority-color choice; optional leading `dot` in the label color; `outlined` adds a 1.5px navy border (the match-level badge always uses it). Purely presentational.
 
 <!--
 More UI primitives will live here:
@@ -345,7 +346,7 @@ More UI primitives will live here:
   ```tsx
   <MatchCardCompact match={m} onPress={(id) => router.push({ pathname: '/matches/[id]', params: { id } })} />
   ```
-- **Notes**: Light `bg-white rounded-card shadow-card` compact card (`w-[262px]`) mirroring the prototype's upcoming card. A `<CourtImage>` cover (`height 124`, flush top, `radius 0`) tinted by `match.tint` with a category `<Tag>` (blue+dot for "CASUAL", else lime) top-left. Content block: the match name (`font-body-bold` 16px, single line), a `Clock` datetime rendered relatively (`"Hoje · 19h30"` / `"Amanhã · 20h00"` / `"20/06 · 19h30"` via a pure internal formatter, `font-body-semibold`), then a hairline footer with a confirmed-avatar stack (`expo-image`, max 3 + "+N" overflow) and two matched badges — `"N vagas"` (blue on blue-tint) and price (`font-body-bold`, green when "Grátis", else navy, on `bg-light`). Single `accessibilityRole="button"` target announcing name + datetime. Receives plain data via props; never fetches. No hardcoded hex — colors come from `src/theme/colors.ts`.
+- **Notes**: Light `bg-white rounded-card shadow-card` compact card (`w-[262px]`) mirroring the prototype's upcoming card. A `<CourtImage>` cover (`height 124`, flush top, `radius 0`) tinted by `match.tint` with the level badge (`LEVEL_BADGE[match.level]`, outlined `<Tag>`) top-left. Content block: the match name (`font-body-bold` 16px, single line), a `Clock` datetime rendered relatively (`"Hoje · 19h30"` / `"Amanhã · 20h00"` / `"20/06 · 19h30"` via a pure internal formatter, `font-body-semibold`), then a hairline footer with a confirmed-avatar stack (`expo-image`, max 3 + "+N" overflow) and two matched badges — `"N vagas"` (blue on blue-tint) and price (`font-body-bold`, green when "Grátis", else navy, on `bg-light`). Single `accessibilityRole="button"` target announcing name + datetime. Receives plain data via props; never fetches. No hardcoded hex — colors come from `src/theme/colors.ts`.
 
 ### `LevelBar`
 - **Path**: `src/components/domain/LevelBar.tsx`

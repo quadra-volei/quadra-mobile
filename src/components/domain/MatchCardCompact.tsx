@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { CourtImage } from '@/components/ui/CourtImage';
 import { Tag } from '@/components/ui/Tag';
+import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
 import type { UpcomingMatch } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
 import { PRESS_RIPPLE } from '@/theme/layout';
@@ -47,7 +48,7 @@ function formatStartsAt(iso: string): string {
 
 /**
  * Compact match card for the "PRÓXIMAS PARTIDAS" scroll (S5 Home). A `CourtImage`
- * cover tinted per match with a category tag, then a white content block: name,
+ * cover tinted per match with the level badge, then a white content block: name,
  * datetime, and a footer with the confirmed-avatar stack and vagas/price badges.
  * Reused by S8 (recent matches strip). Receives plain data via props and never
  * fetches. Mirrors the prototype's upcoming card.
@@ -55,7 +56,7 @@ function formatStartsAt(iso: string): string {
 export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactProps) {
   const extra = match.avatarUrls.length - MAX_AVATARS;
   const visibleAvatars = match.avatarUrls.slice(0, MAX_AVATARS);
-  const catBlue = (match.category ?? '').toUpperCase() === 'CASUAL';
+  const badge = LEVEL_BADGE[match.level];
   const isFree = match.priceLabel.toLowerCase() === 'grátis';
 
   return (
@@ -70,17 +71,11 @@ export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactPro
       {/* cover */}
       <View>
         <CourtImage tint={match.tint} height={124} radius={0} />
-        {match.category ? (
-          <View className="absolute top-[10px] left-[10px]">
-            <Tag
-              bg={catBlue ? colors.primary : colors.accent}
-              color={catBlue ? colors.textOnDark : colors.surfaceDark}
-              dot
-            >
-              {match.category}
-            </Tag>
-          </View>
-        ) : null}
+        <View className="absolute top-[10px] left-[10px]">
+          <Tag bg={badge.bg} color={badge.color} outlined>
+            {badge.label}
+          </Tag>
+        </View>
       </View>
 
       {/* content */}

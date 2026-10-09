@@ -5,7 +5,7 @@
 /** Match format (players-per-side) shown as a mono pill on the dark card. */
 export type MatchFormat = '2X2' | '4X4' | '6X6';
 
-/** Skill level tier shown as a lime pill on the dark card. */
+/** Skill level of a match, shown as a colored badge (`LEVEL_BADGE`). */
 export type MatchLevel = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
 
 /**
@@ -17,8 +17,8 @@ export type UpcomingMatch = {
   name: string;
   /** ISO timestamp; rendered as "Hoje 19h30" / "Amanhã ...". */
   startsAt: string;
-  /** e.g. "CASUAL" / "COMPETITIVO" (category tag). Optional. */
-  category?: string;
+  /** Drives the level badge on the cover. */
+  level: MatchLevel;
   /** "N vagas". */
   openSlots: number;
   /** "R$ 15" | "Grátis". */

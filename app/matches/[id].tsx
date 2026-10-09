@@ -26,6 +26,7 @@ import { useAddGuest } from '@/features/matches/api/addGuest';
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
 import { distanceKm } from '@/features/matches/lib/distanceKm';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
+import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
 import { useDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
 import {
   useConfirmPresence,
@@ -33,7 +34,6 @@ import {
   useJoinMatch,
 } from '@/features/matches/api/presence';
 import type { AddGuestInput } from '@/features/matches/schema/addGuest';
-import type { MatchLevel } from '@/features/matches/types/match';
 import type {
   MatchDetail,
   PlayerPosition,
@@ -43,12 +43,6 @@ import { colors, COVER_SCRIM, COVER_SCRIM_LOCATIONS } from '@/theme/colors';
 import { ICON_HIT_SLOP, PRESS_RIPPLE } from '@/theme/layout';
 
 // ── Pure label maps (token-free; presentational copy) ──
-const LEVEL_LABEL: Record<MatchLevel, string> = {
-  INICIANTE: 'Iniciante',
-  INTERMEDIARIO: 'Intermediário',
-  AVANCADO: 'Avançado',
-};
-
 const POSITION_LABEL: Record<PlayerPosition, string> = {
   LEV: 'Levantador',
   PON: 'Ponteiro',
@@ -253,7 +247,7 @@ export default function MatchDetailScreen() {
   const confirmedCount = match.players.filter(
     (p) => p.status === 'CONFIRMADO',
   ).length;
-  const levelLabel = LEVEL_LABEL[match.level];
+  const levelBadge = LEVEL_BADGE[match.level];
   const positionLabel = match.organizer.position
     ? POSITION_LABEL[match.organizer.position]
     : undefined;
@@ -378,9 +372,15 @@ export default function MatchDetailScreen() {
                   {match.format}
                 </Text>
               </View>
-              <View className="rounded-pill bg-accent px-3 py-1">
-                <Text className="font-mono text-mono text-text-primary uppercase">
-                  {levelLabel}
+              <View
+                className="rounded-pill border-[1.5px] border-surface-dark px-3 py-1"
+                style={{ backgroundColor: levelBadge.bg }}
+              >
+                <Text
+                  className="font-mono text-mono uppercase"
+                  style={{ color: levelBadge.color }}
+                >
+                  {levelBadge.label}
                 </Text>
               </View>
             </View>

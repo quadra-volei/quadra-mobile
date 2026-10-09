@@ -69,6 +69,21 @@ The dot/badge color next to a player's level is determined by their tier. These 
 
 > `#00B4D8` (cyan) is **only** valid for `level-1`. Do not use it as a general UI accent.
 
+### Match level badge (Iniciante, Intermediário, Avançado)
+
+The level of a **match** is not the player level scale above. It has three values, so it takes
+the first three colors of the priority rule, from the easiest level up, and the pair is the same
+on every surface (`LEVEL_BADGE` in `src/features/matches/lib/levelBadge.ts`):
+
+| Level | Fill | Label |
+| --- | --- | --- |
+| Iniciante | `accent` (lime) | navy |
+| Intermediário | `primary` (blue) | white |
+| Avançado | `tertiary` (orange) | navy |
+
+The badge always has a 1.5px navy border, so it stays readable over a cover of any tint. The
+label is the level itself; a match has no "Casual" / "Competitivo" category.
+
 ### Position badges (PON, OPO, LEV, LIB, CEN, OUT)
 
 Position abbreviations do **not** have individual fixed colors. The rule is contrast-based:
@@ -260,7 +275,7 @@ For agents producing screen specs, the Quadra identity has these traits:
 
 - **Organic shapes in backgrounds** — blue blobs and lime waves on splash/login screens. Treat them as decorative SVG/blur layers, not photographic.
 - **Dark hero areas** with light copy — used for stats, ranking, and key data moments (navy gradient `linear-gradient(165deg, #0c0c52 0%, #0A0A3C 55%, #08083a 100%)`).
-- **Pill-shaped badges** with strong color contrast for positions (PON, OPO, LEV, LIB, etc.) and tags (Pistache, Casual, Confirmado).
+- **Pill-shaped badges** with strong color contrast for positions (PON, OPO, LEV, LIB, etc.) and tags (Iniciante, 4X4, Confirmado).
 - **Strong CTAs** — solid lime with a thick navy border and a hard shadow — never subtle. Buttons in Quadra are confident.
 - **Image-forward match cards** — every match card shows the venue photo with overlaid metadata.
 - **Display type is always uppercase** — Climate Crisis never renders in mixed/lower case.
