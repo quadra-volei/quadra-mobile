@@ -348,7 +348,11 @@ function LiveScoreboard({
   const endSet = useEndSet(matchId);
   const elapsed = useElapsed(game.setStartedAt);
 
-  const busy = addPoint.isPending || undoPoint.isPending || endSet.isPending;
+  // Points are optimistic (useAddPoint): the panels stay tappable while earlier
+  // taps are on their way. Undo and end-set wait for them, so they act on the
+  // score the server really has.
+  const correcting = undoPoint.isPending || endSet.isPending;
+  const busy = addPoint.isPending || correcting;
   const { setNumber } = game;
 
   const handleEndSet = () => {
@@ -444,7 +448,7 @@ function LiveScoreboard({
                 accessibilityRole="button"
                 accessibilityLabel={`Adicionar ponto para ${team.name}`}
                 className={panelClass}
-                disabled={busy}
+                disabled={correcting}
                 testID={`add-point-team${index + 1}`}
               >
                 {panel}

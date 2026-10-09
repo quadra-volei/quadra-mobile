@@ -202,10 +202,85 @@ export function useStartSet(matchId: string) {
   });
 }
 
+/** Key of the point mutations of a match (see `useAddPoint`). */
+export const scoreMutationKey = (matchId: string) =>
+  ['matches', matchId, 'score'] as const;
+
+type PointInput = { setNumber: number; teamId: string };
+
+/** The cached game with one point added to (or taken back from) a team's set. */
+function withPoint(data: LiveGameData, input: PointInput, delta: 1 | -1): LiveGameData {
+  const { scoreboard } = data;
+  if (!scoreboard) {
+    return data;
+  }
+  return {
+    ...data,
+    scoreboard: {
+      ...scoreboard,
+      sets: scoreboard.sets.map((set) => {
+        if (set.setNumber !== input.setNumber) {
+          return set;
+        }
+        const side = input.teamId === set.teamAId ? 'teamAPoints' : 'teamBPoints';
+        return {
+          ...set,
+          [side]: Math.max(0, set[side] + delta),
+          canUndo: delta === 1 ? true : set.canUndo,
+        };
+      }),
+    },
+  };
+}
+
+/**
+ * Adds a point, optimistically: the score on screen goes up at the tap and the
+ * server is told in the background, so scoring does not wait for the network.
+ * - Taps are sent one at a time, in order (`scope`), so fast taps all count.
+ * - While taps are still on their way the server's answers are not written to
+ *   the cache (they are behind what the screen shows); the answer to the last
+ *   one is, and it is the truth (it may have closed the set).
+ * - A refused or failed point is taken back from the screen and the game is
+ *   re-read from the server.
+ */
 export function useAddPoint(matchId: string) {
-  return useGameMutation<{ setNumber: number; teamId: string }>(matchId, (input) =>
-    postPoint(matchId, input.setNumber, input.teamId),
-  );
+  const queryClient = useQueryClient();
+  const gameKey = liveGameQueryKey(matchId);
+  const mutationKey = scoreMutationKey(matchId);
+  return useMutation<ApiScoreboard, Error, PointInput>({
+    mutationKey,
+    scope: { id: mutationKey.join('/') },
+    mutationFn: async (input) => {
+      try {
+        return await postPoint(matchId, input.setNumber, input.teamId);
+      } catch (error) {
+        throw toMatchError(error, GAME_ERRORS);
+      }
+    },
+    onMutate: async (input) => {
+      // A read in flight would bring back the score from before this tap.
+      await queryClient.cancelQueries({ queryKey: gameKey });
+      queryClient.setQueryData<LiveGameData>(gameKey, (previous) =>
+        previous ? withPoint(previous, input, 1) : previous,
+      );
+    },
+    onSuccess: (scoreboard) => {
+      // This mutation still counts as running here: 1 means no tap is queued.
+      if (queryClient.isMutating({ mutationKey }) > 1) {
+        return;
+      }
+      queryClient.setQueryData<LiveGameData>(gameKey, (previous) =>
+        previous ? { ...previous, scoreboard } : previous,
+      );
+      void queryClient.invalidateQueries({ queryKey: matchDetailQueryKey(matchId) });
+    },
+    onError: (_error, input) => {
+      queryClient.setQueryData<LiveGameData>(gameKey, (previous) =>
+        previous ? withPoint(previous, input, -1) : previous,
+      );
+      void queryClient.invalidateQueries({ queryKey: gameKey });
+    },
+  });
 }
 
 /** Takes back the last point of the set (one level). */
