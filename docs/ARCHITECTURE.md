@@ -20,7 +20,7 @@ src/theme/                tokens used outside className
 tests/                    Jest + RNTL
 ```
 
-Areas: `auth`, `matches`, `explore`, `profile`, `ranking`.
+Areas: `auth`, `matches`, `explore`, `profile`, `ranking`, `network`.
 
 ## Routes
 
@@ -32,6 +32,7 @@ app/matches/create
 app/matches/[id]                      detail (two tabs: Detalhes, Confirmados)
 app/matches/[id]/teams · scoreboard · mvp-vote · summary
 app/explore/map
+app/network/new                       new post
 app/profile/card · ranking · settings · edit · notifications · feedback
 ```
 
