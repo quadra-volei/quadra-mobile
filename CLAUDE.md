@@ -12,7 +12,6 @@ Every screen reads the real API (sibling repo `quadra-api`); there is no mock mo
 | Routing, state, auth, real-time | `docs/ARCHITECTURE.md` |
 | Colors, spacing, typography | `docs/DESIGN_SYSTEM.md` |
 | Existing components (reuse before creating) | `docs/COMPONENTS.md` |
-| Layout of each screen | PNGs in `docs/references/screens/<id>/` |
 
 `docs/archive/` is history only (old screen specs from the mocked phase, the four-agent
 workflow) — never treat it as current and do not read it by default.

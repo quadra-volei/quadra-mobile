@@ -3,7 +3,7 @@
 > The visual law of the land. Every color, spacing, typography, and radius the app uses lives here.
 > Always reference these tokens. Hardcoded hex values are not allowed.
 
-> Source: `Identidade Visual.html` (brand guide) + `data.js` (QUADRA palette object) from the Claude Design prototype.
+> Source: the brand guide and palette of the original design prototype (removed from the repo on 2026-10-09; in git history under `docs/references/`). This file is now the reference.
 
 ---
 
@@ -216,7 +216,7 @@ Icons are used **only** when they add meaning (share, sortear/shuffle). Direct-a
 Hybrid approach:
 
 - **General UI icons** (bell, search, chevrons, settings, etc.): `lucide-react-native`, default size 24, stroke 1.75, color via NativeWind token.
-- **Brand-specific icons** (logo mark, bottom-nav icons, FAB "jogar" icon): custom SVGs from the prototype's `uploads/` folder (e.g. `Icone-quadra-logo.svg`, `Home.svg`, `Rede.svg`, `Perfil.svg`, `Explorar.svg`, `jogar.svg` + their `-selecionado`/`-active` states). Port these as SVG components into `src/components/icons/`.
+- **Brand-specific icons** (logo mark, bottom-nav icons, FAB "jogar" icon): SVG components in `src/components/icons/` (ported from the prototype's SVGs, which are no longer in the repo).
 
 Forbidden: importing PNG icons inline.
 
