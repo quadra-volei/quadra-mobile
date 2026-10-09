@@ -266,7 +266,7 @@ More UI primitives will live here:
 - **Path**: `src/components/icons/QuadraLogo.tsx`
 - **Props**: `{ size?: number; testID?: string }`
 - **Used in**: S1 Splash, S2 Login
-- **Notes**: Official brand mark (three overlapping blocks, blue + lime). Colors are fixed — never recolor.
+- **Notes**: Official brand mark (three overlapping blocks, blue + lime). Colors are fixed — never recolor. Only exception: `accentColor` replaces the lime block on a lime background (the splash passes white).
 
 ### `GoogleMark`
 - **Path**: `src/components/icons/GoogleMark.tsx`
@@ -281,8 +281,8 @@ More UI primitives will live here:
 ### `useRiseIn`
 - **Path**: `src/hooks/useRiseIn.ts`
 - **Props**: `({ delay?: number; distance?: number; duration?: number; easing?: WithTimingConfig['easing'] }) => AnimatedStyle`
-- **Used in**: S1 Splash (wordmark, tagline, loader block), S2 Login (lockup, headline, subtitle, CTA)
-- **Notes**: "Fade up into place" entrance, ported from the prototype's `.q-rise`. Defaults match `.q-rise` (16px / 450ms / `cubic-bezier(.2,.7,.2,1)`); the splash overrides them with its softer `qSplashUp` values. Stagger siblings by giving each a larger `delay`. Returns a style for `<Animated.View>` / `<Animated.Text>`.
+- **Used in**: S2 Login (lockup, headline, subtitle, CTA)
+- **Notes**: "Fade up into place" entrance, ported from the prototype's `.q-rise`. Defaults match `.q-rise` (16px / 450ms / `cubic-bezier(.2,.7,.2,1)`). Stagger siblings by giving each a larger `delay`. Returns a style for `<Animated.View>` / `<Animated.Text>`.
 - **Example**:
   ```tsx
   const headlineStyle = useRiseIn({ delay: 60 });
