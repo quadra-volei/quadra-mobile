@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 
 import { fetchNearbyMatches, toNearbyMatch } from '@/features/matches/api/matchesApi';
 import type { NearbyMatch } from '@/features/matches/types/match';
@@ -28,5 +28,8 @@ export function useNearbyMatches(
     queryKey: nearbyMatchesQueryKey(params),
     queryFn: () => getNearbyMatches(params),
     staleTime: 60_000,
+    // Keep the current matches on screen while another area loads (the map
+    // re-queries as it moves and must not fall back to its loading state).
+    placeholderData: keepPreviousData,
   });
 }

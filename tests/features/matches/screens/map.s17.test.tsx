@@ -184,7 +184,7 @@ jest.mock('@/features/matches/api/getNearby', () => ({
 
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
-import MapScreen, { pinToneFor } from '../../../../app/explore/map';
+import MapScreen, { pinToneFor, searchAreaFor } from '../../../../app/explore/map';
 
 // --- Helpers ---------------------------------------------------------------
 
@@ -401,7 +401,8 @@ describe('S17 — Map of Nearby Matches', () => {
     expect(screen.getByTestId('map-preview-card')).toBeTruthy();
     // Card renders that match's summary.
     expect(screen.getByText('Arena Sky Beach')).toBeTruthy();
-    expect(screen.getByText('1,2 km')).toBeTruthy();
+    // Distance from the device (mocked ~0,3 km away), not the search centre.
+    expect(screen.getByText('0,3 km')).toBeTruthy();
     expect(screen.getByText('R$ 25')).toBeTruthy();
   });
 
@@ -420,6 +421,37 @@ describe('S17 — Map of Nearby Matches', () => {
       pathname: '/matches/[id]',
       params: { id: 'near-last' },
     });
+  });
+
+  /**
+   * Moving the map searches the area on screen, so a match far from the user
+   * (another city) is found by taking the map there.
+   */
+  it('searches the area the map shows once the map is moved', async () => {
+    await renderScreen();
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
+
+    await act(async () => {
+      screen.getByTestId('map-view').props.onRegionChangeComplete({
+        latitude: -19.9191,
+        longitude: -43.9386,
+        latitudeDelta: 0.4,
+        longitudeDelta: 0.4,
+      });
+    });
+
+    expect(mockNearby.lastParams).toEqual({ lat: -19.92, lon: -43.94, radiusKm: 23 });
+  });
+
+  it('caps the search radius and flags a view that is too wide', () => {
+    const area = searchAreaFor({
+      latitude: -21,
+      longitude: -45,
+      latitudeDelta: 6,
+      longitudeDelta: 6,
+    });
+    expect(area.radiusKm).toBe(50);
+    expect(area.tooWide).toBe(true);
   });
 
   // ------------------------------------------------------------------- back
