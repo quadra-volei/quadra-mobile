@@ -25,6 +25,7 @@ import { TextField } from '@/components/ui/TextField';
 import { useAddGuest } from '@/features/matches/api/addGuest';
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
 import { distanceKm } from '@/features/matches/lib/distanceKm';
+import { formatWhen } from '@/features/matches/lib/formatWhen';
 import { useDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
 import {
   useConfirmPresence,
@@ -104,24 +105,6 @@ export function formatCountdown(match: MatchDetail, now: Date): string {
       : 'Confirmações encerradas';
   }
   return `${prefix} ${formatDuration(diffMs)}`;
-}
-
-/** "Hoje · 19h30" style label for the QUANDO cell. */
-function formatWhen(startsAt: string): string {
-  const date = new Date(startsAt);
-  const hh = date.getHours().toString().padStart(2, '0');
-  const mm = date.getMinutes().toString().padStart(2, '0');
-  const today = new Date();
-  const sameDay =
-    date.getFullYear() === today.getFullYear() &&
-    date.getMonth() === today.getMonth() &&
-    date.getDate() === today.getDate();
-  const dayLabel = sameDay
-    ? 'Hoje'
-    : `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1)
-        .toString()
-        .padStart(2, '0')}`;
-  return `${dayLabel} · ${hh}h${mm}`;
 }
 
 // ── Inline single-use pieces (not extracted, per the catalog's one-off rule) ──

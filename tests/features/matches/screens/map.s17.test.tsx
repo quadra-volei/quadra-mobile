@@ -414,7 +414,7 @@ describe('S17 — Map of Nearby Matches', () => {
     await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
 
     await press(screen.getByTestId('map-pin-near-last'));
-    await press(screen.getByTestId('map-preview-card'));
+    await press(screen.getByText('Ver partida'));
 
     expect(mockPush).toHaveBeenCalledWith({
       pathname: '/matches/[id]',
