@@ -382,7 +382,44 @@ describe('S13 — In-Game Teams screen', () => {
     });
     expect(screen.getByTestId('team-count-2')).toBeTruthy();
     expect(screen.getByTestId('draw-teams')).toBeTruthy();
-    expect(screen.getByTestId('start-match').props.accessibilityState?.disabled).toBe(true);
+    // Before a draw the footer's one action is the draw itself.
+    expect(screen.queryByTestId('start-match')).toBeNull();
+  });
+
+  it('only offers Começar partida once teams are drawn', async () => {
+    mockDrawTeams.data = undefined;
+
+    await act(async () => {
+      render(<TeamsScreen />);
+    });
+
+    expect(screen.getByTestId('draw-teams')).toBeTruthy();
+    expect(screen.queryByTestId('start-match')).toBeNull();
+  });
+
+  it('says how the confirmed players fit the teams', async () => {
+    mockDrawTeams.data = undefined;
+    await act(async () => {
+      render(<TeamsScreen />);
+    });
+    // 6 confirmed, 2 teams of 4.
+    expect(screen.getByTestId('capacity-hint').props.children).toBe(
+      'Faltam 2 para completar os times.',
+    );
+  });
+
+  it('lists who sat out of the draw', async () => {
+    const [p1, p2] = matchDetailFixture().players;
+    mockDrawTeams.data = {
+      teams: [
+        { id: 'team-1', number: 1, name: 'Time 1', players: [p1!] },
+        { id: 'team-2', number: 2, name: 'Time 2', players: [p2!] },
+      ],
+    };
+    await act(async () => {
+      render(<TeamsScreen />);
+    });
+    expect(screen.getByText('De fora neste sorteio: Pedro, Ana, Carlos, Luna')).toBeTruthy();
   });
 
   it('displays teams after the draw completes', async () => {
@@ -1121,18 +1158,6 @@ describe('S13 — In-Game Teams screen', () => {
   /**
    * Additional coverage: CTA button state management.
    */
-  it('disables Começar partida button when no teams are available', async () => {
-    mockDrawTeams.data = undefined;
-
-    await act(async () => {
-      render(<TeamsScreen />);
-    });
-
-    const startButton = screen.getByTestId('start-match');
-    expect(startButton).toBeTruthy();
-    // Button should be disabled when no teams are available
-    expect(startButton.props.accessibilityState?.disabled).toBe(true);
-  });
 
   it('enables Começar partida button when teams are available', async () => {
     mockDrawTeams.data = {

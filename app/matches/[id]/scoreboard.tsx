@@ -15,9 +15,10 @@ import {
   useStartSet,
   useUndoPoint,
 } from '@/features/matches/api/liveGame';
-import { getTeamBgColor } from '@/features/matches/lib/teamColors';
+import { getTeamBgColor, getTeamTextOnColor } from '@/features/matches/lib/teamColors';
 import { useScoreSubscription } from '@/features/matches/realtime/useScoreSubscription';
 import { colors } from '@/theme/colors';
+import { ICON_HIT_SLOP, PRESS_RIPPLE_ON_DARK } from '@/theme/layout';
 
 /**
  * S13.5 + S14 — Set Team Picker → Live Scoreboard.
@@ -30,6 +31,10 @@ import { colors } from '@/theme/colors';
  * - PLAYING — the live scoreboard (S14): the organizer scores, undoes the last
  *   point and may end the set early; everyone else watches it update live.
  * - ENDED — on to the MVP vote.
+ *
+ * The whole route is navy: secondary text is `text-white/70` (never
+ * `text-text-muted`, which is the muted tone for light surfaces) and buttons
+ * are the on-dark variants (`outlineW` / `outlineLime`).
  *
  * Route param: id (match id).
  */
@@ -45,7 +50,7 @@ export default function ScoreboardScreen() {
   if (gameQuery.isPending) {
     return (
       <Centered>
-        <Text className="text-body text-text-on-dark">Carregando...</Text>
+        <Text className="font-body text-body text-white/70">Carregando...</Text>
       </Centered>
     );
   }
@@ -53,11 +58,11 @@ export default function ScoreboardScreen() {
   if (gameQuery.isError || !gameQuery.data) {
     return (
       <Centered>
-        <Text className="text-center text-body text-text-muted mb-6">
+        <Text className="text-center font-body text-body text-white/70 mb-6">
           Não foi possível carregar a partida
         </Text>
         <Button
-          variant="outline"
+          variant="outlineW"
           onPress={() => void gameQuery.refetch()}
           testID="retry-load"
         >
@@ -81,7 +86,7 @@ export default function ScoreboardScreen() {
   return (
     <Centered>
       <Text
-        className="text-center text-body text-text-muted mb-6"
+        className="text-center font-body text-body text-white/70 mb-6"
         testID="waiting-game"
       >
         {game.phase === 'PICK_NEXT'
@@ -90,7 +95,7 @@ export default function ScoreboardScreen() {
             ? 'Monte os times antes de começar a partida.'
             : 'A partida ainda não começou.'}
       </Text>
-      <Button variant="outline" onPress={() => router.back()}>
+      <Button variant="outlineW" onPress={() => router.back()}>
         Voltar
       </Button>
     </Centered>
@@ -101,7 +106,7 @@ export default function ScoreboardScreen() {
 function Centered({ children }: { children: ReactNode }) {
   return (
     <View className="flex-1 bg-surface-dark">
-      <SafeAreaView edges={['top']} className="flex-1 items-center justify-center px-6">
+      <SafeAreaView edges={['top', 'bottom']} className="flex-1 items-center justify-center px-6">
         {children}
       </SafeAreaView>
     </View>
@@ -114,11 +119,21 @@ function BackButton() {
       onPress={() => router.back()}
       accessibilityRole="button"
       accessibilityLabel="Voltar"
+      hitSlop={ICON_HIT_SLOP}
       testID="scoreboard-back"
     >
       <ChevronLeft size={24} color={colors.textOnDark} />
     </Pressable>
   );
+}
+
+/** A team keeps the color of its position in the draw through the whole game. */
+function teamColorIndex(game: LiveGame, teamId: string): number {
+  return Math.max(0, game.teams.findIndex((team) => team.id === teamId));
+}
+
+function setsLabel(setsWon: number): string {
+  return `${setsWon} ${setsWon === 1 ? 'set' : 'sets'}`;
 }
 
 /**
@@ -166,11 +181,11 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
 
   return (
     <View className="flex-1 bg-surface-dark">
-      <SafeAreaView edges={['top']} className="flex-1">
+      <SafeAreaView edges={['top', 'bottom']} className="flex-1">
         {/* ── Header bar ── */}
-        <View className="flex-row items-center justify-between px-4 py-3 border-b border-line/20">
+        <View className="flex-row items-center justify-between px-4 py-3 border-b border-white/10">
           <BackButton />
-          <Text className="font-body-bold text-eyebrow text-text-muted uppercase">
+          <Text className="font-body-bold text-eyebrow text-white/70 uppercase">
             SET {game.setNumber} - MELHOR DE {game.bestOf}
           </Text>
           <View className="w-6" />
@@ -181,7 +196,7 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
           <Text className="font-display text-display text-text-on-dark uppercase">
             Quem joga este set?
           </Text>
-          <Text className="text-body text-text-muted mt-2">
+          <Text className="font-body text-body text-white/70 mt-2">
             Selecione os dois times que entram em quadra agora
           </Text>
         </View>
@@ -203,13 +218,14 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
                 key={team.id}
                 onPress={() => toggleTeamSelection(team.id)}
                 disabled={selectedTeamIds.length === 2 && !isSelected}
+                android_ripple={PRESS_RIPPLE_ON_DARK}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: isSelected }}
                 accessibilityLabel={`${team.name}${isSelected ? ` selecionado ${selectionOrder}` : ''}`}
-                className={`rounded-card border px-4 py-3 flex-row items-center justify-between ${
+                className={`rounded-card border-2 px-4 py-4 flex-row items-center justify-between overflow-hidden ${
                   isSelected
-                    ? 'bg-surface-dark-alt border-primary'
-                    : 'bg-surface-dark-alt border-line/20'
+                    ? 'bg-white/10 border-accent'
+                    : 'bg-surface-dark-alt border-white/10'
                 }`}
                 testID={`team-row-${team.number}`}
               >
@@ -220,21 +236,21 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
                       teamIndex,
                     )}`}
                   >
-                    <Text className="font-num text-sm font-bold text-text-on-dark">
+                    <Text className={`font-num text-body ${getTeamTextOnColor(teamIndex)}`}>
                       {team.number}
                     </Text>
                   </View>
 
                   <View className="flex-1">
-                    <Text className="font-body-semibold text-body-bold text-text-on-dark">{team.name}</Text>
+                    <Text className="font-body-extrabold text-h3 text-text-on-dark">{team.name}</Text>
                     {wonPreviousSet ? (
-                      <Text className="text-caption text-accent mt-1">
+                      <Text className="font-body-semibold text-caption text-accent mt-1">
                         Venceu o set e continua em quadra
                       </Text>
                     ) : (
-                      <Text className="text-caption text-text-muted mt-1">
+                      <Text className="font-body text-caption text-white/70 mt-1">
                         {team.players.length} jogadores
-                        {setsWon > 0 ? ` · ${setsWon} set${setsWon === 1 ? '' : 's'}` : ''}
+                        {setsWon > 0 ? ` · ${setsLabel(setsWon)}` : ''}
                       </Text>
                     )}
                   </View>
@@ -242,13 +258,13 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
 
                 {/* Selection indicator */}
                 {isSelected ? (
-                  <View className="h-6 w-6 rounded-full bg-primary items-center justify-center">
-                    <Text className="text-mono text-xs font-bold text-text-on-dark">
+                  <View className="h-6 w-6 rounded-full bg-accent items-center justify-center">
+                    <Text className="font-num text-caption text-surface-dark">
                       {selectionOrder}
                     </Text>
                   </View>
                 ) : (
-                  <View className="h-6 w-6 rounded-full border-2 border-line/40" />
+                  <View className="h-6 w-6 rounded-full border-2 border-white/40" />
                 )}
               </Pressable>
             );
@@ -256,15 +272,15 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
         </ScrollView>
 
         {/* ── Footer: pairing pill + CTA ── */}
-        <View className="px-4 py-4 border-t border-line/20 gap-3">
+        <View className="px-4 py-4 border-t border-white/10 gap-3">
           {selectedTeamIds.length === 2 ? (
-            <View className="bg-surface-dark-alt rounded-pill px-4 py-3 items-center border border-line/20">
+            <View className="bg-surface-dark-alt rounded-pill px-4 py-3 items-center border border-white/10">
               <Text className="font-body-semibold text-body-bold text-text-on-dark">
                 {teamName(selectedTeamIds[0])} vs {teamName(selectedTeamIds[1])}
               </Text>
             </View>
           ) : (
-            <Text className="text-caption text-text-muted text-center">
+            <Text className="font-body text-caption text-white/70 text-center">
               Selecione {2 - selectedTeamIds.length} time{selectedTeamIds.length === 1 ? '' : 's'}
             </Text>
           )}
@@ -282,7 +298,7 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
           {/* Between sets the organizer may call it a day. */}
           {game.phase === 'PICK_NEXT' ? (
             <Button
-              variant="ghost"
+              variant="outlineW"
               onPress={handleEndGame}
               loading={endGame.isPending}
               testID="end-game-button"
@@ -314,8 +330,9 @@ function useElapsed(startedAt: string | null): string {
 
 /**
  * S14 — the live scoreboard of the set on court.
- * Organizer: "+ ponto" per team, Desfazer (last point), Encerrar set (the team
- * ahead takes it). Everyone else: read-only, updated live.
+ * Organizer: each team's whole panel is the "+1" button (it is tapped from the
+ * side of the court, barely looking), plus Desfazer (last point) and Encerrar
+ * set (the team ahead takes it). Everyone else: read-only, updated live.
  */
 function LiveScoreboard({
   matchId,
@@ -350,17 +367,17 @@ function LiveScoreboard({
 
   return (
     <View className="flex-1 bg-surface-dark">
-      <SafeAreaView edges={['top']} className="flex-1">
+      <SafeAreaView edges={['top', 'bottom']} className="flex-1">
         {/* ── Header bar: back, AO VIVO badge + timer ── */}
-        <View className="flex-row items-center justify-between px-4 py-3 border-b border-line/10">
+        <View className="flex-row items-center justify-between px-4 py-3 border-b border-white/10">
           <BackButton />
-          <View className="flex-col items-center">
+          <View className="flex-1 items-center px-3">
             <View className="flex-row items-center gap-1 mb-1">
               <View className="h-2 w-2 rounded-full bg-danger" />
-              <Text className="font-body-bold text-eyebrow text-danger uppercase">AO VIVO</Text>
-              <Text className="text-caption text-text-muted ml-1">{elapsed}</Text>
+              <Text className="font-body-bold text-eyebrow text-text-on-dark uppercase">AO VIVO</Text>
+              <Text className="font-mono text-mono text-white/70 ml-1">{elapsed}</Text>
             </View>
-            <Text className="text-caption text-text-muted">
+            <Text className="font-body text-caption text-white/70 text-center" numberOfLines={1}>
               {game.matchName} · Set {setNumber} melhor de {game.bestOf}
             </Text>
           </View>
@@ -368,106 +385,163 @@ function LiveScoreboard({
           <View className="w-6" />
         </View>
 
-        {/* ── Main score display: two teams side by side ── */}
-        <View className="flex-1 flex-row gap-4 px-4 py-8">
-          {pair.map((team, index) => (
-            <View key={team.id} className="flex-1 flex-col items-center">
-              <Text className="text-h1 text-text-on-dark uppercase mb-1">{team.name}</Text>
-              <Text className="text-caption text-text-muted mb-4">
-                {game.setsWon[team.id] ?? 0} sets
-              </Text>
+        {/* ── The two teams on court, side by side ── */}
+        <View className="flex-1 flex-row gap-3 px-4 py-4">
+          {pair.map((team, index) => {
+            const colorIndex = teamColorIndex(game, team.id);
+            const panel = (
+              <>
+                <View className={`h-2 ${getTeamBgColor(colorIndex)}`} />
+                <View className="flex-1 items-center justify-between px-3 py-6">
+                  <View className="items-center">
+                    <Text
+                      className="font-display text-h1 text-text-on-dark uppercase text-center"
+                      numberOfLines={2}
+                    >
+                      {team.name}
+                    </Text>
+                    <Text className="font-body-semibold text-caption text-white/70 mt-1">
+                      {setsLabel(game.setsWon[team.id] ?? 0)}
+                    </Text>
+                  </View>
 
-              <View className="h-24 w-24 bg-white rounded-card items-center justify-center mb-4">
-                <Text
-                  className="font-num text-display text-primary"
-                  testID={`score-team${index + 1}`}
-                >
-                  {game.scores[index]}
-                </Text>
-              </View>
+                  <Text
+                    className="font-num text-score text-text-on-dark"
+                    testID={`score-team${index + 1}`}
+                  >
+                    {game.scores[index]}
+                  </Text>
 
-              {game.isOrganizer ? (
-                <Pressable
-                  onPress={() =>
-                    addPoint.mutate(
-                      { setNumber, teamId: team.id },
-                      { onError: (error) => Alert.alert('Erro ao registrar ponto', error.message) },
-                    )
-                  }
-                  accessibilityRole="button"
-                  accessibilityLabel={`Adicionar ponto para ${team.name}`}
-                  className="py-2"
-                  disabled={busy}
-                  testID={`add-point-team${index + 1}`}
-                >
-                  <Text className="font-body-semibold text-body-bold text-accent">+ ponto</Text>
-                </Pressable>
-              ) : (
-                <Text className="text-caption text-text-muted">ao vivo</Text>
-              )}
-            </View>
-          ))}
-        </View>
+                  {game.isOrganizer ? (
+                    <View
+                      className={`h-16 self-stretch rounded-btn items-center justify-center ${getTeamBgColor(
+                        colorIndex,
+                      )}`}
+                    >
+                      <Text className={`font-num text-num ${getTeamTextOnColor(colorIndex)}`}>
+                        +1
+                      </Text>
+                    </View>
+                  ) : (
+                    <View className="h-16" />
+                  )}
+                </View>
+              </>
+            );
+            const panelClass =
+              'flex-1 overflow-hidden rounded-card border border-white/10 bg-surface-dark-alt';
 
-        {/* ── Footer action buttons (organizer only) ── */}
-        {game.isOrganizer ? (
-          <View className="flex-row gap-3 px-4 pb-4">
-            <View className="flex-1">
-              <Button
-                variant="outline"
+            return game.isOrganizer ? (
+              <Pressable
+                key={team.id}
                 onPress={() =>
-                  undoPoint.mutate(
-                    { setNumber },
-                    { onError: (error) => Alert.alert('Erro ao desfazer', error.message) },
+                  addPoint.mutate(
+                    { setNumber, teamId: team.id },
+                    { onError: (error) => Alert.alert('Erro ao registrar ponto', error.message) },
                   )
                 }
-                disabled={!game.canUndo || busy}
-                testID="undo-button"
+                android_ripple={PRESS_RIPPLE_ON_DARK}
+                accessibilityRole="button"
+                accessibilityLabel={`Adicionar ponto para ${team.name}`}
+                className={panelClass}
+                disabled={busy}
+                testID={`add-point-team${index + 1}`}
               >
-                Desfazer
-              </Button>
-            </View>
-            <View className="flex-1">
-              <Button
-                variant="grad"
-                onPress={handleEndSet}
-                loading={endSet.isPending}
-                testID="end-set-button"
-              >
-                Encerrar set
-              </Button>
+                {panel}
+              </Pressable>
+            ) : (
+              <View key={team.id} className={panelClass}>
+                {panel}
+              </View>
+            );
+          })}
+        </View>
+
+        {/* ── Footer: the organizer's corrections, or why nothing is tappable ── */}
+        {game.isOrganizer ? (
+          <View className="px-4 pb-4 gap-3">
+            <Text className="font-body text-caption text-white/70 text-center">
+              Toque no time para marcar o ponto
+            </Text>
+            <View className="flex-row gap-3">
+              <View className="flex-1">
+                <Button
+                  variant="outlineW"
+                  onPress={() =>
+                    undoPoint.mutate(
+                      { setNumber },
+                      { onError: (error) => Alert.alert('Erro ao desfazer', error.message) },
+                    )
+                  }
+                  disabled={!game.canUndo || busy}
+                  testID="undo-button"
+                >
+                  Desfazer
+                </Button>
+              </View>
+              <View className="flex-1">
+                <Button
+                  variant="outlineLime"
+                  onPress={handleEndSet}
+                  loading={endSet.isPending}
+                  testID="end-set-button"
+                >
+                  Encerrar set
+                </Button>
+              </View>
             </View>
           </View>
-        ) : null}
-
-        {/* ── Thin progress bar ── */}
-        <View className="h-1 bg-accent opacity-40" />
+        ) : (
+          <Text className="font-body text-caption text-white/70 text-center px-4 pb-4">
+            Quem organiza marca os pontos. O placar atualiza sozinho.
+          </Text>
+        )}
       </SafeAreaView>
     </View>
   );
 }
 
-/** The game is over: who won, and on to the MVP vote. */
+/** The game is over: who won, the sets of each team, and on to the MVP vote. */
 function GameOver({ matchId, game }: { matchId: string; game: LiveGame }) {
   const winner = game.teams.find((team) => team.id === game.winnerTeamId);
   return (
     <Centered>
       <Text className="font-body-bold text-eyebrow text-accent uppercase">Fim de jogo</Text>
       <Text
-        className="mt-2 mb-8 text-center font-display text-display text-text-on-dark uppercase"
+        className="mt-2 mb-6 text-center font-display text-display text-text-on-dark uppercase"
         testID="game-over-winner"
       >
         {winner ? `${winner.name} venceu` : 'Partida encerrada'}
       </Text>
-      <Button
-        variant="grad"
-        onPress={() =>
-          router.replace({ pathname: '/matches/[id]/mvp-vote', params: { id: matchId } })
-        }
-        testID="go-mvp-vote"
-      >
-        Votar no MVP
-      </Button>
+
+      <View className="mb-8 self-stretch gap-2" testID="game-over-sets">
+        {game.teams.map((team, index) => (
+          <View
+            key={team.id}
+            className="flex-row items-center gap-3 rounded-card border border-white/10 bg-surface-dark-alt px-4 py-3"
+          >
+            <View className={`h-3 w-3 rounded-full ${getTeamBgColor(index)}`} />
+            <Text className="flex-1 font-body-semibold text-body-bold text-text-on-dark">
+              {team.name}
+            </Text>
+            <Text className="font-num text-body text-text-on-dark">
+              {setsLabel(game.setsWon[team.id] ?? 0)}
+            </Text>
+          </View>
+        ))}
+      </View>
+
+      <View className="self-stretch">
+        <Button
+          variant="grad"
+          onPress={() =>
+            router.replace({ pathname: '/matches/[id]/mvp-vote', params: { id: matchId } })
+          }
+          testID="go-mvp-vote"
+        >
+          Votar no MVP
+        </Button>
+      </View>
     </Centered>
   );
 }

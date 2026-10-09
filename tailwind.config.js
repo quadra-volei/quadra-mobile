@@ -79,6 +79,8 @@ module.exports = {
         caption: ['12px', { lineHeight: '16px' }],
         mono: ['11px', { lineHeight: '16px' }],
         num: ['32px', { lineHeight: '40px' }],
+        // The live scoreboard's points: read from across the court.
+        score: ['96px', { lineHeight: '104px' }],
       },
 
       spacing: {

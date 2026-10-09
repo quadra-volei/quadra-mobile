@@ -288,4 +288,26 @@ describe('S15 — Post-Match MVP Vote', () => {
     const buttons = screen.getAllByRole('button');
     expect(buttons.length).toBeGreaterThan(1);
   });
+
+  it('tells someone who did not play that they have no vote', async () => {
+    mockMatchPlayersState.data = mockMatchPlayersState.data.filter((p: any) => p.id !== 'o1');
+    await render(<MvpVoteScreen />, { wrapper });
+
+    expect(screen.getByText('Só quem jogou vota no MVP.')).toBeTruthy();
+    expect(screen.queryByTestId('mvp-submit-button')).toBeNull();
+    expect(screen.getByTestId('mvp-summary-button')).toBeTruthy();
+  });
+
+  it('lets the organizer vote even without having played', async () => {
+    mockMatchPlayersState.data = mockMatchPlayersState.data.filter((p: any) => p.id !== 'o1');
+    mockIsOrganizer.value = true;
+    try {
+      await render(<MvpVoteScreen />, { wrapper });
+
+      expect(screen.getByTestId('mvp-submit-button')).toBeTruthy();
+      expect(screen.getByText('Érica')).toBeTruthy();
+    } finally {
+      mockIsOrganizer.value = false;
+    }
+  });
 });

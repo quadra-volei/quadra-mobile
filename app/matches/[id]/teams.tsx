@@ -57,7 +57,8 @@ const DRAW_MODE_ICON: Record<DrawMode, ReactNode> = {
  * - choose how many teams, how many players each and how to draw them
  *   (defaults from the match's `teamConfig`);
  * - "Sortear times" draws on the backend and shows the rosters;
- * - "Refazer sorteio" brings the configuration back;
+ * - "Refazer sorteio" brings the configuration back; whoever did not fit in the
+ *   teams is listed as sitting out;
  * - "Começar partida" shows a confirmation dialog, then goes to the scoreboard.
  * Back returns to S12 (no persistence).
  */
@@ -185,10 +186,23 @@ export default function TeamsScreen() {
 
   const drawn = teams.length > 0;
 
+  // Who fits: the draw fills `teamCount × perTeam` places, the rest sits out.
+  const slots = teamCount * perTeam;
+  const capacityHint =
+    confirmedCount > slots
+      ? `${confirmedCount - slots} ${confirmedCount - slots === 1 ? 'fica' : 'ficam'} de fora neste sorteio.`
+      : confirmedCount < slots
+        ? `${confirmedCount === slots - 1 ? 'Falta 1' : `Faltam ${slots - confirmedCount}`} para completar os times.`
+        : null;
+  const drawnIds = new Set(teams.flatMap((team) => team.players.map((p) => p.id)));
+  const sittingOut = confirmedPlayers.filter(
+    (p) => p.status === 'CONFIRMADO' && !drawnIds.has(p.id),
+  );
+
   // ── Render ──
   return (
     <View className="flex-1 bg-bg-light">
-      <SafeAreaView edges={['top']} className="flex-1">
+      <SafeAreaView edges={['top', 'bottom']} className="flex-1">
         {/* ── Inline header ── */}
         <View className="flex-row items-center gap-3 px-4 pt-2 pb-4">
           <Pressable
@@ -205,37 +219,23 @@ export default function TeamsScreen() {
         </View>
 
         <ScrollView
-          contentContainerClassName="pb-32"
+          className="flex-1"
+          contentContainerClassName="pb-6"
           showsVerticalScrollIndicator={false}
         >
           {drawn ? (
-            <>
-              {/* ── What was drawn + the rosters ── */}
-              <View className="px-4 mt-2">
+            <View className="px-4">
+              {/* ── What was drawn, and the way back to the choices ── */}
+              <View className="flex-row items-center">
                 <Text
-                  className="font-body text-caption text-text-muted"
+                  className="flex-1 font-body text-caption text-text-muted"
                   testID="team-config-summary"
                 >
                   {teamCount} times de {perTeam} jogadores cada • Sorteio{' '}
                   {drawMode === 'MANUAL' ? 'aleatório' : 'equilibrado'}
                 </Text>
-              </View>
-
-              <View className="flex-row gap-4 px-4 mt-6">
-                {teams.map((team) => (
-                  <TeamRoster
-                    key={team.id}
-                    teamId={team.id}
-                    teamName={team.name || `Time ${team.number}`}
-                    players={team.players}
-                    testID={`team-roster-${team.id}`}
-                  />
-                ))}
-              </View>
-
-              <View className="px-4 mt-8">
                 <Button
-                  variant="outline"
+                  variant="ghost"
                   onPress={() => setTeams([])}
                   testID="redraw-teams"
                 >
@@ -243,12 +243,28 @@ export default function TeamsScreen() {
                 </Button>
               </View>
 
-              <View className="px-4 mt-6">
-                <Text className="font-body text-body text-text-muted text-center">
-                  Revise os times e toque em "Começar partida" para iniciar.
-                </Text>
+              <View className="mt-2 gap-3">
+                {teams.map((team, index) => (
+                  <TeamRoster
+                    key={team.id}
+                    teamId={team.id}
+                    teamName={team.name || `Time ${team.number}`}
+                    players={team.players}
+                    colorIndex={index}
+                    testID={`team-roster-${team.id}`}
+                  />
+                ))}
               </View>
-            </>
+
+              {sittingOut.length > 0 ? (
+                <Text
+                  className="mt-4 font-body text-caption text-text-muted"
+                  testID="sitting-out"
+                >
+                  De fora neste sorteio: {sittingOut.map((p) => p.name).join(', ')}
+                </Text>
+              ) : null}
+            </View>
           ) : (
             <View className="px-4 mt-2">
               {/* ── Configuration (moved here from the match detail) ── */}
@@ -279,6 +295,14 @@ export default function TeamsScreen() {
               <Text className="mt-1 font-body text-caption text-text-muted">
                 {confirmedCount} confirmados no total
               </Text>
+              {capacityHint ? (
+                <Text
+                  className="mt-1 font-body-semibold text-caption text-text-primary"
+                  testID="capacity-hint"
+                >
+                  {capacityHint}
+                </Text>
+              ) : null}
 
               <Text className="mt-6 font-display text-h2 text-surface-dark uppercase">
                 Como sortear os times
@@ -310,32 +334,32 @@ export default function TeamsScreen() {
                   ) : null}
                 </Pressable>
               ))}
-
-              <View className="mt-8">
-                <Button
-                  variant="outline"
-                  onPress={handleDraw}
-                  loading={draw.isPending}
-                  testID="draw-teams"
-                >
-                  Sortear times
-                </Button>
-              </View>
             </View>
           )}
         </ScrollView>
 
-        {/* ── Fixed footer CTA ── */}
-        <View className="absolute bottom-0 left-0 right-0 border-t border-line bg-white px-4 pt-3 pb-6">
-          <Button
-            variant="grad"
-            onPress={handleStartMatch}
-            loading={isStarting}
-            disabled={!drawn}
-            testID="start-match"
-          >
-            Começar partida
-          </Button>
+        {/* ── Footer: the one next step (draw, then start) ── */}
+        <View className="border-t border-line bg-white px-4 pt-3 pb-4">
+          {drawn ? (
+            <Button
+              variant="grad"
+              onPress={handleStartMatch}
+              loading={isStarting}
+              testID="start-match"
+            >
+              Começar partida
+            </Button>
+          ) : (
+            <Button
+              variant="grad"
+              onPress={handleDraw}
+              loading={draw.isPending}
+              leftIcon={<Shuffle size={20} color={colors.textOnDark} />}
+              testID="draw-teams"
+            >
+              Sortear times
+            </Button>
+          )}
         </View>
       </SafeAreaView>
     </View>
