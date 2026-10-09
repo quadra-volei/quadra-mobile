@@ -296,8 +296,7 @@ async function completeOneOffFlow() {
   await press('when-today'); // date ready → reveals horário
   await press('time-19h00'); // → reveals duração (default 1h30) → FORMATO
   await press('format-6X6'); // sets players 12 → reveals NÍVEL
-  await press('level-INTERMEDIARIO'); // → reveals VALOR (price default 25)
-  await press('confirm-24'); // → reveals PRIVACIDADE
+  await press('level-INTERMEDIARIO'); // → reveals VALOR (price default 25) + PRIVACIDADE
   await press('privacy-open'); // → complete
 }
 
@@ -442,7 +441,6 @@ describe('S11 — Create-match (formulário vivo)', () => {
       level: 'INTERMEDIARIO',
       players: 12,
       price: 25,
-      confirmationOpensHoursBefore: 24,
       privacy: 'open',
     });
 
@@ -460,7 +458,6 @@ describe('S11 — Create-match (formulário vivo)', () => {
     await press('format-2X2'); // 2x2 suggests 4 players (no manual stepper)
 
     await press('level-INTERMEDIARIO');
-    await press('confirm-24');
     await press('privacy-open');
     await press('create-submit');
     expect(mockCreate.mutate.mock.calls[0]?.[0]).toMatchObject({
@@ -499,7 +496,6 @@ describe('S11 — Create-match (formulário vivo)', () => {
     await press('time-20h00');
     await press('format-6X6');
     await press('level-AVANCADO');
-    await press('confirm-12');
     await press('privacy-private');
     // Private requires an invite mode before the flow is complete.
     expect(screen.getByTestId('create-submit').props.accessibilityState?.disabled).toBe(
@@ -515,7 +511,6 @@ describe('S11 — Create-match (formulário vivo)', () => {
       time: '20h00',
       format: '6X6',
       level: 'AVANCADO',
-      confirmationOpensHoursBefore: 12,
       privacy: 'private',
       inviteMode: 'guests',
     });

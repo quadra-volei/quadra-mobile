@@ -406,7 +406,6 @@ export default function CreateMatchScreen() {
     duration,
     format,
     level,
-    confirmationOpensHoursBefore: confirmWin,
     privacy,
     inviteMode,
   } = values;
@@ -426,13 +425,13 @@ export default function CreateMatchScreen() {
   const showFormato = showDuration && !!duration;
   const showNivel = showFormato && !!format;
   const showValor = showNivel && !!level;
-  const showConfirm = showValor;
-  const showPrivacidade = showConfirm && !!confirmWin;
+  // The price has a default, so privacy shows together with it.
+  const showPrivacidade = showValor;
   const showInvite = showPrivacidade && privacy === 'private';
 
   const complete = isCreateMatchComplete(values);
 
-  // Top progress bar — fraction of the 8 conversational steps answered.
+  // Top progress bar — fraction of the 7 conversational steps answered.
   const steps = [
     !!name.trim(),
     locationReady,
@@ -440,7 +439,6 @@ export default function CreateMatchScreen() {
     !!time,
     !!format,
     !!level,
-    !!confirmWin,
     !!privacy,
   ];
   const progress = steps.filter(Boolean).length / steps.length;
@@ -450,9 +448,7 @@ export default function CreateMatchScreen() {
   const blockY = useRef<Record<string, number>>({});
   const focusKey = showPrivacidade
     ? 'privacidade'
-    : showConfirm
-      ? 'confirm'
-      : showValor
+    : showValor
         ? 'valor'
         : showNivel
           ? 'nivel'
@@ -1054,40 +1050,10 @@ export default function CreateMatchScreen() {
             </Reveal>
           </View>
 
-          {/* ─────────── BLOCO 7 · Confirmações ─────────── */}
-          <View onLayout={onBlockLayout('confirm')}>
-            <Reveal show={showConfirm}>
-              <Question step={7} sub="Quando as vagas abrem pra confirmação.">
-                Abrir confirmações quando?
-              </Question>
-              <View className="flex-row flex-wrap gap-2">
-                {([48, 24, 12, 6] as const).map((h) => (
-                  <FilterChip
-                    key={h}
-                    label={`${h}h`}
-                    selected={confirmWin === h}
-                    onPress={() =>
-                      setValue('confirmationOpensHoursBefore', h, {
-                        shouldValidate: true,
-                      })
-                    }
-                    testID={`confirm-${h}`}
-                  />
-                ))}
-              </View>
-              <Reveal show={!!confirmWin}>
-                <Text className="font-body text-caption text-text-muted">
-                  A galera confirma presença a partir de {confirmWin}h antes do
-                  jogo.
-                </Text>
-              </Reveal>
-            </Reveal>
-          </View>
-
-          {/* ─────────── BLOCO 8 · Privacidade ─────────── */}
+          {/* ─────────── BLOCO 7 · Privacidade ─────────── */}
           <View onLayout={onBlockLayout('privacidade')}>
             <Reveal show={showPrivacidade}>
-              <Question step={8} sub="Quem pode entrar nessa partida?">
+              <Question step={7} sub="Quem pode entrar nessa partida?">
                 Quem pode participar?
               </Question>
               <View className="flex-row gap-3">
