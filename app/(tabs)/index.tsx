@@ -4,12 +4,12 @@ import { useState } from "react";
 import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { JogarIcon } from "@/components/icons/JogarIcon";
 import { MatchCard } from "@/components/domain/MatchCard";
 import { MatchCardCompact } from "@/components/domain/MatchCardCompact";
 import { Button } from "@/components/ui/Button";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { StateMessage } from "@/components/ui/StateMessage";
+import { IconButton } from "@/components/ui/IconButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useNearbyMatches } from "@/features/matches/api/getNearby";
 import { useUpcomingMatches } from "@/features/matches/api/getUpcoming";
@@ -66,81 +66,55 @@ function SectionHeader({
 }
 
 /**
- * Home dual-CTA — two side-by-side tiles ("Criar partida" / "Buscar partida"),
- * ported from the Quadra prototype (screens-main.jsx). Replaces the old single
- * "Bora pra quadra?" card.
+ * Home hero — the blue "Bora pra quadra?" card holding the two entry points:
+ * "Criar partida" (lime, primary) and "Buscar jogo" (white, secondary), both
+ * under the button rule (DESIGN_SYSTEM "Buttons"). No counters: the backend
+ * has no "today" summary to fill them with.
  */
-const TILE_STYLE = { minHeight: 138, ...HARD_SHADOW };
+const HERO_ACTION =
+  "flex-1 h-16 flex-row items-center rounded-btn overflow-hidden border-2 border-surface-dark px-4";
 
-function DualCtaTiles() {
+function HomeHero() {
   return (
-    <View className="flex-row px-4 gap-3">
-      {/* Criar — flat lime, the primary action */}
-      <Pressable
-        onPress={goCreate}
-        accessibilityRole="button"
-        accessibilityLabel="Criar partida"
-        android_ripple={PRESS_RIPPLE}
-        className="flex-1 rounded-card overflow-hidden border-2 border-surface-dark bg-accent"
-        style={TILE_STYLE}
-      >
-        {/* Faint volleyball motif — same ball as the Jogar FAB, tilted. */}
-        <View
-          pointerEvents="none"
-          style={{
-            position: "absolute",
-            right: -30,
-            bottom: -26,
-            opacity: 0.12,
-            transform: [{ rotate: "-8deg" }],
-          }}
-        >
-          <JogarIcon size={150} color={colors.surfaceDark} />
-        </View>
-        <View className="flex-1 justify-between px-4 pt-[18px] pb-4">
-          <View className="w-[42px] h-[42px] rounded-[14px] items-center justify-center bg-white border-2 border-surface-dark">
-            <Plus size={24} color={colors.surfaceDark} strokeWidth={2.4} />
-          </View>
-          <View>
-            <Text
-              className="font-display text-surface-dark uppercase"
-              style={{ fontSize: 20, lineHeight: 21 }}
-            >
-              Criar
-            </Text>
-            <Text className="font-body-bold text-body-bold text-surface-dark">
-              partida
-            </Text>
-          </View>
-        </View>
-      </Pressable>
+    <View className="mx-4 rounded-card bg-primary p-4">
+      <Text className="font-display text-display text-white uppercase">
+        Bora pra
+      </Text>
+      <Text className="font-display text-display text-accent uppercase">
+        Quadra?
+      </Text>
 
-      {/* Buscar — white, the secondary action */}
-      <Pressable
-        onPress={goExplore}
-        accessibilityRole="button"
-        accessibilityLabel="Buscar partida"
-        android_ripple={PRESS_RIPPLE}
-        className="flex-1 rounded-card overflow-hidden border-2 border-surface-dark bg-white"
-        style={TILE_STYLE}
-      >
-        <View className="flex-1 justify-between px-4 pt-[18px] pb-4">
-          <View className="w-[42px] h-[42px] rounded-[14px] items-center justify-center bg-white border-2 border-surface-dark">
-            <Search size={23} color={colors.surfaceDark} strokeWidth={2.2} />
+      <View className="mt-6 flex-row gap-3">
+        <Pressable
+          onPress={goCreate}
+          accessibilityRole="button"
+          accessibilityLabel="Criar partida"
+          android_ripple={PRESS_RIPPLE}
+          className={`${HERO_ACTION} justify-between bg-accent`}
+          style={HARD_SHADOW}
+        >
+          <Text className="flex-1 font-body-bold text-body-bold text-surface-dark">
+            Criar partida
+          </Text>
+          <View className="h-8 w-8 items-center justify-center rounded-full border-2 border-surface-dark">
+            <Plus size={18} color={colors.surfaceDark} strokeWidth={2.6} />
           </View>
-          <View>
-            <Text
-              className="font-display text-surface-dark uppercase"
-              style={{ fontSize: 20, lineHeight: 21 }}
-            >
-              Buscar
-            </Text>
-            <Text className="font-body-bold text-body-bold text-surface-dark">
-              partida
-            </Text>
-          </View>
-        </View>
-      </Pressable>
+        </Pressable>
+
+        <Pressable
+          onPress={goExplore}
+          accessibilityRole="button"
+          accessibilityLabel="Buscar partida"
+          android_ripple={PRESS_RIPPLE}
+          className={`${HERO_ACTION} justify-center gap-2 bg-white`}
+          style={HARD_SHADOW}
+        >
+          <Search size={18} color={colors.surfaceDark} strokeWidth={2.4} />
+          <Text className="font-body-bold text-body-bold text-surface-dark">
+            Buscar jogo
+          </Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -250,7 +224,7 @@ export default function HomeScreen() {
           }}
         >
           {/* Dual CTA tiles — Criar / Buscar */}
-          <DualCtaTiles />
+          <HomeHero />
 
           {/* PRÓXIMAS PARTIDAS */}
           <SectionHeader
@@ -277,24 +251,12 @@ export default function HomeScreen() {
             INÍCIO
           </Text>
           <View className="flex-row items-center gap-3">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Notificações"
-              className="h-10 w-10 items-center justify-center rounded-chip border-2 border-surface-dark bg-white"
-              style={HARD_SHADOW}
-              onPress={() => {}}
-            >
+            <IconButton label="Notificações" onPress={() => {}}>
               <Bell size={20} color={colors.surfaceDark} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Configurações"
-              className="h-10 w-10 items-center justify-center rounded-chip border-2 border-surface-dark bg-white"
-              style={HARD_SHADOW}
-              onPress={goSettings}
-            >
+            </IconButton>
+            <IconButton label="Configurações" onPress={goSettings}>
               <Settings size={20} color={colors.surfaceDark} />
-            </Pressable>
+            </IconButton>
           </View>
         </View>
       </ScreenHeader>

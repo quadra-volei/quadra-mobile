@@ -10,6 +10,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { StateMessage } from "@/components/ui/StateMessage";
+import { IconButton } from "@/components/ui/IconButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { useRecentMatches } from "@/features/profile/api/getRecentMatches";
@@ -18,7 +19,7 @@ import type { RankingRow } from "@/features/ranking/types/ranking";
 import { useAuthStore } from "@/stores/auth";
 import { colors } from "@/theme/colors";
 import { DEFAULT_AVATAR } from "@/theme/defaultAvatars";
-import { ICON_HIT_SLOP, ICON_RIPPLE, TAB_BAR_CLEARANCE } from "@/theme/layout";
+import { TAB_BAR_CLEARANCE } from "@/theme/layout";
 
 function goRanking() {
   router.push("/profile/ranking");
@@ -94,24 +95,12 @@ function ProfileHeader() {
         </View>
       )}
       <View className="flex-row items-center gap-3">
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Notificações"
-          hitSlop={ICON_HIT_SLOP}
-          android_ripple={ICON_RIPPLE}
-          onPress={() => {}}
-        >
-          <Bell size={24} color={colors.surfaceDark} />
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Configurações"
-          hitSlop={ICON_HIT_SLOP}
-          android_ripple={ICON_RIPPLE}
-          onPress={goSettings}
-        >
-          <Settings size={24} color={colors.surfaceDark} />
-        </Pressable>
+        <IconButton label="Notificações" onPress={() => {}}>
+          <Bell size={20} color={colors.surfaceDark} />
+        </IconButton>
+        <IconButton label="Configurações" onPress={goSettings}>
+          <Settings size={20} color={colors.surfaceDark} />
+        </IconButton>
       </View>
     </View>
   );

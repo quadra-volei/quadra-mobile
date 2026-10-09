@@ -208,12 +208,14 @@ The same rule covers everything that is pressed like a button:
 
 - **Round buttons** (tab bar "Jogar" FAB, "Bora jogar?" circles, map recenter, stepper +/−): flat
   fill + 2px navy border; the hard shadow from 56px up (below that it only smudges).
-- **Icon buttons in a box** (Home header bell / settings): 40px white square, `rounded-chip`,
-  2px navy border + `HARD_SHADOW`, 20px icon.
+- **Icon buttons in a box** (`IconButton`: the bell, settings and "+" of the tab headers): 40px
+  white square, `rounded-chip`, 2px navy border + `HARD_SHADOW`, 20px icon. The back chevron of
+  `BackHeader` stays a bare icon.
 - **Selection cards** (onboarding position / level / modality): the **selected** card takes the
   2px navy border + `HARD_SHADOW` and a pale lime fill (`bg-accent/20`), with a lime check
   circle; unselected cards stay plain white with `shadow-card`.
-- **Action tiles** (Home "Criar" lime / "Buscar" white): 2px navy border + `HARD_SHADOW`.
+- **Home hero**: a blue (`primary`) card, "BORA PRA QUADRA?" in display type (white + lime),
+  holding "Criar partida" (lime) and "Buscar jogo" (white), both with the border and shadow.
 - **Dialog** (`Dialog.tsx`): lime for the action, red (`danger`) for `destructive`, both with the
   border and shadow; `ghost` for `cancel`.
 - **On navy** the navy border and shadow cannot be seen, so `outlineW` / `outlineLime` carry a

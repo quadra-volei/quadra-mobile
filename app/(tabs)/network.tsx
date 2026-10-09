@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { dialog } from '@/components/ui/Dialog';
+import { IconButton } from '@/components/ui/IconButton';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
@@ -144,24 +145,12 @@ export default function NetworkScreen() {
             REDE
           </Text>
           <View className="flex-row items-center gap-3">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Novo post"
-              hitSlop={ICON_HIT_SLOP}
-              android_ripple={ICON_RIPPLE}
-              onPress={goNewPost}
-            >
-              <Plus size={24} color={colors.surfaceDark} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Configurações"
-              hitSlop={ICON_HIT_SLOP}
-              android_ripple={ICON_RIPPLE}
-              onPress={goSettings}
-            >
-              <Settings size={24} color={colors.surfaceDark} />
-            </Pressable>
+            <IconButton label="Novo post" onPress={goNewPost}>
+              <Plus size={20} color={colors.surfaceDark} />
+            </IconButton>
+            <IconButton label="Configurações" onPress={goSettings}>
+              <Settings size={20} color={colors.surfaceDark} />
+            </IconButton>
           </View>
         </View>
       </ScreenHeader>
