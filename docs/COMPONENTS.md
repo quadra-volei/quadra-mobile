@@ -383,13 +383,13 @@ More UI primitives will live here:
 ### `TeamRoster`
 - **Path**: `src/components/domain/TeamRoster.tsx`
 - **Category**: domain
-- **Props**: `{ teamId: string; teamName?: string; players: PresencePlayer[]; testID?: string }` where `PresencePlayer = { id: string; name: string; avatarUrl?: string; status: PresenceStatus; position?: PlayerPosition }` (from `@/features/matches/types/matchDetail`)
-- **Used in**: S13 In-Game Teams (team roster columns)
+- **Props**: `{ teamId: string; teamName?: string; players: PresencePlayer[]; colorIndex?: number; testID?: string }` where `PresencePlayer = { id: string; name: string; avatarUrl?: string; status: PresenceStatus; position?: PlayerPosition }` (from `@/features/matches/types/matchDetail`)
+- **Used in**: S13 In-Game Teams (one card per team)
 - **Example**:
   ```tsx
-  <TeamRoster teamId="team-1" teamName="Time 1" players={team.players} testID="team-roster-1" />
+  <TeamRoster teamId="team-1" teamName="Time 1" players={team.players} colorIndex={0} testID="team-roster-1" />
   ```
-- **Notes**: Vertical team roster column — displays a team header (name/number), a vertical stack of player `<Avatar size="md" />`, and optional position badges (PON, LEV, etc. on a `primary` pill). Presentational: receives plain data via props, never fetches. Designed for S13 where N columns (2, 3, or 4) are rendered side-by-side in a `flex-row gap-4` layout.
+- **Notes**: One team as a white card: a dot in the team's color (`getTeamBgColor(colorIndex)`), the name, the player count, and one row per player (`<Avatar size="sm" />`, name, position in `primary` mono text). Presentational: receives plain data via props, never fetches. S13 stacks one card per team (`gap-3`).
 
 <!--
 ### `PlayerAvatar`         — circular avatar with position-colored ring

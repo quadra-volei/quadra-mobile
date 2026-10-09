@@ -155,8 +155,8 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
             </Text>
 
             <View className="flex-row items-center gap-1 mt-2">
-              <MapPin size={14} color={colors.textMuted} />
-              <Text className="text-caption text-text-muted">
+              <MapPin size={14} color={colors.textOnDark} />
+              <Text className="font-body text-caption text-white/70">
                 {summary.venue} · {summary.dateLabel}
               </Text>
             </View>
@@ -191,12 +191,12 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
                 <Avatar uri={summary.mvp.avatarUrl} name={summary.mvp.name} size="lg" />
                 <View className="flex-1">
                   <Text className="font-body-extrabold text-h3 text-text-on-dark">{summary.mvp.name}</Text>
-                  <Text className="text-caption text-text-muted">
+                  <Text className="font-body text-caption text-white/70">
                     @{summary.mvp.handle} · {summary.mvp.position}
                   </Text>
                   <Text className="font-num text-text-on-dark mt-1">
                     {summary.mvp.votes}{' '}
-                    <Text className="text-caption text-text-muted">de {summary.totalVotes} votos</Text>
+                    <Text className="font-body text-caption text-white/70">de {summary.totalVotes} votos</Text>
                   </Text>
                 </View>
               </View>
@@ -209,7 +209,7 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
                   const fillPct = Math.min(Math.max(fillRatio, 0), 1) * 100;
                   return (
                     <View key={row.id} className="flex-row items-center gap-3">
-                      <Text className="font-num text-text-muted w-4">{i + 1}</Text>
+                      <Text className="font-num text-white/70 w-4">{i + 1}</Text>
                       <Avatar uri={row.avatarUrl} name={row.name} size="sm" />
                       <View className="flex-1">
                         <Text className="font-body-semibold text-body-bold text-text-on-dark">
@@ -234,7 +234,7 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
             </View>
           ) : (
             <View className="px-4 mt-8">
-              <Text className="text-caption text-text-muted text-center">
+              <Text className="font-body text-caption text-white/70 text-center">
                 Sem votação de MVP nesta partida
               </Text>
             </View>
@@ -280,7 +280,7 @@ function StatTile({
       <Text className="font-num text-text-on-dark mt-3" style={{ fontSize: 28 }}>
         {value}
       </Text>
-      <Text className="text-caption text-text-muted">{label}</Text>
+      <Text className="font-body text-caption text-white/70">{label}</Text>
     </View>
   );
 }
@@ -305,7 +305,7 @@ function PerformanceSection({ performance }: { performance: MatchPerformance }) 
         </View>
         <View className="flex-1">
           <Text className="font-body-semibold text-body-bold text-text-on-dark">XP ganho nesta partida</Text>
-          <Text className="text-caption text-text-muted">Some ao seu progresso de nível</Text>
+          <Text className="font-body text-caption text-white/70">Some ao seu progresso de nível</Text>
         </View>
         <Text className="font-num text-accent" style={{ fontSize: 32 }} testID="summary-xp">
           +{performance.xpGained}

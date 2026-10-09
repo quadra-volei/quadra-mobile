@@ -142,6 +142,10 @@ These are **not** system fonts, so they must be bundled:
 | `text-caption` | DM Sans | 11–12px | normal | 400 | Metadata, muted captions |
 | `text-mono` | DM Mono | 10–11.5px | UPPERCASE (for tags) | 500/700 | Tags, pills, technical legends |
 | `text-num` | Russo One | varies | normal | 400 | Scores, stats, level/overall numbers |
+| `text-score` | Russo One | 96px | normal | 400 | The points on the live scoreboard only |
+
+> **On navy surfaces** secondary text is `text-white/70`, never `text-text-muted` (about 3:1 on
+> navy), and buttons are `outlineW` / `outlineLime`, never `outline` / `ghost` (DECISIONS #56).
 
 ---
 

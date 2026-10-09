@@ -67,7 +67,7 @@ export function useVoteMVPMutation(matchId: string) {
         await postMvpVote(matchId, votedForPlayerId);
       } catch (error) {
         throw toMatchError(error, {
-          403: 'Só quem jogou a partida pode votar.',
+          403: 'Só quem jogou a partida (ou quem organiza) pode votar.',
           404: 'A votação ainda não está disponível para esse voto.',
           409: 'A votação já foi encerrada.',
           422: 'Esse voto não é válido.',
