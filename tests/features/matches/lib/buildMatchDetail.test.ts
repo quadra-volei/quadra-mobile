@@ -21,7 +21,6 @@ const baseInput: CreateMatchInput = {
   players: 8,
   price: 25,
   priceMonthly: 80,
-  confirmationOpensHoursBefore: 24,
   privacy: 'open',
 };
 

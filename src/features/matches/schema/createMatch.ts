@@ -49,14 +49,6 @@ export const MATCH_DURATIONS = [
 ] as const;
 export type MatchDuration = (typeof MATCH_DURATIONS)[number];
 
-/**
- * CONFIRMAÇÕES ABREM preset (hours before match start the confirmation window
- * opens; it closes at match start — implicit, no datetime picker token exists).
- */
-export const CONFIRMATION_OPENS_OPTIONS = [48, 24, 12, 6] as const;
-export type ConfirmationOpensHoursBefore =
-  (typeof CONFIRMATION_OPENS_OPTIONS)[number];
-
 /** PRIVACIDADE — Aberta (open) / Privada (private). */
 export const PRIVACY_MODES = ['open', 'private'] as const;
 export type PrivacyMode = (typeof PRIVACY_MODES)[number];
@@ -122,14 +114,7 @@ export const createMatchSchema = z
     // ── Bloco 6 · valor ──
     price: z.number().min(0), // avulso; 0 ⇒ "Grátis"
     priceMonthly: z.number().min(0), // recorrente (only used when type === 'Recurring')
-    // ── Bloco 7 · confirmações ──
-    confirmationOpensHoursBefore: z.union([
-      z.literal(48),
-      z.literal(24),
-      z.literal(12),
-      z.literal(6),
-    ]),
-    // ── Bloco 8 · privacidade ──
+    // ── Bloco 7 · privacidade ──
     privacy: z.enum(PRIVACY_MODES),
     inviteMode: z.enum(INVITE_MODES).optional(),
   })

@@ -78,7 +78,6 @@ const payload: CreateMatchPayload = {
   level: 'AVANCADO',
   price: 15,
   priceMonthly: 80,
-  confirmationOpensHoursBefore: 24,
   privacy: 'private',
   inviteMode: 'code',
 };
@@ -227,8 +226,9 @@ describe('useCreateMatch', () => {
       durationMinutes: 90,
       visibility: 'Private',
       inviteMode: 'Code',
-      confirmationOpensHoursBefore: 24,
     });
+    // no window: the backend opens confirmations at creation
+    expect(post.body).not.toHaveProperty('confirmationOpensHoursBefore');
     expect(new Date(post.body.dateTime).getFullYear()).toBe(2099);
     expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ['matches'] });
   });

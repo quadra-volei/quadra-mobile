@@ -125,7 +125,6 @@ export type ApiCreateMatch = {
   inviteMode: 'Code' | 'Guests' | null;
   priceMonthly: number | null;
   recurrenceDays: number[] | null;
-  confirmationOpensHoursBefore: number;
 };
 
 export type Coords = { latitude: number; longitude: number };
@@ -195,7 +194,8 @@ function toMinutes(duration: string): number {
 // ── mappers ─────────────────────────────────────────────────────────────────
 
 /**
- * The create form → `POST /matches` body. The form has a single "players"
+ * The create form → `POST /matches` body. No confirmation window is sent: the
+ * backend then opens confirmations at creation. The form has a single "players"
  * number, so every slot is a regular slot; week days go from the form's
  * 0 = Sunday … 6 = Saturday to the API's ISO 1 = Monday … 7 = Sunday.
  */
@@ -228,7 +228,6 @@ export function toApiCreateMatch(
     recurrenceDays: recurring
       ? input.recDays.map((day) => (day === 0 ? 7 : day)).sort((a, b) => a - b)
       : null,
-    confirmationOpensHoursBefore: input.confirmationOpensHoursBefore,
   };
 }
 

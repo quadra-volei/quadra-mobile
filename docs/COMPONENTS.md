@@ -119,7 +119,7 @@ Each entry follows this structure:
 - **Path**: `src/components/ui/FilterChip.tsx`
 - **Category**: ui
 - **Props**: `{ label: string; selected: boolean; onPress: () => void; disabled?: boolean; testID?: string }`
-- **Used in**: S6 Explore (filter row "Todos / Perto / Hoje / Iniciante / 6x6"), S9 Ranking (scope tabs — "Amigos" active; "Bairro"/"Geral" `disabled`), S11 Create Match (date/format/level/type/confirm-window chips), S13 Teams (organizer "2 times / 3 times / 4 times" team-count group, single-select)
+- **Used in**: S6 Explore (filter row "Todos / Perto / Hoje / Iniciante / 6x6"), S9 Ranking (scope tabs — "Amigos" active; "Bairro"/"Geral" `disabled`), S11 Create Match (date/format/level/type chips), S13 Teams (organizer "2 times / 3 times / 4 times" team-count group, single-select)
 - **Example**:
   ```tsx
   <FilterChip label="Perto" selected={activeFilter === 'perto'} onPress={() => setActiveFilter('perto')} />
