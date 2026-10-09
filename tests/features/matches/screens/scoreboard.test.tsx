@@ -80,7 +80,7 @@ jest.mock('@/features/matches/api/liveGame', () => ({
 }));
 
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { Alert } from 'react-native';
+import { dialog } from '@/components/ui/Dialog';
 
 import ScoreboardScreen from '../../../../app/matches/[id]/scoreboard';
 
@@ -125,7 +125,7 @@ async function press(testID: string) {
 
 beforeEach(() => {
   jest.useFakeTimers();
-  jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  jest.spyOn(dialog, 'alert').mockImplementation(() => {});
   [mockStartSet, mockAddPoint, mockUndoPoint, mockEndSet, mockEndGame].forEach((mutation) =>
     mutation.mutate.mockClear(),
   );
@@ -198,7 +198,7 @@ describe('S14 — live scoreboard', () => {
 
     // Ending the set asks first; confirming sends it.
     await press('end-set-button');
-    const buttons = (Alert.alert as jest.Mock).mock.calls[0][2] as { onPress?: () => void }[];
+    const buttons = (dialog.alert as jest.Mock).mock.calls[0][2] as { onPress?: () => void }[];
     await act(async () => buttons[1]?.onPress?.());
     expect(mockEndSet.mutate).toHaveBeenCalledWith({ setNumber: 2 }, expect.anything());
   });

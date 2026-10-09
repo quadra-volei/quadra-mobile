@@ -17,7 +17,7 @@
  * useMatchDetail and useDrawTeams are mocked at the boundary
  * so each mode and navigation path is deterministic (no network). The Button component
  * is stubbed to expose loading/disabled state. expo-router and native modules are
- * mocked inline. Route params are injectable. Alert is spied to verify confirmation
+ * mocked inline. Route params are injectable. The dialog is spied to verify confirmation
  * dialog text and button labels.
  */
 import React from 'react';
@@ -123,7 +123,7 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => mockParams,
 }));
 
-// Alert will be spied on at runtime (after importing in the test)
+// The dialog will be spied on at runtime (after importing in the test)
 
 // --- Hook mocks (mocked at the boundary) ---
 
@@ -256,7 +256,7 @@ import {
 
 import TeamsScreen from '../../../../app/matches/[id]/teams';
 
-// Spy on Alert to verify confirmation dialog
+// Spy on the dialog to verify confirmation dialog
 const mockAlert = jest.fn();
 
 beforeEach(() => {
@@ -277,9 +277,9 @@ beforeEach(() => {
     drawMode: 'MANUAL',
   };
 
-  // Spy on Alert.alert
-  const { Alert } = require('react-native');
-  jest.spyOn(Alert, 'alert').mockImplementation(mockAlert);
+  // Spy on dialog.alert
+  const { dialog } = require('@/components/ui/Dialog');
+  jest.spyOn(dialog, 'alert').mockImplementation(mockAlert);
 });
 
 afterEach(() => {

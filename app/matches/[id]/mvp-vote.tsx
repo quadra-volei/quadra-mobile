@@ -2,11 +2,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { dialog } from '@/components/ui/Dialog';
 import {
   useFinishMatch,
   useIsOrganizer,
@@ -67,7 +68,7 @@ function WrapUp({ matchId, emphasis }: { matchId: string; emphasis: boolean }) {
     router.replace({ pathname: '/matches/[id]/summary', params: { id: matchId } });
 
   const confirmFinish = () =>
-    Alert.alert(
+    dialog.alert(
       'Encerrar a votação?',
       'Quem ainda não votou não vai mais poder votar. O resumo da partida é gerado com os votos de agora.',
       [

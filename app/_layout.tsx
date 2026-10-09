@@ -25,6 +25,7 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { DialogHost } from '@/components/ui/Dialog';
 import { prefetchProfileTab } from '@/features/profile/api/prefetchProfileTab';
 import { getAccessToken } from '@/lib/auth/getAccessToken';
 import { verifySession } from '@/lib/auth/verifySession';
@@ -136,6 +137,7 @@ export default function RootLayout() {
         <QueryClientProvider client={queryClient}>
           <StatusBar style="auto" />
           <Stack screenOptions={{ headerShown: false }} />
+          <DialogHost />
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

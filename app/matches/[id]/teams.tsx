@@ -3,7 +3,6 @@ import { Check, ChevronLeft, Scale, Shuffle } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import {
-  Alert,
   Pressable,
   ScrollView,
   Text,
@@ -13,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TeamRoster } from '@/components/domain/TeamRoster';
 import { Button } from '@/components/ui/Button';
+import { dialog } from '@/components/ui/Dialog';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { StepperField } from '@/components/ui/StepperField';
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
@@ -137,7 +137,7 @@ export default function TeamsScreen() {
           setTeams(result.teams);
         },
         onError: (error) => {
-          Alert.alert(
+          dialog.alert(
             'Erro ao sortear',
             error.message || 'Não foi possível montar os times. Tente novamente.',
           );
@@ -147,7 +147,7 @@ export default function TeamsScreen() {
   };
 
   const handleStartMatch = () => {
-    Alert.alert('Pronto para começar esta partida?', '', [
+    dialog.alert('Pronto para começar esta partida?', '', [
       {
         text: 'Revisar',
         onPress: () => {
@@ -171,7 +171,7 @@ export default function TeamsScreen() {
             router.push({ pathname: '/matches/[id]/scoreboard', params: { id: matchId } });
           } catch (err) {
             setIsStarting(false);
-            Alert.alert(
+            dialog.alert(
               'Erro ao iniciar',
               err instanceof Error
                 ? err.message

@@ -2,10 +2,11 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
+import { dialog } from '@/components/ui/Dialog';
 import {
   type LiveGame,
   useAddPoint,
@@ -161,19 +162,19 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
     const [first, second] = selectedTeamIds;
     if (!first || !second) return;
     startSet.mutate([first, second], {
-      onError: (error) => Alert.alert('Não foi possível começar o set', error.message),
+      onError: (error) => dialog.alert('Não foi possível começar o set', error.message),
     });
   };
 
   const handleEndGame = () => {
-    Alert.alert('Encerrar a partida?', 'Vence o time com mais sets.', [
+    dialog.alert('Encerrar a partida?', 'Vence o time com mais sets.', [
       { text: 'Continuar jogando', style: 'cancel' },
       {
         text: 'Encerrar',
         style: 'destructive',
         onPress: () =>
           endGame.mutate(undefined, {
-            onError: (error) => Alert.alert('Não foi possível encerrar', error.message),
+            onError: (error) => dialog.alert('Não foi possível encerrar', error.message),
           }),
       },
     ]);
@@ -356,14 +357,14 @@ function LiveScoreboard({
   const { setNumber } = game;
 
   const handleEndSet = () => {
-    Alert.alert('Encerrar o set agora?', 'Quem está na frente leva o set.', [
+    dialog.alert('Encerrar o set agora?', 'Quem está na frente leva o set.', [
       { text: 'Continuar jogando', style: 'cancel' },
       {
         text: 'Encerrar set',
         onPress: () =>
           endSet.mutate(
             { setNumber },
-            { onError: (error) => Alert.alert('Não foi possível encerrar o set', error.message) },
+            { onError: (error) => dialog.alert('Não foi possível encerrar o set', error.message) },
           ),
       },
     ]);
@@ -441,7 +442,7 @@ function LiveScoreboard({
                 onPress={() =>
                   addPoint.mutate(
                     { setNumber, teamId: team.id },
-                    { onError: (error) => Alert.alert('Erro ao registrar ponto', error.message) },
+                    { onError: (error) => dialog.alert('Erro ao registrar ponto', error.message) },
                   )
                 }
                 android_ripple={PRESS_RIPPLE_ON_DARK}
@@ -474,7 +475,7 @@ function LiveScoreboard({
                   onPress={() =>
                     undoPoint.mutate(
                       { setNumber },
-                      { onError: (error) => Alert.alert('Erro ao desfazer', error.message) },
+                      { onError: (error) => dialog.alert('Erro ao desfazer', error.message) },
                     )
                   }
                   disabled={!game.canUndo || busy}
