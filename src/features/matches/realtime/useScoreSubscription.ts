@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
-import { liveGameQueryKey } from '@/features/matches/api/liveGame';
+import { liveGameQueryKey, scoreMutationKey } from '@/features/matches/api/liveGame';
 import { getConnection } from '@/lib/realtime/connection';
 
 /**
@@ -29,6 +29,12 @@ export function useScoreSubscription(matchId: string): void {
         const conn = await getConnection();
         await conn.invoke('JoinMatchRoom', matchId);
         const handler = () => {
+          // The organizer's own taps announce themselves too; while some are
+          // still on their way the server is behind the screen, and the last
+          // one writes the server's score anyway (useAddPoint).
+          if (queryClient.isMutating({ mutationKey: scoreMutationKey(matchId) }) > 0) {
+            return;
+          }
           void queryClient.invalidateQueries({ queryKey: liveGameQueryKey(matchId) });
         };
         conn.on('ScoreboardUpdated', handler);

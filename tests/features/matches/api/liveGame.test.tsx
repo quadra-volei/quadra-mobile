@@ -311,6 +311,44 @@ describe('teams and live game', () => {
     expect(bodyOf('POST /scoreboard/sets')).toEqual({ teamAId: 'team-a', teamBId: 'team-c' });
   });
 
+  it('a point shows at the tap, before the server answers, and is taken back if refused', async () => {
+    serve({
+      'GET /detail': { status: 200, body: apiDetail },
+      'GET /teams': { status: 200, body: { teams: apiTeams } },
+      'GET /scoreboard': { status: 200, body: scoreboard() },
+      'POST /scoreboard/sets/1/points': { status: 409 },
+    });
+    // Hold the server's answer to the points until the test lets it go.
+    const served = fetchMock.getMockImplementation()!;
+    let release!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    fetchMock.mockImplementation(async (url: string, init: RequestInit) => {
+      if (init.method === 'POST') {
+        await held;
+      }
+      return served(url, init);
+    });
+    const { result } = await renderHook(
+      () => ({ game: useLiveGame(MATCH), addPoint: useAddPoint(MATCH) }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.game.isSuccess).toBe(true));
+    const [a, b] = result.current.game.data!.scores;
+
+    // Two fast taps: both count on screen while the server has not answered.
+    await act(async () => {
+      result.current.addPoint.mutate({ setNumber: 1, teamId: 'team-a' });
+      result.current.addPoint.mutate({ setNumber: 1, teamId: 'team-a' });
+    });
+    await waitFor(() => expect(result.current.game.data?.scores).toEqual([a + 2, b]));
+
+    // The server refuses them: the screen goes back to what the server has.
+    await act(async () => release());
+    await waitFor(() => expect(result.current.game.data?.scores).toEqual([a, b]));
+  });
+
   it('a point writes the scoreboard the server answers with into the cache', async () => {
     const after = scoreboard();
     after.sets[0]!.teamAPoints = 4;
