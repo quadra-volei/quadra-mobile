@@ -221,6 +221,20 @@ Each entry follows this structure:
 - **Example**: `<StateMessage message="Não foi possível carregar" actionLabel="Tentar novamente" onAction={() => refetch()} />`
 - **Notes**: Body-size line, polite live region, at most one action (ghost on light, lime outline on dark).
 
+### `Dialog` (`dialog.alert` + `DialogHost`)
+- **Path**: `src/components/ui/Dialog.tsx`
+- **Purpose**: The confirmation / message dialog. Use it instead of the native `Alert`.
+- **API**: `dialog.alert(title, message?, buttons?)` with `buttons: { text; onPress?; style?: 'default' | 'cancel' | 'destructive' }[]` (no buttons = a single "OK"). `<DialogHost />` is mounted once in `app/_layout.tsx`.
+- **Used in**: team draw, scoreboard, MVP vote
+- **Example**:
+  ```tsx
+  dialog.alert('Encerrar o set agora?', 'Quem está na frente leva o set.', [
+    { text: 'Cancelar', style: 'cancel' },
+    { text: 'Encerrar', onPress: endSet },
+  ]);
+  ```
+- **Notes**: Callable from anywhere (handlers, mutation callbacks). One dialog at a time; a new call replaces the open one. Back / tap outside take the `cancel` button, or close a single-button message. In tests, `jest.spyOn(dialog, 'alert')`.
+
 ### `Tag`
 - **Path**: `src/components/ui/Tag.tsx`
 - **Category**: ui
