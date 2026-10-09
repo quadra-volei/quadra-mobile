@@ -524,7 +524,7 @@ export default function MatchDetailScreen() {
               <Button
                 variant="outline"
                 onPress={onShare}
-                leftIcon={<UserPlus size={18} color={colors.primary} />}
+                leftIcon={<UserPlus size={18} color={colors.surfaceDark} />}
                 testID="invite"
               >
                 Convidar
@@ -595,7 +595,7 @@ export default function MatchDetailScreen() {
               onPress={() => confirmPresence.mutate()}
               loading={confirmPresence.isPending}
               disabled={mutationBusy && !confirmPresence.isPending}
-              leftIcon={<Check size={18} color={colors.textOnDark} />}
+              leftIcon={<Check size={18} color={colors.surfaceDark} />}
               testID="confirm-presence"
             >
               Confirmar presença

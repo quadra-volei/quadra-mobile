@@ -100,9 +100,6 @@ module.exports = {
 
       boxShadow: {
         card: '0 2px 12px rgba(10,10,60,0.06)',
-        cta: '0 4px 16px rgba(170,221,0,0.30)',
-        primary: '0 4px 16px rgba(26,26,255,0.28)',
-        fab: '0 4px 16px rgba(26,26,255,0.28)',
         modal: '0 -2px 24px rgba(0,0,0,0.16)',
       },
     },

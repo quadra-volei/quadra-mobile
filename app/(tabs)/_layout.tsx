@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { router, Tabs } from 'expo-router';
 import type { ComponentType } from 'react';
 import { useEffect, useState } from 'react';
@@ -12,7 +11,7 @@ import { TabHomeIcon } from '@/components/icons/TabHomeIcon';
 import { TabNetworkIcon } from '@/components/icons/TabNetworkIcon';
 import { TabProfileIcon } from '@/components/icons/TabProfileIcon';
 import type { TabIconProps } from '@/components/icons/tabIcon';
-import { CTA_GRADIENT } from '@/theme/colors';
+import { HARD_SHADOW, colors } from '@/theme/colors';
 import { ICON_RIPPLE } from '@/theme/layout';
 
 // Routes shown as labeled tabs, in bar order: two to the left of the FAB, two to
@@ -152,23 +151,10 @@ export default function TabsLayout() {
                 onPress={() => setMenuOpen(true)}
                 accessibilityRole="button"
                 accessibilityLabel="Jogar"
-                className="rounded-full overflow-hidden"
-                style={{ boxShadow: '0 4px 16px rgba(26,26,255,0.28)' }}
+                className="h-16 w-16 items-center justify-center rounded-full border-2 border-surface-dark bg-accent"
+                style={HARD_SHADOW}
               >
-                <LinearGradient
-                  colors={CTA_GRADIENT}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 9999,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <JogarIcon size={30} />
-                </LinearGradient>
+                <JogarIcon size={30} color={colors.surfaceDark} />
               </Pressable>
             </View>
           </View>

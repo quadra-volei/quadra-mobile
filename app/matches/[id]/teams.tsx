@@ -354,7 +354,7 @@ export default function TeamsScreen() {
               variant="grad"
               onPress={handleDraw}
               loading={draw.isPending}
-              leftIcon={<Shuffle size={20} color={colors.textOnDark} />}
+              leftIcon={<Shuffle size={20} color={colors.surfaceDark} />}
               testID="draw-teams"
             >
               Sortear times

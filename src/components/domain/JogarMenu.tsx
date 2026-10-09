@@ -1,9 +1,8 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { Plus, Search, X } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { Modal, Pressable, Text, View } from 'react-native';
 
-import { CTA_GRADIENT, colors } from '@/theme/colors';
+import { colors } from '@/theme/colors';
 
 export type JogarMenuProps = {
   visible: boolean;
@@ -91,34 +90,21 @@ export function JogarMenu({
             </Text>
 
             <View className="mt-8 flex-row items-start justify-center gap-8">
-              {/* Criar — blue→lime gradient circle */}
+              {/* Criar — flat lime circle */}
               <ActionOption label="Criar partida" onPress={onCreate}>
-                <LinearGradient
-                  colors={CTA_GRADIENT}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{
-                    width: 92,
-                    height: 92,
-                    borderRadius: 9999,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    boxShadow: '0 8px 22px rgba(26,26,255,0.35)',
-                  }}
+                <View
+                  className="items-center justify-center rounded-full border-2 border-white bg-accent"
+                  style={{ width: 92, height: 92 }}
                 >
-                  <Plus size={40} color={colors.textOnDark} strokeWidth={2.4} />
-                </LinearGradient>
+                  <Plus size={40} color={colors.surfaceDark} strokeWidth={2.4} />
+                </View>
               </ActionOption>
 
               {/* Buscar — solid white circle */}
               <ActionOption label="Buscar partida" onPress={onSearch}>
                 <View
-                  className="items-center justify-center rounded-full bg-white"
-                  style={{
-                    width: 92,
-                    height: 92,
-                    boxShadow: '0 8px 22px rgba(10,10,60,0.25)',
-                  }}
+                  className="items-center justify-center rounded-full border-2 border-accent bg-white"
+                  style={{ width: 92, height: 92 }}
                 >
                   <Search
                     size={38}
@@ -134,7 +120,7 @@ export function JogarMenu({
               accessibilityRole="button"
               accessibilityLabel="Fechar"
               onPress={onClose}
-              className="mt-10 items-center justify-center rounded-full bg-white/30 border border-white/40"
+              className="mt-10 items-center justify-center rounded-full bg-white/30 border-2 border-white"
               style={{ width: 52, height: 52 }}
             >
               <X size={26} color={colors.textOnDark} strokeWidth={2.4} />

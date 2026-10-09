@@ -42,14 +42,14 @@ Each entry follows this structure:
 ### `Button`
 - **Path**: `src/components/ui/Button.tsx`
 - **Category**: ui
-- **Props**: `{ variant: 'grad' | 'primary' | 'outline' | 'outlineW' | 'ghost'; onPress: () => void; children: ReactNode; disabled?: boolean; loading?: boolean; leftIcon?: ReactNode; testID?: string }`
+- **Props**: `{ variant: 'grad' | 'primary' | 'outline' | 'outlineW' | 'outlineLime' | 'ghost'; onPress: () => void; children: ReactNode; disabled?: boolean; loading?: boolean; leftIcon?: ReactNode; testID?: string }`
 - **Used in**: S2 Login
 - **Example**:
   ```tsx
   <Button variant="grad" onPress={openSheet}>Entrar e jogar</Button>
   <Button variant="outline" onPress={onGoogle} leftIcon={<GoogleMark />}>Entrar com Google</Button>
   ```
-- **Notes**: All five DESIGN_SYSTEM variants. `grad` (blue→lime) and `primary` (navy→blue) wrap `expo-linear-gradient` with `shadow-cta` / `shadow-primary`; when `disabled` or `loading` they render a muted `bg-bg-light-alt` fill (no shadow). `outline` / `outlineW` / `ghost` are transparent (50% opacity when disabled). `loading` swaps content for an `ActivityIndicator` and disables press. Tap height ~48px (`h-12`), `rounded-btn`. Exposes `accessibilityRole="button"` and `accessibilityState` (disabled/busy).
+- **Notes**: All DESIGN_SYSTEM variants, under the button rule (flat fill, 2px navy border, `HARD_SHADOW`; DECISIONS #69). `grad` is lime, `primary` blue, `outline` white; `outlineW` / `outlineLime` are transparent for navy surfaces (no shadow); `ghost` is a text link. `disabled` or `loading` is 50% opacity with no shadow; `loading` swaps content for an `ActivityIndicator`. An icon on `grad` / `outline` is navy (`colors.surfaceDark`). Tap height ~48px (`h-12`), `rounded-btn`. Exposes `accessibilityRole="button"` and `accessibilityState` (disabled/busy).
 
 ### `PhoneInput`
 - **Path**: `src/components/ui/PhoneInput.tsx`

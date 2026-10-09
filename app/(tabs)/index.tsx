@@ -1,4 +1,3 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Bell, Plus, Search, Settings } from "lucide-react-native";
 import { useState } from "react";
@@ -19,13 +18,7 @@ import type {
   NearbyMatch,
   UpcomingMatch,
 } from "@/features/matches/types/match";
-import {
-  colors,
-  CREATE_TILE_GRADIENT,
-  CREATE_TILE_LOCATIONS,
-  SEARCH_TILE_GRADIENT,
-  SEARCH_TILE_LOCATIONS,
-} from "@/theme/colors";
+import { HARD_SHADOW, colors } from "@/theme/colors";
 import {
   ICON_HIT_SLOP,
   ICON_RIPPLE,
@@ -79,90 +72,76 @@ function SectionHeader({
  * ported from the Quadra prototype (screens-main.jsx). Replaces the old single
  * "Bora pra quadra?" card.
  */
+const TILE_STYLE = { minHeight: 138, ...HARD_SHADOW };
+
 function DualCtaTiles() {
   return (
     <View className="flex-row px-4 gap-3">
-      {/* Criar — lime→blue→deep-blue gradient hero (echoes the Jogar FAB) */}
+      {/* Criar — flat lime, the primary action */}
       <Pressable
         onPress={goCreate}
         accessibilityRole="button"
         accessibilityLabel="Criar partida"
         android_ripple={PRESS_RIPPLE}
-        className="flex-1 rounded-card overflow-hidden"
-        style={{ minHeight: 138, boxShadow: "0 4px 16px rgba(26,26,255,0.28)" }}
+        className="flex-1 rounded-card overflow-hidden border-2 border-surface-dark bg-accent"
+        style={TILE_STYLE}
       >
-        <LinearGradient
-          colors={CREATE_TILE_GRADIENT}
-          locations={CREATE_TILE_LOCATIONS}
-          start={{ x: 0.15, y: 0 }}
-          end={{ x: 0.55, y: 1 }}
-          style={{ flex: 1 }}
+        {/* Faint volleyball motif — same ball as the Jogar FAB, tilted. */}
+        <View
+          pointerEvents="none"
+          style={{
+            position: "absolute",
+            right: -30,
+            bottom: -26,
+            opacity: 0.12,
+            transform: [{ rotate: "-8deg" }],
+          }}
         >
-          {/* Faint volleyball motif — same ball as the Jogar FAB, tilted. */}
-          <View
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              right: -30,
-              bottom: -26,
-              opacity: 0.16,
-              transform: [{ rotate: "-8deg" }],
-            }}
-          >
-            <JogarIcon size={150} color={colors.textOnDark} />
+          <JogarIcon size={150} color={colors.surfaceDark} />
+        </View>
+        <View className="flex-1 justify-between px-4 pt-[18px] pb-4">
+          <View className="w-[42px] h-[42px] rounded-[14px] items-center justify-center bg-white border-2 border-surface-dark">
+            <Plus size={24} color={colors.surfaceDark} strokeWidth={2.4} />
           </View>
-          <View className="flex-1 justify-between px-4 pt-[18px] pb-4">
-            <View className="w-[42px] h-[42px] rounded-[14px] items-center justify-center bg-white/20 border border-white/30">
-              <Plus size={24} color={colors.textOnDark} strokeWidth={2.4} />
-            </View>
-            <View>
-              <Text
-                className="font-display text-white uppercase"
-                style={{ fontSize: 20, lineHeight: 21 }}
-              >
-                Criar
-              </Text>
-              <Text className="font-body-semibold text-body-bold text-white">
-                partida
-              </Text>
-            </View>
+          <View>
+            <Text
+              className="font-display text-surface-dark uppercase"
+              style={{ fontSize: 20, lineHeight: 21 }}
+            >
+              Criar
+            </Text>
+            <Text className="font-body-bold text-body-bold text-surface-dark">
+              partida
+            </Text>
           </View>
-        </LinearGradient>
+        </View>
       </Pressable>
 
-      {/* Buscar — lime→pale-lime→white gradient, plain white search badge */}
+      {/* Buscar — white, the secondary action */}
       <Pressable
         onPress={goExplore}
         accessibilityRole="button"
         accessibilityLabel="Buscar partida"
         android_ripple={PRESS_RIPPLE}
-        className="flex-1 rounded-card overflow-hidden border border-line shadow-card"
-        style={{ minHeight: 138 }}
+        className="flex-1 rounded-card overflow-hidden border-2 border-surface-dark bg-white"
+        style={TILE_STYLE}
       >
-        <LinearGradient
-          colors={SEARCH_TILE_GRADIENT}
-          locations={SEARCH_TILE_LOCATIONS}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={{ flex: 1 }}
-        >
-          <View className="flex-1 justify-between px-4 pt-[18px] pb-4">
-            <View className="w-[42px] h-[42px] rounded-[14px] items-center justify-center bg-white border border-line">
-              <Search size={23} color={colors.surfaceDark} strokeWidth={2.2} />
-            </View>
-            <View>
-              <Text
-                className="font-display text-text-primary uppercase"
-                style={{ fontSize: 20, lineHeight: 21 }}
-              >
-                Buscar
-              </Text>
-              <Text className="font-body-semibold text-body-bold text-text-primary">
-                partida
-              </Text>
-            </View>
+        <View className="flex-1 justify-between px-4 pt-[18px] pb-4">
+          <View className="w-[42px] h-[42px] rounded-[14px] items-center justify-center bg-white border-2 border-surface-dark">
+            <Search size={23} color={colors.surfaceDark} strokeWidth={2.2} />
           </View>
-        </LinearGradient>
+          <View>
+            <Text
+              className="font-display text-surface-dark uppercase"
+              style={{ fontSize: 20, lineHeight: 21 }}
+            >
+              Buscar
+            </Text>
+            <Text className="font-body-bold text-body-bold text-surface-dark">
+              partida
+            </Text>
+          </View>
+        </View>
       </Pressable>
     </View>
   );

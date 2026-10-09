@@ -2,6 +2,7 @@ import { Modal, Pressable, Text, View } from 'react-native';
 import { create } from 'zustand';
 
 import { Button } from '@/components/ui/Button';
+import { HARD_SHADOW } from '@/theme/colors';
 
 export type DialogButton = {
   text: string;
@@ -79,9 +80,10 @@ export function DialogHost() {
                   key={button.text}
                   accessibilityRole="button"
                   onPress={() => press(button)}
-                  className="h-12 items-center justify-center rounded-btn bg-danger px-6"
+                  className="h-12 items-center justify-center rounded-btn border-2 border-surface-dark bg-danger px-6"
+                  style={HARD_SHADOW}
                 >
-                  <Text className="font-body-semibold text-body-bold text-text-on-dark">
+                  <Text className="font-body-bold text-body-bold text-text-on-dark">
                     {button.text}
                   </Text>
                 </Pressable>
