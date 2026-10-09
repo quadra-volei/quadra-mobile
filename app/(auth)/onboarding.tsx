@@ -35,7 +35,12 @@ import {
   type Position,
 } from "@/features/profile/schema/onboarding";
 import { useAuthStore } from "@/stores/auth";
-import { colors, CTA_GRADIENT, HERO_GRADIENT } from "@/theme/colors";
+import {
+  colors,
+  CTA_GRADIENT,
+  HARD_SHADOW,
+  HERO_GRADIENT,
+} from "@/theme/colors";
 
 // 0 = personal data (step 0, no progress bar), 1 = position, 2 = level,
 // 3 = modality, 4 = completion. Ephemeral UI — not separate routes.
@@ -513,7 +518,7 @@ function WizardStep({
             variant="grad"
             onPress={onContinue}
             disabled={!canContinue}
-            leftIcon={<ChevronRight size={20} color={colors.textOnDark} />}
+            leftIcon={<ChevronRight size={20} color={colors.surfaceDark} />}
             testID="onboarding-continue"
           >
             Continuar
@@ -545,9 +550,12 @@ function PositionGrid({
             accessibilityLabel={option.name}
             accessibilityState={{ selected }}
             testID={`position-${option.code}`}
-            className={`w-[48%] rounded-card p-4 shadow-card ${
-              selected ? "bg-accent" : "bg-white"
+            className={`w-[48%] rounded-card border-2 p-4 shadow-card ${
+              selected
+                ? "border-surface-dark bg-accent/20"
+                : "border-transparent bg-white"
             }`}
+            style={selected ? HARD_SHADOW : undefined}
           >
             <View className="flex-row items-center">
               <Text className="font-display text-h1 text-primary uppercase">
@@ -593,9 +601,18 @@ function LevelList({
             accessibilityLabel={option.name}
             accessibilityState={{ selected }}
             testID={`level-${option.code}`}
-            className="mt-3 flex-row items-center rounded-card bg-white p-4 shadow-card"
+            className={`mt-3 flex-row items-center rounded-card border-2 p-4 shadow-card ${
+              selected
+                ? "border-surface-dark bg-accent/20"
+                : "border-transparent bg-white"
+            }`}
+            style={selected ? HARD_SHADOW : undefined}
           >
-            <View className="h-12 w-12 items-center justify-center rounded-chip bg-bg-light-alt">
+            <View
+              className={`h-12 w-12 items-center justify-center rounded-chip ${
+                selected ? "bg-accent" : "bg-bg-light-alt"
+              }`}
+            >
               <BarChart3 size={24} color={colors.primary} />
             </View>
             <View className="ml-4 flex-1">
@@ -608,10 +625,12 @@ function LevelList({
             </View>
             <View
               className={`h-6 w-6 items-center justify-center rounded-full border-2 ${
-                selected ? "border-primary bg-primary" : "border-line"
+                selected ? "border-surface-dark bg-accent" : "border-line"
               }`}
             >
-              {selected ? <Check size={14} color={colors.textOnDark} /> : null}
+              {selected ? (
+                <Check size={14} color={colors.surfaceDark} strokeWidth={3} />
+              ) : null}
             </View>
           </Pressable>
         );
@@ -642,6 +661,7 @@ function ModalityList({
             accessibilityState={{ selected }}
             testID={`modality-${option.code}`}
             className="mt-4 overflow-hidden rounded-card bg-white shadow-card"
+            style={selected ? HARD_SHADOW : undefined}
           >
             <LinearGradient
               colors={option.gradient}
@@ -667,7 +687,7 @@ function ModalityList({
             {selected ? (
               <View
                 pointerEvents="none"
-                className="absolute inset-0 rounded-card border-2 border-primary"
+                className="absolute inset-0 rounded-card border-2 border-surface-dark"
               />
             ) : null}
           </Pressable>
@@ -791,7 +811,7 @@ function CompletionStep({
               variant="grad"
               onPress={onEnter}
               loading={loading}
-              leftIcon={<Globe size={20} color={colors.textOnDark} />}
+              leftIcon={<Globe size={20} color={colors.surfaceDark} />}
               testID="onboarding-enter"
             >
               Entrar na quadra

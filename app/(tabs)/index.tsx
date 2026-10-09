@@ -1,16 +1,15 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { Bell, Plus, Search, Settings } from "lucide-react-native";
 import { useState } from "react";
 import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { JogarIcon } from "@/components/icons/JogarIcon";
 import { MatchCard } from "@/components/domain/MatchCard";
 import { MatchCardCompact } from "@/components/domain/MatchCardCompact";
 import { Button } from "@/components/ui/Button";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { StateMessage } from "@/components/ui/StateMessage";
+import { IconButton } from "@/components/ui/IconButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useNearbyMatches } from "@/features/matches/api/getNearby";
 import { useUpcomingMatches } from "@/features/matches/api/getUpcoming";
@@ -19,16 +18,8 @@ import type {
   NearbyMatch,
   UpcomingMatch,
 } from "@/features/matches/types/match";
+import { HARD_SHADOW, colors } from "@/theme/colors";
 import {
-  colors,
-  CREATE_TILE_GRADIENT,
-  CREATE_TILE_LOCATIONS,
-  SEARCH_TILE_GRADIENT,
-  SEARCH_TILE_LOCATIONS,
-} from "@/theme/colors";
-import {
-  ICON_HIT_SLOP,
-  ICON_RIPPLE,
   PRESS_RIPPLE,
   TAB_BAR_CLEARANCE,
 } from "@/theme/layout";
@@ -75,95 +66,55 @@ function SectionHeader({
 }
 
 /**
- * Home dual-CTA — two side-by-side tiles ("Criar partida" / "Buscar partida"),
- * ported from the Quadra prototype (screens-main.jsx). Replaces the old single
- * "Bora pra quadra?" card.
+ * Home hero — the blue "Bora pra quadra?" card holding the two entry points:
+ * "Criar partida" (lime, primary) and "Buscar jogo" (white, secondary), both
+ * under the button rule (DESIGN_SYSTEM "Buttons"). No counters: the backend
+ * has no "today" summary to fill them with.
  */
-function DualCtaTiles() {
-  return (
-    <View className="flex-row px-4 gap-3">
-      {/* Criar — lime→blue→deep-blue gradient hero (echoes the Jogar FAB) */}
-      <Pressable
-        onPress={goCreate}
-        accessibilityRole="button"
-        accessibilityLabel="Criar partida"
-        android_ripple={PRESS_RIPPLE}
-        className="flex-1 rounded-card overflow-hidden"
-        style={{ minHeight: 138, boxShadow: "0 4px 16px rgba(26,26,255,0.28)" }}
-      >
-        <LinearGradient
-          colors={CREATE_TILE_GRADIENT}
-          locations={CREATE_TILE_LOCATIONS}
-          start={{ x: 0.15, y: 0 }}
-          end={{ x: 0.55, y: 1 }}
-          style={{ flex: 1 }}
-        >
-          {/* Faint volleyball motif — same ball as the Jogar FAB, tilted. */}
-          <View
-            pointerEvents="none"
-            style={{
-              position: "absolute",
-              right: -30,
-              bottom: -26,
-              opacity: 0.16,
-              transform: [{ rotate: "-8deg" }],
-            }}
-          >
-            <JogarIcon size={150} color={colors.textOnDark} />
-          </View>
-          <View className="flex-1 justify-between px-4 pt-[18px] pb-4">
-            <View className="w-[42px] h-[42px] rounded-[14px] items-center justify-center bg-white/20 border border-white/30">
-              <Plus size={24} color={colors.textOnDark} strokeWidth={2.4} />
-            </View>
-            <View>
-              <Text
-                className="font-display text-white uppercase"
-                style={{ fontSize: 20, lineHeight: 21 }}
-              >
-                Criar
-              </Text>
-              <Text className="font-body-semibold text-body-bold text-white">
-                partida
-              </Text>
-            </View>
-          </View>
-        </LinearGradient>
-      </Pressable>
+const HERO_ACTION =
+  "flex-1 h-16 flex-row items-center rounded-btn overflow-hidden border-2 border-surface-dark px-4";
 
-      {/* Buscar — lime→pale-lime→white gradient, plain white search badge */}
-      <Pressable
-        onPress={goExplore}
-        accessibilityRole="button"
-        accessibilityLabel="Buscar partida"
-        android_ripple={PRESS_RIPPLE}
-        className="flex-1 rounded-card overflow-hidden border border-line shadow-card"
-        style={{ minHeight: 138 }}
-      >
-        <LinearGradient
-          colors={SEARCH_TILE_GRADIENT}
-          locations={SEARCH_TILE_LOCATIONS}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={{ flex: 1 }}
+function HomeHero() {
+  return (
+    <View className="mx-4 rounded-card bg-primary p-4">
+      <Text className="font-display text-display text-white uppercase">
+        Bora pra
+      </Text>
+      <Text className="font-display text-display text-accent uppercase">
+        Quadra?
+      </Text>
+
+      <View className="mt-6 flex-row gap-3">
+        <Pressable
+          onPress={goCreate}
+          accessibilityRole="button"
+          accessibilityLabel="Criar partida"
+          android_ripple={PRESS_RIPPLE}
+          className={`${HERO_ACTION} justify-between bg-accent`}
+          style={HARD_SHADOW}
         >
-          <View className="flex-1 justify-between px-4 pt-[18px] pb-4">
-            <View className="w-[42px] h-[42px] rounded-[14px] items-center justify-center bg-white border border-line">
-              <Search size={23} color={colors.surfaceDark} strokeWidth={2.2} />
-            </View>
-            <View>
-              <Text
-                className="font-display text-text-primary uppercase"
-                style={{ fontSize: 20, lineHeight: 21 }}
-              >
-                Buscar
-              </Text>
-              <Text className="font-body-semibold text-body-bold text-text-primary">
-                partida
-              </Text>
-            </View>
+          <Text className="flex-1 font-body-bold text-body-bold text-surface-dark">
+            Criar partida
+          </Text>
+          <View className="h-8 w-8 items-center justify-center rounded-full border-2 border-surface-dark">
+            <Plus size={18} color={colors.surfaceDark} strokeWidth={2.6} />
           </View>
-        </LinearGradient>
-      </Pressable>
+        </Pressable>
+
+        <Pressable
+          onPress={goExplore}
+          accessibilityRole="button"
+          accessibilityLabel="Buscar partida"
+          android_ripple={PRESS_RIPPLE}
+          className={`${HERO_ACTION} justify-center gap-2 bg-white`}
+          style={HARD_SHADOW}
+        >
+          <Search size={18} color={colors.surfaceDark} strokeWidth={2.4} />
+          <Text className="font-body-bold text-body-bold text-surface-dark">
+            Buscar jogo
+          </Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -273,7 +224,7 @@ export default function HomeScreen() {
           }}
         >
           {/* Dual CTA tiles — Criar / Buscar */}
-          <DualCtaTiles />
+          <HomeHero />
 
           {/* PRÓXIMAS PARTIDAS */}
           <SectionHeader
@@ -300,24 +251,12 @@ export default function HomeScreen() {
             INÍCIO
           </Text>
           <View className="flex-row items-center gap-3">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Notificações"
-              hitSlop={ICON_HIT_SLOP}
-              android_ripple={ICON_RIPPLE}
-              onPress={() => {}}
-            >
-              <Bell size={24} color={colors.surfaceDark} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Configurações"
-              hitSlop={ICON_HIT_SLOP}
-              android_ripple={ICON_RIPPLE}
-              onPress={goSettings}
-            >
-              <Settings size={24} color={colors.surfaceDark} />
-            </Pressable>
+            <IconButton label="Notificações" onPress={() => {}}>
+              <Bell size={20} color={colors.surfaceDark} />
+            </IconButton>
+            <IconButton label="Configurações" onPress={goSettings}>
+              <Settings size={20} color={colors.surfaceDark} />
+            </IconButton>
           </View>
         </View>
       </ScreenHeader>

@@ -21,7 +21,7 @@ import { distanceKm } from '@/features/matches/lib/distanceKm';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
 import { isMapAvailable } from '@/features/matches/lib/isMapAvailable';
 import type { NearbyMatch } from '@/features/matches/types/match';
-import { colors } from '@/theme/colors';
+import { HARD_SHADOW, colors } from '@/theme/colors';
 
 // Fallback map center (São Paulo) used only to seed the nearby query before the
 // device location resolves.
@@ -247,7 +247,7 @@ export default function MapScreen() {
   if (!isMapAvailable()) {
     return (
       <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-bg-light">
-        {backButton('m-4 h-10 w-10 bg-white shadow-card')}
+        {backButton('m-4 h-10 w-10 border-2 border-surface-dark bg-white')}
         <ScrollView>
           <View className="px-4 pb-6 gap-4">
             <Text className="font-body text-body text-text-muted">
@@ -345,7 +345,8 @@ export default function MapScreen() {
             accessibilityRole="button"
             accessibilityLabel="Centralizar na minha localização"
             testID="map-recenter"
-            className="h-14 w-14 rounded-full bg-white shadow-card items-center justify-center"
+            className="h-14 w-14 rounded-full border-2 border-surface-dark bg-white items-center justify-center"
+            style={HARD_SHADOW}
           >
             <LocateFixed size={22} color={colors.surfaceDark} />
           </Pressable>

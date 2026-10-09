@@ -145,7 +145,7 @@ function CardBody({ profile }: { profile: MyProfile }) {
         <Button
           variant="grad"
           onPress={() => shareCard(fullName, profile.overall)}
-          leftIcon={<Share2 size={18} color={colors.textOnDark} />}
+          leftIcon={<Share2 size={18} color={colors.surfaceDark} />}
           testID="share-card"
         >
           Compartilhar carta

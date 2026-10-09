@@ -242,7 +242,7 @@ export default function FeedbackScreen() {
               leftIcon={
                 <Share2
                   size={18}
-                  color={canSubmit ? colors.textOnDark : colors.textMuted}
+                  color={colors.surfaceDark}
                 />
               }
               testID="feedback-submit"
