@@ -5,8 +5,9 @@ import type { Coords } from '@/features/matches/api/matchesApi';
 
 /**
  * The device's position when location permission was ALREADY granted, else
- * null. Never prompts: asking for the permission belongs to the map screen
- * (S17), so Home and Explore fall back to a default centre until then.
+ * null. Never prompts: `LocationGate` asks at the app entry, before the
+ * tabs mount, so Home and Explore fall back to a default centre only when the
+ * permission was denied.
  */
 // ~110 m: steady enough that GPS jitter does not refetch every nearby query,
 // far below the 0,1 km the distances are shown with.
