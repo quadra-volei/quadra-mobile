@@ -10,7 +10,8 @@
  *  - essentials rows (when + countdown, where + "Como chegar", price) and the
  *    "Organizado por {name}" row with the organizer avatar and the position pill
  *    (primary token).
- *  - PresenceGrid: avatars + names + dashed "vaga" slots + "CONFIRMADOS · N/M".
+ *  - two tabs: "Detalhes" (default) and "Confirmados · N/M", which holds the
+ *    PresenceGrid (avatars + names + dashed "vaga" slots) and "Convidar".
  *  - NO per-player OVR rendered (participant + organizer).
  *  - countdown: BOTH branches via the pure formatCountdown (window open ->
  *    "Confirmações fecham em …"; window closed -> "Começa em …").
@@ -298,6 +299,13 @@ async function renderScreen() {
   });
 }
 
+/** Who is going sits on the second tab. */
+async function openPlayersTab() {
+  await act(async () => {
+    fireEvent.press(screen.getByTestId('tab-players'));
+  });
+}
+
 function variantOf(node: ReturnType<typeof screen.getByTestId>): string {
   return node.props['data-variant'];
 }
@@ -400,17 +408,26 @@ describe('S12 — Match Detail screen', () => {
    * Covers: S12 — Match Detail
    * Criterion: "The confirmed-players grid (PresenceGrid) shows one Avatar + name
    *  per confirmed player and dashed 'vaga' placeholders for the remaining slots
-   *  (capped at 3); the section header reads 'CONFIRMADOS' + the N/M count."
+   *  (capped at 3), on the 'Confirmados · N/M' tab; the screen opens on
+   *  'Detalhes', without the list."
    */
-  it('renders the CONFIRMADOS section header and the presence grid with vaga slots', async () => {
+  it('keeps the players on the Confirmados tab, with the count in the tab label', async () => {
     await renderScreen();
 
-    expect(screen.getByText('Confirmados')).toBeTruthy();
+    // opens on Detalhes: the count is one glance away, the list one tap away
+    expect(screen.getByTestId('tab-details').props.accessibilityState?.selected).toBe(true);
     expect(screen.getByTestId('confirmed-count').props.children).toEqual([
       3,
       '/',
       12,
     ]);
+    expect(screen.queryByTestId('presence-grid')).toBeNull();
+    expect(screen.queryByText('Renan')).toBeNull();
+
+    await openPlayersTab();
+    expect(screen.getByTestId('tab-players').props.accessibilityState?.selected).toBe(true);
+    // the details leave the screen
+    expect(screen.queryByText('Organizado por')).toBeNull();
     // confirmed players
     expect(screen.getByText('Renan')).toBeTruthy();
     expect(screen.getByText('Bia')).toBeTruthy();
@@ -421,20 +438,19 @@ describe('S12 — Match Detail screen', () => {
 
   /**
    * Covers: S12 — Match Detail
-   * Criterion: "each confirmed player's avatar carries the tier-colored level
-   *  badge, and a legend under the grid explains the tiers."
+   * Criterion: "a confirmed player's avatar carries the level badge when the
+   *  level is known; there is no legend of level brackets."
    */
-  it('renders the level badges and the tier legend under the grid', async () => {
+  it('renders the level badges and no tier legend', async () => {
     await renderScreen();
+    await openPlayersTab();
 
     // one badge per confirmed player in the fixture (Renan + Caio are both 15)
     expect(screen.getAllByTestId('avatar-level-badge').length).toBeGreaterThanOrEqual(3);
     expect(screen.getAllByLabelText('Nível 15')).toHaveLength(2);
     expect(screen.getByLabelText('Nível 9')).toBeTruthy();
-    // the legend explains what the bolinha means
-    expect(screen.getByTestId('level-legend')).toBeTruthy();
-    expect(screen.getByText('Nv 15–30')).toBeTruthy();
-    expect(screen.getByText('Nv 75+')).toBeTruthy();
+    expect(screen.queryByTestId('level-legend')).toBeNull();
+    expect(screen.queryByText(/^Nv \d/)).toBeNull();
   });
 
   /**
@@ -453,6 +469,7 @@ describe('S12 — Match Detail screen', () => {
    */
   it('does not navigate when a confirmed-player avatar is tapped', async () => {
     await renderScreen();
+    await openPlayersTab();
 
     fireEvent.press(screen.getByLabelText('Avatar de Renan'));
     expect(mockPush).not.toHaveBeenCalled();
@@ -828,6 +845,7 @@ describe('S12 — Match Detail screen', () => {
     await renderOrganizer();
 
     expect(screen.getByText('Você organiza')).toBeTruthy();
+    await openPlayersTab();
     expect(screen.getByTestId('invite')).toBeTruthy();
     // teams are configured and drawn on the next screen
     expect(screen.queryByText('Configuração dos times')).toBeNull();
@@ -917,6 +935,7 @@ describe('S12 — Match Detail screen', () => {
    */
   it('invokes Share.share from the organizer Convidar button (no navigation)', async () => {
     await renderOrganizer();
+    await openPlayersTab();
 
     await act(async () => {
       fireEvent.press(screen.getByTestId('invite'));
