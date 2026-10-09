@@ -10,13 +10,14 @@ import {
   Text,
   View,
 } from 'react-native';
-import MapView, { Marker } from 'react-native-maps';
+import MapView, { Marker, type Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
 import { Tag } from '@/components/ui/Tag';
 import { MatchCard } from '@/components/domain/MatchCard';
 import { useNearbyMatches } from '@/features/matches/api/getNearby';
+import { distanceKm } from '@/features/matches/lib/distanceKm';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
 import { isMapAvailable } from '@/features/matches/lib/isMapAvailable';
 import type { NearbyMatch } from '@/features/matches/types/match';
@@ -27,6 +28,33 @@ import { colors } from '@/theme/colors';
 const DEFAULT_CENTER = { latitude: -23.5605, longitude: -46.6433 };
 const REGION_DELTA = { latitudeDelta: 0.05, longitudeDelta: 0.05 };
 const NEARBY_RADIUS_KM = 5;
+// The backend refuses a larger radius.
+// ponytail: zoomed out past ~100 km across, the user is asked to zoom in; raise
+// the backend cap (or cluster server-side) if country-wide browsing matters.
+const MAX_RADIUS_KM = 50;
+const KM_PER_DEGREE = 111;
+
+type SearchArea = { lat: number; lon: number; radiusKm: number; tooWide: boolean };
+
+/**
+ * The search that covers what the map is showing: its centre and the radius to
+ * its farthest edge. Rounded (centre ~1 km, radius whole km) so small pans
+ * reuse the same query.
+ */
+export function searchAreaFor(region: Region): SearchArea {
+  const halfHeightKm = (region.latitudeDelta / 2) * KM_PER_DEGREE;
+  const halfWidthKm =
+    (region.longitudeDelta / 2) *
+    KM_PER_DEGREE *
+    Math.cos((region.latitude * Math.PI) / 180);
+  const needed = Math.ceil(Math.max(halfHeightKm, halfWidthKm));
+  return {
+    lat: Math.round(region.latitude * 100) / 100,
+    lon: Math.round(region.longitude * 100) / 100,
+    radiusKm: Math.min(Math.max(needed, NEARBY_RADIUS_KM), MAX_RADIUS_KM),
+    tooWide: needed > MAX_RADIUS_KM,
+  };
+}
 
 type PermissionState = 'undetermined' | 'granted' | 'denied';
 
@@ -76,10 +104,14 @@ export default function MapScreen() {
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const mapRef = useRef<MapView>(null);
 
+  // Set once the user moves the map: the search then follows what is on screen
+  // (a match in another city shows up when the map is taken there).
+  const [searchArea, setSearchArea] = useState<SearchArea | null>(null);
+
   const nearby = useNearbyMatches({
-    lat: (userLocation ?? DEFAULT_CENTER).latitude,
-    lon: (userLocation ?? DEFAULT_CENTER).longitude,
-    radiusKm: NEARBY_RADIUS_KM,
+    lat: searchArea?.lat ?? (userLocation ?? DEFAULT_CENTER).latitude,
+    lon: searchArea?.lon ?? (userLocation ?? DEFAULT_CENTER).longitude,
+    radiusKm: searchArea?.radiusKm ?? NEARBY_RADIUS_KM,
   });
 
   async function resolveLocation() {
@@ -247,6 +279,17 @@ export default function MapScreen() {
         // initialRegion, not region: a controlled region snaps the map back to
         // the centre on every re-render (e.g. when a pin is selected).
         initialRegion={{ ...center, ...REGION_DELTA }}
+        onRegionChangeComplete={(region) => {
+          const next = searchAreaFor(region);
+          setSearchArea((prev) =>
+            prev?.lat === next.lat &&
+            prev.lon === next.lon &&
+            prev.radiusKm === next.radiusKm &&
+            prev.tooWide === next.tooWide
+              ? prev
+              : next,
+          );
+        }}
         // The native toolbar (Android) would sit over the summary card.
         toolbarEnabled={false}
         // A pin tap also reaches the map's onPress on some platforms; only a tap
@@ -309,11 +352,15 @@ export default function MapScreen() {
         </View>
 
         {/* Empty notice — granted but no matches in radius */}
-        {matches.length === 0 && (
+        {(matches.length === 0 || searchArea?.tooWide) && (
           <View pointerEvents="none" className="items-center px-4 pt-3">
             <View className="bg-white rounded-pill px-6 py-3 shadow-card">
               <Text className="font-body text-body text-text-primary text-center">
-                Nenhuma partida perto de você ainda
+                {searchArea?.tooWide
+                  ? 'Aproxime o mapa para ver as partidas desta área'
+                  : searchArea
+                    ? 'Nenhuma partida nesta área'
+                    : 'Nenhuma partida perto de você ainda'}
               </Text>
             </View>
           </View>
@@ -352,7 +399,17 @@ export default function MapScreen() {
                   </Text>
                 ) : null}
                 <Text className="font-body text-body text-text-muted">
-                  {selected.distanceKm.toFixed(1).replace('.', ',')} km
+                  {/* From the user, not from the map centre the search used. */}
+                  {(userLocation
+                    ? distanceKm(userLocation, {
+                        latitude: selected.lat,
+                        longitude: selected.lon,
+                      })
+                    : selected.distanceKm
+                  )
+                    .toFixed(1)
+                    .replace('.', ',')}{' '}
+                  km
                 </Text>
                 <Text className="font-body text-body text-text-muted">
                   {selected.confirmed}/{selected.capacity} confirmados
