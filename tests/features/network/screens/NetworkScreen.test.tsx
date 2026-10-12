@@ -22,6 +22,8 @@ jest.mock('lucide-react-native', () => {
   const stub = (name: string) => (props: any) =>
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
   return {
+    Clock: stub('clock'),
+    Heart: stub('heart'),
     Plus: stub('plus'),
     Settings: stub('settings'),
     Trash2: stub('trash'),
@@ -30,16 +32,23 @@ jest.mock('lucide-react-native', () => {
 });
 
 const mockPush = jest.fn();
+jest.mock('expo-linear-gradient', () => {
+  const { View } = require('react-native');
+  return { LinearGradient: View };
+});
+
 jest.mock('expo-router', () => ({
   router: { push: (...args: any[]) => mockPush(...args) },
 }));
 
 const mockFeed = jest.fn();
 const mockDelete = jest.fn();
+const mockSetLike = jest.fn();
 jest.mock('@/features/network/api/postsApi', () => ({
   ...jest.requireActual('@/features/network/api/postsApi'),
   usePostFeed: () => mockFeed(),
   useDeletePost: () => ({ mutate: mockDelete }),
+  useSetPostLike: () => ({ mutate: mockSetLike }),
 }));
 
 import { fireEvent, render, screen } from '@testing-library/react-native';
@@ -57,6 +66,8 @@ const post = (over: Partial<Post>): Post => ({
   match: null,
   createdAt: new Date().toISOString(),
   mine: false,
+  likeCount: 0,
+  likedByMe: false,
   ...over,
 });
 
@@ -75,13 +86,14 @@ const feedWith = (items: Post[], over: object = {}) => ({
 beforeEach(() => {
   mockPush.mockClear();
   mockDelete.mockClear();
+  mockSetLike.mockClear();
 });
 
 describe('S7 — Rede (feed)', () => {
   it('shows each post with its author, text and match', async () => {
     mockFeed.mockReturnValue(
       feedWith([
-        post({ match: { id: 'm1', name: 'Vôlei de quinta' } }),
+        post({ match: { id: 'm1', name: 'Vôlei de quinta', startsAt: '2026-01-01T22:00:00Z' } }),
         post({ id: 'p2', text: 'Outro', author: { userId: 'u2', displayName: 'Beto', handle: null, photoUrl: null } }),
       ]),
     );
@@ -95,6 +107,21 @@ describe('S7 — Rede (feed)', () => {
     expect(screen.getByText('Vôlei de quinta')).toBeTruthy();
     expect(screen.getByText('Beto')).toBeTruthy();
     expect(screen.getAllByTestId('post')).toHaveLength(2);
+    // A match already played is a label, not an invite.
+    expect(screen.queryByText('Participar')).toBeNull();
+  });
+
+  it('turns a post tied to a match still to come into an invite that opens the match', async () => {
+    const startsAt = new Date(Date.now() + 3 * 3_600_000).toISOString();
+    mockFeed.mockReturnValue(
+      feedWith([post({ match: { id: 'm9', name: 'Racha da Galera', startsAt } })]),
+    );
+
+    await render(<NetworkScreen />);
+    expect(screen.getByTestId('post-invite')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Participar de Racha da Galera'));
+
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/matches/[id]', params: { id: 'm9' } });
   });
 
   it('offers to delete only my own post, after a confirmation', async () => {
@@ -111,6 +138,21 @@ describe('S7 — Rede (feed)', () => {
     const buttons = alert.mock.calls[0]![2]!;
     buttons.find((b) => b.text === 'Apagar')!.onPress!();
     expect(mockDelete).toHaveBeenCalledWith('p1');
+  });
+
+  it('shows the likes and toggles mine at the tap', async () => {
+    const liked = post({ likeCount: 8, likedByMe: true });
+    const fresh = post({ id: 'p2', likeCount: 3 });
+    mockFeed.mockReturnValue(feedWith([liked, fresh]));
+
+    await render(<NetworkScreen />);
+    expect(screen.getByText('8')).toBeTruthy();
+    expect(screen.getByText('3')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Descurtir'));
+    await fireEvent.press(screen.getByLabelText('Curtir'));
+
+    expect(mockSetLike).toHaveBeenNthCalledWith(1, { post: liked, liked: false });
+    expect(mockSetLike).toHaveBeenNthCalledWith(2, { post: fresh, liked: true });
   });
 
   it('invites to write the first post when the feed is empty', async () => {

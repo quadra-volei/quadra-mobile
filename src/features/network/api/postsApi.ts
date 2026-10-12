@@ -1,10 +1,13 @@
 import {
+  type InfiniteData,
   useInfiniteQuery,
   useMutation,
+  useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
 import { z } from 'zod';
 
+import { fetchMyMatches } from '@/features/matches/api/matchesApi';
 import { uploadProfilePhoto } from '@/features/profile/api/profileApi';
 import { ApiError } from '@/lib/api/client';
 import { authorizedApiClient } from '@/lib/api/authorizedClient';
@@ -28,11 +31,18 @@ export type Post = {
   text: string | null;
   photoUrl: string | null;
   /** The match the author tied the post to. */
-  match: { id: string; name: string } | null;
+  match: {
+    id: string;
+    name: string;
+    /** ISO timestamp. In the future on a post that invites to the match. */
+    startsAt: string | null;
+  } | null;
   /** ISO timestamp. */
   createdAt: string;
   /** Whether the signed-in user wrote it (and so may delete it). */
   mine: boolean;
+  likeCount: number;
+  likedByMe: boolean;
 };
 
 type PostFeedPage = {
@@ -106,7 +116,7 @@ function toPostError(error: unknown): Error {
       case 429:
         return new Error('Você já publicou muito hoje. Tente de novo amanhã.');
       case 422:
-        return new Error('Só dá para marcar uma partida que você já jogou.');
+        return new Error('Não dá para marcar essa partida neste post.');
       case 400:
         return new Error('Escreva algo ou escolha uma foto.');
       case 401:
@@ -134,6 +144,27 @@ export function useCreatePost() {
   });
 }
 
+/**
+ * The matches the user can invite to in a post: still to come, open to
+ * everyone, and organized or confirmed by them (the backend applies the same
+ * rule on `POST /api/v1/posts`).
+ */
+export function useInvitableMatches() {
+  return useQuery({
+    queryKey: ['matches', 'invitable'] as const,
+    queryFn: async () =>
+      (await fetchMyMatches())
+        .filter(
+          ({ match, isOrganizer, myStatus }) =>
+            match.visibility === 'Open' &&
+            (match.status === 'Draft' || match.status === 'Open') &&
+            new Date(match.dateTime).getTime() > Date.now() &&
+            (isOrganizer || myStatus === 'Confirmed'),
+        )
+        .map(({ match }) => ({ id: match.id, name: match.name })),
+  });
+}
+
 /** Removes the user's own post (`DELETE /api/v1/posts/{id}`). */
 export function useDeletePost() {
   const queryClient = useQueryClient();
@@ -141,6 +172,38 @@ export function useDeletePost() {
     mutationFn: (id) =>
       authorizedApiClient<void>(`/api/v1/posts/${id}`, { method: 'DELETE' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: postFeedQueryKey }),
+  });
+}
+
+/**
+ * Likes or unlikes a post (`PUT / DELETE /api/v1/posts/{id}/like`). The heart
+ * and the count change at the tap; the server's count replaces them when it
+ * answers, and a failed request re-reads the feed.
+ */
+export function useSetPostLike() {
+  const queryClient = useQueryClient();
+  const patch = (id: string, likes: Pick<Post, 'likeCount' | 'likedByMe'>) =>
+    queryClient.setQueryData<InfiniteData<PostFeedPage>>(postFeedQueryKey, (feed) =>
+      feed && {
+        ...feed,
+        pages: feed.pages.map((page) => ({
+          ...page,
+          items: page.items.map((post) => (post.id === id ? { ...post, ...likes } : post)),
+        })),
+      },
+    );
+  return useMutation<Pick<Post, 'likeCount' | 'likedByMe'>, Error, { post: Post; liked: boolean }>({
+    mutationFn: ({ post, liked }) =>
+      authorizedApiClient(`/api/v1/posts/${post.id}/like`, { method: liked ? 'PUT' : 'DELETE' }),
+    onMutate: ({ post, liked }) => {
+      if (liked !== post.likedByMe) {
+        patch(post.id, { likedByMe: liked, likeCount: post.likeCount + (liked ? 1 : -1) });
+      }
+    },
+    onSuccess: (likes, { post }) => {
+      patch(post.id, likes);
+    },
+    onError: () => queryClient.invalidateQueries({ queryKey: postFeedQueryKey }),
   });
 }
 

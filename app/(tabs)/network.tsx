@@ -1,11 +1,12 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Plus, Settings, Trash2, Trophy } from 'lucide-react-native';
+import { Clock, Heart, Plus, Settings, Trash2, Trophy } from 'lucide-react-native';
 import { useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
+import { CourtImage } from '@/components/ui/CourtImage';
 import { dialog } from '@/components/ui/Dialog';
 import { IconButton } from '@/components/ui/IconButton';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
@@ -16,9 +17,16 @@ import {
   timeAgo,
   useDeletePost,
   usePostFeed,
+  useSetPostLike,
 } from '@/features/network/api/postsApi';
+import { formatWhen } from '@/features/matches/lib/formatWhen';
 import { colors } from '@/theme/colors';
-import { ICON_HIT_SLOP, ICON_RIPPLE, TAB_BAR_CLEARANCE } from '@/theme/layout';
+import {
+  ICON_HIT_SLOP,
+  ICON_RIPPLE,
+  PRESS_RIPPLE,
+  TAB_BAR_CLEARANCE,
+} from '@/theme/layout';
 
 function goSettings() {
   router.push('/profile/settings');
@@ -26,9 +34,56 @@ function goSettings() {
 function goNewPost() {
   router.push('/network/new');
 }
+function goMatch(id: string) {
+  router.push({ pathname: '/matches/[id]', params: { id } });
+}
+
+// ── The match a post invites to: cover with name and time, and the way in ──
+function MatchInvite({ match }: { match: { id: string; name: string; startsAt: string } }) {
+  return (
+    <View className="px-4 pb-4" testID="post-invite">
+      <CourtImage tint={colors.primary} height={112} radius={16}>
+        <View className="absolute left-4 right-4 bottom-3">
+          <Text className="font-body-extrabold text-h3 text-text-on-dark" numberOfLines={1}>
+            {match.name}
+          </Text>
+          <View className="flex-row items-center gap-1 mt-1">
+            <Clock size={14} color={colors.textOnDark} />
+            <Text className="font-body text-caption text-text-on-dark">
+              {formatWhen(match.startsAt)}
+            </Text>
+          </View>
+        </View>
+      </CourtImage>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Participar de ${match.name}`}
+        android_ripple={PRESS_RIPPLE}
+        onPress={() => goMatch(match.id)}
+        className="self-end mt-3 h-10 px-6 rounded-pill bg-accent items-center justify-center overflow-hidden"
+      >
+        <Text className="font-body-semibold text-body-bold text-text-primary">Participar</Text>
+      </Pressable>
+    </View>
+  );
+}
 
 // ── One post: author row, text, photo, the match it is tied to ──
-function PostCard({ post, onDelete }: { post: Post; onDelete: () => void }) {
+function PostCard({
+  post,
+  onDelete,
+  onToggleLike,
+}: {
+  post: Post;
+  onDelete: () => void;
+  onToggleLike: () => void;
+}) {
+  const match = post.match;
+  // A match still to come makes the post an invite; a played one is a label.
+  const invitesTo =
+    match?.startsAt && new Date(match.startsAt).getTime() > Date.now()
+      ? { ...match, startsAt: match.startsAt }
+      : null;
   return (
     <View className="mx-4 mb-4 bg-white rounded-card shadow-card overflow-hidden" testID="post">
       <View className="flex-row items-center gap-3 p-4">
@@ -69,14 +124,35 @@ function PostCard({ post, onDelete }: { post: Post; onDelete: () => void }) {
         />
       ) : null}
 
-      {post.match ? (
+      {invitesTo ? (
+        <MatchInvite match={invitesTo} />
+      ) : match ? (
         <View className="flex-row items-center gap-2 px-4 py-3 border-t border-line">
           <Trophy size={16} color={colors.primary} />
           <Text className="flex-1 font-body-semibold text-caption text-primary" numberOfLines={1}>
-            {post.match.name}
+            {match.name}
           </Text>
         </View>
       ) : null}
+
+      <View className="flex-row items-center px-4 py-3 border-t border-line">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={post.likedByMe ? 'Descurtir' : 'Curtir'}
+          accessibilityState={{ selected: post.likedByMe }}
+          hitSlop={ICON_HIT_SLOP}
+          android_ripple={ICON_RIPPLE}
+          onPress={onToggleLike}
+          className="flex-row items-center gap-2"
+        >
+          <Heart
+            size={20}
+            color={post.likedByMe ? colors.danger : colors.textMuted}
+            fill={post.likedByMe ? colors.danger : 'none'}
+          />
+          <Text className="font-body-semibold text-caption text-text-muted">{post.likeCount}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -86,6 +162,7 @@ export default function NetworkScreen() {
   const [headerHeight, setHeaderHeight] = useState(0);
   const feed = usePostFeed();
   const deletePost = useDeletePost();
+  const setLike = useSetPostLike();
   const posts = feed.data?.pages.flatMap((page) => page.items) ?? [];
 
   const confirmDelete = (post: Post) => {
@@ -101,7 +178,13 @@ export default function NetworkScreen() {
         testID="feed"
         data={posts}
         keyExtractor={(post) => post.id}
-        renderItem={({ item }) => <PostCard post={item} onDelete={() => confirmDelete(item)} />}
+        renderItem={({ item }) => (
+          <PostCard
+            post={item}
+            onDelete={() => confirmDelete(item)}
+            onToggleLike={() => setLike.mutate({ post: item, liked: !item.likedByMe })}
+          />
+        )}
         contentContainerStyle={{
           paddingTop: headerHeight + 16,
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
