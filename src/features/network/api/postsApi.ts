@@ -1,4 +1,5 @@
 import {
+  type InfiniteData,
   useInfiniteQuery,
   useMutation,
   useQuery,
@@ -40,6 +41,8 @@ export type Post = {
   createdAt: string;
   /** Whether the signed-in user wrote it (and so may delete it). */
   mine: boolean;
+  likeCount: number;
+  likedByMe: boolean;
 };
 
 type PostFeedPage = {
@@ -169,6 +172,38 @@ export function useDeletePost() {
     mutationFn: (id) =>
       authorizedApiClient<void>(`/api/v1/posts/${id}`, { method: 'DELETE' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: postFeedQueryKey }),
+  });
+}
+
+/**
+ * Likes or unlikes a post (`PUT / DELETE /api/v1/posts/{id}/like`). The heart
+ * and the count change at the tap; the server's count replaces them when it
+ * answers, and a failed request re-reads the feed.
+ */
+export function useSetPostLike() {
+  const queryClient = useQueryClient();
+  const patch = (id: string, likes: Pick<Post, 'likeCount' | 'likedByMe'>) =>
+    queryClient.setQueryData<InfiniteData<PostFeedPage>>(postFeedQueryKey, (feed) =>
+      feed && {
+        ...feed,
+        pages: feed.pages.map((page) => ({
+          ...page,
+          items: page.items.map((post) => (post.id === id ? { ...post, ...likes } : post)),
+        })),
+      },
+    );
+  return useMutation<Pick<Post, 'likeCount' | 'likedByMe'>, Error, { post: Post; liked: boolean }>({
+    mutationFn: ({ post, liked }) =>
+      authorizedApiClient(`/api/v1/posts/${post.id}/like`, { method: liked ? 'PUT' : 'DELETE' }),
+    onMutate: ({ post, liked }) => {
+      if (liked !== post.likedByMe) {
+        patch(post.id, { likedByMe: liked, likeCount: post.likeCount + (liked ? 1 : -1) });
+      }
+    },
+    onSuccess: (likes, { post }) => {
+      patch(post.id, likes);
+    },
+    onError: () => queryClient.invalidateQueries({ queryKey: postFeedQueryKey }),
   });
 }
 

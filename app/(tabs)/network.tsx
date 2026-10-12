@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Clock, Plus, Settings, Trash2, Trophy } from 'lucide-react-native';
+import { Clock, Heart, Plus, Settings, Trash2, Trophy } from 'lucide-react-native';
 import { useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,6 +17,7 @@ import {
   timeAgo,
   useDeletePost,
   usePostFeed,
+  useSetPostLike,
 } from '@/features/network/api/postsApi';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
 import { colors } from '@/theme/colors';
@@ -68,7 +69,15 @@ function MatchInvite({ match }: { match: { id: string; name: string; startsAt: s
 }
 
 // ── One post: author row, text, photo, the match it is tied to ──
-function PostCard({ post, onDelete }: { post: Post; onDelete: () => void }) {
+function PostCard({
+  post,
+  onDelete,
+  onToggleLike,
+}: {
+  post: Post;
+  onDelete: () => void;
+  onToggleLike: () => void;
+}) {
   const match = post.match;
   // A match still to come makes the post an invite; a played one is a label.
   const invitesTo =
@@ -125,6 +134,25 @@ function PostCard({ post, onDelete }: { post: Post; onDelete: () => void }) {
           </Text>
         </View>
       ) : null}
+
+      <View className="flex-row items-center px-4 py-3 border-t border-line">
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={post.likedByMe ? 'Descurtir' : 'Curtir'}
+          accessibilityState={{ selected: post.likedByMe }}
+          hitSlop={ICON_HIT_SLOP}
+          android_ripple={ICON_RIPPLE}
+          onPress={onToggleLike}
+          className="flex-row items-center gap-2"
+        >
+          <Heart
+            size={20}
+            color={post.likedByMe ? colors.danger : colors.textMuted}
+            fill={post.likedByMe ? colors.danger : 'none'}
+          />
+          <Text className="font-body-semibold text-caption text-text-muted">{post.likeCount}</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -134,6 +162,7 @@ export default function NetworkScreen() {
   const [headerHeight, setHeaderHeight] = useState(0);
   const feed = usePostFeed();
   const deletePost = useDeletePost();
+  const setLike = useSetPostLike();
   const posts = feed.data?.pages.flatMap((page) => page.items) ?? [];
 
   const confirmDelete = (post: Post) => {
@@ -149,7 +178,13 @@ export default function NetworkScreen() {
         testID="feed"
         data={posts}
         keyExtractor={(post) => post.id}
-        renderItem={({ item }) => <PostCard post={item} onDelete={() => confirmDelete(item)} />}
+        renderItem={({ item }) => (
+          <PostCard
+            post={item}
+            onDelete={() => confirmDelete(item)}
+            onToggleLike={() => setLike.mutate({ post: item, liked: !item.likedByMe })}
+          />
+        )}
         contentContainerStyle={{
           paddingTop: headerHeight + 16,
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,

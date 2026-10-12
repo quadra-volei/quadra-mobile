@@ -14,7 +14,7 @@ State of the MVP on the `dev` branch, as of 2026-10-06. Reasons for each choice 
 | S4 Onboarding | `app/(auth)/onboarding.tsx` | Name, surname, birth date, `@handle` (checked while typing), position, level, modality |
 | S5 Home | `app/(tabs)/index.tsx` | My upcoming matches, nearby matches |
 | S6 Explore | `app/(tabs)/explore.tsx` | Search, filter chips, map preview, results grid |
-| S7 Network | `app/(tabs)/network.tsx`, `app/network/new.tsx` | Feed with everyone's posts (text, one photo, tied match), invite card with "Participar" for a match still to come, delete my own; new post with text, one photo and either an upcoming open match of mine or one of my last 5 finished matches |
+| S7 Network | `app/(tabs)/network.tsx`, `app/network/new.tsx` | Feed with everyone's posts (text, one photo, tied match), invite card with "Participar" for a match still to come, likes, delete my own; new post with text, one photo and either an upcoming open match of mine or one of my last 5 finished matches |
 | S8 Profile | `app/(tabs)/profile.tsx` | Progress card, recent matches (last 5), ranking preview |
 | S8b Player card | `app/profile/card.tsx` | Reads the profile |
 | S9 Ranking | `app/profile/ranking.tsx` | Ranking of the recurring match where I scored most recently; "Bairro" and "Geral" tabs disabled |
@@ -66,7 +66,7 @@ Human rulings (do not build without a new decision):
 - **Payments**: prices are display-only; money changes hands outside the app.
 
 Rede (social feed, in scope since 2026-10-09, DECISIONS #66): each next step waits for the
-owner's approval. Not built yet: likes and comments, follows or friends with the "Amigos" / "Para você" tabs,
+owner's approval. Not built yet: comments, follows or friends with the "Amigos" / "Para você" tabs,
 automatic activity cards, a match's posts, several photos, video,
 posts on a profile, another player's profile, friends ranking.
 

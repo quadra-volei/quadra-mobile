@@ -189,3 +189,4 @@ Placeholders that are NOT mocks (the backend has no such data yet, the app shows
 | # | Decision | Why |
 | --- | --- | --- |
 | 74 | **A post tied to a match still to come is an invite**: the card shows the match cover with its name and time and a lime "Participar" button that opens the match detail. In the new post, "Convidar para" lists my upcoming matches that are open to everyone and that I organize or confirmed (never a private one); "Partida jogada" keeps the last 5 finished. Once the match time passes the card falls back to the match label. | Owner's prototype of the Rede feed (API #43). |
+| 75 | **Each post has a heart with its like count** at the bottom of the card. The tap is optimistic (`useSetPostLike`): heart and count change at once, the server's count replaces them when it answers, and a failed request re-reads the feed. Liked = red filled heart. | Step 3 of the Rede (API #44); same feel as the optimistic point (#64). |

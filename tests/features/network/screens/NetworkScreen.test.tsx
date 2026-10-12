@@ -23,6 +23,7 @@ jest.mock('lucide-react-native', () => {
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
   return {
     Clock: stub('clock'),
+    Heart: stub('heart'),
     Plus: stub('plus'),
     Settings: stub('settings'),
     Trash2: stub('trash'),
@@ -42,10 +43,12 @@ jest.mock('expo-router', () => ({
 
 const mockFeed = jest.fn();
 const mockDelete = jest.fn();
+const mockSetLike = jest.fn();
 jest.mock('@/features/network/api/postsApi', () => ({
   ...jest.requireActual('@/features/network/api/postsApi'),
   usePostFeed: () => mockFeed(),
   useDeletePost: () => ({ mutate: mockDelete }),
+  useSetPostLike: () => ({ mutate: mockSetLike }),
 }));
 
 import { fireEvent, render, screen } from '@testing-library/react-native';
@@ -63,6 +66,8 @@ const post = (over: Partial<Post>): Post => ({
   match: null,
   createdAt: new Date().toISOString(),
   mine: false,
+  likeCount: 0,
+  likedByMe: false,
   ...over,
 });
 
@@ -81,6 +86,7 @@ const feedWith = (items: Post[], over: object = {}) => ({
 beforeEach(() => {
   mockPush.mockClear();
   mockDelete.mockClear();
+  mockSetLike.mockClear();
 });
 
 describe('S7 — Rede (feed)', () => {
@@ -132,6 +138,21 @@ describe('S7 — Rede (feed)', () => {
     const buttons = alert.mock.calls[0]![2]!;
     buttons.find((b) => b.text === 'Apagar')!.onPress!();
     expect(mockDelete).toHaveBeenCalledWith('p1');
+  });
+
+  it('shows the likes and toggles mine at the tap', async () => {
+    const liked = post({ likeCount: 8, likedByMe: true });
+    const fresh = post({ id: 'p2', likeCount: 3 });
+    mockFeed.mockReturnValue(feedWith([liked, fresh]));
+
+    await render(<NetworkScreen />);
+    expect(screen.getByText('8')).toBeTruthy();
+    expect(screen.getByText('3')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Descurtir'));
+    await fireEvent.press(screen.getByLabelText('Curtir'));
+
+    expect(mockSetLike).toHaveBeenNthCalledWith(1, { post: liked, liked: false });
+    expect(mockSetLike).toHaveBeenNthCalledWith(2, { post: fresh, liked: true });
   });
 
   it('invites to write the first post when the feed is empty', async () => {
