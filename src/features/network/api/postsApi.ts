@@ -1,10 +1,12 @@
 import {
   useInfiniteQuery,
   useMutation,
+  useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
 import { z } from 'zod';
 
+import { fetchMyMatches } from '@/features/matches/api/matchesApi';
 import { uploadProfilePhoto } from '@/features/profile/api/profileApi';
 import { ApiError } from '@/lib/api/client';
 import { authorizedApiClient } from '@/lib/api/authorizedClient';
@@ -28,7 +30,12 @@ export type Post = {
   text: string | null;
   photoUrl: string | null;
   /** The match the author tied the post to. */
-  match: { id: string; name: string } | null;
+  match: {
+    id: string;
+    name: string;
+    /** ISO timestamp. In the future on a post that invites to the match. */
+    startsAt: string | null;
+  } | null;
   /** ISO timestamp. */
   createdAt: string;
   /** Whether the signed-in user wrote it (and so may delete it). */
@@ -106,7 +113,7 @@ function toPostError(error: unknown): Error {
       case 429:
         return new Error('Você já publicou muito hoje. Tente de novo amanhã.');
       case 422:
-        return new Error('Só dá para marcar uma partida que você já jogou.');
+        return new Error('Não dá para marcar essa partida neste post.');
       case 400:
         return new Error('Escreva algo ou escolha uma foto.');
       case 401:
@@ -131,6 +138,27 @@ export function useCreatePost() {
   return useMutation<Post, Error, NewPost>({
     mutationFn: createPost,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: postFeedQueryKey }),
+  });
+}
+
+/**
+ * The matches the user can invite to in a post: still to come, open to
+ * everyone, and organized or confirmed by them (the backend applies the same
+ * rule on `POST /api/v1/posts`).
+ */
+export function useInvitableMatches() {
+  return useQuery({
+    queryKey: ['matches', 'invitable'] as const,
+    queryFn: async () =>
+      (await fetchMyMatches())
+        .filter(
+          ({ match, isOrganizer, myStatus }) =>
+            match.visibility === 'Open' &&
+            (match.status === 'Draft' || match.status === 'Open') &&
+            new Date(match.dateTime).getTime() > Date.now() &&
+            (isOrganizer || myStatus === 'Confirmed'),
+        )
+        .map(({ match }) => ({ id: match.id, name: match.name })),
   });
 }
 

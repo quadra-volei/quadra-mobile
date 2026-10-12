@@ -183,3 +183,9 @@ Placeholders that are NOT mocks (the backend has no such data yet, the app shows
 | # | Decision | Why |
 | --- | --- | --- |
 | 73 | **The match level badge has a fixed color per level everywhere it shows** (Home upcoming and nearby cards, Explore, the map preview card, the match hero): Iniciante lime, Intermediário blue, Avançado orange, with a 1.5px navy border (`LEVEL_BADGE`, rule in DESIGN_SYSTEM "Match level badge"). **The "CASUAL" / "COMPETITIVO" tag of the Home upcoming cards is gone**: `UpcomingMatch.category` became `level` and the card shows the level itself. The badge text is now the accented label ("Intermediário"), no longer the raw code. The cover tint per level is unchanged. | Owner's call (Johny, 2026-10-09): the levels need a reference color, and he asked why "Competitivo" existed. It was never a backend field: the app derived it from the level (Advanced → "Competitivo", the rest → "Casual"), a leftover of the prototype that hid the real level. Every level badge was lime before. |
+
+## 2026-10-12 — Rede: invite posts
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 74 | **A post tied to a match still to come is an invite**: the card shows the match cover with its name and time and a lime "Participar" button that opens the match detail. In the new post, "Convidar para" lists my upcoming matches that are open to everyone and that I organize or confirmed (never a private one); "Partida jogada" keeps the last 5 finished. Once the match time passes the card falls back to the match label. | Owner's prototype of the Rede feed (API #43). |

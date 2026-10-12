@@ -22,6 +22,7 @@ jest.mock('lucide-react-native', () => {
   const stub = (name: string) => (props: any) =>
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
   return {
+    Clock: stub('clock'),
     Plus: stub('plus'),
     Settings: stub('settings'),
     Trash2: stub('trash'),
@@ -30,6 +31,11 @@ jest.mock('lucide-react-native', () => {
 });
 
 const mockPush = jest.fn();
+jest.mock('expo-linear-gradient', () => {
+  const { View } = require('react-native');
+  return { LinearGradient: View };
+});
+
 jest.mock('expo-router', () => ({
   router: { push: (...args: any[]) => mockPush(...args) },
 }));
@@ -81,7 +87,7 @@ describe('S7 — Rede (feed)', () => {
   it('shows each post with its author, text and match', async () => {
     mockFeed.mockReturnValue(
       feedWith([
-        post({ match: { id: 'm1', name: 'Vôlei de quinta' } }),
+        post({ match: { id: 'm1', name: 'Vôlei de quinta', startsAt: '2026-01-01T22:00:00Z' } }),
         post({ id: 'p2', text: 'Outro', author: { userId: 'u2', displayName: 'Beto', handle: null, photoUrl: null } }),
       ]),
     );
@@ -95,6 +101,21 @@ describe('S7 — Rede (feed)', () => {
     expect(screen.getByText('Vôlei de quinta')).toBeTruthy();
     expect(screen.getByText('Beto')).toBeTruthy();
     expect(screen.getAllByTestId('post')).toHaveLength(2);
+    // A match already played is a label, not an invite.
+    expect(screen.queryByText('Participar')).toBeNull();
+  });
+
+  it('turns a post tied to a match still to come into an invite that opens the match', async () => {
+    const startsAt = new Date(Date.now() + 3 * 3_600_000).toISOString();
+    mockFeed.mockReturnValue(
+      feedWith([post({ match: { id: 'm9', name: 'Racha da Galera', startsAt } })]),
+    );
+
+    await render(<NetworkScreen />);
+    expect(screen.getByTestId('post-invite')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Participar de Racha da Galera'));
+
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/matches/[id]', params: { id: 'm9' } });
   });
 
   it('offers to delete only my own post, after a confirmation', async () => {

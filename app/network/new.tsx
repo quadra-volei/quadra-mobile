@@ -15,6 +15,7 @@ import {
   newPostSchema,
   POST_TEXT_MAX,
   useCreatePost,
+  useInvitableMatches,
 } from '@/features/network/api/postsApi';
 import { useRecentMatches } from '@/features/profile/api/getRecentMatches';
 import { colors } from '@/theme/colors';
@@ -35,6 +36,7 @@ export default function NewPostScreen() {
   // ponytail: only the last 5 finished matches can be picked. Page the history
   // here when players ask for older ones.
   const recentMatches = useRecentMatches();
+  const invitableMatches = useInvitableMatches();
 
   const {
     control,
@@ -151,9 +153,26 @@ export default function NewPostScreen() {
           </Text>
         ) : null}
 
+        {invitableMatches.data?.length ? (
+          <>
+            <SectionLabel>Convidar para</SectionLabel>
+            <View className="flex-row flex-wrap gap-2">
+              {invitableMatches.data.map((match) => (
+                <FilterChip
+                  key={match.id}
+                  label={match.name}
+                  selected={matchId === match.id}
+                  onPress={() => setValue('matchId', matchId === match.id ? undefined : match.id)}
+                  testID={`post-invite-${match.id}`}
+                />
+              ))}
+            </View>
+          </>
+        ) : null}
+
         {recentMatches.data?.length ? (
           <>
-            <SectionLabel>Partida</SectionLabel>
+            <SectionLabel>Partida jogada</SectionLabel>
             <View className="flex-row flex-wrap gap-2">
               {recentMatches.data.map((match) => (
                 <FilterChip
