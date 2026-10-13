@@ -190,3 +190,14 @@ Placeholders that are NOT mocks (the backend has no such data yet, the app shows
 | --- | --- | --- |
 | 74 | **A post tied to a match still to come is an invite**: the card shows the match cover with its name and time and a lime "Participar" button that opens the match detail. In the new post, "Convidar para" lists my upcoming matches that are open to everyone and that I organize or confirmed (never a private one); "Partida jogada" keeps the last 5 finished. Once the match time passes the card falls back to the match label. | Owner's prototype of the Rede feed (API #43). |
 | 75 | **Each post has a heart with its like count** at the bottom of the card. The tap is optimistic (`useSetPostLike`): heart and count change at once, the server's count replaces them when it answers, and a failed request re-reads the feed. Liked = red filled heart. | Step 3 of the Rede (API #44); same feel as the optimistic point (#64). |
+
+## 2026-10-12 — Rede: comments, follows, tabs, activity cards
+
+Steps 4 to 7 of the Rede, approved together by Johny (API #45 to #49).
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 76 | **Comments**: the card shows a comment count next to the heart; it opens `app/network/[id].tsx`, the post's conversation (oldest first) with the field to write at the bottom. A trash icon appears on the comments I may delete (mine, or any on my post), with no confirmation. | A comment is cheap to rewrite, unlike a post. |
+| 77 | **Tapping a post's author opens `app/players/[id].tsx`**: photo, name, @, level, position, followers / following, matches, wins and MVPs, and the **"Seguir" / "Seguindo" button** (absent on my own profile). The connection is a follow with no approval. | First screen for another player's profile; it is where the connection is made. |
+| 78 | **The Rede has two tabs under its title: "Para você" (everyone's posts, default) and "Amigos"** (the players I follow, plus my own posts). An empty "Amigos" says how to follow someone and leads back to "Para você". The tab is local state, not a route. | Owner's idea, after TikTok's tabs. |
+| 79 | **Automatic cards** read as a sentence, "Érica criou a partida Vôlei de Quinta" / "Bia confirmou presença em Racha da Galera", with the same invite cover and "Participar" button while the match is still to come. | Owner's prototype of the feed. The prototype's ranking and achievement cards are not built (API #49). |

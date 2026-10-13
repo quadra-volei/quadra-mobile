@@ -1,6 +1,14 @@
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
-import { Clock, Heart, Plus, Settings, Trash2, Trophy } from 'lucide-react-native';
+import {
+  Clock,
+  Heart,
+  MessageCircle,
+  Plus,
+  Settings,
+  Trash2,
+  Trophy,
+} from 'lucide-react-native';
 import { useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,11 +16,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/Avatar';
 import { CourtImage } from '@/components/ui/CourtImage';
 import { dialog } from '@/components/ui/Dialog';
+import { FilterChip } from '@/components/ui/FilterChip';
 import { IconButton } from '@/components/ui/IconButton';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import {
+  type FeedScope,
   type Post,
   timeAgo,
   useDeletePost,
@@ -37,6 +47,18 @@ function goNewPost() {
 function goMatch(id: string) {
   router.push({ pathname: '/matches/[id]', params: { id } });
 }
+function goPlayer(id: string) {
+  router.push({ pathname: '/players/[id]', params: { id } });
+}
+function goComments(id: string) {
+  router.push({ pathname: '/network/[id]', params: { id } });
+}
+
+// What the automatic cards say after the player's name.
+const ACTIVITY_VERB: Record<Exclude<Post['kind'], 'Post'>, string> = {
+  MatchCreated: 'criou a partida',
+  PresenceConfirmed: 'confirmou presença em',
+};
 
 // ── The match a post invites to: cover with name and time, and the way in ──
 function MatchInvite({ match }: { match: { id: string; name: string; startsAt: string } }) {
@@ -68,7 +90,7 @@ function MatchInvite({ match }: { match: { id: string; name: string; startsAt: s
   );
 }
 
-// ── One post: author row, text, photo, the match it is tied to ──
+// ── One post: author row, text, photo, the match it is tied to, likes and comments ──
 function PostCard({
   post,
   onDelete,
@@ -84,20 +106,38 @@ function PostCard({
     match?.startsAt && new Date(match.startsAt).getTime() > Date.now()
       ? { ...match, startsAt: match.startsAt }
       : null;
+  // An automatic card reads "Érica criou a partida Vôlei de Quinta".
+  const activity = post.kind !== 'Post' && match ? ACTIVITY_VERB[post.kind] : null;
+  const when = timeAgo(post.createdAt);
+
   return (
     <View className="mx-4 mb-4 bg-white rounded-card shadow-card overflow-hidden" testID="post">
       <View className="flex-row items-center gap-3 p-4">
-        <Avatar uri={post.author.photoUrl ?? undefined} name={post.author.displayName} size="sm" />
-        <View className="flex-1">
-          <Text className="font-body-semibold text-body-bold text-text-primary" numberOfLines={1}>
-            {post.author.displayName}
-          </Text>
-          <Text className="font-body text-caption text-text-muted" numberOfLines={1}>
-            {[post.author.handle ? `@${post.author.handle}` : null, timeAgo(post.createdAt)]
-              .filter(Boolean)
-              .join(' · ')}
-          </Text>
-        </View>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Ver perfil de ${post.author.displayName}`}
+          android_ripple={PRESS_RIPPLE}
+          onPress={() => goPlayer(post.author.userId)}
+          className="flex-1 flex-row items-center gap-3"
+        >
+          <Avatar uri={post.author.photoUrl ?? undefined} name={post.author.displayName} size="sm" />
+          <View className="flex-1">
+            {activity && match ? (
+              <Text className="font-body text-body text-text-primary">
+                <Text className="font-body-semibold text-body-bold">{post.author.displayName}</Text>
+                {` ${activity} `}
+                <Text className="font-body-semibold text-body-bold text-primary">{match.name}</Text>
+              </Text>
+            ) : (
+              <Text className="font-body-semibold text-body-bold text-text-primary" numberOfLines={1}>
+                {post.author.displayName}
+              </Text>
+            )}
+            <Text className="font-body text-caption text-text-muted" numberOfLines={1}>
+              {activity || !post.author.handle ? when : `@${post.author.handle} · ${when}`}
+            </Text>
+          </View>
+        </Pressable>
         {post.mine ? (
           <Pressable
             accessibilityRole="button"
@@ -126,7 +166,7 @@ function PostCard({
 
       {invitesTo ? (
         <MatchInvite match={invitesTo} />
-      ) : match ? (
+      ) : match && !activity ? (
         <View className="flex-row items-center gap-2 px-4 py-3 border-t border-line">
           <Trophy size={16} color={colors.primary} />
           <Text className="flex-1 font-body-semibold text-caption text-primary" numberOfLines={1}>
@@ -135,7 +175,7 @@ function PostCard({
         </View>
       ) : null}
 
-      <View className="flex-row items-center px-4 py-3 border-t border-line">
+      <View className="flex-row items-center gap-6 px-4 py-3 border-t border-line">
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={post.likedByMe ? 'Descurtir' : 'Curtir'}
@@ -152,6 +192,17 @@ function PostCard({
           />
           <Text className="font-body-semibold text-caption text-text-muted">{post.likeCount}</Text>
         </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Comentários"
+          hitSlop={ICON_HIT_SLOP}
+          android_ripple={ICON_RIPPLE}
+          onPress={() => goComments(post.id)}
+          className="flex-row items-center gap-2"
+        >
+          <MessageCircle size={20} color={colors.textMuted} />
+          <Text className="font-body-semibold text-caption text-text-muted">{post.commentCount}</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -160,7 +211,8 @@ function PostCard({
 export default function NetworkScreen() {
   const insets = useSafeAreaInsets();
   const [headerHeight, setHeaderHeight] = useState(0);
-  const feed = usePostFeed();
+  const [scope, setScope] = useState<FeedScope>('all');
+  const feed = usePostFeed(scope);
   const deletePost = useDeletePost();
   const setLike = useSetPostLike();
   const posts = feed.data?.pages.flatMap((page) => page.items) ?? [];
@@ -209,6 +261,12 @@ export default function NetworkScreen() {
               actionLabel="Tentar novamente"
               onAction={() => feed.refetch()}
             />
+          ) : scope === 'following' ? (
+            <StateMessage
+              message="Aqui aparecem os posts de quem você segue. Toque em um jogador no Para você para seguir."
+              actionLabel="Ver Para você"
+              onAction={() => setScope('all')}
+            />
           ) : (
             <StateMessage
               message="Ninguém postou ainda. Conta como foi seu último jogo."
@@ -223,7 +281,7 @@ export default function NetworkScreen() {
       />
 
       <ScreenHeader onHeight={setHeaderHeight}>
-        <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
+        <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
           <Text className="font-display text-h1 text-text-primary uppercase">
             REDE
           </Text>
@@ -235,6 +293,20 @@ export default function NetworkScreen() {
               <Settings size={20} color={colors.surfaceDark} />
             </IconButton>
           </View>
+        </View>
+        <View className="flex-row gap-2 px-4 pb-3">
+          <FilterChip
+            label="Para você"
+            selected={scope === 'all'}
+            onPress={() => setScope('all')}
+            testID="feed-scope-all"
+          />
+          <FilterChip
+            label="Amigos"
+            selected={scope === 'following'}
+            onPress={() => setScope('following')}
+            testID="feed-scope-following"
+          />
         </View>
       </ScreenHeader>
     </View>

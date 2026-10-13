@@ -24,6 +24,7 @@ jest.mock('lucide-react-native', () => {
   return {
     Clock: stub('clock'),
     Heart: stub('heart'),
+    MessageCircle: stub('message'),
     Plus: stub('plus'),
     Settings: stub('settings'),
     Trash2: stub('trash'),
@@ -46,7 +47,7 @@ const mockDelete = jest.fn();
 const mockSetLike = jest.fn();
 jest.mock('@/features/network/api/postsApi', () => ({
   ...jest.requireActual('@/features/network/api/postsApi'),
-  usePostFeed: () => mockFeed(),
+  usePostFeed: (scope: string) => mockFeed(scope),
   useDeletePost: () => ({ mutate: mockDelete }),
   useSetPostLike: () => ({ mutate: mockSetLike }),
 }));
@@ -68,6 +69,8 @@ const post = (over: Partial<Post>): Post => ({
   mine: false,
   likeCount: 0,
   likedByMe: false,
+  commentCount: 0,
+  kind: 'Post',
   ...over,
 });
 
@@ -153,6 +156,50 @@ describe('S7 — Rede (feed)', () => {
 
     expect(mockSetLike).toHaveBeenNthCalledWith(1, { post: liked, liked: false });
     expect(mockSetLike).toHaveBeenNthCalledWith(2, { post: fresh, liked: true });
+  });
+
+  it('opens the comments and the author from the card', async () => {
+    mockFeed.mockReturnValue(feedWith([post({ commentCount: 5 })]));
+
+    await render(<NetworkScreen />);
+    expect(screen.getByText('5')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Comentários'));
+    await fireEvent.press(screen.getByLabelText('Ver perfil de Ana Lima'));
+
+    expect(mockPush).toHaveBeenNthCalledWith(1, { pathname: '/network/[id]', params: { id: 'p1' } });
+    expect(mockPush).toHaveBeenNthCalledWith(2, { pathname: '/players/[id]', params: { id: 'u1' } });
+  });
+
+  it('reads an automatic card as a sentence about the match', async () => {
+    const startsAt = new Date(Date.now() + 3 * 3_600_000).toISOString();
+    mockFeed.mockReturnValue(
+      feedWith([
+        post({ kind: 'MatchCreated', text: null, match: { id: 'm9', name: 'Racha da Galera', startsAt } }),
+      ]),
+    );
+
+    await render(<NetworkScreen />);
+
+    expect(screen.getByText(/criou a partida/)).toBeTruthy();
+    // Still to come: the card carries the way into the match.
+    expect(screen.getByLabelText('Participar de Racha da Galera')).toBeTruthy();
+  });
+
+  it('switches between "Para você" and "Amigos"', async () => {
+    mockFeed.mockImplementation((scope: string) =>
+      feedWith(scope === 'following' ? [] : [post({})]),
+    );
+
+    await render(<NetworkScreen />);
+    expect(mockFeed).toHaveBeenLastCalledWith('all');
+    expect(screen.getByText('Que jogo!')).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('feed-scope-following'));
+    expect(mockFeed).toHaveBeenLastCalledWith('following');
+    expect(screen.queryByText('Que jogo!')).toBeNull();
+    // With nobody followed, the tab explains itself and leads back.
+    await fireEvent.press(screen.getByText('Ver Para você'));
+    expect(mockFeed).toHaveBeenLastCalledWith('all');
   });
 
   it('invites to write the first post when the feed is empty', async () => {

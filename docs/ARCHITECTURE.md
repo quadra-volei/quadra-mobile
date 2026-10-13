@@ -32,7 +32,8 @@ app/matches/create
 app/matches/[id]                      detail (two tabs: Detalhes, Confirmados)
 app/matches/[id]/teams · scoreboard · mvp-vote · summary
 app/explore/map
-app/network/new                       new post
+app/network/new · [id]                new post · a post's comments
+app/players/[id]                      another player's profile
 app/profile/card · ranking · settings · edit · notifications · feedback
 ```
 

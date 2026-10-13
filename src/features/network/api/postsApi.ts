@@ -8,12 +8,15 @@ import {
 import { z } from 'zod';
 
 import { fetchMyMatches } from '@/features/matches/api/matchesApi';
-import { uploadProfilePhoto } from '@/features/profile/api/profileApi';
+import { type ApiProfile, uploadProfilePhoto } from '@/features/profile/api/profileApi';
 import { ApiError } from '@/lib/api/client';
 import { authorizedApiClient } from '@/lib/api/authorizedClient';
 
-/** Query key (ARCHITECTURE convention). */
+/** Prefix of every feed query; the scope comes after it. */
 export const postFeedQueryKey = ['posts', 'feed'] as const;
+
+/** "Para você" (everyone's posts) or "Amigos" (the players I follow, plus mine). */
+export type FeedScope = 'all' | 'following';
 
 /** Longest text the backend accepts (`Post.TextMaxLength`). */
 export const POST_TEXT_MAX = 500;
@@ -43,6 +46,12 @@ export type Post = {
   mine: boolean;
   likeCount: number;
   likedByMe: boolean;
+  commentCount: number;
+  /**
+   * `Post` for a post the player wrote. The other two are cards the app writes
+   * by itself (no text or photo, always a match).
+   */
+  kind: 'Post' | 'MatchCreated' | 'PresenceConfirmed';
 };
 
 type PostFeedPage = {
@@ -66,16 +75,19 @@ export const newPostSchema = z
 
 export type NewPost = z.infer<typeof newPostSchema>;
 
-/** The feed of everyone's posts, newest first, loaded page by page. */
-export function usePostFeed() {
+/** The feed of a scope, newest first, loaded page by page. */
+export function usePostFeed(scope: FeedScope = 'all') {
   return useInfiniteQuery({
-    queryKey: postFeedQueryKey,
-    queryFn: ({ pageParam }) =>
-      authorizedApiClient<PostFeedPage>(
-        pageParam
-          ? `/api/v1/posts?before=${encodeURIComponent(pageParam)}`
-          : '/api/v1/posts',
-      ),
+    queryKey: [...postFeedQueryKey, scope] as const,
+    queryFn: ({ pageParam }) => {
+      const params = [
+        scope === 'following' ? 'scope=following' : null,
+        pageParam ? `before=${encodeURIComponent(pageParam)}` : null,
+      ].filter(Boolean);
+      return authorizedApiClient<PostFeedPage>(
+        `/api/v1/posts${params.length ? `?${params.join('&')}` : ''}`,
+      );
+    },
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextBefore,
   });
@@ -183,7 +195,8 @@ export function useDeletePost() {
 export function useSetPostLike() {
   const queryClient = useQueryClient();
   const patch = (id: string, likes: Pick<Post, 'likeCount' | 'likedByMe'>) =>
-    queryClient.setQueryData<InfiniteData<PostFeedPage>>(postFeedQueryKey, (feed) =>
+    // Both scopes may hold the post.
+    queryClient.setQueriesData<InfiniteData<PostFeedPage>>({ queryKey: postFeedQueryKey }, (feed) =>
       feed && {
         ...feed,
         pages: feed.pages.map((page) => ({
@@ -204,6 +217,118 @@ export function useSetPostLike() {
       patch(post.id, likes);
     },
     onError: () => queryClient.invalidateQueries({ queryKey: postFeedQueryKey }),
+  });
+}
+
+/** Longest comment the backend accepts (`PostComment.TextMaxLength`). */
+export const COMMENT_TEXT_MAX = 300;
+
+/** One item of `GET /api/v1/posts/{id}/comments`. */
+export type PostComment = {
+  id: string;
+  author: Post['author'];
+  text: string;
+  /** ISO timestamp. */
+  createdAt: string;
+  /** True for who wrote it and for the post's author. */
+  canDelete: boolean;
+};
+
+const postCommentsQueryKey = (postId: string) => ['posts', 'comments', postId] as const;
+
+/** A post's conversation, oldest first. */
+export function usePostComments(postId: string) {
+  return useQuery({
+    queryKey: postCommentsQueryKey(postId),
+    queryFn: async () =>
+      (await authorizedApiClient<{ items: PostComment[] }>(`/api/v1/posts/${postId}/comments`)).items,
+  });
+}
+
+/** Writes a comment (`POST /api/v1/posts/{id}/comments`). */
+export function useAddComment(postId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<PostComment, Error, string>({
+    mutationFn: async (text) => {
+      try {
+        return await authorizedApiClient<PostComment>(`/api/v1/posts/${postId}/comments`, {
+          method: 'POST',
+          body: JSON.stringify({ text }),
+        });
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 429) {
+          throw new Error('Você já comentou muito hoje. Tente de novo amanhã.');
+        }
+        if (error instanceof ApiError && error.status === 404) {
+          throw new Error('Esse post não existe mais.');
+        }
+        if (error instanceof TypeError) {
+          throw new Error('Sem conexão. Verifique sua internet e tente de novo.');
+        }
+        throw new Error('Não foi possível comentar. Tente novamente.');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: postCommentsQueryKey(postId) });
+      // The card's comment count.
+      queryClient.invalidateQueries({ queryKey: postFeedQueryKey });
+    },
+  });
+}
+
+/** Removes a comment (`DELETE /api/v1/posts/{id}/comments/{commentId}`). */
+export function useDeleteComment(postId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, string>({
+    mutationFn: (commentId) =>
+      authorizedApiClient<void>(`/api/v1/posts/${postId}/comments/${commentId}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: postCommentsQueryKey(postId) });
+      queryClient.invalidateQueries({ queryKey: postFeedQueryKey });
+    },
+  });
+}
+
+/** Another player's public profile (`GET /api/v1/profiles/{userId}`). */
+export function usePlayerProfile(userId: string) {
+  return useQuery({
+    queryKey: ['players', userId, 'profile'] as const,
+    queryFn: () => authorizedApiClient<ApiProfile>(`/api/v1/profiles/${userId}`),
+  });
+}
+
+/** `GET | PUT | DELETE /api/v1/profiles/{userId}/follow`. */
+export type FollowState = {
+  followersCount: number;
+  followingCount: number;
+  followedByMe: boolean;
+};
+
+const followStateQueryKey = (userId: string) => ['players', userId, 'follow'] as const;
+
+/** A player's followers and following, and whether I follow them. */
+export function useFollowState(userId: string) {
+  return useQuery({
+    queryKey: followStateQueryKey(userId),
+    queryFn: () => authorizedApiClient<FollowState>(`/api/v1/profiles/${userId}/follow`),
+  });
+}
+
+/** Follows (`true`) or stops following (`false`) a player. */
+export function useSetFollow(userId: string) {
+  const queryClient = useQueryClient();
+  return useMutation<FollowState, Error, boolean>({
+    mutationFn: (following) =>
+      authorizedApiClient<FollowState>(`/api/v1/profiles/${userId}/follow`, {
+        method: following ? 'PUT' : 'DELETE',
+      }),
+    onSuccess: (state) => {
+      queryClient.setQueryData(followStateQueryKey(userId), state);
+      // "Amigos" now has, or no longer has, this player's posts.
+      queryClient.invalidateQueries({ queryKey: [...postFeedQueryKey, 'following'] });
+    },
   });
 }
 
