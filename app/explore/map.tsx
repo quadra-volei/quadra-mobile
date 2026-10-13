@@ -76,6 +76,28 @@ export function pinToneFor(openSlots: number): PinTone {
   return 'bg-accent';
 }
 
+// The pin is a square with three round corners turned 45°, so the sharp corner
+// points down. Head and shadow share the shape; the shadow is a navy copy
+// shifted like HARD_SHADOW (a boxShadow would turn with the shape and is cut
+// off when Android draws the marker as an image).
+const PIN_SHAPE = 'absolute h-8 w-8 rotate-45 rounded-full rounded-br-none';
+const PIN_HEAD = 32; // h-8
+const PIN_SHADOW = 3;
+// How far down the turned corner reaches: half the side plus half the diagonal.
+const PIN_TIP_Y = PIN_HEAD / 2 + PIN_HEAD * Math.SQRT1_2;
+const PIN_WIDTH = PIN_HEAD + PIN_SHADOW;
+const PIN_HEIGHT = Math.ceil(PIN_TIP_Y) + PIN_SHADOW;
+/** Puts the tip, not the middle of the view, on the coordinate. */
+export const PIN_ANCHOR = {
+  x: PIN_HEAD / 2 / PIN_WIDTH,
+  y: PIN_TIP_Y / PIN_HEIGHT,
+};
+// Apple Maps ignores `anchor`: it shifts the view from its centre instead.
+const PIN_CENTER_OFFSET = {
+  x: PIN_WIDTH / 2 - PIN_HEAD / 2,
+  y: PIN_HEIGHT / 2 - PIN_TIP_Y,
+};
+
 /** Normalizes an expo-location permission status into the screen's state union. */
 function toPermissionState(status: Location.PermissionStatus): PermissionState {
   if (status === Location.PermissionStatus.GRANTED) return 'granted';
@@ -307,11 +329,20 @@ export default function MapScreen() {
               coordinate={{ latitude: match.lat, longitude: match.lon }}
               onPress={() => setSelectedMatchId(match.id)}
               testID={`map-pin-${match.id}`}
+              anchor={PIN_ANCHOR}
+              centerOffset={PIN_CENTER_OFFSET}
             >
-              <View
-                className={`rounded-full p-2 shadow-card ${pinToneFor(openSlots)}`}
-              >
-                <Volleyball size={16} color={colors.textOnDark} />
+              <View style={{ width: PIN_WIDTH, height: PIN_HEIGHT }}>
+                <View
+                  className={`${PIN_SHAPE} left-[3px] top-[3px] bg-surface-dark`}
+                />
+                <View
+                  className={`${PIN_SHAPE} items-center justify-center border-2 border-surface-dark ${pinToneFor(openSlots)}`}
+                >
+                  <View className="-rotate-45">
+                    <Volleyball size={16} color={colors.surfaceDark} />
+                  </View>
+                </View>
               </View>
             </Marker>
           );
