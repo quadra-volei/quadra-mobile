@@ -22,9 +22,9 @@
  * Native modules (gradient, safe-area, expo-image, lucide) are stubbed inline —
  * the repo's tests/__mocks__ are NOT auto-applied.
  *
- * The bottom tab bar + central "Jogar" FAB are owned by app/(tabs)/_layout.tsx
- * (not by this screen). Criterion 9 (bar persists / Home active) and the FAB half
- * of criterion 3 are covered in tests/features/matches/screens/TabsLayout.test.tsx.
+ * The bottom tab bar is owned by app/(tabs)/_layout.tsx (not by this screen).
+ * Criterion 9 (bar persists / Home active) is covered in
+ * tests/features/matches/screens/TabsLayout.test.tsx.
  */
 import React from 'react';
 
@@ -274,7 +274,6 @@ describe('S5 — Home screen', () => {
    * Covers: S5 — Home
    * Criterion: "Tapping the 'Criar partida' tile navigates to S11
    *  (/matches/create)."
-   * (The central 'Jogar' FAB doing the same is covered in TabsLayout.test.tsx.)
    */
   it('navigates to /matches/create when the Criar tile is tapped', async () => {
     await render(<HomeScreen />);

@@ -221,7 +221,7 @@ NativeWind shadow class becomes Android elevation, which is blurred and cannot b
 
 The same rule covers everything that is pressed like a button:
 
-- **Round buttons** (tab bar "Jogar" FAB, "Bora jogar?" circles, map recenter, stepper +/−): flat
+- **Round buttons** (map recenter, stepper +/−): flat
   fill + 2px navy border; the hard shadow from 56px up (below that it only smudges).
 - **Icon buttons in a box** (`IconButton`: the bell, settings and "+" of the tab headers): 40px
   white square, `rounded-chip`, 2px navy border + `HARD_SHADOW`, 20px icon. The back chevron of
@@ -237,8 +237,7 @@ The same rule covers everything that is pressed like a button:
 - **Dialog** (`Dialog.tsx`): lime for the action, red (`danger`) for `destructive`, both with the
   border and shadow; `ghost` for `cancel`.
 - **On navy** the navy border and shadow cannot be seen, so `outlineW` / `outlineLime` carry a
-  light border and no shadow. The "Bora jogar?" menu sits on a blue scrim (`bg-primary/90`) for
-  the same reason.
+  light border and no shadow.
 - A button written by hand (a `Pressable`) follows the same three parts; prefer `<Button>`.
 
 Icons are used **only** when they add meaning (share, sortear/shuffle). Direct-action CTAs stay icon-free.
@@ -251,6 +250,14 @@ Icons are used **only** when they add meaning (share, sortear/shuffle). Direct-a
 - Radius: `rounded-pill` (20px+)
 - Examples: "VOCÊ ORGANIZA", "CONFIRMADO", "4X4"
 
+### Selectable chips
+
+A chip that is pressed to select (`FilterChip`, the weekday chips, the feedback tiles) is white
+with dark text and turns **blue (`primary`) with a white label** when selected (about 8:1). The
+selected colors are **inline styles from `src/theme/colors.ts`, never a className switched on
+state**: a className changed after the first render is not applied reliably, and the dark label
+stayed on the blue fill (DECISIONS #87).
+
 ---
 
 ## Iconography
@@ -258,7 +265,7 @@ Icons are used **only** when they add meaning (share, sortear/shuffle). Direct-a
 Hybrid approach:
 
 - **General UI icons** (bell, search, chevrons, settings, etc.): `lucide-react-native`, default size 24, stroke 1.75, color via NativeWind token.
-- **Brand-specific icons** (logo mark, bottom-nav icons, FAB "jogar" icon): SVG components in `src/components/icons/` (ported from the prototype's SVGs, which are no longer in the repo).
+- **Brand-specific icons** (logo mark, bottom-nav icons): SVG components in `src/components/icons/` (ported from the prototype's SVGs, which are no longer in the repo).
 
 Forbidden: importing PNG icons inline.
 

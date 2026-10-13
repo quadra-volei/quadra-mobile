@@ -29,7 +29,7 @@
  * the repo's tests/__mocks__ are NOT auto-applied. The auth store is a real
  * zustand store; tests set userId via setState to exercise the `isMe` highlight.
  *
- * The bottom tab bar (4 tabs + central FAB) and the "Perfil" active tab are owned
+ * The bottom tab bar (4 tabs) and the "Perfil" active tab are owned
  * by app/(tabs)/_layout.tsx, NOT this screen body — that criterion is covered by
  * tests/features/matches/screens/TabsLayout.test.tsx, so this file focuses on the
  * screen content (consistent with the S5/S7 screen-body tests).

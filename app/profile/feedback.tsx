@@ -68,18 +68,15 @@ function TypeTile({
       accessibilityState={{ selected }}
       onPress={onPress}
       testID={testID}
-      className={`flex-1 h-24 items-center justify-center rounded-card ${
-        selected ? 'bg-primary' : 'bg-white'
-      }`}
-      // Card shadow via inline style (stable across the selected flip) — see
-      // SHADOW_CARD note above.
-      style={selected ? undefined : { boxShadow: SHADOW_CARD }}
+      className="flex-1 h-24 items-center justify-center rounded-card bg-white"
+      // Card shadow and selected colors via inline style, never a toggled
+      // className (DECISIONS #87) — see SHADOW_CARD note above.
+      style={selected ? { backgroundColor: colors.primary } : { boxShadow: SHADOW_CARD }}
     >
       <Icon size={24} color={selected ? colors.textOnDark : colors.primary} />
       <Text
-        className={`mt-2 font-body text-caption ${
-          selected ? 'text-text-on-dark' : 'text-text-primary'
-        }`}
+        className="mt-2 font-body text-caption text-text-primary"
+        style={selected ? { color: colors.textOnDark } : undefined}
       >
         {label}
       </Text>

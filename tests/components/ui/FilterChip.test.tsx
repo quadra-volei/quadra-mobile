@@ -52,6 +52,15 @@ describe('FilterChip', () => {
     ).toBe(false);
   });
 
+  // The dark unselected label on the blue fill is unreadable (DECISIONS #87).
+  it('paints the selected label white over the blue fill', async () => {
+    await render(
+      <FilterChip label="Todos" selected onPress={() => {}} testID="chip" />,
+    );
+    expect(screen.getByTestId('chip')).toHaveStyle({ backgroundColor: '#1A1AFF' });
+    expect(screen.getByTestId('chip-label')).toHaveStyle({ color: '#FFFFFF' });
+  });
+
   it('calls onPress when tapped', async () => {
     const onPress = jest.fn();
     await render(
