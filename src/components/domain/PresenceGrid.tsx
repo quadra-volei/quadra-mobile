@@ -13,12 +13,6 @@ export type PresenceGridProps = {
    * "add guest" affordance on S12). Omit to render inert placeholders.
    */
   onPressEmpty?: () => void;
-  /**
-   * Caps how many "vaga" placeholders render, so a nearly-empty high-capacity
-   * match shows a hint of open slots instead of a wall of dashed circles (the
-   * prototype shows at most 3). Omit to render every open slot.
-   */
-  maxEmptySlots?: number;
   testID?: string;
 };
 
@@ -31,8 +25,8 @@ function firstName(name: string): string {
  * Capacity-aware confirmed-players grid (S12 Match Detail; reused by S13 team
  * rosters). Renders an `Avatar` + first-name cell per player — with the
  * tier-colored level "bolinha" when the player has a level — then dashed
- * `border-line` "vaga" placeholders for the remaining open slots (up to
- * `maxEmptySlots`).
+ * "vaga" placeholders for every remaining open slot, so avatars + placeholders
+ * always add up to `capacity`.
  *
  * Presentational — receives plain data via props and never fetches. No OVR
  * number is rendered anywhere (Layer-3 cut, per SCOPE S12).
@@ -41,16 +35,15 @@ export function PresenceGrid({
   players,
   capacity,
   onPressEmpty,
-  maxEmptySlots,
   testID,
 }: PresenceGridProps) {
-  const openCount = Math.max(0, capacity - players.length);
-  const emptyCount =
-    maxEmptySlots == null ? openCount : Math.min(openCount, maxEmptySlots);
-  const emptySlots = Array.from({ length: emptyCount }, (_, i) => i);
+  const emptySlots = Array.from(
+    { length: Math.max(0, capacity - players.length) },
+    (_, i) => i,
+  );
 
   return (
-    <View testID={testID} className="mt-3 flex-row flex-wrap">
+    <View testID={testID} className="flex-row flex-wrap">
       {players.map((player) => (
         <View key={player.id} className="w-1/4 items-center mb-4 px-1">
           <Avatar
@@ -77,10 +70,10 @@ export function PresenceGrid({
         const emptyTestID = testID ? `${testID}-empty` : undefined;
         const inner = (
           <>
-            <View className="h-12 w-12 items-center justify-center rounded-full border border-dashed border-line">
+            <View className="h-12 w-12 items-center justify-center rounded-full border-2 border-dashed border-line bg-bg-light">
               <Text className="font-num text-h3 text-text-muted">+</Text>
             </View>
-            <Text className="mt-1 font-body text-caption text-text-muted">
+            <Text className="mt-2 font-body text-caption text-text-muted">
               vaga
             </Text>
           </>

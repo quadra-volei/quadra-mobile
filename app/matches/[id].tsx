@@ -58,9 +58,6 @@ const POSITION_LABEL: Record<PlayerPosition, string> = {
 /** Cover height; the hero bleeds under the status bar, as in the prototype. */
 const HERO_HEIGHT = 210;
 
-/** Only a hint of the open slots is shown, however empty the match is. */
-const MAX_VAGA_SLOTS = 3;
-
 /** "1,2 km" — comma decimal, mirroring MatchCard. */
 function formatDistance(distanceKm: number): string {
   return `${distanceKm.toFixed(1).replace('.', ',')} km`;
@@ -251,6 +248,8 @@ export default function MatchDetailScreen() {
   const confirmedCount = match.players.filter(
     (p) => p.status === 'CONFIRMADO',
   ).length;
+  // Same arithmetic as PresenceGrid, so the line above the grid matches it.
+  const openSlots = Math.max(0, match.capacity - match.players.length);
   const levelBadge = LEVEL_BADGE[match.level];
   const positionLabel = match.organizer.position
     ? POSITION_LABEL[match.organizer.position]
@@ -527,12 +526,9 @@ export default function MatchDetailScreen() {
             </Text>
           </InfoRow>
 
-        </View>
-        ) : (
-        <View className="px-5 pb-5 pt-4">
-          {/* ── Who is going; the organizer invites and fills open slots ── */}
+          {/* The match only reaches the Rede feed when its organizer says so. */}
           {isOrganizer ? (
-            <View className="mb-2 flex-row flex-wrap justify-end gap-3">
+            <View className="mt-5">
               <Button
                 variant="outline"
                 onPress={onShareToFeed}
@@ -542,6 +538,31 @@ export default function MatchDetailScreen() {
               >
                 Compartilhar na Rede
               </Button>
+            </View>
+          ) : null}
+        </View>
+        ) : (
+        <View className="px-5 pb-5 pt-4">
+          {/* ── Who is going; the organizer invites and fills open slots ── */}
+          <View className="mb-5 flex-row items-center gap-3">
+            <View className="flex-1">
+              <Text
+                className="font-body-semibold text-body-bold text-text-primary"
+                testID="open-slots"
+              >
+                {openSlots === 0
+                  ? 'Sem vagas abertas'
+                  : openSlots === 1
+                    ? '1 vaga aberta'
+                    : `${openSlots} vagas abertas`}
+              </Text>
+              {isOrganizer && openSlots > 0 ? (
+                <Text className="font-body text-caption text-text-muted">
+                  Toque em uma vaga para adicionar um convidado.
+                </Text>
+              ) : null}
+            </View>
+            {isOrganizer ? (
               <Button
                 variant="outline"
                 onPress={onShare}
@@ -550,12 +571,11 @@ export default function MatchDetailScreen() {
               >
                 Convidar
               </Button>
-            </View>
-          ) : null}
+            ) : null}
+          </View>
           <PresenceGrid
             players={match.players}
             capacity={match.capacity}
-            maxEmptySlots={MAX_VAGA_SLOTS}
             onPressEmpty={isOrganizer ? () => setGuestSheetOpen(true) : undefined}
             testID="presence-grid"
           />
