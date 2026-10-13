@@ -322,7 +322,8 @@ describe('S8 — Profile screen', () => {
   it('renders the GERAL number (font-num) and the Level/XP bar', async () => {
     await render(<ProfileScreen />);
 
-    expect(screen.getByText('Seu progresso')).toBeTruthy();
+    // The card has no title (DECISIONS #76).
+    expect(screen.queryByText('Seu progresso')).toBeNull();
 
     // GERAL label + the overall number rendered with the number font.
     expect(screen.getByText('Geral')).toBeTruthy();
