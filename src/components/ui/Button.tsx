@@ -66,7 +66,8 @@ const HAS_SHADOW: Record<ButtonVariant, boolean> = {
 /**
  * Shared button covering all DESIGN_SYSTEM variants: flat fill, 2px border and,
  * on the filled variants, the hard offset shadow. `ghost` is a bare text link.
- * Disabled (or loading) is 50% opacity with no shadow.
+ * Disabled is a grey fill with muted label and no shadow on the filled variants,
+ * 50% opacity on the others and while loading.
  *
  * The shadow and the disabled state are inline styles, not toggled classNames:
  * mutating NativeWind classNames after the initial render makes
@@ -83,6 +84,9 @@ export function Button({
   testID,
 }: ButtonProps) {
   const isDisabled = Boolean(disabled || loading);
+  // A disabled filled button goes grey and keeps its border; the transparent
+  // variants (and a loading button) only fade, since grey would vanish on navy.
+  const greyed = Boolean(disabled) && !loading && HAS_SHADOW[variant];
 
   return (
     <Pressable
@@ -93,11 +97,13 @@ export function Button({
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       className={`${BASE} ${VARIANT_CLASS[variant]}`}
       style={
-        isDisabled
-          ? { opacity: 0.5 }
-          : HAS_SHADOW[variant]
-            ? HARD_SHADOW
-            : undefined
+        greyed
+          ? { backgroundColor: colors.line }
+          : isDisabled
+            ? { opacity: 0.5 }
+            : HAS_SHADOW[variant]
+              ? HARD_SHADOW
+              : undefined
       }
     >
       {loading ? (
@@ -105,7 +111,12 @@ export function Button({
       ) : (
         <>
           {leftIcon ? <View className="mr-2">{leftIcon}</View> : null}
-          <Text className={TEXT_CLASS[variant]}>{children}</Text>
+          <Text
+            className={TEXT_CLASS[variant]}
+            style={greyed ? { color: colors.textMuted } : undefined}
+          >
+            {children}
+          </Text>
         </>
       )}
     </Pressable>

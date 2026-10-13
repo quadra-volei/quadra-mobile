@@ -3,7 +3,7 @@
  *
  * Covers what the tab layout owns (not the Home screen body): the four tabs
  * persist across navigation with Home active, and the bar has no central
- * button (DECISIONS #85; "Criar partida" lives in the Home hero, covered in
+ * button (DECISIONS #88; "Criar partida" lives in the Home hero, covered in
  * HomeScreen.test.tsx).
  *
  * The `Tabs` navigator is mocked so its `tabBar` render prop is invoked with a
@@ -85,7 +85,7 @@ describe('S5 — Bottom tab bar', () => {
   /**
    * Covers: S5 — Home
    * Criterion: "The bottom tab bar persists ... and Home is the active tab." —
-   *  the four tabs render and there is no central button (DECISIONS #85).
+   *  the four tabs render and there is no central button (DECISIONS #88).
    */
   it('renders the four tabs and no central button', async () => {
     await render(<TabsLayout />);

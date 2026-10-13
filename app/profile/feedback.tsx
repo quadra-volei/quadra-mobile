@@ -70,7 +70,7 @@ function TypeTile({
       testID={testID}
       className="flex-1 h-24 items-center justify-center rounded-card bg-white"
       // Card shadow and selected colors via inline style, never a toggled
-      // className (DECISIONS #84) — see SHADOW_CARD note above.
+      // className (DECISIONS #87) — see SHADOW_CARD note above.
       style={selected ? { backgroundColor: colors.primary } : { boxShadow: SHADOW_CARD }}
     >
       <Icon size={24} color={selected ? colors.textOnDark : colors.primary} />

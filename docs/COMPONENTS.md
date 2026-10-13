@@ -49,7 +49,7 @@ Each entry follows this structure:
   <Button variant="grad" onPress={openSheet}>Entrar e jogar</Button>
   <Button variant="outline" onPress={onGoogle} leftIcon={<GoogleMark />}>Entrar com Google</Button>
   ```
-- **Notes**: All DESIGN_SYSTEM variants, under the button rule (flat fill, 2px navy border, `HARD_SHADOW`; DECISIONS #69). `grad` is lime, `primary` blue, `outline` white; `outlineW` / `outlineLime` are transparent for navy surfaces (no shadow); `ghost` is a text link. `disabled` or `loading` is 50% opacity with no shadow; `loading` swaps content for an `ActivityIndicator`. An icon on `grad` / `outline` is navy (`colors.surfaceDark`). Tap height ~48px (`h-12`), `rounded-btn`. Exposes `accessibilityRole="button"` and `accessibilityState` (disabled/busy).
+- **Notes**: All DESIGN_SYSTEM variants, under the button rule (flat fill, 2px navy border, `HARD_SHADOW`; DECISIONS #69). `grad` is lime, `primary` blue, `outline` white; `outlineW` / `outlineLime` are transparent for navy surfaces (no shadow); `ghost` is a text link. `disabled` is a grey fill (`line`) with a muted label, the border and no shadow on `grad` / `primary` / `outline`, and 50% opacity on the transparent variants and while `loading`; `loading` swaps content for an `ActivityIndicator`. An icon on `grad` / `outline` is navy (`colors.surfaceDark`). Tap height ~48px (`h-12`), `rounded-btn`. Exposes `accessibilityRole="button"` and `accessibilityState` (disabled/busy).
 
 ### `IconButton`
 - **Path**: `src/components/ui/IconButton.tsx`
@@ -279,7 +279,7 @@ More UI primitives will live here:
 - **Path**: `src/components/icons/QuadraLogo.tsx`
 - **Props**: `{ size?: number; testID?: string }`
 - **Used in**: S1 Splash, S2 Login
-- **Notes**: Official brand mark (three overlapping blocks, blue + lime). Colors are fixed — never recolor. Only exception: `accentColor` replaces the lime block on a lime background (the splash passes white).
+- **Notes**: Official brand mark (three overlapping blocks, blue + lime). Colors are fixed — never recolor. Only exception: `blockColor` replaces the two blue blocks on a blue background (the splash passes white).
 
 ### `GoogleMark`
 - **Path**: `src/components/icons/GoogleMark.tsx`
@@ -294,7 +294,7 @@ More UI primitives will live here:
 ### `useRiseIn`
 - **Path**: `src/hooks/useRiseIn.ts`
 - **Props**: `({ delay?: number; distance?: number; duration?: number; easing?: WithTimingConfig['easing'] }) => AnimatedStyle`
-- **Used in**: S2 Login (lockup, headline, subtitle, CTA)
+- **Used in**: S2 Login (lockup, headline, subtitle, CTA), S1 Splash (court lines, loader), S4 Onboarding (step content, position cards)
 - **Notes**: "Fade up into place" entrance, ported from the prototype's `.q-rise`. Defaults match `.q-rise` (16px / 450ms / `cubic-bezier(.2,.7,.2,1)`). Stagger siblings by giving each a larger `delay`. Returns a style for `<Animated.View>` / `<Animated.Text>`.
 - **Example**:
   ```tsx

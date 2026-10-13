@@ -52,7 +52,7 @@ describe('FilterChip', () => {
     ).toBe(false);
   });
 
-  // The dark unselected label on the blue fill is unreadable (DECISIONS #84).
+  // The dark unselected label on the blue fill is unreadable (DECISIONS #87).
   it('paints the selected label white over the blue fill', async () => {
     await render(
       <FilterChip label="Todos" selected onPress={() => {}} testID="chip" />,

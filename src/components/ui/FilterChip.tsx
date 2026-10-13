@@ -26,7 +26,7 @@ export type FilterChipProps = {
  * The classNames are the unselected look and never change; the selected and
  * disabled colors are inline styles. A className toggled after the first render
  * is not applied reliably by react-native-css-interop (see `Button`), which
- * left the dark label on the blue fill (DECISIONS #84).
+ * left the dark label on the blue fill (DECISIONS #87).
  */
 export function FilterChip({
   label,

@@ -208,7 +208,7 @@ NativeWind shadow class becomes Android elevation, which is blurred and cannot b
 - **Border**: 2px, navy (`border-2 border-surface-dark`).
 - **Shadow**: `HARD_SHADOW`, navy, shifted down and to the right, no blur.
 - **Label**: DM Sans 700 (`font-body-bold`), navy on lime/white, white on blue/red.
-- Corners `rounded-btn` (18px), tap height ~48px. Disabled: 50% opacity, no shadow.
+- Corners `rounded-btn` (18px), tap height ~48px. Disabled: grey fill (`line`), muted label, border kept, no shadow (DECISIONS #86); the transparent variants fade to 50% opacity instead.
 
 | Variant | Style | Example | Role |
 | --- | --- | --- | --- |
@@ -226,9 +226,12 @@ The same rule covers everything that is pressed like a button:
 - **Icon buttons in a box** (`IconButton`: the bell, settings and "+" of the tab headers): 40px
   white square, `rounded-chip`, 2px navy border + `HARD_SHADOW`, 20px icon. The back chevron of
   `BackHeader` stays a bare icon.
-- **Selection cards** (onboarding position / level / modality): the **selected** card takes the
+- **Selection cards** (onboarding level / modality): the **selected** card takes the
   2px navy border + `HARD_SHADOW` and a pale lime fill (`bg-accent/20`), with a lime check
   circle; unselected cards stay plain white with `shadow-card`.
+- **Position cards** (onboarding step 1, DECISIONS #85): white, `rounded-btn`, 2px `line`
+  border and a soft 4px hard shadow; the **selected** card takes a blue (`primary`) border and
+  shadow, a pale blue fill (`bg-light-alt`), a blue icon box and a lime check in its radio.
 - **Home hero**: a blue (`primary`) card, "BORA PRA QUADRA?" in display type (white + lime),
   holding "Criar partida" (lime) and "Buscar jogo" (white), both with the border and shadow.
 - **Dialog** (`Dialog.tsx`): lime for the action, red (`danger`) for `destructive`, both with the
@@ -253,7 +256,7 @@ A chip that is pressed to select (`FilterChip`, the weekday chips, the feedback 
 with dark text and turns **blue (`primary`) with a white label** when selected (about 8:1). The
 selected colors are **inline styles from `src/theme/colors.ts`, never a className switched on
 state**: a className changed after the first render is not applied reliably, and the dark label
-stayed on the blue fill (DECISIONS #84).
+stayed on the blue fill (DECISIONS #87).
 
 ---
 
