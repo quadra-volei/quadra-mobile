@@ -1,7 +1,7 @@
 /**
  * S1 — Splash screen tests.
  *
- *  - Only the brand mark renders: no text, no progress bar (DECISIONS #68).
+ *  - The mark, the court lines and the loader render, with no text (DECISIONS #84).
  *  - Valid token + existing profile  -> redirect /(tabs).
  *  - Valid token + hasProfile=false  -> redirect /(auth)/onboarding.
  *  - No token / failed auth/me        -> redirect /(auth)/login.
@@ -18,8 +18,8 @@ jest.mock('react-native-svg', () => {
   const { View } = require('react-native');
   const Svg = ({ children, testID, ...props }: any) =>
     ReactLocal.createElement(View, { ...props, testID: testID ?? 'svg-mock' }, children);
-  const Path = () => null;
-  return { __esModule: true, default: Svg, Svg, Path };
+  const Shape = () => null;
+  return { __esModule: true, default: Svg, Svg, Path: Shape, G: Shape, Rect: Shape, Line: Shape };
 });
 
 // expo-router: spyable router.replace; Stack/Redirect inert (used only by _layout).
@@ -75,10 +75,11 @@ async function settleBootstrap() {
 }
 
 describe('S1 — Splash screen', () => {
-  it('renders only the brand mark: no text, no progress bar', async () => {
+  it('renders the mark over the court, with no text', async () => {
     await render(<Index />);
 
-    expect(screen.getAllByTestId('svg-mock')).toHaveLength(1);
+    expect(screen.getByTestId('splash-mark')).toBeTruthy();
+    expect(screen.getByTestId('svg-mock')).toBeTruthy(); // the court lines
     expect(screen.queryAllByText(/./)).toHaveLength(0);
     expect(screen.getByLabelText('Carregando')).toBeTruthy();
   });
