@@ -417,7 +417,7 @@ describe('S12 — Match Detail screen', () => {
    * Covers: S12 — Match Detail
    * Criterion: "The confirmed-players grid (PresenceGrid) shows one Avatar + name
    *  per confirmed player and dashed 'vaga' placeholders for the remaining slots
-   *  (capped at 3), on the 'Confirmados · N/M' tab; the screen opens on
+   *  (one per open slot), on the 'Confirmados · N/M' tab; the screen opens on
    *  'Detalhes', without the list."
    */
   it('keeps the players on the Confirmados tab, with the count in the tab label', async () => {
@@ -441,8 +441,9 @@ describe('S12 — Match Detail screen', () => {
     expect(screen.getByText('Renan')).toBeTruthy();
     expect(screen.getByText('Bia')).toBeTruthy();
     expect(screen.getByText('Caio')).toBeTruthy();
-    // 12 - 3 = 9 open slots, but only MAX_VAGA_SLOTS (3) placeholders render
-    expect(screen.getAllByTestId('presence-grid-empty')).toHaveLength(3);
+    // 12 - 3 = 9 open slots, one placeholder each: avatars + vagas = capacity
+    expect(screen.getAllByTestId('presence-grid-empty')).toHaveLength(9);
+    expect(screen.getByText('9 vagas abertas')).toBeTruthy();
   });
 
   /**
@@ -966,7 +967,6 @@ describe('S12 — Match Detail screen', () => {
   it('shares the match to the Rede only when the organizer taps Compartilhar na Rede', async () => {
     mockShareMatch.mutate.mockClear();
     await renderOrganizer();
-    await openPlayersTab();
     expect(mockShareMatch.mutate).not.toHaveBeenCalled();
 
     await act(async () => {
@@ -979,8 +979,9 @@ describe('S12 — Match Detail screen', () => {
 
   it('does not offer Compartilhar na Rede to a participant', async () => {
     await render(<MatchDetailScreen />);
-    await openPlayersTab();
 
+    expect(screen.queryByTestId('share-to-feed')).toBeNull();
+    await openPlayersTab();
     expect(screen.queryByTestId('share-to-feed')).toBeNull();
   });
 
