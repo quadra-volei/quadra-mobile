@@ -5,7 +5,7 @@
  *  - Valid token + existing profile  -> redirect /(tabs).
  *  - Valid token + hasProfile=false  -> redirect /(auth)/onboarding.
  *  - No token / failed auth/me        -> redirect /(auth)/login.
- *  - No redirect before the auth bootstrap settles.
+ *  - No redirect before the auth bootstrap settles, nor before the minimum hold (DECISIONS #90).
  *  - No tappable / interactive elements.
  */
 import React from 'react';
@@ -58,19 +58,25 @@ import { act, render, screen, waitFor } from '@testing-library/react-native';
 
 import { useAuthStore } from '@/stores/auth';
 
-import Index from '../../../../app/index';
+import Index, { MIN_HOLD_MS } from '../../../../app/index';
 
 beforeEach(() => {
+  jest.useFakeTimers();
   mockReplace.mockClear();
   resetBootstrap();
   useAuthStore.getState().clearAuth();
 });
 
-/** Resolves the shared bootstrap promise the way the root layout would. */
-async function settleBootstrap() {
+afterEach(() => {
+  jest.useRealTimers();
+});
+
+/** Resolves the shared bootstrap promise the way the root layout would, after the minimum hold. */
+async function settleBootstrap(elapsedMs = MIN_HOLD_MS) {
   await act(async () => {
     mockResolveBootstrap();
     await mockBootstrapPromise;
+    await jest.advanceTimersByTimeAsync(elapsedMs);
   });
 }
 
@@ -88,6 +94,17 @@ describe('S1 — Splash screen', () => {
     await render(<Index />);
 
     expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('holds the splash for the minimum time even when the bootstrap settles at once', async () => {
+    await render(<Index />);
+    await settleBootstrap(MIN_HOLD_MS - 1);
+    expect(mockReplace).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(1);
+    });
+    expect(mockReplace).toHaveBeenCalledWith('/(auth)/login');
   });
 
   it('redirects to /(tabs) when authenticated with an existing profile', async () => {
