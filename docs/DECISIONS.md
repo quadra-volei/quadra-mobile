@@ -203,3 +203,10 @@ Steps 4 to 7 of the Rede, approved together by Johny (API #45 to #49).
 | 79 | **The Rede has two tabs under its title: "Para você" (everyone's posts, default) and "Amigos"** (the players I follow, plus my own posts). An empty "Amigos" says how to follow someone and leads back to "Para você". The tab is local state, not a route. | Owner's idea, after TikTok's tabs. |
 | 80 | **Automatic cards** read as a sentence, "Érica criou a partida Vôlei de Quinta" / "Bia confirmou presença em Racha da Galera", with the same invite cover and "Participar" button while the match is still to come. | Owner's prototype of the feed. The prototype's ranking and achievement cards are not built (API #49). |
 | 81 | **A match on the S17 map is a pin, no longer a ball**: a round head with the volleyball inside and a sharp tip at the bottom, 2px navy border and a hard navy shadow, filled by open slots as before (lime / amber / grey). **The tip sits on the match coordinate** (`PIN_ANCHOR`); the ball used to be centred on it. | Owner's call (Johny, 2026-10-12): a pin says "this exact spot" and a circle does not. The shadow is a shifted navy copy of the shape, since a `boxShadow` is cut off when Android draws the marker as an image. |
+
+## 2026-10-13 — Rede: fixes after the owner's test
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 82 | **Nothing reaches the Rede by itself; #80 is withdrawn.** The match detail gives the organizer a **"Compartilhar na Rede"** button next to "Convidar" (Confirmados tab): one tap posts the "criou a partida" card with "Participar". A private or already started match answers with a message instead. The feed still reads the automatic cards written on 2026-10-13. | Johny: "compartilhar a partida não pode ser automático, o organizador que decide" (API #50). |
+| 83 | **The comment's send button is the boxed `IconButton`, identical in every state**; an empty comment is just not sent. | On the phone the round button vanished once there was text: its background class changed with the state and was not applied, leaving a white icon on a light fill. Not confirmed on a device after the fix. |

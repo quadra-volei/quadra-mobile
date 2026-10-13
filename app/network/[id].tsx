@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { BackHeader } from '@/components/ui/BackHeader';
+import { IconButton } from '@/components/ui/IconButton';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import {
@@ -124,20 +125,11 @@ export default function PostCommentsScreen() {
           accessibilityLabel="Seu comentário"
           className="flex-1 max-h-28 rounded-card border border-line bg-bg-light px-4 py-2 font-body text-body text-text-primary"
         />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Enviar comentário"
-          accessibilityState={{ disabled: !canSend }}
-          disabled={!canSend}
-          android_ripple={ICON_RIPPLE}
-          onPress={send}
-          testID="comment-send"
-          className={`h-10 w-10 rounded-full items-center justify-center ${
-            canSend ? 'bg-primary' : 'bg-bg-light-alt'
-          }`}
-        >
-          <Send size={18} color={canSend ? colors.textOnDark : colors.textMuted} />
-        </Pressable>
+        {/* Always the same solid button: a colour that changed with the text made it vanish on
+            the phone. An empty comment is simply not sent. */}
+        <IconButton label="Enviar comentário" onPress={send} testID="comment-send">
+          <Send size={20} color={colors.surfaceDark} />
+        </IconButton>
       </View>
 
       <BackHeader title="Comentários" onHeight={setHeaderHeight} />

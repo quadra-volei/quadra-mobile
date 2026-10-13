@@ -83,6 +83,7 @@ jest.mock('lucide-react-native', () => {
     Check: stub('check'),
     ChevronLeft: stub('chevron-left'),
     MapPin: stub('map-pin'),
+    Megaphone: stub('megaphone'),
     Navigation: stub('navigation'),
     Play: stub('play'),
     Share2: stub('share2'),
@@ -243,6 +244,14 @@ jest.mock('@/features/matches/api/presence', () => ({
   useJoinMatch: () => ({
     mutate: mockJoin.mutate,
     isPending: mockJoin.isPending,
+  }),
+}));
+
+const mockShareMatch = { mutate: jest.fn(), isPending: false };
+jest.mock('@/features/network/api/postsApi', () => ({
+  useShareMatch: () => ({
+    mutate: mockShareMatch.mutate,
+    isPending: mockShareMatch.isPending,
   }),
 }));
 
@@ -947,6 +956,32 @@ describe('S12 — Match Detail screen', () => {
       }),
     );
     expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  // ------------------------------------------------- Compartilhar na Rede
+  /**
+   * The match only reaches the Rede feed when its organizer says so (mobile
+   * DECISIONS: nothing is posted automatically).
+   */
+  it('shares the match to the Rede only when the organizer taps Compartilhar na Rede', async () => {
+    mockShareMatch.mutate.mockClear();
+    await renderOrganizer();
+    await openPlayersTab();
+    expect(mockShareMatch.mutate).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('share-to-feed'));
+    });
+
+    expect(mockShareMatch.mutate).toHaveBeenCalledTimes(1);
+    expect(typeof mockShareMatch.mutate.mock.calls[0][0]).toBe('string');
+  });
+
+  it('does not offer Compartilhar na Rede to a participant', async () => {
+    await render(<MatchDetailScreen />);
+    await openPlayersTab();
+
+    expect(screen.queryByTestId('share-to-feed')).toBeNull();
   });
 
   // ------------------------------------------------------------ S13 navigation
