@@ -1,7 +1,7 @@
 /**
  * S1 — Splash screen tests.
  *
- *  - The mark, the court lines and the loader render, with no text (DECISIONS #82).
+ *  - The mark, the court lines and the loader render, with no text (DECISIONS #84).
  *  - Valid token + existing profile  -> redirect /(tabs).
  *  - Valid token + hasProfile=false  -> redirect /(auth)/onboarding.
  *  - No token / failed auth/me        -> redirect /(auth)/login.

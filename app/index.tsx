@@ -22,7 +22,7 @@ import { colors } from "@/theme/colors";
  * The native splash (app.json, `expo-splash-screen`) is the mark alone on blue, at the size
  * Android draws `assets/splash-icon.png`. This screen starts from that same picture, so the
  * hand-off is not seen, and then adds what only JS can draw: the court lines, the mark's
- * settle and the loader (DECISIONS #82). It stays until the auth bootstrap settles, which is
+ * settle and the loader (DECISIONS #84). It stays until the auth bootstrap settles, which is
  * capped at 60s (app/_layout.tsx, DECISIONS #44).
  */
 const MARK_SIZE = 124;

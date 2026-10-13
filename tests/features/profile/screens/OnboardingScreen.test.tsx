@@ -406,7 +406,7 @@ describe('S4 — Onboarding wizard', () => {
   // ------------------------------------------------------------ back navigation
   /**
    * Step 0 back chevron -> router.back(). The wizard steps have no chevron
-   * (DECISIONS #83): the Android back gesture walks one step back instead.
+   * (DECISIONS #85): the Android back gesture walks one step back instead.
    */
   it('walks back within the wizard on Android back and leaves step 0 via the chevron', async () => {
     const onHardwareBack = jest.spyOn(BackHandler, 'addEventListener');
