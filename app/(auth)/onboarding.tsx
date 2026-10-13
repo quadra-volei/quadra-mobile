@@ -529,7 +529,7 @@ function WizardStep({
         <Rise key={step} className="flex-1">
           <Text
             className="mt-6 font-display text-display text-surface-dark uppercase"
-            numberOfLines={1}
+            numberOfLines={2}
             adjustsFontSizeToFit
           >
             {meta.title}
@@ -641,7 +641,7 @@ function PositionCard({
         accessibilityLabel={option.name}
         accessibilityState={{ selected }}
         testID={`position-${option.code}`}
-        className={`min-h-[112px] justify-between rounded-btn border-2 p-3 ${
+        className={`min-h-[112px] rounded-btn border-2 p-3 ${
           selected ? "border-primary bg-bg-light-alt" : "border-line bg-white"
         }`}
         style={selected ? POSITION_CARD_SELECTED : POSITION_CARD_REST}
