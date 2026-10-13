@@ -13,7 +13,7 @@ import type { TabIconProps } from '@/components/icons/tabIcon';
 import { ICON_RIPPLE } from '@/theme/layout';
 
 // Routes shown as tabs, in bar order. There is no central button: creating and
-// searching a match start from the Home hero (DECISIONS #83).
+// searching a match start from the Home hero (DECISIONS #85).
 const TABS: {
   name: string;
   label: string;

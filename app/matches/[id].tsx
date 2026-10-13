@@ -6,6 +6,7 @@ import {
   Check,
   ChevronLeft,
   MapPin,
+  Megaphone,
   Navigation,
   Play,
   Share2,
@@ -21,9 +22,11 @@ import { PresenceGrid } from '@/components/domain/PresenceGrid';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { CourtImage } from '@/components/ui/CourtImage';
+import { dialog } from '@/components/ui/Dialog';
 import { TextField } from '@/components/ui/TextField';
 import { useAddGuest } from '@/features/matches/api/addGuest';
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
+import { useShareMatch } from '@/features/network/api/postsApi';
 import { distanceKm } from '@/features/matches/lib/distanceKm';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
 import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
@@ -224,6 +227,7 @@ export default function MatchDetailScreen() {
   const declinePresence = useDeclinePresence(matchId);
   const joinMatch = useJoinMatch(matchId);
   const addGuest = useAddGuest(matchId);
+  const shareMatch = useShareMatch();
 
   // Invite code typed by someone joining a private match.
   const [inviteCode, setInviteCode] = useState('');
@@ -260,6 +264,14 @@ export default function MatchDetailScreen() {
       message:
         `Bora jogar? "${match.name}" na Quadra. (match:${match.id})` +
         (match.inviteCode ? ` Código de convite: ${match.inviteCode}` : ''),
+    });
+  };
+
+  const onShareToFeed = () => {
+    shareMatch.mutate(match.id, {
+      onSuccess: () =>
+        dialog.alert('Partida compartilhada', 'Ela já aparece na Rede com o botão Participar.'),
+      onError: (error) => dialog.alert('Não deu para compartilhar', error.message),
     });
   };
 
@@ -520,7 +532,16 @@ export default function MatchDetailScreen() {
         <View className="px-5 pb-5 pt-4">
           {/* ── Who is going; the organizer invites and fills open slots ── */}
           {isOrganizer ? (
-            <View className="mb-2 self-end">
+            <View className="mb-2 flex-row flex-wrap justify-end gap-3">
+              <Button
+                variant="outline"
+                onPress={onShareToFeed}
+                loading={shareMatch.isPending}
+                leftIcon={<Megaphone size={18} color={colors.surfaceDark} />}
+                testID="share-to-feed"
+              >
+                Compartilhar na Rede
+              </Button>
               <Button
                 variant="outline"
                 onPress={onShare}

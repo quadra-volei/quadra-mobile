@@ -253,7 +253,7 @@ A chip that is pressed to select (`FilterChip`, the weekday chips, the feedback 
 with dark text and turns **blue (`primary`) with a white label** when selected (about 8:1). The
 selected colors are **inline styles from `src/theme/colors.ts`, never a className switched on
 state**: a className changed after the first render is not applied reliably, and the dark label
-stayed on the blue fill (DECISIONS #82).
+stayed on the blue fill (DECISIONS #84).
 
 ---
 

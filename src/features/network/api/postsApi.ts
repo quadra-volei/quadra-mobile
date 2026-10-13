@@ -48,8 +48,9 @@ export type Post = {
   likedByMe: boolean;
   commentCount: number;
   /**
-   * `Post` for a post the player wrote. The other two are cards the app writes
-   * by itself (no text or photo, always a match).
+   * `Post` for a post the player wrote. `MatchCreated` is a match its organizer
+   * shared (no text or photo, always a match). `PresenceConfirmed` only exists on
+   * old cards.
    */
   kind: 'Post' | 'MatchCreated' | 'PresenceConfirmed';
 };
@@ -174,6 +175,36 @@ export function useInvitableMatches() {
             (isOrganizer || myStatus === 'Confirmed'),
         )
         .map(({ match }) => ({ id: match.id, name: match.name })),
+  });
+}
+
+/**
+ * The organizer shares their match to the feed (`POST /api/v1/posts` with only the
+ * match): the "criou a partida" card with the way in. Sharing twice keeps one card.
+ */
+export function useShareMatch() {
+  const queryClient = useQueryClient();
+  return useMutation<Post, Error, string>({
+    mutationFn: async (matchId) => {
+      try {
+        return await authorizedApiClient<Post>('/api/v1/posts', {
+          method: 'POST',
+          body: JSON.stringify({ matchId }),
+        });
+      } catch (error) {
+        if (error instanceof ApiError && error.status === 422) {
+          throw new Error('Só dá para compartilhar uma partida aberta que ainda não começou.');
+        }
+        if (error instanceof ApiError && error.status === 429) {
+          throw new Error('Você já publicou muito hoje. Tente de novo amanhã.');
+        }
+        if (error instanceof TypeError) {
+          throw new Error('Sem conexão. Verifique sua internet e tente de novo.');
+        }
+        throw new Error('Não foi possível compartilhar. Tente novamente.');
+      }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: postFeedQueryKey }),
   });
 }
 
