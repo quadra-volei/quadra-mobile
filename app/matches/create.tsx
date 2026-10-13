@@ -147,9 +147,10 @@ function OptionCard({
     >
       {icon ? (
         <View
-          className={`mb-2 h-10 w-10 items-center justify-center rounded-chip ${
-            selected ? 'bg-primary' : 'bg-primary/10'
-          }`}
+          // The icon turns white when selected, so the blue fill is an inline
+          // style, never a toggled className (DECISIONS #82).
+          className="mb-2 h-10 w-10 items-center justify-center rounded-chip bg-primary/10"
+          style={selected ? { backgroundColor: colors.primary } : undefined}
         >
           {icon}
         </View>
@@ -805,14 +806,14 @@ export default function CreateMatchScreen() {
                           accessibilityState={{ selected: on }}
                           accessibilityLabel={`Dia ${i}`}
                           testID={`rec-day-${i}`}
-                          className={`h-10 flex-1 items-center justify-center rounded-chip ${
-                            on ? 'bg-primary' : 'bg-primary/5'
-                          }`}
+                          // Selected colors inline, never a toggled className
+                          // (DECISIONS #82).
+                          className="h-10 flex-1 items-center justify-center rounded-chip bg-primary/5"
+                          style={on ? { backgroundColor: colors.primary } : undefined}
                         >
                           <Text
-                            className={`font-body-bold text-body-bold ${
-                              on ? 'text-text-on-dark' : 'text-text-muted'
-                            }`}
+                            className="font-body-bold text-body-bold text-text-muted"
+                            style={on ? { color: colors.textOnDark } : undefined}
                           >
                             {d}
                           </Text>

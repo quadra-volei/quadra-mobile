@@ -9,25 +9,11 @@
  * The `Tabs` navigator is mocked so its `tabBar` render prop is invoked with a
  * synthetic navigation state in which Explore (index 1) is active — mirroring the
  * S5 TabsLayout test but focusing the active tab on Explore. Navigation is mocked
- * via expo-router; the brand SVG icons + gradient are stubbed inline.
+ * via expo-router; the brand SVG icons are stubbed inline.
  */
 import React from 'react';
 
 // --- Native / module mocks ------------------------------------------------
-
-// LinearGradient -> View (the FAB fill).
-jest.mock('expo-linear-gradient', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  return {
-    LinearGradient: ({ children, ...props }: any) =>
-      ReactLocal.createElement(
-        View,
-        { ...props, testID: props.testID ?? 'linear-gradient' },
-        children,
-      ),
-  };
-});
 
 // The location gate (own test: LocationGate.test.tsx) -> passthrough.
 jest.mock('@/components/domain/LocationGate',() => ({
@@ -39,15 +25,7 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
-// Brand tab + FAB icons -> inert nodes carrying their focused state for assertion.
-jest.mock('@/components/icons/JogarIcon', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  return {
-    JogarIcon: (props: any) =>
-      ReactLocal.createElement(View, { ...props, testID: 'icon-jogar' }),
-  };
-});
+// Brand tab icons -> inert nodes carrying their focused state for assertion.
 const tabIconStub = (id: string) => (props: any) => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
@@ -104,10 +82,9 @@ beforeEach(() => {
 describe('S6 — Bottom tab bar with Explorar active', () => {
   /**
    * Covers: S6 — Explore
-   * Criterion: "The bottom tab bar persists ..." — all four labeled tabs plus the
-   *  central FAB render.
+   * Criterion: "The bottom tab bar persists ..." — the four tabs render.
    */
-  it('renders the four labeled tabs and the central Jogar FAB', async () => {
+  it('renders the four tabs', async () => {
     await render(<TabsLayout />);
 
     // Icon-only bar (compact redesign) — tabs are identified by accessibility
@@ -116,7 +93,6 @@ describe('S6 — Bottom tab bar with Explorar active', () => {
     expect(screen.getByLabelText('Explorar')).toBeTruthy();
     expect(screen.getByLabelText('Rede')).toBeTruthy();
     expect(screen.getByLabelText('Perfil')).toBeTruthy();
-    expect(screen.getByLabelText('Jogar')).toBeTruthy();
   });
 
   /**
