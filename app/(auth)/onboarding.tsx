@@ -2,25 +2,34 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import {
+  ArrowUp,
   BarChart3,
   Check,
   ChevronLeft,
   ChevronRight,
   Globe,
+  Share2,
+  ShieldCheck,
+  Shuffle,
+  Zap,
 } from "lucide-react-native";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 
 import {
   HANDLE_TAKEN_MESSAGE,
   useHandleTaken,
 } from "@/features/profile/api/handleAvailability";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { BackHandler, Pressable, ScrollView, Text, View } from "react-native";
 import Animated, {
+  Easing,
   useAnimatedKeyboard,
   useAnimatedStyle,
+  useSharedValue,
+  withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle, Path } from "react-native-svg";
 
 import { Button } from "@/components/ui/Button";
 import { DateField } from "@/components/ui/DateField";
@@ -34,6 +43,7 @@ import {
   type OnboardingProfileInput,
   type Position,
 } from "@/features/profile/schema/onboarding";
+import { useRiseIn } from "@/hooks/useRiseIn";
 import { useAuthStore } from "@/stores/auth";
 import {
   colors,
@@ -164,16 +174,25 @@ export default function OnboardingScreen() {
     }
   })();
 
-  const goBack = () => {
+  // Steps 1–4 have no back chevron (designer's layout), so the Android back
+  // gesture walks one step back instead of leaving the wizard with the answers.
+  useEffect(() => {
     if (step === 0) {
-      if (router.canGoBack()) {
-        router.back();
-      } else {
-        router.replace("/login");
-      }
       return;
     }
-    setStep((step - 1) as Step);
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      setStep((step - 1) as Step);
+      return true;
+    });
+    return () => subscription.remove();
+  }, [step]);
+
+  const goBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace("/login");
+    }
   };
 
   const advance = async () => {
@@ -221,12 +240,7 @@ export default function OnboardingScreen() {
 
   // Steps 1–3 share the progress-bar wizard chrome.
   return (
-    <WizardStep
-      step={step}
-      canContinue={stepValid}
-      onBack={goBack}
-      onContinue={advance}
-    >
+    <WizardStep step={step} canContinue={stepValid} onContinue={advance}>
       {step === 1 ? (
         <Controller
           control={control}
@@ -439,10 +453,48 @@ function PersonalDataStep({
 
 /* ------------------------------------------------------------ Steps 1–3 -- */
 
+/** Fades its children up into place on mount (the prototype's `.q-rise`). */
+function Rise({
+  delay,
+  className,
+  children,
+}: {
+  delay?: number;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <Animated.View className={className} style={useRiseIn({ delay })}>
+      {children}
+    </Animated.View>
+  );
+}
+
+const PROGRESS_EASING = Easing.bezier(0.4, 0, 0.2, 1);
+
+/** One of the three progress segments; it fills from the left when reached. */
+function ProgressSegment({ filled }: { filled: boolean }) {
+  const fill = useSharedValue(0);
+
+  useEffect(() => {
+    fill.value = withTiming(filled ? 1 : 0, {
+      duration: 400,
+      easing: PROGRESS_EASING,
+    });
+  }, [fill, filled]);
+
+  const style = useAnimatedStyle(() => ({ width: `${fill.value * 100}%` }));
+
+  return (
+    <View className="h-1.5 flex-1 overflow-hidden rounded-pill bg-line">
+      <Animated.View className="h-full rounded-pill bg-primary" style={style} />
+    </View>
+  );
+}
+
 type WizardStepProps = {
   step: 1 | 2 | 3;
   canContinue: boolean;
-  onBack: () => void;
   onContinue: () => void;
   children: React.ReactNode;
 };
@@ -450,86 +502,179 @@ type WizardStepProps = {
 function WizardStep({
   step,
   canContinue,
-  onBack,
   onContinue,
   children,
 }: WizardStepProps) {
   const meta = STEP_META[step];
   return (
     <View className="flex-1 bg-bg-light">
-      <SafeAreaView
-        className="flex-1"
-        edges={["top", "left", "right", "bottom"]}
-      >
-        <View className="flex-1 px-4">
-          {/* Header row + progress bar */}
-          <View className="mt-2 flex-row items-center justify-between">
-            <Pressable
-              onPress={onBack}
-              accessibilityRole="button"
-              accessibilityLabel="Voltar"
-              className="h-8 w-8 items-center justify-center rounded-full"
-              testID="onboarding-back"
-            >
-              <ChevronLeft size={20} color={colors.primary} />
-            </Pressable>
-            <Text className="font-mono text-mono text-text-muted uppercase">
-              MONTE SEU PERFIL
-            </Text>
-            <Text className="font-mono text-mono text-text-muted uppercase">
-              Passo {step} de 3
-            </Text>
-          </View>
+      <SafeAreaView className="flex-1 px-6" edges={["top", "left", "right"]}>
+        {/* Progress header: no back chevron (Android back walks a step back) */}
+        <View className="mt-4 flex-row items-center justify-between">
+          <Text className="font-mono text-mono text-text-muted uppercase">
+            MONTE SEU PERFIL
+          </Text>
+          <Text className="font-mono text-mono text-text-muted">
+            Passo {step} de 3
+          </Text>
+        </View>
 
-          <View className="mt-2 flex-row gap-2">
-            {[1, 2, 3].map((segment) => (
-              <View
-                key={segment}
-                className={`h-1.5 flex-1 rounded-pill ${
-                  segment <= step ? "bg-primary" : "bg-line"
-                }`}
-              />
-            ))}
-          </View>
+        <View className="mt-3 flex-row gap-2">
+          {[1, 2, 3].map((segment) => (
+            <ProgressSegment key={segment} filled={segment <= step} />
+          ))}
+        </View>
 
+        {/* Keyed by step so each step's content rises in again */}
+        <Rise key={step} className="flex-1">
           <Text
-            className="mt-6 font-display text-display text-text-primary uppercase"
-            numberOfLines={2}
+            className="mt-6 font-display text-display text-surface-dark uppercase"
+            numberOfLines={1}
             adjustsFontSizeToFit
           >
             {meta.title}
           </Text>
-          <Text className="mt-2 font-body text-body text-text-muted">
+          <Text className="mt-1 font-body text-body text-text-muted">
             {meta.subtitle}
           </Text>
 
           <ScrollView
-            className="mt-6"
+            className="mt-4"
             showsVerticalScrollIndicator={false}
-            contentContainerClassName="pb-4"
+            // right/bottom room for the cards' hard shadow
+            contentContainerClassName="pb-4 pr-1"
           >
             {children}
           </ScrollView>
-        </View>
+        </Rise>
+      </SafeAreaView>
 
-        {/* Pinned footer CTA */}
-        <View className="px-4 pb-8 pt-2">
-          <Button
-            variant="grad"
-            onPress={onContinue}
-            disabled={!canContinue}
-            leftIcon={<ChevronRight size={20} color={colors.surfaceDark} />}
-            testID="onboarding-continue"
-          >
-            Continuar
-          </Button>
-        </View>
+      {/* Pinned white footer CTA */}
+      <SafeAreaView
+        edges={["bottom"]}
+        className="border-t border-line bg-white px-6 pb-3 pt-4"
+      >
+        <Button
+          variant="grad"
+          onPress={onContinue}
+          disabled={!canContinue}
+          leftIcon={
+            <ChevronRight
+              size={20}
+              color={canContinue ? colors.surfaceDark : colors.textMuted}
+            />
+          }
+          testID="onboarding-continue"
+        >
+          Continuar
+        </Button>
       </SafeAreaView>
     </View>
   );
 }
 
 /* ------------------------------------------------- Step 1 — position grid -- */
+
+const POSITION_ICONS = {
+  LEV: Share2,
+  PON: ArrowUp,
+  OPO: Zap,
+  LIB: ShieldCheck,
+  COR: Shuffle,
+} as const;
+
+function PositionIcon({
+  code,
+  size,
+  color,
+}: {
+  code: Position;
+  size: number;
+  color: string;
+}) {
+  if (code === "CEN") {
+    // Net with a ball over it: the prototype's own drawing, lucide has none.
+    return (
+      <Svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={color}
+        strokeWidth={1.9}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <Path d="M4 7.5V20M20 7.5V20M4 9.5h16M4 14h16M8.5 9.5V14M12 9.5V14M15.5 9.5V14" />
+        <Circle cx={12} cy={7} r={2} />
+      </Svg>
+    );
+  }
+  const Icon = POSITION_ICONS[code];
+  return <Icon size={size} color={color} strokeWidth={1.9} />;
+}
+
+// Position cards carry their own 4px hard shadow: soft navy at rest, blue when
+// selected (inline for the reason given at HARD_SHADOW).
+const POSITION_CARD_REST = { boxShadow: "4px 4px 0 0 rgba(10,10,60,0.12)" };
+const POSITION_CARD_SELECTED = {
+  boxShadow: `4px 4px 0 0 ${colors.primary}`,
+  transform: [{ translateX: -1 }, { translateY: -1 }],
+};
+
+function PositionCard({
+  option,
+  index,
+  selected,
+  onPress,
+}: {
+  option: (typeof POSITION_OPTIONS)[number];
+  index: number;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Rise delay={35 * index} className="w-[48%]">
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={option.name}
+        accessibilityState={{ selected }}
+        testID={`position-${option.code}`}
+        className={`min-h-[112px] justify-between rounded-btn border-2 p-3 ${
+          selected ? "border-primary bg-bg-light-alt" : "border-line bg-white"
+        }`}
+        style={selected ? POSITION_CARD_SELECTED : POSITION_CARD_REST}
+      >
+        <View
+          className={`h-10 w-10 items-center justify-center rounded-xl ${
+            selected ? "bg-primary" : "bg-bg-light"
+          }`}
+        >
+          <PositionIcon
+            code={option.code}
+            size={21}
+            color={selected ? colors.textOnDark : colors.surfaceDark}
+          />
+        </View>
+        <View className="mt-2 flex-row items-center justify-between">
+          <Text className="font-body-bold text-h2 text-surface-dark">
+            {option.name}
+          </Text>
+          <View
+            className={`h-5 w-5 items-center justify-center rounded-full border ${
+              selected ? "border-accent bg-accent" : "border-line bg-white"
+            }`}
+          >
+            {selected ? (
+              <Check size={11} color={colors.surfaceDark} strokeWidth={3} />
+            ) : null}
+          </View>
+        </View>
+      </Pressable>
+    </Rise>
+  );
+}
 
 function PositionGrid({
   value,
@@ -538,44 +683,46 @@ function PositionGrid({
   value: Position | undefined;
   onChange: (v: Position) => void;
 }) {
+  const chosen = POSITION_OPTIONS.find((option) => option.code === value);
   return (
-    <View className="flex-row flex-wrap justify-between gap-y-3">
-      {POSITION_OPTIONS.map((option) => {
-        const selected = value === option.code;
-        return (
-          <Pressable
+    <View>
+      <View className="flex-row flex-wrap justify-between gap-y-3">
+        {POSITION_OPTIONS.map((option, index) => (
+          <PositionCard
             key={option.code}
+            option={option}
+            index={index}
+            selected={value === option.code}
             onPress={() => onChange(option.code)}
-            accessibilityRole="button"
-            accessibilityLabel={option.name}
-            accessibilityState={{ selected }}
-            testID={`position-${option.code}`}
-            className={`w-[48%] rounded-card border-2 p-4 shadow-card ${
-              selected
-                ? "border-surface-dark bg-accent/20"
-                : "border-transparent bg-white"
-            }`}
-            style={selected ? HARD_SHADOW : undefined}
+          />
+        ))}
+      </View>
+
+      {/* What the chosen position does, once one is picked */}
+      {chosen ? (
+        <Rise
+          key={chosen.code}
+          className="mt-4 flex-row items-center rounded-chip bg-surface-dark p-3"
+        >
+          <View className="h-8 w-8 items-center justify-center rounded-lg bg-accent">
+            <PositionIcon
+              code={chosen.code}
+              size={17}
+              color={colors.surfaceDark}
+            />
+          </View>
+          <Text
+            className="ml-3 flex-1 font-body text-caption text-text-on-dark/80"
+            accessibilityLiveRegion="polite"
+            testID="position-hint"
           >
-            <View className="flex-row items-center">
-              <Text className="font-display text-h1 text-primary uppercase">
-                {option.code}
-              </Text>
-              {option.star ? (
-                <Text className="ml-1 font-body text-body text-text-primary">
-                  ★
-                </Text>
-              ) : null}
-            </View>
-            <Text className="mt-2 font-body-extrabold text-h3 text-text-primary">
-              {option.name}
+            <Text className="font-body-bold text-text-on-dark">
+              {chosen.name}
             </Text>
-            <Text className="mt-1 font-body text-caption text-text-muted">
-              {option.hint}
-            </Text>
-          </Pressable>
-        );
-      })}
+            {` · ${chosen.hint}`}
+          </Text>
+        </Rise>
+      ) : null}
     </View>
   );
 }

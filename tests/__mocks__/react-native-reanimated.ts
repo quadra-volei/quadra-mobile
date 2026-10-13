@@ -14,6 +14,9 @@ const useSharedValue = (initial: number) => ({ value: initial });
 
 const withTiming = (toValue: number, _config?: object) => toValue;
 const withRepeat = (animation: unknown, _count?: number, _reverse?: boolean) => animation;
+const withDelay = (_ms: number, animation: unknown) => animation;
+// Lands on the last step, like the finished animation.
+const withSequence = (...animations: unknown[]) => animations[animations.length - 1];
 const useAnimatedStyle = (cb: () => object) => cb();
 
 // Keyboard hook stub — reports a closed keyboard (height 0).
@@ -63,6 +66,8 @@ module.exports = {
   useSharedValue,
   withTiming,
   withRepeat,
+  withDelay,
+  withSequence,
   useAnimatedStyle,
   useAnimatedKeyboard,
   runOnJS,

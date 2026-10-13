@@ -11,6 +11,7 @@ export const colors = {
   tertiary: '#FF6B00', // tertiary / orange (advanced-level badge)
   textOnDark: '#FFFFFF', // text-on-dark / white (icon on dark)
   textMuted: '#62628A', // text-muted (muted lucide icons: clock, users)
+  line: 'rgba(10,10,60,0.10)', // line (fill of a disabled button)
   success: '#16A34A', // success (trend-up arrow)
   danger: '#DC2626', // danger (trend-down arrow)
 } as const;
