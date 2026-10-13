@@ -14,13 +14,13 @@ State of the MVP on the `dev` branch, as of 2026-10-06. Reasons for each choice 
 | S4 Onboarding | `app/(auth)/onboarding.tsx` | Name, surname, birth date, `@handle` (checked while typing), position, level, modality |
 | S5 Home | `app/(tabs)/index.tsx` | My upcoming matches, nearby matches |
 | S6 Explore | `app/(tabs)/explore.tsx` | Search, filter chips, map preview, results grid |
-| S7 Network | `app/(tabs)/network.tsx`, `app/network/new.tsx`, `app/network/[id].tsx`, `app/players/[id].tsx` | Feed in two tabs, "Para você" and "Amigos" (who I follow): posts with text, one photo and a tied match, invite card with "Participar", automatic cards (created a match, confirmed presence), likes, comments, delete my own. New post with text, one photo and either an upcoming open match of mine or one of my last 5 finished. Another player's profile with follow |
+| S7 Network | `app/(tabs)/network.tsx`, `app/network/new.tsx`, `app/network/[id].tsx`, `app/players/[id].tsx` | Feed in two tabs, "Para você" and "Amigos" (who I follow): posts with text, one photo and a tied match, invite card with "Participar", the card of a match its organizer shared ("criou a partida"), likes, comments, delete my own. New post with text, one photo and either an upcoming open match of mine or one of my last 5 finished. Another player's profile with follow |
 | S8 Profile | `app/(tabs)/profile.tsx` | Progress card, recent matches (last 5), ranking preview |
 | S8b Player card | `app/profile/card.tsx` | Reads the profile |
 | S9 Ranking | `app/profile/ranking.tsx` | Ranking of the recurring match where I scored most recently; "Bairro" and "Geral" tabs disabled |
 | S10 Settings | `app/profile/settings.tsx`, `edit.tsx`, `notifications.tsx`, `feedback.tsx` | Edit profile with photo upload, theme (light / dark / auto), feedback form, logout |
 | S11 Create match | `app/matches/create.tsx` | Address search with free text fallback, recurrence, privacy (open / code / guests) |
-| S12 Match detail | `app/matches/[id].tsx` | Presence, join, waiting list, guests, invite code; says when confirmations open; main button follows the game |
+| S12 Match detail | `app/matches/[id].tsx` | Presence, join, waiting list, guests, invite code; the organizer's "Compartilhar na Rede"; says when confirmations open; main button follows the game |
 | S13 Teams | `app/matches/[id]/teams.tsx` | Team setup (count, players per team, draw mode) and draw on the backend (balanced or random), 2 to 4 teams; says who fits and who sat out |
 | S13.5 + S14 Scoreboard | `app/matches/[id]/scoreboard.tsx` | Pick the pair per set (3+ teams), organizer scores, undo, end set, live refresh over SignalR; organizer taps a team panel to score |
 | S15 MVP vote | `app/matches/[id]/mvp-vote.tsx` | One vote (who played, plus the organizer), changeable while open, no guests; organizer closes the vote and generates the summary |
@@ -65,7 +65,7 @@ Human rulings (do not build without a new decision):
   block is display-only.
 - **Payments**: prices are display-only; money changes hands outside the app.
 
-Rede (social feed, in scope since 2026-10-09, DECISIONS #66 to #80): each next step waits for
+Rede (social feed, in scope since 2026-10-09, DECISIONS #66 to #83): each next step waits for
 the owner's approval. Not built yet: followers / following lists, opening a player from a
 roster or the ranking, friends ranking, a match's posts, several photos, video, posts on a
 profile, reporting a post, notifications for likes, comments and follows.
