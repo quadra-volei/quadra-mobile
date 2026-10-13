@@ -26,6 +26,9 @@ import { colors } from "@/theme/colors";
  * capped at 60s (app/_layout.tsx, DECISIONS #44).
  */
 const MARK_SIZE = 124;
+// Shortest time the splash stays up, so its animation is seen even when the session
+// check answers at once. A slower check is not delayed further (DECISIONS #90).
+export const MIN_HOLD_MS = 1800;
 const LOADER_SEGMENTS = [0, 1, 2, 3, 4, 5, 6];
 const EASE = Easing.inOut(Easing.ease);
 
@@ -61,10 +64,12 @@ export default function Index() {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasProfile = useAuthStore((s) => s.hasProfile);
 
-  // Await the shared one-shot auth bootstrap (started in the root layout), then redirect.
+  // Await the shared one-shot auth bootstrap (started in the root layout) and the minimum
+  // hold, whichever ends last, then redirect.
   useEffect(() => {
     let active = true;
-    void getAuthBootstrap().then(() => {
+    const hold = new Promise<void>((resolve) => setTimeout(resolve, MIN_HOLD_MS));
+    void Promise.all([getAuthBootstrap(), hold]).then(() => {
       if (active) {
         setReady(true);
       }
