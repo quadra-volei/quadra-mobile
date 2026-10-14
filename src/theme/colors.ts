@@ -21,6 +21,17 @@ export const colors = {
 // class into Android elevation, which is blurred and cannot be offset.
 export const HARD_SHADOW = { boxShadow: `3px 3px 0 0 ${colors.surfaceDark}` } as const;
 
+// Level filter over a match cover photo (DECISIONS #103): the level tint over
+// the photo, fading into navy, the same direction as the no-photo court. The
+// alphas keep the photo readable while the cards of one level look alike.
+export const COVER_FILTER_ALPHA = { tint: 0.55, navy: 0.6 } as const;
+
+/** '#RRGGBB' + alpha (0–1) → 'rgba(r,g,b,a)'. */
+export function withAlpha(hex: string, alpha: number): string {
+  const n = parseInt(hex.slice(1), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${alpha})`;
+}
+
 // Navy → blue brand hero gradient, derived from the tokens above.
 export const HERO_GRADIENT = [colors.surfaceDark, colors.primary] as const;
 

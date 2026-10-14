@@ -190,12 +190,12 @@ Each entry follows this structure:
 - **Path**: `src/components/ui/CourtImage.tsx`
 - **Category**: ui
 - **Props**: `{ tint: string; height: number; radius?: number; label?: string; imageUri?: string; children?: ReactNode }` (`imageUri`: a real photo, the match cover, drawn instead of the court motif and label)
-- **Used in**: S5 Home / S6 Explore match-card covers (`MatchCard`, `MatchCardCompact`) and the S12 Match Detail hero (full-bleed, `radius={0}`, with a scrim + overlaid title block)
+- **Used in**: every match cover: S5 Home carousel (`MatchCardCompact`), S6 Explore grid (`MatchCard`), the S17 map preview, the Rede invite card and the S12 Match Detail hero (full-bleed, `radius={0}`, with a scrim + overlaid title block)
 - **Example**:
   ```tsx
   <CourtImage tint={match.tint} height={172} radius={16}>{overlay}</CourtImage>
   ```
-- **Notes**: On-brand match-cover placeholder (ports the prototype's `CourtImage`). A `tint → navy` `expo-linear-gradient` fill behind a faint volleyball court-line motif drawn with plain Views (outer box + center line + two dashed attack lines — **no `react-native-svg`**, so it renders cheap and is test-safe). Overlaid `children` are positioned absolutely by the caller; `radius` is `0` when the cover sits flush at a card's top. Gradient end color from `src/theme/colors.ts`.
+- **Notes**: On-brand match-cover placeholder (ports the prototype's `CourtImage`). A `tint → navy` `expo-linear-gradient` fill behind a faint volleyball court-line motif drawn with plain Views (outer box + center line + two dashed attack lines — **no `react-native-svg`**, so it renders cheap and is test-safe). Overlaid `children` are positioned absolutely by the caller; `radius` is `0` when the cover sits flush at a card's top. Gradient end color from `src/theme/colors.ts`. With `imageUri` the photo replaces the motif and gets the level filter (`tint` → navy at `COVER_FILTER_ALPHA`, DECISIONS #103); `tint` must be a `#RRGGBB` hex.
 
 ### `ScreenHeader`
 - **Path**: `src/components/ui/ScreenHeader.tsx`
@@ -289,6 +289,12 @@ More UI primitives will live here:
 
 ---
 
+### `HomeHeroArt`
+- **Path**: `src/components/icons/HomeHeroArt.tsx`
+- **Props**: none
+- **Used in**: the empty-Home hero (`app/(tabs)/index.tsx`)
+- **Notes**: Absolute-fill SVG (`viewBox 0 0 400 500`, `slice`): court lines across the card, a ball with fading rings and a stepped glow at the centre, white strokes at 3–16% opacity (DECISIONS #102). Uses only `Circle`, `Line`, `Path`, `Rect` (no gradients, which break under Jest).
+
 ## Hooks (`src/hooks/`)
 
 ### `useRiseIn`
@@ -330,7 +336,7 @@ More UI primitives will live here:
 - **Path**: `src/components/domain/MatchCard.tsx`
 - **Category**: domain
 - **Props**: `{ match: NearbyMatch; onPress: (id: string) => void; testID?: string }` where `NearbyMatch = { id: string; name: string; format: '2X2' | '4X4' | '6X6'; level: 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO'; distanceKm: number; confirmed: number; capacity: number; priceLabel: string; tint: string }` (from `@/features/matches/types/match`)
-- **Used in**: S5 Home ("JOGOS PERTO DE VOCÊ" grid). Reused by S6 Explore grid and S17 map bottom sheet.
+- **Used in**: S6 Explore grid and S17 map bottom sheet (no longer on the Home, DECISIONS #104).
 - **Example**:
   ```tsx
   <MatchCard match={m} onPress={(id) => router.push({ pathname: '/matches/[id]', params: { id } })} />

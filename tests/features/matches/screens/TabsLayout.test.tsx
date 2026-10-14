@@ -132,6 +132,12 @@ describe('S5 — Bottom tab bar', () => {
     await fireEvent.press(screen.getByLabelText('Criar'));
     expect(screen.getByTestId('create-sheet')).toBeTruthy();
     expect(screen.getByText('O que você quer criar?')).toBeTruthy();
+    // Blur and veil cover the whole screen, not only the strip above the card.
+    const fill = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 };
+    expect(screen.getByTestId('create-sheet-blur').props.style).toEqual(fill);
+    expect(screen.getByTestId('create-sheet-veil').props.style).toEqual(
+      expect.objectContaining(fill),
+    );
 
     await fireEvent.press(screen.getByLabelText('Criar partida'));
     expect(mockPush).toHaveBeenCalledWith('/matches/create');

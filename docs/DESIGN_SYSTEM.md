@@ -81,7 +81,8 @@ on every surface (`LEVEL_BADGE` in `src/features/matches/lib/levelBadge.ts`):
 | Intermediário | `primary` (blue) | white |
 | Avançado | `tertiary` (orange) | navy |
 
-The badge always has a 1.5px navy border, so it stays readable over a cover of any tint. The
+On a cover the badge has a 1.5px white border, so it stands out from a cover of any tint, its own
+blue included (DECISIONS #103). The
 label is the level itself; a match has no "Casual" / "Competitivo" category.
 
 ### Position badges (PON, OPO, LEV, LIB, CEN, OUT)
@@ -232,8 +233,11 @@ The same rule covers everything that is pressed like a button:
 - **Position cards** (onboarding step 1, DECISIONS #85): white, `rounded-btn`, 2px `line`
   border and a soft 4px hard shadow; the **selected** card takes a blue (`primary`) border and
   shadow, a pale blue fill (`bg-light-alt`), a blue icon box and a lime check in its radio.
-- **Home hero** (empty Home only): a blue (`primary`) card, a lime eyebrow, "BORA PRA QUADRA?"
-  in display type (white + lime) and translucent white chips; no buttons (DECISIONS #100).
+- **Home hero** (empty Home only): a portrait 4:5 blue (`primary`) card filled by `HomeHeroArt`,
+  a lime eyebrow on top, "BORA PRA QUADRA?" in display type (white + lime) and translucent white
+  chips at the bottom; no buttons (DECISIONS #100, #102).
+- **Cover filter**: a match cover photo always carries its level tint (55%) fading into navy
+  (60%), `COVER_FILTER_ALPHA` in `src/theme/colors.ts` (DECISIONS #103).
 - **Tab bar "+"** and **`CreateSheet`**: the lime round "+" and the sheet's two wide options
   ("Criar partida" lime, "Criar publicação" white) carry the border and shadow; the sheet card
   has the 2px navy border and the shadow too (DECISIONS #98).
