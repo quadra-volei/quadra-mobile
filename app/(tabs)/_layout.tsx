@@ -10,7 +10,25 @@ import { TabHomeIcon } from '@/components/icons/TabHomeIcon';
 import { TabNetworkIcon } from '@/components/icons/TabNetworkIcon';
 import { TabProfileIcon } from '@/components/icons/TabProfileIcon';
 import type { TabIconProps } from '@/components/icons/tabIcon';
+import { Avatar } from '@/components/ui/Avatar';
+import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import { ICON_RIPPLE } from '@/theme/layout';
+
+// "Perfil" shows the signed-in user's photo, Instagram-style: a small circle
+// that gets a primary ring when the tab is active. No photo (or still loading)
+// → the regular profile icon.
+function ProfileTabIcon({ focused, size }: TabIconProps) {
+  const { data } = useMyProfile();
+  if (!data?.avatarUrl) return <TabProfileIcon focused={focused} size={size} />;
+  return (
+    <View
+      testID={focused ? 'tab-profile-avatar-active' : 'tab-profile-avatar'}
+      className={`h-8 w-8 items-center justify-center rounded-full border-2 ${focused ? 'border-primary' : 'border-transparent'}`}
+    >
+      <Avatar uri={data.avatarUrl} name={data.firstName} size="xs" />
+    </View>
+  );
+}
 
 // Routes shown as tabs, in bar order. There is no central button: creating and
 // searching a match start from the Home hero (DECISIONS #88).
@@ -22,7 +40,7 @@ const TABS: {
   { name: 'index', label: 'Início', Icon: TabHomeIcon },
   { name: 'explore', label: 'Explorar', Icon: TabExploreIcon },
   { name: 'network', label: 'Rede', Icon: TabNetworkIcon },
-  { name: 'profile', label: 'Perfil', Icon: TabProfileIcon },
+  { name: 'profile', label: 'Perfil', Icon: ProfileTabIcon },
 ];
 
 function TabBarButton({

@@ -604,9 +604,13 @@ export default function MatchDetailScreen() {
           </Button>
         ) : isOrganizer ? (
           <>
-            <Button variant="grad" onPress={goToTeams} testID="build-teams">
-              Montar os times
-            </Button>
+            {/* Building teams works off the confirmed list, so it only shows on
+                that tab; the presence toggle below stays on every tab. */}
+            {tab === 'players' ? (
+              <Button variant="grad" onPress={goToTeams} testID="build-teams">
+                Montar os times
+              </Button>
+            ) : null}
             {/* Organizing is not playing: the organizer opts into the confirmed
                 grid (and back out of it) here, without losing the forward CTA
                 they need whether or not they play. */}
