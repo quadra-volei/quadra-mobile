@@ -234,3 +234,9 @@ Source: the designer's `Quadra-App.html` (`SplashScreen`, `OnboardingScreen`) an
 | # | Decision | Why |
 | --- | --- | --- |
 | 90 | **The splash stays up for at least 1.8 s** (`MIN_HOLD_MS` in `app/index.tsx`), counted from when the screen mounts. It waits for the session check and for this hold, whichever ends last, so a slow check is not delayed further. Changes the "no minimum hold" of #84. | Owner's call (Johny, 2026-10-13): with a fast session check the splash passed too quickly to be seen. |
+
+## 2026-10-14 — Teams: move a player after the draw
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 91 | **After the draw the organizer can move any player to another team**: tapping a player on S13 opens a dialog listing the other teams; the pick calls the existing `PUT /matches/{id}/teams/{teamId}/members/{playerId}` (`useMovePlayer`) and the screen shows the teams the backend answers with, so the scoreboard reads the edited teams. Only drawn players move (who sat out stays out; redraw to change that). | Owner's ask (Johny, 2026-10-14): fix the draw by hand. The backend already had the route, so no API change. |

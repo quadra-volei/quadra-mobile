@@ -1,4 +1,4 @@
-import { View, Text } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { getTeamBgColor } from '@/features/matches/lib/teamColors';
@@ -10,6 +10,8 @@ export type TeamRosterProps = {
   players: PresencePlayer[];
   /** 0-based position of the team, which picks its color (teamColors). */
   colorIndex?: number;
+  /** When set, each player row is a button (S13: move the player to another team). */
+  onPlayerPress?: (player: PresencePlayer) => void;
   testID?: string;
 };
 
@@ -25,6 +27,7 @@ export function TeamRoster({
   teamName,
   players,
   colorIndex = 0,
+  onPlayerPress,
   testID,
 }: TeamRosterProps) {
   return (
@@ -43,7 +46,15 @@ export function TeamRoster({
       {/* ── One row per player ── */}
       <View className="gap-3">
         {players.map((player) => (
-          <View key={player.id} className="flex-row items-center gap-3">
+          <Pressable
+            key={player.id}
+            disabled={!onPlayerPress}
+            onPress={() => onPlayerPress?.(player)}
+            accessibilityRole={onPlayerPress ? 'button' : undefined}
+            accessibilityHint={onPlayerPress ? 'Mover para outro time' : undefined}
+            testID={`roster-player-${player.id}`}
+            className="flex-row items-center gap-3"
+          >
             <Avatar
               uri={player.avatarUrl}
               name={player.name}
@@ -61,7 +72,7 @@ export function TeamRoster({
                 {player.position}
               </Text>
             ) : null}
-          </View>
+          </Pressable>
         ))}
       </View>
     </View>

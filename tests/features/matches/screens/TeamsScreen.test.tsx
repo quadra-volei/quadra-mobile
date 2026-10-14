@@ -239,8 +239,11 @@ jest.mock('@/features/matches/api/liveGame', () => ({
   useStartSet: () => mockStartSet,
 }));
 
+const mockMovePlayer = { isPending: false, mutate: jest.fn() };
+
 jest.mock('@/features/matches/api/drawTeams', () => ({
   useDrawTeams: jest.fn(() => mockDrawTeams),
+  useMovePlayer: jest.fn(() => mockMovePlayer),
 }));
 
 // --- Test imports ---------
@@ -270,6 +273,7 @@ beforeEach(() => {
   mockDrawTeams.isPending = false;
   mockDrawTeams.isError = false;
   mockDrawTeams.mutate.mockClear();
+  mockMovePlayer.mutate.mockClear();
   mockParams = {
     id: 'match-1',
     teamCount: '2',
@@ -406,6 +410,43 @@ describe('S13 — In-Game Teams screen', () => {
     expect(screen.getByTestId('capacity-hint').props.children).toBe(
       'Faltam 2 para completar os times.',
     );
+  });
+
+  it('moves a tapped player to the team the organizer picks', async () => {
+    const [p1, p2] = matchDetailFixture().players;
+    mockDrawTeams.data = {
+      teams: [
+        { id: 'team-1', number: 1, name: 'Time 1', players: [p1!] },
+        { id: 'team-2', number: 2, name: 'Time 2', players: [p2!] },
+      ],
+    };
+    await act(async () => {
+      render(<TeamsScreen />);
+    });
+
+    await fireEvent.press(screen.getByTestId('roster-player-p1'));
+    const [title, , buttons] = mockAlert.mock.calls[0];
+    expect(title).toBe('Mover João para');
+    // Only the other team, plus the way out.
+    expect(buttons.map((b: { text: string }) => b.text)).toEqual(['Time 2', 'Cancelar']);
+
+    // The backend answer replaces the teams on screen.
+    mockMovePlayer.mutate.mockImplementationOnce((_vars, options) =>
+      options.onSuccess({
+        teams: [
+          { id: 'team-1', number: 1, name: 'Time 1', players: [] },
+          { id: 'team-2', number: 2, name: 'Time 2', players: [p2!, p1!] },
+        ],
+      }),
+    );
+    await act(async () => {
+      buttons[0].onPress();
+    });
+    expect(mockMovePlayer.mutate.mock.calls[0][0]).toMatchObject({
+      playerId: 'p1',
+      teamId: 'team-2',
+    });
+    expect(screen.getByText('2 jogadores')).toBeTruthy();
   });
 
   it('lists who sat out of the draw', async () => {
