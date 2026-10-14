@@ -46,6 +46,8 @@ export type ApiMatch = {
   visibility: 'Open' | 'Private';
   inviteMode: 'Code' | 'Guests' | null;
   priceMonthly: number | null;
+  /** Read URL of the cover the organizer uploaded (lists and detail); null without one. */
+  coverUrl?: string | null;
 };
 
 export type ApiPlayer = {
@@ -104,6 +106,8 @@ export type ApiNearbyMatch = {
   confirmedCount: number;
   format: string | null;
   level: string | null;
+  address?: string;
+  coverUrl?: string | null;
 };
 
 /** `POST /matches` body, as the create form fills it. */
@@ -248,6 +252,7 @@ export function toUpcomingMatch(item: ApiMyMatch): UpcomingMatch {
     priceLabel: formatPriceLabel(item.match.price),
     avatarUrls: item.confirmedPhotoUrls,
     tint: tintForLevel(level),
+    coverUrl: item.match.coverUrl ?? undefined,
   };
 }
 
@@ -263,6 +268,8 @@ export function toNearbyMatch(item: ApiNearbyMatch): NearbyMatch {
     capacity: item.maxPlayers,
     priceLabel: formatPriceLabel(item.price),
     tint: tintForLevel(level),
+    coverUrl: item.coverUrl ?? undefined,
+    venue: item.address,
     lat: item.latitude,
     lon: item.longitude,
     startsAt: item.dateTime,

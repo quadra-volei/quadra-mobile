@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import { ChevronLeft, LocateFixed, Volleyball } from 'lucide-react-native';
+import { ChevronLeft, Clock, LocateFixed, MapPin, Users, Volleyball } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -14,6 +14,7 @@ import MapView, { Marker, type Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
+import { CourtImage } from '@/components/ui/CourtImage';
 import { Tag } from '@/components/ui/Tag';
 import { MatchCard } from '@/components/domain/MatchCard';
 import { useNearbyMatches } from '@/features/matches/api/getNearby';
@@ -408,61 +409,93 @@ export default function MapScreen() {
         >
           <View className="px-4 pb-4">
             <View
-              className="bg-white rounded-card shadow-card p-4"
+              className="bg-white rounded-card shadow-card overflow-hidden"
               testID="map-preview-card"
             >
-              <View className="flex-row items-center gap-2">
-                <Tag bg={colors.surfaceDark} color={colors.textOnDark}>
-                  {selected.format}
-                </Tag>
-                <Tag
-                  bg={LEVEL_BADGE[selected.level].bg}
-                  color={LEVEL_BADGE[selected.level].color}
-                  outlined
-                >
-                  {LEVEL_BADGE[selected.level].label}
-                </Tag>
-              </View>
-              <Text
-                numberOfLines={1}
-                className="mt-2 font-body-bold text-h3 text-text-primary"
+              {/* Cover: the organizer's photo, or the court tinted by level. */}
+              <CourtImage
+                tint={selected.tint}
+                imageUri={selected.coverUrl}
+                height={124}
+                radius={0}
               >
-                {selected.name}
-              </Text>
-              <View className="mt-1 flex-row flex-wrap items-center gap-x-2">
-                {selected.startsAt ? (
-                  <Text className="font-body text-body text-text-muted">
-                    {formatWhen(selected.startsAt)}
+                <View className="absolute top-3 left-3 flex-row items-center gap-2">
+                  <Tag bg="rgba(255,255,255,0.92)" color={colors.surfaceDark}>
+                    {selected.format}
+                  </Tag>
+                  <Tag
+                    bg={LEVEL_BADGE[selected.level].bg}
+                    color={LEVEL_BADGE[selected.level].color}
+                    outlined
+                  >
+                    {LEVEL_BADGE[selected.level].label}
+                  </Tag>
+                </View>
+                <View className="absolute top-3 right-3 rounded-pill bg-accent px-3 py-1">
+                  <Text className="font-body-bold text-caption text-text-primary">
+                    {selected.priceLabel}
+                  </Text>
+                </View>
+              </CourtImage>
+
+              <View className="p-4">
+                <Text
+                  numberOfLines={1}
+                  className="font-body-bold text-h3 text-text-primary"
+                >
+                  {selected.name}
+                </Text>
+                {selected.venue ? (
+                  <Text
+                    numberOfLines={1}
+                    className="mt-0.5 font-body text-caption text-text-muted"
+                  >
+                    {selected.venue}
                   </Text>
                 ) : null}
-                <Text className="font-body text-body text-text-muted">
-                  {/* From the user, not from the map centre the search used. */}
-                  {(userLocation
-                    ? distanceKm(userLocation, {
-                        latitude: selected.lat,
-                        longitude: selected.lon,
-                      })
-                    : selected.distanceKm
-                  )
-                    .toFixed(1)
-                    .replace('.', ',')}{' '}
-                  km
-                </Text>
-                <Text className="font-body text-body text-text-muted">
-                  {selected.confirmed}/{selected.capacity} confirmados
-                </Text>
-                <Text className="font-body-semibold text-body-bold text-text-primary">
-                  {selected.priceLabel}
-                </Text>
-              </View>
-              <View className="mt-3">
-                <Button
-                  variant="primary"
-                  onPress={() => goMatch(selected.id)}
-                  testID="map-preview-open"
-                >
-                  Ver partida
-                </Button>
+
+                <View className="mt-3 flex-row flex-wrap items-center gap-x-4 gap-y-1">
+                  {selected.startsAt ? (
+                    <View className="flex-row items-center gap-1">
+                      <Clock size={14} color={colors.primary} />
+                      <Text className="font-body-semibold text-caption text-text-primary">
+                        {formatWhen(selected.startsAt)}
+                      </Text>
+                    </View>
+                  ) : null}
+                  <View className="flex-row items-center gap-1">
+                    <MapPin size={14} color={colors.primary} />
+                    <Text className="font-body-semibold text-caption text-text-primary">
+                      {/* From the user, not from the map centre the search used. */}
+                      {(userLocation
+                        ? distanceKm(userLocation, {
+                            latitude: selected.lat,
+                            longitude: selected.lon,
+                          })
+                        : selected.distanceKm
+                      )
+                        .toFixed(1)
+                        .replace('.', ',')}{' '}
+                      km
+                    </Text>
+                  </View>
+                  <View className="flex-row items-center gap-1">
+                    <Users size={14} color={colors.primary} />
+                    <Text className="font-body-semibold text-caption text-text-primary">
+                      {selected.confirmed}/{selected.capacity} confirmados
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="mt-4">
+                  <Button
+                    variant="primary"
+                    onPress={() => goMatch(selected.id)}
+                    testID="map-preview-open"
+                  >
+                    Ver partida
+                  </Button>
+                </View>
               </View>
             </View>
           </View>

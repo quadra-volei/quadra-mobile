@@ -53,6 +53,7 @@ jest.mock('lucide-react-native', () => {
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
   return {
     ChevronLeft: stub('chevron-left'),
+    Clock: stub('clock'),
     LocateFixed: stub('locate-fixed'),
     Volleyball: stub('volleyball'),
     MapPin: stub('map-pin'),

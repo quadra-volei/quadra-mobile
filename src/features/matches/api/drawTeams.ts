@@ -2,11 +2,30 @@ import { useMutation } from '@tanstack/react-query';
 
 import { postDraft, putTeamMember, toTeams } from '@/features/matches/api/gameApi';
 import { toMatchError } from '@/features/matches/api/matchesApi';
+import { ApiError } from '@/lib/api/client';
 import type { PresencePlayer } from '@/features/matches/types/matchDetail';
 import type {
   DrawTeamsRequest,
   DrawTeamsResponse,
 } from '@/features/matches/types/team';
+
+/** Why the backend refused to draw or change the teams (the problem title), in pt-BR. */
+const TEAMS_REFUSAL: Record<string, string> = {
+  ConfirmationsNotOpen:
+    'As confirmações ainda não abriram. Os times só podem ser montados depois que elas abrirem.',
+  GameStarted: 'A partida já começou. Os times não podem mais mudar.',
+  MatchOver: 'Esta partida já terminou ou foi cancelada.',
+  NoConfirmedPlayers: 'Ninguém confirmou presença ainda. Sem confirmados não há times.',
+  NotEnoughPlayers: 'Faltam jogadores: cada time precisa de pelo menos 1 confirmado.',
+  InvalidOptions: 'Escolha de 2 a 4 times, com pelo menos 1 jogador por time.',
+};
+
+function toTeamsError(error: unknown, byStatus: Partial<Record<number, string>>): Error {
+  if (error instanceof ApiError && error.detail && TEAMS_REFUSAL[error.detail]) {
+    return new Error(TEAMS_REFUSAL[error.detail]);
+  }
+  return toMatchError(error, byStatus);
+}
 
 export type DrawTeamsVariables = {
   /** The match roster (guests included), used to name the drawn players. */
@@ -31,10 +50,7 @@ export function useDrawTeams(id: string) {
         });
         return { teams: toTeams(teams, players) };
       } catch (error) {
-        throw toMatchError(error, {
-          403: 'Só quem organiza a partida pode sortear os times.',
-          409: 'Ainda não dá para sortear: confirme os jogadores e aguarde as confirmações abrirem.',
-        });
+        throw toTeamsError(error, { 403: 'Só quem organiza a partida pode sortear os times.' });
       }
     },
   });
@@ -57,10 +73,9 @@ export function useMovePlayer(id: string) {
       try {
         return { teams: toTeams(await putTeamMember(id, teamId, playerId), players) };
       } catch (error) {
-        throw toMatchError(error, {
+        throw toTeamsError(error, {
           403: 'Só quem organiza a partida pode mexer nos times.',
           404: 'Os times mudaram. Refaça o sorteio.',
-          409: 'Os times não podem mais ser alterados.',
         });
       }
     },

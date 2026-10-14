@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import {
   Clock,
@@ -61,10 +62,25 @@ const ACTIVITY_VERB: Record<Exclude<Post['kind'], 'Post'>, string> = {
 };
 
 // ── The match a post invites to: cover with name and time, and the way in ──
-function MatchInvite({ match }: { match: { id: string; name: string; startsAt: string } }) {
+function MatchInvite({
+  match,
+}: {
+  match: { id: string; name: string; startsAt: string; coverUrl?: string | null };
+}) {
   return (
     <View className="px-4 pb-4" testID="post-invite">
-      <CourtImage tint={colors.primary} height={112} radius={16}>
+      <CourtImage
+        tint={colors.primary}
+        imageUri={match.coverUrl ?? undefined}
+        height={112}
+        radius={16}
+      >
+        {/* bottom scrim: the name stays legible over a photo cover */}
+        <LinearGradient
+          colors={['rgba(10,10,60,0)', 'rgba(10,10,60,0.8)']}
+          locations={[0.3, 1]}
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+        />
         <View className="absolute left-4 right-4 bottom-3">
           <Text className="font-body-extrabold text-h3 text-text-on-dark" numberOfLines={1}>
             {match.name}

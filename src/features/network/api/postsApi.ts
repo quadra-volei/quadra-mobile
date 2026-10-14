@@ -39,6 +39,8 @@ export type Post = {
     name: string;
     /** ISO timestamp. In the future on a post that invites to the match. */
     startsAt: string | null;
+    /** Read URL of the match cover, when the organizer uploaded one. */
+    coverUrl?: string | null;
   } | null;
   /** ISO timestamp. */
   createdAt: string;

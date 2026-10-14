@@ -70,7 +70,7 @@ export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactPro
     >
       {/* cover */}
       <View>
-        <CourtImage tint={match.tint} height={124} radius={0} />
+        <CourtImage tint={match.tint} imageUri={match.coverUrl} height={124} radius={0} />
         <View className="absolute top-[10px] left-[10px]">
           <Tag bg={badge.bg} color={badge.color} outlined>
             {badge.label}
