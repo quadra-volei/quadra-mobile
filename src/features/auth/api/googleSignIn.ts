@@ -54,6 +54,10 @@ async function getGoogleIdToken(): Promise<string> {
 
   try {
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    // Forget the account Google remembers from the last sign-in, so the picker always
+    // shows and another account can be chosen, whatever ended the app session
+    // (DECISIONS #108). Best-effort: it must never block signing in.
+    await GoogleSignin.signOut().catch(() => undefined);
     const response = await GoogleSignin.signIn();
     if (!isSuccessResponse(response)) {
       throw new GoogleSignInCancelledError();
