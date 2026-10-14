@@ -449,6 +449,38 @@ describe('S13 — In-Game Teams screen', () => {
     expect(screen.getByText('2 jogadores')).toBeTruthy();
   });
 
+  it('does not offer a draw with fewer confirmed than teams', async () => {
+    mockMatchDetail.data = matchDetailFixture({
+      players: matchDetailFixture().players.slice(0, 3),
+      teamConfig: { teamCount: 4, perTeam: 1, drawMode: 'MANUAL' },
+    });
+    await act(async () => {
+      render(<TeamsScreen />);
+    });
+
+    expect(screen.getByTestId('too-few-hint').props.children).toBe(
+      'Com 3 confirmados dá para montar no máximo 3 times.',
+    );
+    expect(screen.getByTestId('draw-teams').props.accessibilityState.disabled).toBe(true);
+  });
+
+  it('will not start with an empty team', async () => {
+    const [p1] = matchDetailFixture().players;
+    mockDrawTeams.data = {
+      teams: [
+        { id: 'team-1', number: 1, name: 'Time 1', players: [p1!] },
+        { id: 'team-2', number: 2, name: 'Time 2', players: [] },
+      ],
+    };
+    await act(async () => {
+      render(<TeamsScreen />);
+    });
+
+    await fireEvent.press(screen.getByTestId('start-match'));
+    expect(mockAlert.mock.calls[0][0]).toBe('Tem time sem jogador');
+    expect(mockStartSet.mutateAsync).not.toHaveBeenCalled();
+  });
+
   it('lists who sat out of the draw', async () => {
     const [p1, p2] = matchDetailFixture().players;
     mockDrawTeams.data = {

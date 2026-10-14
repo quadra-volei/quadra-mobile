@@ -294,7 +294,7 @@ describe('match lists', () => {
       respond(200, {
         items: [
           {
-            match: apiMatch,
+            match: { ...apiMatch, coverUrl: 'https://cdn.test/cover.jpg' },
             confirmedCount: 2,
             openSlots: 6,
             confirmedPhotoUrls: ['https://cdn.test/ana.jpg'],
@@ -319,6 +319,7 @@ describe('match lists', () => {
         priceLabel: 'R$ 15',
         avatarUrls: ['https://cdn.test/ana.jpg'],
         tint: '#6B1AFF',
+        coverUrl: 'https://cdn.test/cover.jpg',
       },
     ]);
   });

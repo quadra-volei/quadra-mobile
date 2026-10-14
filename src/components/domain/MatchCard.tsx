@@ -37,7 +37,7 @@ export function MatchCard({ match, onPress, testID }: MatchCardProps) {
       android_ripple={PRESS_RIPPLE}
       className="rounded-card overflow-hidden"
     >
-      <CourtImage tint={match.tint} height={172} radius={16}>
+      <CourtImage tint={match.tint} imageUri={match.coverUrl} height={172} radius={16}>
         {/* dark bottom scrim so the overlaid copy stays legible */}
         <LinearGradient
           colors={['rgba(10,10,60,0.05)', 'rgba(10,10,60,0.82)']}

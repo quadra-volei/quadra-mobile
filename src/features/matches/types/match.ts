@@ -27,6 +27,8 @@ export type UpcomingMatch = {
   avatarUrls: string[];
   /** Hex tint for the card's court-image cover gradient (tint → navy). */
   tint: string;
+  /** The cover the organizer uploaded; without one the card shows the tinted court. */
+  coverUrl?: string;
 };
 
 /**
@@ -47,6 +49,10 @@ export type NearbyMatch = {
   priceLabel: string;
   /** Hex tint for the card's court-image cover gradient (tint → navy). */
   tint: string;
+  /** The cover the organizer uploaded; without one the card shows the tinted court. */
+  coverUrl?: string;
+  /** The venue address (map preview). */
+  venue?: string;
   /**
    * Geographic coordinates of the venue, used to place the match pin on the S17
    * map. A geo-nearby endpoint inherently returns per-match coordinates, so this

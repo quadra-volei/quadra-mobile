@@ -265,6 +265,22 @@ describe('teams and live game', () => {
     expect(teams[1]?.players.map((member) => member.name)).toEqual(['Jogador', 'Zé']);
   });
 
+  it.each([
+    ['GameStarted', 'A partida já começou. Os times não podem mais mudar.'],
+    ['ConfirmationsNotOpen', 'As confirmações ainda não abriram. Os times só podem ser montados depois que elas abrirem.'],
+    ['NotEnoughPlayers', 'Faltam jogadores: cada time precisa de pelo menos 1 confirmado.'],
+  ])('a refused draw (%s) says why', async (code, message) => {
+    serve({ 'POST /teams/draft': { status: 409, body: { title: code } } });
+
+    const settled = await run(() => useDrawTeams(MATCH), {
+      players: [],
+      request: { teamCount: 2, perTeam: 2, drawMode: 'AUTO' },
+    });
+
+    expect(settled.status).toBe('rejected');
+    expect(settled.status === 'rejected' && (settled.reason as Error).message).toBe(message);
+  });
+
   it('loads the game: organizer, teams with names, phase from the scoreboard', async () => {
     serve({
       'GET /detail': { status: 200, body: apiDetail },

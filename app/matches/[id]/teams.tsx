@@ -169,6 +169,14 @@ export default function TeamsScreen() {
   };
 
   const handleStartMatch = () => {
+    // Moving players around can leave a team empty.
+    if (teams.some((team) => team.players.length === 0)) {
+      dialog.alert(
+        'Tem time sem jogador',
+        'Todo time precisa de pelo menos 1 jogador. Mova alguém para ele ou refaça o sorteio.',
+      );
+      return;
+    }
     dialog.alert('Pronto para começar esta partida?', '', [
       {
         text: 'Revisar',
@@ -210,8 +218,18 @@ export default function TeamsScreen() {
 
   // Who fits: the draw fills `teamCount × perTeam` places, the rest sits out.
   const slots = teamCount * perTeam;
-  const capacityHint =
-    confirmedCount > slots
+  // Every team needs at least one player: with fewer confirmed than teams the
+  // draw is not offered (the backend refuses it too).
+  const tooFew = confirmedCount < teamCount;
+  const tooFewHint =
+    confirmedCount === 0
+      ? 'Ninguém confirmou presença ainda. Sem confirmados não há times.'
+      : confirmedCount === 1
+        ? 'Só 1 confirmado: são precisos pelo menos 2 para montar os times.'
+        : `Com ${confirmedCount} confirmados dá para montar no máximo ${confirmedCount} times.`;
+  const capacityHint = tooFew
+    ? null
+    : confirmedCount > slots
       ? `${confirmedCount - slots} ${confirmedCount - slots === 1 ? 'fica' : 'ficam'} de fora neste sorteio.`
       : confirmedCount < slots
         ? `${confirmedCount === slots - 1 ? 'Falta 1' : `Faltam ${slots - confirmedCount}`} para completar os times.`
@@ -334,6 +352,14 @@ export default function TeamsScreen() {
                   {capacityHint}
                 </Text>
               ) : null}
+              {tooFew ? (
+                <Text
+                  className="mt-1 font-body-semibold text-caption text-danger"
+                  testID="too-few-hint"
+                >
+                  {tooFewHint}
+                </Text>
+              ) : null}
 
               <Text className="mt-6 font-display text-h2 text-surface-dark uppercase">
                 Como sortear os times
@@ -385,6 +411,7 @@ export default function TeamsScreen() {
               variant="grad"
               onPress={handleDraw}
               loading={draw.isPending}
+              disabled={tooFew}
               leftIcon={<Shuffle size={20} color={colors.surfaceDark} />}
               testID="draw-teams"
             >
