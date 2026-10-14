@@ -3,10 +3,9 @@
  *
  * Covers every acceptance criterion in docs/specs/S5-home.md:
  *  - Header shows "INÍCIO" + bell + theme toggle — NO avatar, NO greeting.
- *  - Dual-CTA renders a "Criar partida" (gradient) tile beside a "Buscar
- *    partida" tile.
- *  - The "Criar partida" tile navigates to /matches/create.
- *  - The "Buscar partida" tile and "Ver todas" navigate to /explore.
+ *  - "SEU PRÓXIMO JOGO" shows one card: the soonest confirmed match (#98).
+ *  - With nothing to show, only the header and the blue hero (#98).
+ *  - "Ver todas" navigates to /explore.
  *  - "PRÓXIMAS PARTIDAS" renders a horizontal scroll of MatchCardCompact from
  *    useUpcomingMatches; tapping a card navigates to S12 with its id.
  *  - "JOGOS PERTO DE VOCÊ" renders a 2-col grid of MatchCard from
@@ -79,6 +78,7 @@ jest.mock('lucide-react-native', () => {
     Users: stub('users'),
     Plus: stub('plus'),
     Search: stub('search'),
+    Volleyball: stub('volleyball'),
   };
 });
 
@@ -113,6 +113,8 @@ const UPCOMING_FIXTURE: UpcomingMatch[] = [
     priceLabel: 'R$ 15',
     avatarUrls: ['https://example.com/a.png', 'https://example.com/b.png'],
     tint: '#1A1AFF',
+    venue: 'Arena Pinheiros',
+    confirmed: false,
   },
   {
     id: 'up-2',
@@ -123,6 +125,8 @@ const UPCOMING_FIXTURE: UpcomingMatch[] = [
     priceLabel: 'Grátis',
     avatarUrls: ['https://example.com/c.png'],
     tint: '#6B1AFF',
+    venue: 'Quadra da Vila',
+    confirmed: false,
   },
 ];
 
@@ -161,6 +165,17 @@ type QueryState<T> = {
   isError: boolean;
 };
 
+// Players the signed-in user follows (hero "amigos" chip).
+const mockFollow = { followingCount: 0 };
+jest.mock('@/features/network/api/postsApi', () => ({
+  useFollowState: () => ({
+    data: { followersCount: 0, followingCount: mockFollow.followingCount, followedByMe: false },
+  }),
+}));
+jest.mock('@/stores/auth', () => ({
+  useAuthStore: (select: (s: { userId: string }) => unknown) => select({ userId: 'me' }),
+}));
+
 const mockUpcoming: QueryState<UpcomingMatch> & { refetch: jest.Mock } = {
   data: UPCOMING_FIXTURE,
   isPending: false,
@@ -185,6 +200,7 @@ jest.mock('@/features/matches/api/getUpcoming', () => ({
     isPending: mockUpcoming.isPending,
     isError: mockUpcoming.isError,
     refetch: mockUpcoming.refetch,
+    isSuccess: !mockUpcoming.isPending && !mockUpcoming.isError,
   }),
 }));
 
@@ -196,6 +212,7 @@ jest.mock('@/features/matches/api/getNearby', () => ({
       isPending: mockNearby.isPending,
       isError: mockNearby.isError,
       refetch: mockNearby.refetch,
+      isSuccess: !mockNearby.isPending && !mockNearby.isError,
     };
   },
 }));
@@ -221,6 +238,7 @@ function resetNearby() {
 
 beforeEach(() => {
   mockPush.mockClear();
+  mockFollow.followingCount = 0;
   resetUpcoming();
   resetNearby();
 });
@@ -251,51 +269,6 @@ describe('S5 — Home screen', () => {
     expect(screen.queryByText(/olá/i)).toBeNull();
     expect(screen.queryByLabelText(/avatar/i)).toBeNull();
     expect(screen.queryByTestId('header-avatar')).toBeNull();
-  });
-
-  // ----------------------------------------------------------- dual CTA tiles
-  /**
-   * Covers: S5 — Home
-   * Criterion: "The dual-CTA renders a 'Criar partida' (gradient) tile beside a
-   *  'Buscar partida' tile."
-   */
-  it('renders the Criar and Buscar CTA tiles', async () => {
-    await render(<HomeScreen />);
-
-    expect(screen.getByLabelText('Criar partida')).toBeTruthy();
-    expect(screen.getByLabelText('Buscar partida')).toBeTruthy();
-
-    // Both tiles carry a gradient fill.
-    expect(screen.getAllByTestId('linear-gradient').length).toBeGreaterThan(1);
-  });
-
-  // --------------------------------------------------------- create navigation
-  /**
-   * Covers: S5 — Home
-   * Criterion: "Tapping the 'Criar partida' tile navigates to S11
-   *  (/matches/create)."
-   */
-  it('navigates to /matches/create when the Criar tile is tapped', async () => {
-    await render(<HomeScreen />);
-
-    fireEvent.press(screen.getByLabelText('Criar partida'));
-
-    expect(mockPush).toHaveBeenCalledTimes(1);
-    expect(mockPush).toHaveBeenCalledWith('/matches/create');
-  });
-
-  // -------------------------------------------------------- explore navigation
-  /**
-   * Covers: S5 — Home
-   * Criterion: "Tapping the 'Buscar partida' tile and 'Ver todas' navigate to
-   *  S6 (/explore)."
-   */
-  it('navigates to /explore from the Buscar tile', async () => {
-    await render(<HomeScreen />);
-
-    fireEvent.press(screen.getByLabelText('Buscar partida'));
-
-    expect(mockPush).toHaveBeenCalledWith('/explore');
   });
 
   /**
@@ -551,17 +524,88 @@ describe('S5 — Home screen', () => {
     expect(screen.queryByText(/patrocinad/i)).toBeNull();
   });
 
-  /**
-   * Covers: S5 — Home
-   * Criterion: the bell is a no-op this iteration (documented divergence) —
-   *  tapping it navigates nowhere.
-   */
-  it('does not navigate when the bell is tapped (no-op)', async () => {
+  /** The bell opens the notification settings (the closest existing screen). */
+  it('navigates to /profile/notifications when the bell is tapped', async () => {
     await render(<HomeScreen />);
 
     fireEvent.press(screen.getByLabelText('Notificações'));
 
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith('/profile/notifications');
+  });
+
+  // ------------------------------------------------------- SEU PRÓXIMO JOGO
+  /** One card only: the soonest future match where the user is confirmed. */
+  it('shows a single next-game card for the soonest confirmed match', async () => {
+    const soon = new Date(Date.now() + 2 * 3600_000).toISOString();
+    const later = new Date(Date.now() + 26 * 3600_000).toISOString();
+    mockUpcoming.data = [
+      { ...UPCOMING_FIXTURE[1]!, id: 'later', name: 'Treino Misto', startsAt: later, confirmed: true },
+      { ...UPCOMING_FIXTURE[0]!, id: 'soon', startsAt: soon, confirmed: true },
+      { ...UPCOMING_FIXTURE[1]!, id: 'pending', startsAt: soon, confirmed: false },
+    ];
+    await render(<HomeScreen />);
+
+    expect(screen.getByText('SEU PRÓXIMO JOGO')).toBeTruthy();
+    expect(screen.getAllByText('Confirmado')).toHaveLength(1);
+    const card = screen.getByLabelText(/^Seu próximo jogo: Vôlei de Quinta/);
+    expect(screen.getByText(/· Arena Pinheiros$/)).toBeTruthy();
+    // the next game leaves the carousel; the others stay
+    expect(screen.getAllByText('Vôlei de Quinta')).toHaveLength(1);
+    expect(screen.getByText('Treino Misto')).toBeTruthy();
+
+    await fireEvent.press(card);
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/matches/[id]', params: { id: 'soon' } });
+
+    mockPush.mockClear();
+    await fireEvent.press(screen.getByText('Ver jogo'));
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/matches/[id]', params: { id: 'soon' } });
+  });
+
+  it('hides SEU PRÓXIMO JOGO when no upcoming match is confirmed', async () => {
+    await render(<HomeScreen />);
+
+    expect(screen.queryByText('SEU PRÓXIMO JOGO')).toBeNull();
+    expect(screen.queryByText('Confirmado')).toBeNull();
+  });
+
+  // --------------------------------------------------------------- empty Home
+  /** Nothing to show: only the header and the blue hero, no sections. */
+  it('shows only the hero when there are no upcoming and no nearby matches', async () => {
+    mockUpcoming.data = [];
+    mockNearby.data = [];
+    mockFollow.followingCount = 3;
+    await render(<HomeScreen />);
+
+    expect(screen.getByTestId('home-hero')).toBeTruthy();
+    expect(screen.getByText('Seu próximo jogo começa aqui')).toBeTruthy();
+    expect(screen.getByText('Bora pra')).toBeTruthy();
+    expect(screen.getByText('Quadra?')).toBeTruthy();
+    expect(screen.getByText('3 amigos no Quadra')).toBeTruthy();
+    expect(screen.queryByText('PRÓXIMAS PARTIDAS')).toBeNull();
+    expect(screen.queryByText('JOGOS PERTO DE VOCÊ')).toBeNull();
+    expect(screen.getByText('INÍCIO')).toBeTruthy();
+  });
+
+  it('hides the friends chip when the user follows nobody', async () => {
+    mockUpcoming.data = [];
+    mockNearby.data = [];
+    await render(<HomeScreen />);
+
+    expect(screen.getByTestId('home-hero')).toBeTruthy();
+    expect(screen.queryByText(/no Quadra$/)).toBeNull();
+  });
+
+  it('keeps the sections (not the hero) while loading or on error', async () => {
+    mockUpcoming.data = [];
+    mockNearby.isPending = true;
+    await render(<HomeScreen />);
+    expect(screen.queryByTestId('home-hero')).toBeNull();
+
+    mockNearby.isPending = false;
+    mockNearby.isError = true;
+    await render(<HomeScreen />);
+    expect(screen.queryByTestId('home-hero')).toBeNull();
+    expect(screen.getByText('Não foi possível carregar')).toBeTruthy();
   });
 
   /**

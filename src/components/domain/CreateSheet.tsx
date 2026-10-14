@@ -1,0 +1,112 @@
+import { BlurView } from 'expo-blur';
+import type { RefObject } from 'react';
+import { useEffect } from 'react';
+import { BackHandler, Pressable, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { HARD_SHADOW } from '@/theme/colors';
+import { PRESS_RIPPLE } from '@/theme/layout';
+
+export type CreateSheetProps = {
+  onClose: () => void;
+  onCreateMatch: () => void;
+  onCreatePost: () => void;
+  /** What the backdrop blurs on Android (a `BlurTargetView` behind the sheet). */
+  blurTarget?: RefObject<View | null>;
+};
+
+const OPTION =
+  'h-14 justify-center rounded-btn border-2 border-surface-dark px-4';
+
+/**
+ * "O que você quer criar?" — the sheet the tab bar's central "+" opens: the
+ * screen behind blurred and dimmed, a white card with a thick navy border and
+ * the hard shadow, two wide options and a "Cancelar" link. Rendered as an
+ * overlay (not a `Modal`) so the blur can read the tabs behind it; Android's
+ * back button closes it.
+ */
+export function CreateSheet({
+  onClose,
+  onCreateMatch,
+  onCreatePost,
+  blurTarget,
+}: CreateSheetProps) {
+  const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      onClose();
+      return true;
+    });
+    return () => sub.remove();
+  }, [onClose]);
+
+  return (
+    <View
+      testID="create-sheet"
+      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+    >
+      <BlurView
+        intensity={30}
+        tint="dark"
+        blurMethod="dimezisBlurViewSdk31Plus"
+        blurTarget={blurTarget}
+        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+      />
+      {/* Navy veil over the blur: keeps the dim where the blur falls back. */}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Fechar"
+        onPress={onClose}
+        className="flex-1 bg-surface-dark/30"
+      />
+
+      <View
+        className="mx-4 rounded-card border-2 border-surface-dark bg-white px-6 pt-6 pb-4"
+        style={{ ...HARD_SHADOW, marginBottom: insets.bottom + 12 }}
+      >
+        <Text className="font-display text-h3 text-surface-dark uppercase">
+          O que você quer criar?
+        </Text>
+
+        <Pressable
+          onPress={onCreateMatch}
+          accessibilityRole="button"
+          accessibilityLabel="Criar partida"
+          android_ripple={PRESS_RIPPLE}
+          className={`${OPTION} mt-4 bg-accent`}
+          style={HARD_SHADOW}
+        >
+          <Text className="font-body-bold text-body-bold text-surface-dark">
+            Criar partida
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={onCreatePost}
+          accessibilityRole="button"
+          accessibilityLabel="Criar publicação"
+          android_ripple={PRESS_RIPPLE}
+          className={`${OPTION} mt-3 bg-white`}
+          style={HARD_SHADOW}
+        >
+          <Text className="font-body-bold text-body-bold text-surface-dark">
+            Criar publicação
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={onClose}
+          accessibilityRole="button"
+          accessibilityLabel="Cancelar"
+          hitSlop={8}
+          className="mt-4 items-center py-2"
+        >
+          <Text className="font-body-bold text-caption text-text-muted">
+            Cancelar
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+}

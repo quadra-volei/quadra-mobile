@@ -320,6 +320,8 @@ describe('match lists', () => {
         avatarUrls: ['https://cdn.test/ana.jpg'],
         tint: '#6B1AFF',
         coverUrl: 'https://cdn.test/cover.jpg',
+        venue: 'Arena Central',
+        confirmed: true,
       },
     ]);
   });

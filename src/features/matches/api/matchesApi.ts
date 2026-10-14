@@ -253,6 +253,8 @@ export function toUpcomingMatch(item: ApiMyMatch): UpcomingMatch {
     avatarUrls: item.confirmedPhotoUrls,
     tint: tintForLevel(level),
     coverUrl: item.match.coverUrl ?? undefined,
+    venue: item.match.address,
+    confirmed: item.myStatus === 'Confirmed',
   };
 }
 

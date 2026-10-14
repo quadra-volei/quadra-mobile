@@ -29,6 +29,10 @@ export type UpcomingMatch = {
   tint: string;
   /** The cover the organizer uploaded; without one the card shows the tinted court. */
   coverUrl?: string;
+  /** Venue address ("Hoje · 19h30 · Arena Pinheiros" on the next-game card). */
+  venue: string;
+  /** The user's own presence is confirmed (picks "SEU PRÓXIMO JOGO"). */
+  confirmed: boolean;
 };
 
 /**

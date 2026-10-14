@@ -1,9 +1,12 @@
-import { Tabs } from 'expo-router';
+import { BlurTargetView } from 'expo-blur';
+import { router, Tabs } from 'expo-router';
+import { Plus } from 'lucide-react-native';
 import type { ComponentType } from 'react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { CreateSheet } from '@/components/domain/CreateSheet';
 import { LocationGate } from '@/components/domain/LocationGate';
 import { TabExploreIcon } from '@/components/icons/TabExploreIcon';
 import { TabHomeIcon } from '@/components/icons/TabHomeIcon';
@@ -12,7 +15,8 @@ import { TabProfileIcon } from '@/components/icons/TabProfileIcon';
 import type { TabIconProps } from '@/components/icons/tabIcon';
 import { Avatar } from '@/components/ui/Avatar';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
-import { ICON_RIPPLE } from '@/theme/layout';
+import { HARD_SHADOW, colors } from '@/theme/colors';
+import { ICON_RIPPLE, PRESS_RIPPLE } from '@/theme/layout';
 
 // "Perfil" shows the signed-in user's photo, Instagram-style: a small circle
 // that gets a primary ring when the tab is active. No photo (or still loading)
@@ -30,8 +34,8 @@ function ProfileTabIcon({ focused, size }: TabIconProps) {
   );
 }
 
-// Routes shown as tabs, in bar order. There is no central button: creating and
-// searching a match start from the Home hero (DECISIONS #88).
+// Routes shown as tabs, in bar order. The central "+" sits between the second
+// and third tab and opens the create sheet (DECISIONS #98).
 const TABS: {
   name: string;
   label: string;
@@ -69,9 +73,31 @@ function TabBarButton({
 }
 
 const PILL_RADIUS = 32;
+const CENTER_SIZE = 64;
+
+// The lime "+" raised above the pill. It is drawn outside the pill (which clips
+// its children); the row keeps an empty slot where it sits.
+function CenterButton({ onPress }: { onPress: () => void }) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Criar"
+      android_ripple={PRESS_RIPPLE}
+      className="items-center justify-center rounded-full border-2 border-surface-dark bg-accent overflow-hidden"
+      style={{ width: CENTER_SIZE, height: CENTER_SIZE, ...HARD_SHADOW }}
+    >
+      <Plus size={30} color={colors.surfaceDark} strokeWidth={2.6} />
+    </Pressable>
+  );
+}
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const closeSheet = useCallback(() => setSheetOpen(false), []);
+  // What the sheet's backdrop blurs on Android.
+  const blurTarget = useRef<View>(null);
   // Android resizes the window for the keyboard, which would lift the floating
   // bar on top of it (Explore's search) — hide the bar while typing instead.
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -87,6 +113,8 @@ export default function TabsLayout() {
   return (
     // Asks for the location before any tab mounts (DECISIONS #72).
     <LocationGate>
+    <View className="flex-1">
+    <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
     <Tabs
       screenOptions={{ headerShown: false }}
       tabBar={({ state, navigation }) => {
@@ -137,13 +165,22 @@ export default function TabsLayout() {
           >
             {/* Solid white pill with a hairline border — no backdrop blur, which
                 rendered grey or white on Android depending on the content
-                behind it (DECISIONS #46). The four tabs share the width
-                equally. */}
+                behind it (DECISIONS #46). The four tabs share the width left
+                by the central slot. */}
             <View
               className="flex-row items-center h-16 px-2 bg-white border border-line overflow-hidden"
               style={{ borderRadius: PILL_RADIUS }}
             >
-              {TABS.map(renderTab)}
+              {TABS.slice(0, 2).map(renderTab)}
+              <View style={{ width: CENTER_SIZE + 16 }} />
+              {TABS.slice(2).map(renderTab)}
+            </View>
+            <View
+              pointerEvents="box-none"
+              className="absolute left-0 right-0 items-center"
+              style={{ top: -CENTER_SIZE / 2 + 8 }}
+            >
+              <CenterButton onPress={() => setSheetOpen(true)} />
             </View>
           </View>
           </View>
@@ -155,6 +192,22 @@ export default function TabsLayout() {
       <Tabs.Screen name="network" options={{ title: 'Rede' }} />
       <Tabs.Screen name="profile" options={{ title: 'Perfil' }} />
     </Tabs>
+    </BlurTargetView>
+    {sheetOpen ? (
+      <CreateSheet
+        blurTarget={blurTarget}
+        onClose={closeSheet}
+        onCreateMatch={() => {
+          closeSheet();
+          router.push('/matches/create');
+        }}
+        onCreatePost={() => {
+          closeSheet();
+          router.push('/network/new');
+        }}
+      />
+    ) : null}
+    </View>
     </LocationGate>
   );
 }

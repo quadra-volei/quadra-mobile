@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { Bell, Plus, Search, Settings } from "lucide-react-native";
+import { Bell, Settings, Volleyball } from "lucide-react-native";
 import { useState } from "react";
 import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -13,12 +13,16 @@ import { IconButton } from "@/components/ui/IconButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useNearbyMatches } from "@/features/matches/api/getNearby";
 import { useUpcomingMatches } from "@/features/matches/api/getUpcoming";
+import { formatStartsAt } from "@/features/matches/lib/formatWhen";
+import { pickNextGame } from "@/features/matches/lib/nextGame";
 import { useDeviceCoords } from "@/features/matches/lib/useDeviceCoords";
 import type {
   NearbyMatch,
   UpcomingMatch,
 } from "@/features/matches/types/match";
-import { HARD_SHADOW, colors } from "@/theme/colors";
+import { useFollowState } from "@/features/network/api/postsApi";
+import { useAuthStore } from "@/stores/auth";
+import { colors } from "@/theme/colors";
 import {
   PRESS_RIPPLE,
   TAB_BAR_CLEARANCE,
@@ -43,6 +47,9 @@ function goMatch(id: string) {
 function goSettings() {
   router.push("/profile/settings");
 }
+function goNotifications() {
+  router.push("/profile/notifications");
+}
 
 function SectionHeader({
   title,
@@ -65,111 +72,179 @@ function SectionHeader({
   );
 }
 
-/**
- * Home hero — the blue "Bora pra quadra?" card holding the two entry points:
- * "Criar partida" (lime, primary) and "Buscar jogo" (white, secondary), both
- * under the button rule (DESIGN_SYSTEM "Buttons"). No counters: the backend
- * has no "today" summary to fill them with.
- */
-const HERO_ACTION =
-  "flex-1 h-16 flex-row items-center rounded-btn overflow-hidden border-2 border-surface-dark px-4";
-
-function HomeHero() {
+function HeroChip({ children }: { children: string }) {
   return (
-    <View className="mx-4 rounded-card bg-primary p-4">
-      <Text className="font-display text-display text-white uppercase">
+    <View className="rounded-pill bg-white/15 px-3 py-1">
+      <Text
+        className="font-body-bold text-text-on-dark uppercase"
+        style={{ fontSize: 10, letterSpacing: 0.5 }}
+      >
+        {children}
+      </Text>
+    </View>
+  );
+}
+
+// "N AMIGOS NO QUADRA": the players the user follows. Hidden at zero or while
+// loading — never an invented number.
+function FriendsChip({ userId }: { userId: string }) {
+  const { data } = useFollowState(userId);
+  if (!data?.followingCount) return null;
+  return (
+    <HeroChip>
+      {`${data.followingCount} ${data.followingCount === 1 ? "amigo" : "amigos"} no Quadra`}
+    </HeroChip>
+  );
+}
+
+/**
+ * Empty Home hero — the blue "Bora pra quadra?" card shown when there is no
+ * next game, no upcoming and no nearby match. A faint circle arc decorates its
+ * right edge. Creating starts from the tab bar's "+" (DECISIONS #98).
+ */
+function HomeHero() {
+  const userId = useAuthStore((s) => s.userId);
+  return (
+    <View testID="home-hero" className="mx-4 rounded-card bg-primary p-4 overflow-hidden">
+      <View
+        pointerEvents="none"
+        className="absolute rounded-full border-2 border-white/10"
+        style={{ width: 240, height: 240, right: -120, top: -30 }}
+      />
+      <Text
+        className="font-body-bold text-eyebrow text-accent uppercase"
+        style={{ letterSpacing: 1 }}
+      >
+        Seu próximo jogo começa aqui
+      </Text>
+      <Text className="mt-1 font-display text-display text-white uppercase">
         Bora pra
       </Text>
       <Text className="font-display text-display text-accent uppercase">
         Quadra?
       </Text>
-
-      <View className="mt-6 flex-row gap-3">
-        <Pressable
-          onPress={goCreate}
-          accessibilityRole="button"
-          accessibilityLabel="Criar partida"
-          android_ripple={PRESS_RIPPLE}
-          className={`${HERO_ACTION} justify-between bg-accent`}
-          style={HARD_SHADOW}
-        >
-          <Text className="flex-1 font-body-bold text-body-bold text-surface-dark">
-            Criar partida
-          </Text>
-          <View className="h-8 w-8 items-center justify-center rounded-full border-2 border-surface-dark">
-            <Plus size={18} color={colors.surfaceDark} strokeWidth={2.6} />
-          </View>
-        </Pressable>
-
-        <Pressable
-          onPress={goExplore}
-          accessibilityRole="button"
-          accessibilityLabel="Buscar partida"
-          android_ripple={PRESS_RIPPLE}
-          className={`${HERO_ACTION} justify-center gap-2 bg-white`}
-          style={HARD_SHADOW}
-        >
-          <Search size={18} color={colors.surfaceDark} strokeWidth={2.4} />
-          <Text className="font-body-bold text-body-bold text-surface-dark">
-            Buscar jogo
-          </Text>
-        </Pressable>
-      </View>
+      {userId ? (
+        <View className="mt-3 flex-row flex-wrap gap-2">
+          <FriendsChip userId={userId} />
+        </View>
+      ) : null}
     </View>
   );
 }
 
-function UpcomingSection() {
-  const { data, isPending, isError, refetch } = useUpcomingMatches();
+/** "SEU PRÓXIMO JOGO" card: lime strip on the left, ball icon, CONFIRMADO chip. */
+function NextGameCard({ match }: { match: UpcomingMatch }) {
+  const when = formatStartsAt(match.startsAt);
+  return (
+    <Pressable
+      onPress={() => goMatch(match.id)}
+      accessibilityRole="button"
+      accessibilityLabel={`Seu próximo jogo: ${match.name}, ${when}`}
+      android_ripple={PRESS_RIPPLE}
+      className="mx-4 mt-2 flex-row items-center rounded-card border border-line bg-white p-4 shadow-card overflow-hidden"
+    >
+      <View className="absolute left-0 top-0 bottom-0 w-1 bg-accent" />
+      <View className="h-12 w-12 items-center justify-center rounded-chip bg-quaternary/10">
+        <Volleyball size={24} color={colors.primary} strokeWidth={2.2} />
+      </View>
+      <View className="ml-3 flex-1">
+        <View className="flex-row items-center justify-between gap-2">
+          <Text
+            className="flex-1 font-body-bold text-text-primary"
+            style={{ fontSize: 16 }}
+            numberOfLines={1}
+          >
+            {match.name}
+          </Text>
+          <View className="rounded-pill bg-accent/25 px-[9px] py-1">
+            <Text
+              className="font-body-bold text-surface-dark uppercase"
+              style={{ fontSize: 10, letterSpacing: 1, lineHeight: 12 }}
+            >
+              Confirmado
+            </Text>
+          </View>
+        </View>
+        <Text
+          className="mt-1 font-body-semibold text-text-muted"
+          style={{ fontSize: 12.5 }}
+          numberOfLines={1}
+        >
+          {match.venue ? `${when} · ${match.venue}` : when}
+        </Text>
+      </View>
+    </Pressable>
+  );
+}
+
+function UpcomingSection({
+  query,
+  nextGame,
+}: {
+  query: ReturnType<typeof useUpcomingMatches>;
+  nextGame: UpcomingMatch | undefined;
+}) {
+  const { data, isPending, isError, refetch } = query;
 
   if (isPending) {
     return (
-      <View className="flex-row px-4 gap-3 mt-2">
-        <SkeletonBlock className="w-[262px] h-[248px]" />
-        <SkeletonBlock className="w-[262px] h-[248px]" />
-      </View>
+      <>
+        <SectionHeader title="PRÓXIMAS PARTIDAS" actionLabel="Ver todas" onAction={goExplore} />
+        <View className="flex-row px-4 gap-3 mt-2">
+          <SkeletonBlock className="w-[262px] h-[248px]" />
+          <SkeletonBlock className="w-[262px] h-[248px]" />
+        </View>
+      </>
     );
   }
 
   if (isError) {
-    return <StateMessage
-      message="Não foi possível carregar"
-      actionLabel="Tentar novamente"
-      onAction={() => refetch()}
-    />;
+    return (
+      <>
+        <SectionHeader title="PRÓXIMAS PARTIDAS" actionLabel="Ver todas" onAction={goExplore} />
+        <StateMessage
+          message="Não foi possível carregar"
+          actionLabel="Tentar novamente"
+          onAction={() => refetch()}
+        />
+      </>
+    );
   }
 
+  // The next game has its own card above; the carousel holds the rest.
+  const rest = data.filter((m) => m.id !== nextGame?.id);
+  if (rest.length === 0 && nextGame) return null;
+
   return (
-    <FlatList<UpcomingMatch>
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerClassName="px-4 gap-3 mt-2"
-      data={data}
-      keyExtractor={(m) => m.id}
-      renderItem={({ item }) => (
-        <MatchCardCompact match={item} onPress={goMatch} />
-      )}
-      ListEmptyComponent={
-        <StateMessage
-          message="Você ainda não tem partidas marcadas"
-          actionLabel="Criar partida"
-          onAction={goCreate}
-        />
-      }
-    />
+    <>
+      <SectionHeader title="PRÓXIMAS PARTIDAS" actionLabel="Ver todas" onAction={goExplore} />
+      <FlatList<UpcomingMatch>
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerClassName="px-4 gap-3 mt-2"
+        data={rest}
+        keyExtractor={(m) => m.id}
+        renderItem={({ item }) => (
+          <MatchCardCompact match={item} onPress={goMatch} />
+        )}
+        ListEmptyComponent={
+          <StateMessage
+            message="Você ainda não tem partidas marcadas"
+            actionLabel="Criar partida"
+            onAction={goCreate}
+          />
+        }
+      />
+    </>
   );
 }
 
-function NearbySection() {
-  const coords = useDeviceCoords();
-  const { data, isPending, isError, refetch } = useNearbyMatches(
-    coords
-      ? { ...DEFAULT_GEO, lat: coords.latitude, lon: coords.longitude }
-      : DEFAULT_GEO,
-  );
+function NearbySection({ query }: { query: ReturnType<typeof useNearbyMatches> }) {
+  const { data, isPending, isError, refetch } = query;
 
+  let body;
   if (isPending) {
-    return (
+    body = (
       <View className="flex-row flex-wrap justify-between px-4 gap-y-3 mt-2">
         <View className="w-[48%]">
           <SkeletonBlock className="h-[172px]" />
@@ -179,34 +254,39 @@ function NearbySection() {
         </View>
       </View>
     );
-  }
-
-  if (isError) {
-    return <StateMessage
-      message="Não foi possível carregar"
-      actionLabel="Tentar novamente"
-      onAction={() => refetch()}
-    />;
-  }
-
-  if (data.length === 0) {
-    return (
+  } else if (isError) {
+    body = (
+      <StateMessage
+        message="Não foi possível carregar"
+        actionLabel="Tentar novamente"
+        onAction={() => refetch()}
+      />
+    );
+  } else if (data.length === 0) {
+    body = (
       <StateMessage
         message="Nenhuma partida perto de você ainda"
         actionLabel="Criar partida"
         onAction={goCreate}
       />
     );
+  } else {
+    body = (
+      <View className="flex-row flex-wrap justify-between px-4 gap-y-3 mt-2">
+        {data.map((m: NearbyMatch) => (
+          <View key={m.id} className="w-[48%]">
+            <MatchCard match={m} onPress={goMatch} />
+          </View>
+        ))}
+      </View>
+    );
   }
 
   return (
-    <View className="flex-row flex-wrap justify-between px-4 gap-y-3 mt-2">
-      {data.map((m: NearbyMatch) => (
-        <View key={m.id} className="w-[48%]">
-          <MatchCard match={m} onPress={goMatch} />
-        </View>
-      ))}
-    </View>
+    <>
+      <SectionHeader title="JOGOS PERTO DE VOCÊ" actionLabel="Mapa" onAction={goMap} />
+      {body}
+    </>
   );
 }
 
@@ -214,35 +294,50 @@ export default function HomeScreen() {
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
 
+  const upcoming = useUpcomingMatches();
+  const coords = useDeviceCoords();
+  const nearby = useNearbyMatches(
+    coords
+      ? { ...DEFAULT_GEO, lat: coords.latitude, lon: coords.longitude }
+      : DEFAULT_GEO,
+  );
+
+  const nextGame = upcoming.data ? pickNextGame(upcoming.data) : undefined;
+  // Empty Home: both lists loaded and empty (no next game follows). Loading
+  // and errors keep the sections, each with its own state.
+  const empty =
+    upcoming.isSuccess &&
+    upcoming.data.length === 0 &&
+    nearby.isSuccess &&
+    nearby.data.length === 0;
+
   return (
     <View className="flex-1 bg-bg-light">
-      <View className="flex-1 bg-bg-light">
-        <ScrollView
-          contentContainerStyle={{
-            paddingTop: headerHeight,
-            paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
-          }}
-        >
-          {/* Dual CTA tiles — Criar / Buscar */}
+      <ScrollView
+        contentContainerStyle={{
+          paddingTop: headerHeight,
+          paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
+        }}
+      >
+        {empty ? (
           <HomeHero />
-
-          {/* PRÓXIMAS PARTIDAS */}
-          <SectionHeader
-            title="PRÓXIMAS PARTIDAS"
-            actionLabel="Ver todas"
-            onAction={goExplore}
-          />
-          <UpcomingSection />
-
-          {/* JOGOS PERTO DE VOCÊ */}
-          <SectionHeader
-            title="JOGOS PERTO DE VOCÊ"
-            actionLabel="Mapa"
-            onAction={goMap}
-          />
-          <NearbySection />
-        </ScrollView>
-      </View>
+        ) : (
+          <>
+            {nextGame ? (
+              <>
+                <SectionHeader
+                  title="SEU PRÓXIMO JOGO"
+                  actionLabel="Ver jogo"
+                  onAction={() => goMatch(nextGame.id)}
+                />
+                <NextGameCard match={nextGame} />
+              </>
+            ) : null}
+            <UpcomingSection query={upcoming} nextGame={nextGame} />
+            <NearbySection query={nearby} />
+          </>
+        )}
+      </ScrollView>
 
       {/* Screen header */}
       <ScreenHeader onHeight={setHeaderHeight}>
@@ -251,7 +346,7 @@ export default function HomeScreen() {
             INÍCIO
           </Text>
           <View className="flex-row items-center gap-3">
-            <IconButton label="Notificações" onPress={() => {}}>
+            <IconButton label="Notificações" onPress={goNotifications}>
               <Bell size={20} color={colors.surfaceDark} />
             </IconButton>
             <IconButton label="Configurações" onPress={goSettings}>
