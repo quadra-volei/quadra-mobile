@@ -83,6 +83,24 @@ Android emulator, the machine's LAN IP on a phone). Log in with the test environ
 8. A behavior change gets a line in `docs/DECISIONS.md` and, if it changes what is done or
    pending, in `docs/SCOPE.md`.
 
+## Security (every change)
+
+The API is the only authority on who may see or change what; this app never enforces access by
+hiding a button. Shared knowledge (threat model, endpoint matrix, findings) lives outside git in
+the workspace folder `../security/`; the `security-audit` skill and the `security-auditor` agent
+are in `../quadra-api/.claude/` (start Claude from `quadra-api`, or the workspace root, to use them).
+
+- Tokens only in `expo-secure-store`; never in AsyncStorage, logs, URLs (except the SignalR
+  `access_token` the library needs) or error reports.
+- No `console.log` of tokens, phone numbers, codes or API responses with personal data.
+- Everything shipped in the bundle is public: only `EXPO_PUBLIC_*` values that are safe to expose
+  (the Maps key stays restricted to the package and SHA-1 in Google Cloud).
+- Deep links (`quadra://`) only navigate; any action needs a tap and goes through the API.
+- Only HTTPS API URLs outside local development.
+- A new Android permission or native module is a security change: justify it in `docs/DECISIONS.md`.
+- Never disable a check or test to make something pass; report which checks ran and what was not
+  verified.
+
 ## Do NOT
 
 - Do not write secrets or keys in any file. The Maps key comes from the
