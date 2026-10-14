@@ -15,7 +15,7 @@ import { authorizedApiClient } from '@/lib/api/authorizedClient';
 /** Prefix of every feed query; the scope comes after it. */
 export const postFeedQueryKey = ['posts', 'feed'] as const;
 
-/** "Para você" (everyone's posts) or "Amigos" (the players I follow, plus mine). */
+/** "Para você" (everyone's posts) or "Seguindo" (the players I follow, plus mine). */
 export type FeedScope = 'all' | 'following';
 
 /** Longest text the backend accepts (`Post.TextMaxLength`). */
@@ -359,7 +359,7 @@ export function useSetFollow(userId: string) {
       }),
     onSuccess: (state) => {
       queryClient.setQueryData(followStateQueryKey(userId), state);
-      // "Amigos" now has, or no longer has, this player's posts.
+      // "Seguindo" now has, or no longer has, this player's posts.
       queryClient.invalidateQueries({ queryKey: [...postFeedQueryKey, 'following'] });
     },
   });

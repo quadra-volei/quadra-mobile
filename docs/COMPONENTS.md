@@ -300,7 +300,7 @@ More UI primitives will live here:
 ### `useRiseIn`
 - **Path**: `src/hooks/useRiseIn.ts`
 - **Props**: `({ delay?: number; distance?: number; duration?: number; easing?: WithTimingConfig['easing'] }) => AnimatedStyle`
-- **Used in**: S2 Login (lockup, headline, subtitle, CTA), S1 Splash (court lines, loader), S4 Onboarding (step content, position cards)
+- **Used in**: S2 Login (lockup, headline, subtitle, CTA), S1 Splash (court lines, progress bar), S4 Onboarding (step content, position cards)
 - **Notes**: "Fade up into place" entrance, ported from the prototype's `.q-rise`. Defaults match `.q-rise` (16px / 450ms / `cubic-bezier(.2,.7,.2,1)`). Stagger siblings by giving each a larger `delay`. Returns a style for `<Animated.View>` / `<Animated.Text>`.
 - **Example**:
   ```tsx

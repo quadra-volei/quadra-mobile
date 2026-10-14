@@ -185,7 +185,7 @@ describe('S7 — Rede (feed)', () => {
     expect(screen.getByLabelText('Participar de Racha da Galera')).toBeTruthy();
   });
 
-  it('switches between "Para você" and "Amigos"', async () => {
+  it('switches between "Para você" and "Seguindo"', async () => {
     mockFeed.mockImplementation((scope: string) =>
       feedWith(scope === 'following' ? [] : [post({})]),
     );

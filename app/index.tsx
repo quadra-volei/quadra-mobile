@@ -1,16 +1,14 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
-  withRepeat,
   withSequence,
   withTiming,
 } from "react-native-reanimated";
-import Svg, { G, Line, Rect } from "react-native-svg";
+import Svg, { Circle, Line } from "react-native-svg";
 
 import { getAuthBootstrap } from "./_layout";
 import { QuadraLogo } from "@/components/icons/QuadraLogo";
@@ -21,48 +19,40 @@ import { colors } from "@/theme/colors";
 /**
  * The native splash (app.json, `expo-splash-screen`) is the mark alone on blue, at the size
  * Android draws `assets/splash-icon.png`. This screen starts from that same picture, so the
- * hand-off is not seen, and then adds what only JS can draw: the court lines, the mark's
- * settle and the loader (DECISIONS #84). It stays until the auth bootstrap settles, which is
- * capped at 60s (app/_layout.tsx, DECISIONS #44).
+ * hand-off is not seen, and then adds what only JS can draw: the straight court seen from
+ * above, the mark's settle and the progress bar (DECISIONS #84, #106). It stays until the auth
+ * bootstrap settles, which is capped at 60s (app/_layout.tsx, DECISIONS #44).
  */
 const MARK_SIZE = 124;
 // Shortest time the splash stays up, so its animation is seen even when the session
 // check answers at once. A slower check is not delayed further (DECISIONS #90).
 export const MIN_HOLD_MS = 1800;
-const LOADER_SEGMENTS = [0, 1, 2, 3, 4, 5, 6];
 const EASE = Easing.inOut(Easing.ease);
-
-/** One lit segment of the loader; each starts 110 ms after the one before it. */
-function LoaderSegment({ index }: { index: number }) {
-  const lit = useSharedValue(0);
-
-  useEffect(() => {
-    lit.value = withDelay(
-      index * 110,
-      withRepeat(
-        withSequence(
-          withTiming(1, { duration: 400, easing: EASE }),
-          withTiming(0, { duration: 480, easing: EASE }),
-        ),
-        -1,
-      ),
-    );
-  }, [lit, index]);
-
-  const style = useAnimatedStyle(() => ({
-    opacity: 0.25 + 0.75 * lit.value,
-    transform: [{ scaleY: 0.55 + 0.45 * lit.value }],
-  }));
-
-  return (
-    <Animated.View className="h-[11px] w-[7px] rounded-sm bg-accent" style={style} />
-  );
-}
+// Court lines across the screen, as fractions of its height; the center line joins the
+// first and the last.
+const COURT_LINES = [0.23, 0.32, 0.41, 0.59, 0.68, 0.77];
+const COURT_TOP = 0.23;
+const COURT_BOTTOM = 0.77;
+const COURT_STROKE = { stroke: colors.textOnDark, strokeOpacity: 0.18, strokeWidth: 1.5 };
+// Soft navy shadow under the mark (Android only: iOS ignores `filter`).
+const MARK_SHADOW = {
+  filter: [
+    {
+      dropShadow: {
+        offsetX: 0,
+        offsetY: 8,
+        standardDeviation: 6,
+        color: `${colors.surfaceDark}66`,
+      },
+    },
+  ],
+} as const;
 
 export default function Index() {
   const [ready, setReady] = useState(false);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasProfile = useAuthStore((s) => s.hasProfile);
+  const { width, height } = useWindowDimensions();
 
   // Await the shared one-shot auth bootstrap (started in the root layout) and the minimum
   // hold, whichever ends last, then redirect.
@@ -95,21 +85,28 @@ export default function Index() {
   // The tail of the prototype's `qSplashMark`: the native splash already shows the mark at
   // rest, so it only overshoots and settles instead of popping in from nothing.
   const settle = useSharedValue(0);
+  // The bar fills to 90% over the minimum hold and waits there for a slower bootstrap.
+  const progress = useSharedValue(0);
   useEffect(() => {
     settle.value = withSequence(
       withTiming(1, { duration: 220, easing: Easing.out(Easing.ease) }),
       withTiming(0, { duration: 280, easing: EASE }),
     );
-  }, [settle]);
+    progress.value = withTiming(0.9, { duration: MIN_HOLD_MS, easing: EASE });
+  }, [settle, progress]);
   const markStyle = useAnimatedStyle(() => ({
     transform: [
       { scale: 1 + 0.08 * settle.value },
       { rotate: `${3 * settle.value}deg` },
     ],
   }));
+  const fillStyle = useAnimatedStyle(() => ({ width: `${progress.value * 100}%` }));
 
   const courtStyle = useRiseIn({ distance: 0, duration: 400 });
   const loaderStyle = useRiseIn({ delay: 250, distance: 14, duration: 500 });
+
+  const top = height * COURT_TOP;
+  const bottom = height * COURT_BOTTOM;
 
   return (
     <View
@@ -117,62 +114,39 @@ export default function Index() {
       accessible
       accessibilityLabel="Carregando"
     >
-      {/* Tilted court, net line and dashed rally path, stretched to the screen. */}
+      {/* Straight court seen from above, with the center circle around the mark. */}
       <Animated.View className="absolute inset-0" style={courtStyle}>
-        <Svg
-          width="100%"
-          height="100%"
-          viewBox="0 0 390 844"
-          preserveAspectRatio="none"
-        >
-          <G rotation={-13} origin="195, 422" stroke={colors.accent}>
-            <Rect
-              x={54}
-              y={230}
-              width={282}
-              height={430}
-              rx={3}
-              fill={colors.surfaceDark}
-              fillOpacity={0.2}
-              strokeWidth={1.5}
-              strokeOpacity={0.72}
-            />
-            <Line x1={54} y1={374} x2={336} y2={374} strokeWidth={1.5} strokeOpacity={0.7} />
-            <Line x1={54} y1={516} x2={336} y2={516} strokeWidth={1.5} strokeOpacity={0.7} />
-            <Line x1={44} y1={374} x2={346} y2={374} strokeWidth={1} strokeOpacity={0.48} />
-          </G>
-          <Line
-            x1={38}
-            y1={545}
-            x2={352}
-            y2={478}
-            stroke={colors.textOnDark}
-            strokeWidth={2}
-            strokeDasharray="3 9"
-            strokeLinecap="round"
-            strokeOpacity={0.5}
+        <Svg width={width} height={height}>
+          {COURT_LINES.map((y) => (
+            <Line key={y} x1={0} y1={height * y} x2={width} y2={height * y} {...COURT_STROKE} />
+          ))}
+          <Line x1={width / 2} y1={top} x2={width / 2} y2={bottom} {...COURT_STROKE} />
+          <Circle
+            cx={width / 2}
+            cy={height / 2}
+            r={width * 0.215}
+            fill="none"
+            {...COURT_STROKE}
           />
-          <Rect x={18} y={446} width={9} height={9} rx={1} fill={colors.accent} />
         </Svg>
       </Animated.View>
 
       <Animated.View style={markStyle}>
-        <QuadraLogo
-          size={MARK_SIZE}
-          blockColor={colors.textOnDark}
-          testID="splash-mark"
-        />
+        <View style={MARK_SHADOW}>
+          <QuadraLogo
+            size={MARK_SIZE}
+            blockColor={colors.textOnDark}
+            testID="splash-mark"
+          />
+        </View>
       </Animated.View>
 
-      <Animated.View className="absolute bottom-24" style={loaderStyle}>
-        <View
-          className="h-5 w-28 flex-row items-center justify-between rounded-md border border-white/40 px-2"
-          style={{ transform: [{ skewX: "-16deg" }] }}
-        >
-          {LOADER_SEGMENTS.map((index) => (
-            <LoaderSegment key={index} index={index} />
-          ))}
-        </View>
+      <Animated.View
+        className="absolute h-[5px] w-[38%] overflow-hidden rounded-full bg-white/25"
+        style={[{ bottom: height * 0.1 }, loaderStyle]}
+        testID="splash-progress"
+      >
+        <Animated.View className="h-full rounded-full bg-accent" style={fillStyle} />
       </Animated.View>
     </View>
   );

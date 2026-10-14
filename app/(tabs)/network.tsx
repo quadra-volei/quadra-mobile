@@ -17,7 +17,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/Avatar';
 import { CourtImage } from '@/components/ui/CourtImage';
 import { dialog } from '@/components/ui/Dialog';
-import { FilterChip } from '@/components/ui/FilterChip';
 import { IconButton } from '@/components/ui/IconButton';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
@@ -310,15 +309,15 @@ export default function NetworkScreen() {
             </IconButton>
           </View>
         </View>
-        <View className="flex-row gap-2 px-4 pb-3">
-          <FilterChip
+        <View className="flex-row">
+          <FeedTab
             label="Para você"
             selected={scope === 'all'}
             onPress={() => setScope('all')}
             testID="feed-scope-all"
           />
-          <FilterChip
-            label="Amigos"
+          <FeedTab
+            label="Seguindo"
             selected={scope === 'following'}
             onPress={() => setScope('following')}
             testID="feed-scope-following"
@@ -326,5 +325,44 @@ export default function NetworkScreen() {
         </View>
       </ScreenHeader>
     </View>
+  );
+}
+
+/**
+ * One half of the feed scope switch: an underline tab, not a chip. The selected
+ * colors are inline styles, as a toggled className is not applied reliably
+ * (DECISIONS #87).
+ */
+function FeedTab({
+  label,
+  selected,
+  onPress,
+  testID,
+}: {
+  label: string;
+  selected: boolean;
+  onPress: () => void;
+  testID: string;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      testID={testID}
+      accessibilityRole="tab"
+      accessibilityState={{ selected }}
+      android_ripple={PRESS_RIPPLE}
+      className="flex-1 items-center pt-2"
+    >
+      <Text
+        className="font-body-bold text-body text-text-muted pb-3"
+        style={selected ? { color: colors.surfaceDark } : undefined}
+      >
+        {label}
+      </Text>
+      <View
+        className="h-[3px] w-3/5 rounded-full"
+        style={{ backgroundColor: selected ? colors.primary : 'transparent' }}
+      />
+    </Pressable>
   );
 }
