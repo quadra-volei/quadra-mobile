@@ -23,12 +23,14 @@ const mockGoogle = {
   configure: jest.fn(),
   hasPlayServices: jest.fn(),
   signIn: jest.fn(),
+  signOut: jest.fn(),
 };
 jest.mock('@react-native-google-signin/google-signin', () => ({
   GoogleSignin: {
     configure: (...args: unknown[]) => mockGoogle.configure(...args),
     hasPlayServices: (...args: unknown[]) => mockGoogle.hasPlayServices(...args),
     signIn: (...args: unknown[]) => mockGoogle.signIn(...args),
+    signOut: (...args: unknown[]) => mockGoogle.signOut(...args),
   },
   statusCodes: {
     SIGN_IN_CANCELLED: 'SIGN_IN_CANCELLED',
@@ -118,6 +120,7 @@ beforeEach(() => {
   mockGoogle.configure.mockReset();
   mockGoogle.hasPlayServices.mockReset().mockResolvedValue(true);
   mockGoogle.signIn.mockReset();
+  mockGoogle.signOut.mockReset().mockResolvedValue(null);
 });
 
 describe('useRequestOtp / useResendOtp', () => {
@@ -295,6 +298,26 @@ describe('useGoogleSignIn', () => {
       GoogleSignInCancelledError,
     );
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  /**
+   * DECISIONS #108: the remembered Google account is forgotten before each sign-in, so
+   * the account picker shows after a logout; a failing Google sign-out does not block.
+   */
+  it.each([
+    ['succeeds', () => mockGoogle.signOut.mockResolvedValue(null)],
+    ['fails', () => mockGoogle.signOut.mockRejectedValue(new Error('offline'))],
+  ])('signs out of Google before opening the picker, even when that %s', async (_label, arrange) => {
+    arrange();
+    mockGoogle.signIn.mockResolvedValue({ type: 'success', data: { idToken: 'google-id-token' } });
+    fetchMock.mockResolvedValue(respond(200, TOKENS));
+
+    const settled = await run(useGoogleSignIn, undefined);
+
+    expect(settled.status).toBe('fulfilled');
+    expect(mockGoogle.signOut.mock.invocationCallOrder[0]).toBeLessThan(
+      mockGoogle.signIn.mock.invocationCallOrder[0]!,
+    );
   });
 
   it('surfaces a readable message when the backend rejects the Google token', async () => {

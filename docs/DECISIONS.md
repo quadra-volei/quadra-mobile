@@ -281,3 +281,9 @@ Source: the designer's `Quadra-App.html` (`SplashScreen`, `OnboardingScreen`) an
 | --- | --- | --- |
 | 106 | **New splash**: solid primary blue, a straight court seen from above in thin white lines at 18% (horizontals across the screen at 23/32/41/59/68/77% of the height, the center line joining the first and the last, a circle of 43% of the width around the center), the mark in the middle with a soft navy drop shadow (Android only: iOS ignores `filter`), and at 10% from the bottom a 5px rounded bar 38% wide whose lime fill grows to 90% over the minimum hold and waits there. No text. The tilted lime court, the lime square and the segmented loader are gone. Minimum hold (#90), bootstrap and redirects unchanged; the native splash was already the same blue. Updates #84. | Owner's ask (Johny, 2026-10-14): "faça exatamente igual te mandei no print". |
 | 107 | **The Rede feed tabs are underline tabs**: "Para você" and "Seguindo" (was "Amigos") split the header width, centered bold labels; the selected one is navy with a 3px primary underline under 60% of its half, the other muted with none; the header's hairline closes the row. Same scopes and behavior. | Owner's ask (Johny, 2026-10-14), from the reference image. |
+
+## 2026-10-14 — Choosing another Google account
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 108 | **"Entrar com Google" always shows the account picker**: right before `GoogleSignin.signIn()` the app calls `GoogleSignin.signOut()`, which forgets the account the Google library remembered. Done at sign-in rather than at logout, so it also covers a session that ended on an expired token or any other path. `signOut`, not `revokeAccess`: the app only needs an ID token and holds no Google grant to revoke. Best-effort: a failing sign-out never blocks the login. | Owner's report (Johny, 2026-10-14): after logging out, Google went straight back into the previous account, with no way to pick another. |
