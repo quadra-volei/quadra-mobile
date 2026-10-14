@@ -4,6 +4,7 @@
 export const colors = {
   surfaceDark: '#0A0A3C', // surface-dark / navy (court-image gradient end)
   surfaceDarkAlt: '#111145', // surface-dark-alt (skeleton fill on navy)
+  bgLight: '#EFF3FC', // bg-light (app background, behind screen transitions)
   bgLightAlt: '#E8EEF8', // bg-light-alt (skeleton fill on light)
   primary: '#1A1AFF', // primary
   accent: '#AADD00', // accent (lime)

@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
 import { dialog } from '@/components/ui/Dialog';
+import { PressableScale } from '@/components/ui/PressableScale';
 import {
   type LiveGame,
   useAddPoint,
@@ -19,7 +20,7 @@ import {
 import { getTeamBgColor, getTeamTextOnColor } from '@/features/matches/lib/teamColors';
 import { useScoreSubscription } from '@/features/matches/realtime/useScoreSubscription';
 import { colors } from '@/theme/colors';
-import { ICON_HIT_SLOP, PRESS_RIPPLE_ON_DARK } from '@/theme/layout';
+import { ICON_HIT_SLOP } from '@/theme/layout';
 
 /**
  * S13.5 + S14 — Set Team Picker → Live Scoreboard.
@@ -215,11 +216,10 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
             const setsWon = game.setsWon[team.id] ?? 0;
 
             return (
-              <Pressable
+              <PressableScale
                 key={team.id}
                 onPress={() => toggleTeamSelection(team.id)}
                 disabled={selectedTeamIds.length === 2 && !isSelected}
-                android_ripple={PRESS_RIPPLE_ON_DARK}
                 accessibilityRole="radio"
                 accessibilityState={{ selected: isSelected }}
                 accessibilityLabel={`${team.name}${isSelected ? ` selecionado ${selectionOrder}` : ''}`}
@@ -267,7 +267,7 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
                 ) : (
                   <View className="h-6 w-6 rounded-full border-2 border-white/40" />
                 )}
-              </Pressable>
+              </PressableScale>
             );
           })}
         </ScrollView>
@@ -437,7 +437,7 @@ function LiveScoreboard({
               'flex-1 overflow-hidden rounded-card border border-white/10 bg-surface-dark-alt';
 
             return game.isOrganizer ? (
-              <Pressable
+              <PressableScale
                 key={team.id}
                 onPress={() =>
                   addPoint.mutate(
@@ -445,7 +445,6 @@ function LiveScoreboard({
                     { onError: (error) => dialog.alert('Erro ao registrar ponto', error.message) },
                   )
                 }
-                android_ripple={PRESS_RIPPLE_ON_DARK}
                 accessibilityRole="button"
                 accessibilityLabel={`Adicionar ponto para ${team.name}`}
                 className={panelClass}
@@ -453,7 +452,7 @@ function LiveScoreboard({
                 testID={`add-point-team${index + 1}`}
               >
                 {panel}
-              </Pressable>
+              </PressableScale>
             ) : (
               <View key={team.id} className={panelClass}>
                 {panel}

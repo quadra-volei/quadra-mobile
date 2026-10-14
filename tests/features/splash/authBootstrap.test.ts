@@ -23,11 +23,9 @@ jest.mock('react-native-gesture-handler', () => {
   const { View } = require('react-native');
   return { GestureHandlerRootView: ({ children }: any) => ReactLocal.createElement(View, null, children) };
 });
-jest.mock('react-native-reanimated', () => ({
-  __esModule: true,
-  default: { createAnimatedComponent: (c: unknown) => c },
-  createAnimatedComponent: (c: unknown) => c,
-}));
+jest.mock('react-native-reanimated', () =>
+  jest.requireActual('../../__mocks__/react-native-reanimated'),
+);
 jest.mock('expo-font', () => ({ useFonts: () => [true] }));
 
 const mockGetAccessToken = jest.fn();

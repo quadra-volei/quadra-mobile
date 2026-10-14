@@ -5,6 +5,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { RankingRow } from '@/components/domain/RankingRow';
 import { Avatar } from '@/components/ui/Avatar';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { FilterChip } from '@/components/ui/FilterChip';
@@ -16,7 +17,7 @@ import {
 import type { RankingRow as RankingRowData } from '@/features/ranking/types/ranking';
 import { useAuthStore } from '@/stores/auth';
 import { colors, HERO_GRADIENT } from '@/theme/colors';
-import { ICON_HIT_SLOP, ICON_RIPPLE } from '@/theme/layout';
+import { ICON_HIT_SLOP } from '@/theme/layout';
 
 function noop() {}
 
@@ -191,15 +192,14 @@ export default function RankingScreen() {
       <BackHeader
         title="Ranking"
         right={
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel="Notificações"
             hitSlop={ICON_HIT_SLOP}
-            android_ripple={ICON_RIPPLE}
             onPress={noop}
           >
             <Bell size={24} color={colors.surfaceDark} />
-          </Pressable>
+          </PressableScale>
         }
         onHeight={setHeaderHeight}
       />

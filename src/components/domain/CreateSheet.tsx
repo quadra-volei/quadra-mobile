@@ -2,10 +2,12 @@ import { BlurView } from 'expo-blur';
 import type { RefObject } from 'react';
 import { useEffect } from 'react';
 import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { PressableScale } from '@/components/ui/PressableScale';
 import { HARD_SHADOW } from '@/theme/colors';
-import { PRESS_RIPPLE } from '@/theme/layout';
+import { MOTION } from '@/theme/motion';
 
 export type CreateSheetProps = {
   onClose: () => void;
@@ -53,7 +55,9 @@ export function CreateSheet({
         blurTarget={blurTarget}
         style={StyleSheet.absoluteFill}
       />
-      {/* Navy veil over the blur: keeps the dim where the blur falls back. */}
+      {/* Navy veil over the blur: keeps the dim where the blur falls back.
+          It fades in and the card rises in with it, instead of popping. */}
+      <Animated.View entering={FadeIn.duration(MOTION.fadeIn)} style={StyleSheet.absoluteFill}>
       <Pressable
         testID="create-sheet-veil"
         accessibilityRole="button"
@@ -62,8 +66,10 @@ export function CreateSheet({
         className="bg-surface-dark/30"
         style={StyleSheet.absoluteFill}
       />
+      </Animated.View>
 
-      <View
+      <Animated.View
+        entering={FadeInDown.duration(MOTION.tab.duration).easing(MOTION.tab.easing)}
         className="absolute left-4 right-4 rounded-card border-2 border-surface-dark bg-white px-6 pt-6 pb-4"
         style={{ ...HARD_SHADOW, bottom: insets.bottom + 12 }}
       >
@@ -71,31 +77,29 @@ export function CreateSheet({
           O que você quer criar?
         </Text>
 
-        <Pressable
+        <PressableScale
           onPress={onCreateMatch}
           accessibilityRole="button"
           accessibilityLabel="Criar partida"
-          android_ripple={PRESS_RIPPLE}
           className={`${OPTION} mt-4 bg-accent`}
           style={HARD_SHADOW}
         >
           <Text className="font-body-bold text-body-bold text-surface-dark">
             Criar partida
           </Text>
-        </Pressable>
+        </PressableScale>
 
-        <Pressable
+        <PressableScale
           onPress={onCreatePost}
           accessibilityRole="button"
           accessibilityLabel="Criar publicação"
-          android_ripple={PRESS_RIPPLE}
           className={`${OPTION} mt-3 bg-white`}
           style={HARD_SHADOW}
         >
           <Text className="font-body-bold text-body-bold text-surface-dark">
             Criar publicação
           </Text>
-        </Pressable>
+        </PressableScale>
 
         <Pressable
           onPress={onClose}
@@ -108,7 +112,7 @@ export function CreateSheet({
             Cancelar
           </Text>
         </Pressable>
-      </View>
+      </Animated.View>
     </View>
   );
 }

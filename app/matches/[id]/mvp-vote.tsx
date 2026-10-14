@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { dialog } from '@/components/ui/Dialog';
+import { PressableScale } from '@/components/ui/PressableScale';
 import {
   useFinishMatch,
   useIsOrganizer,
@@ -17,7 +18,7 @@ import {
 } from '@/features/matches/api/useMVPVote';
 import { useAuthStore } from '@/stores/auth';
 import { colors } from '@/theme/colors';
-import { ICON_HIT_SLOP, PRESS_RIPPLE_ON_DARK } from '@/theme/layout';
+import { ICON_HIT_SLOP } from '@/theme/layout';
 
 /**
  * The navy frame every state of the screen shares: back, the "QUEM BRILHOU?"
@@ -245,11 +246,10 @@ export default function MvpVoteScreen() {
             const isSelected = selectedPlayerId === player.id;
 
             return (
-              <Pressable
+              <PressableScale
                 key={player.id}
                 onPress={() => !isCurrentUser && handleSelectPlayer(player.id)}
                 disabled={isCurrentUser}
-                android_ripple={PRESS_RIPPLE_ON_DARK}
                 accessibilityRole="radio"
                 accessibilityState={{
                   selected: isSelected,
@@ -279,7 +279,7 @@ export default function MvpVoteScreen() {
                 ) : (
                   <View className="h-6 w-6 rounded-full border-2 border-white/40" />
                 )}
-              </Pressable>
+              </PressableScale>
             );
           })}
         </View>

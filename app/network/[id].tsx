@@ -1,20 +1,13 @@
 import { useLocalSearchParams } from 'expo-router';
 import { Send, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
-import {
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { FlatList, KeyboardAvoidingView, Platform, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { BackHeader } from '@/components/ui/BackHeader';
 import { IconButton } from '@/components/ui/IconButton';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import {
@@ -26,7 +19,7 @@ import {
   usePostComments,
 } from '@/features/network/api/postsApi';
 import { colors } from '@/theme/colors';
-import { ICON_HIT_SLOP, ICON_RIPPLE } from '@/theme/layout';
+import { ICON_HIT_SLOP } from '@/theme/layout';
 
 function CommentRow({ comment, onDelete }: { comment: PostComment; onDelete: () => void }) {
   return (
@@ -40,15 +33,14 @@ function CommentRow({ comment, onDelete }: { comment: PostComment; onDelete: () 
         <Text className="font-body text-body text-text-primary mt-1">{comment.text}</Text>
       </View>
       {comment.canDelete ? (
-        <Pressable
+        <PressableScale
           accessibilityRole="button"
           accessibilityLabel="Apagar comentário"
           hitSlop={ICON_HIT_SLOP}
-          android_ripple={ICON_RIPPLE}
           onPress={onDelete}
         >
           <Trash2 size={18} color={colors.textMuted} />
-        </Pressable>
+        </PressableScale>
       ) : null}
     </View>
   );

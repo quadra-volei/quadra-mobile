@@ -12,15 +12,18 @@ import {
 } from 'lucide-react-native';
 import { useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { CourtImage } from '@/components/ui/CourtImage';
 import { dialog } from '@/components/ui/Dialog';
 import { IconButton } from '@/components/ui/IconButton';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
+import { TabIndicator, TabLabel } from '@/components/ui/UnderlineTab';
 import {
   type FeedScope,
   type Post,
@@ -31,12 +34,8 @@ import {
 } from '@/features/network/api/postsApi';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
 import { colors } from '@/theme/colors';
-import {
-  ICON_HIT_SLOP,
-  ICON_RIPPLE,
-  PRESS_RIPPLE,
-  TAB_BAR_CLEARANCE,
-} from '@/theme/layout';
+import { ICON_HIT_SLOP, TAB_BAR_CLEARANCE } from '@/theme/layout';
+import { MOTION } from '@/theme/motion';
 
 function goSettings() {
   router.push('/profile/settings');
@@ -92,15 +91,14 @@ function MatchInvite({
           </View>
         </View>
       </CourtImage>
-      <Pressable
+      <PressableScale
         accessibilityRole="button"
         accessibilityLabel={`Participar de ${match.name}`}
-        android_ripple={PRESS_RIPPLE}
         onPress={() => goMatch(match.id)}
         className="self-end mt-3 h-10 px-6 rounded-pill bg-accent items-center justify-center overflow-hidden"
       >
         <Text className="font-body-semibold text-body-bold text-text-primary">Participar</Text>
-      </Pressable>
+      </PressableScale>
     </View>
   );
 }
@@ -128,10 +126,9 @@ function PostCard({
   return (
     <View className="mx-4 mb-4 bg-white rounded-card shadow-card overflow-hidden" testID="post">
       <View className="flex-row items-center gap-3 p-4">
-        <Pressable
+        <PressableScale
           accessibilityRole="button"
           accessibilityLabel={`Ver perfil de ${post.author.displayName}`}
-          android_ripple={PRESS_RIPPLE}
           onPress={() => goPlayer(post.author.userId)}
           className="flex-1 flex-row items-center gap-3"
         >
@@ -152,17 +149,16 @@ function PostCard({
               {activity || !post.author.handle ? when : `@${post.author.handle} · ${when}`}
             </Text>
           </View>
-        </Pressable>
+        </PressableScale>
         {post.mine ? (
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel="Apagar post"
             hitSlop={ICON_HIT_SLOP}
-            android_ripple={ICON_RIPPLE}
             onPress={onDelete}
           >
             <Trash2 size={20} color={colors.textMuted} />
-          </Pressable>
+          </PressableScale>
         ) : null}
       </View>
 
@@ -191,12 +187,11 @@ function PostCard({
       ) : null}
 
       <View className="flex-row items-center gap-6 px-4 py-3 border-t border-line">
-        <Pressable
+        <PressableScale
           accessibilityRole="button"
           accessibilityLabel={post.likedByMe ? 'Descurtir' : 'Curtir'}
           accessibilityState={{ selected: post.likedByMe }}
           hitSlop={ICON_HIT_SLOP}
-          android_ripple={ICON_RIPPLE}
           onPress={onToggleLike}
           className="flex-row items-center gap-2"
         >
@@ -206,18 +201,17 @@ function PostCard({
             fill={post.likedByMe ? colors.danger : 'none'}
           />
           <Text className="font-body-semibold text-caption text-text-muted">{post.likeCount}</Text>
-        </Pressable>
-        <Pressable
+        </PressableScale>
+        <PressableScale
           accessibilityRole="button"
           accessibilityLabel="Comentários"
           hitSlop={ICON_HIT_SLOP}
-          android_ripple={ICON_RIPPLE}
           onPress={() => goComments(post.id)}
           className="flex-row items-center gap-2"
         >
           <MessageCircle size={20} color={colors.textMuted} />
           <Text className="font-body-semibold text-caption text-text-muted">{post.commentCount}</Text>
-        </Pressable>
+        </PressableScale>
       </View>
     </View>
   );
@@ -241,6 +235,8 @@ export default function NetworkScreen() {
 
   return (
     <View className="flex-1 bg-bg-light">
+      {/* Each scope's feed fades in (and starts at its top) on a switch. */}
+      <Animated.View key={scope} entering={FadeIn.duration(MOTION.fadeIn)} className="flex-1">
       <FlatList
         testID="feed"
         data={posts}
@@ -294,6 +290,7 @@ export default function NetworkScreen() {
           feed.isFetchingNextPage ? <SkeletonBlock className="mx-4 h-[120px]" /> : null
         }
       />
+      </Animated.View>
 
       <ScreenHeader onHeight={setHeaderHeight}>
         <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
@@ -322,6 +319,7 @@ export default function NetworkScreen() {
             onPress={() => setScope('following')}
             testID="feed-scope-following"
           />
+          <TabIndicator index={scope === 'all' ? 0 : 1} count={2} thickness={3} widthRatio={0.6} />
         </View>
       </ScreenHeader>
     </View>
@@ -329,9 +327,9 @@ export default function NetworkScreen() {
 }
 
 /**
- * One half of the feed scope switch: an underline tab, not a chip. The selected
- * colors are inline styles, as a toggled className is not applied reliably
- * (DECISIONS #87).
+ * One half of the feed scope switch: an underline tab, not a chip. No press
+ * background: the underline sliding under it (TabIndicator, in the row) is the
+ * feedback, and the label color follows it (DECISIONS #109).
  */
 function FeedTab({
   label,
@@ -350,19 +348,15 @@ function FeedTab({
       testID={testID}
       accessibilityRole="tab"
       accessibilityState={{ selected }}
-      android_ripple={PRESS_RIPPLE}
-      className="flex-1 items-center pt-2"
+      className="flex-1 items-center pt-2 pb-[3px]"
     >
-      <Text
+      <TabLabel
+        selected={selected}
+        activeColor={colors.surfaceDark}
         className="font-body-bold text-body text-text-muted pb-3"
-        style={selected ? { color: colors.surfaceDark } : undefined}
       >
         {label}
-      </Text>
-      <View
-        className="h-[3px] w-3/5 rounded-full"
-        style={{ backgroundColor: selected ? colors.primary : 'transparent' }}
-      />
+      </TabLabel>
     </Pressable>
   );
 }

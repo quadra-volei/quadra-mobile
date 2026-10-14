@@ -3,7 +3,8 @@ import { router, Tabs } from 'expo-router';
 import { Plus } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Keyboard, Pressable, View } from 'react-native';
+import { Keyboard, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CreateSheet } from '@/components/domain/CreateSheet';
@@ -14,9 +15,10 @@ import { TabNetworkIcon } from '@/components/icons/TabNetworkIcon';
 import { TabProfileIcon } from '@/components/icons/TabProfileIcon';
 import type { TabIconProps } from '@/components/icons/tabIcon';
 import { Avatar } from '@/components/ui/Avatar';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import { HARD_SHADOW, colors } from '@/theme/colors';
-import { ICON_RIPPLE, PRESS_RIPPLE } from '@/theme/layout';
+import { MOTION } from '@/theme/motion';
 
 // "Perfil" shows the signed-in user's photo, Instagram-style: a small circle
 // that gets a primary ring when the tab is active. No photo (or still loading)
@@ -59,16 +61,18 @@ function TabBarButton({
   onPress: () => void;
 }) {
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected: focused }}
       accessibilityLabel={label}
-      android_ripple={ICON_RIPPLE}
       className="flex-1 h-full items-center justify-center"
     >
-      <Icon focused={focused} size={28} />
-    </Pressable>
+      {/* Active / inactive icon swap fades in instead of cutting. */}
+      <Animated.View key={String(focused)} entering={FadeIn.duration(MOTION.fadeIn)}>
+        <Icon focused={focused} size={28} />
+      </Animated.View>
+    </PressableScale>
   );
 }
 
@@ -79,16 +83,15 @@ const CENTER_SIZE = 64;
 // its children); the row keeps an empty slot where it sits.
 function CenterButton({ onPress }: { onPress: () => void }) {
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel="Criar"
-      android_ripple={PRESS_RIPPLE}
       className="items-center justify-center rounded-full border-2 border-surface-dark bg-accent overflow-hidden"
       style={{ width: CENTER_SIZE, height: CENTER_SIZE, ...HARD_SHADOW }}
     >
       <Plus size={30} color={colors.surfaceDark} strokeWidth={2.6} />
-    </Pressable>
+    </PressableScale>
   );
 }
 
@@ -116,7 +119,12 @@ export default function TabsLayout() {
     <View className="flex-1">
     <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
     <Tabs
-      screenOptions={{ headerShown: false }}
+      // Switching tabs cross-fades the screens over the app background.
+      screenOptions={{
+        headerShown: false,
+        animation: 'fade',
+        sceneStyle: { backgroundColor: colors.bgLight },
+      }}
       tabBar={({ state, navigation }) => {
         if (keyboardOpen) return null;
 

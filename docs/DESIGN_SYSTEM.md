@@ -304,7 +304,8 @@ For agents producing screen specs, the Quadra identity has these traits:
 - **No glass.** Header and tab bar are solid surfaces with a hairline (`border-line`); no backdrop blur (DECISIONS #46). The only blur is the backdrop behind `CreateSheet` (DECISIONS #98).
 - **Loading**: `SkeletonBlock`, sized to the content it replaces, slow opacity pulse.
 - **Empty / error**: `StateMessage` — one body-size line and at most one action.
-- **Press feedback**: Android ripple from `src/theme/layout.ts` (`PRESS_RIPPLE`, `PRESS_RIPPLE_ON_DARK`, `ICON_RIPPLE`); bare 24px icons take `hitSlop={ICON_HIT_SLOP}`.
+- **Press feedback**: `PressableScale` (a slight shrink to 0.97 and fade to 0.85, 120 ms), never Android's ripple. Underline tabs take no press feedback: the sliding underline is the feedback. Bare 24px icons take `hitSlop={ICON_HIT_SLOP}`.
+- **Motion**: every duration and curve comes from `MOTION` in `src/theme/motion.ts` (ease-out cubic; press 120 ms, tab underline and label color 220 ms, content fade-in 180 ms). Stack screens slide in from the right (`ios_from_right`, `STACK_OPTIONS`); the splash / login / tabs swap and the navbar tabs fade. Reanimated animations follow the system "remove animations" setting (DECISIONS #109).
 
 ---
 
@@ -313,6 +314,5 @@ For agents producing screen specs, the Quadra identity has these traits:
 These will be added when relevant. Until then, agents must ask:
 
 - Dark mode tokens (the app currently designs light-first)
-- Animation timing curves
 - Empty-state illustrations
 - Pull-to-refresh styling

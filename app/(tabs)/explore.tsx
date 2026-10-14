@@ -1,11 +1,12 @@
 import { router } from "expo-router";
 import { Bell, LayoutGrid, List, MapPin, Settings } from "lucide-react-native";
 import { useMemo, useState } from "react";
-import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
+import { FlatList, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { MatchCard } from "@/components/domain/MatchCard";
 import { Button } from "@/components/ui/Button";
+import { PressableScale } from "@/components/ui/PressableScale";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { IconButton } from "@/components/ui/IconButton";
@@ -16,10 +17,7 @@ import { useNearbyMatches } from "@/features/matches/api/getNearby";
 import { useDeviceCoords } from "@/features/matches/lib/useDeviceCoords";
 import type { NearbyMatch } from "@/features/matches/types/match";
 import { colors } from "@/theme/colors";
-import {
-  PRESS_RIPPLE,
-  TAB_BAR_CLEARANCE,
-} from "@/theme/layout";
+import { TAB_BAR_CLEARANCE } from "@/theme/layout";
 
 // Where Explore searches when the device location is not available: São Paulo
 // centre. Explore never prompts for location (S6 spec "Permissions").
@@ -150,10 +148,9 @@ function ResultsArea({
 
       {/* ── Map entry (full map is S17): how many matches are nearby and how
           far the closest one is. One flat row — the whole row opens the map. ── */}
-      <Pressable
+      <PressableScale
         className="mx-4 mt-4 p-3 flex-row items-center gap-3 bg-white rounded-card shadow-card overflow-hidden"
         onPress={goMap}
-        android_ripple={PRESS_RIPPLE}
         accessibilityRole="button"
         accessibilityLabel="Abrir mapa de partidas"
       >
@@ -185,7 +182,7 @@ function ResultsArea({
         <Button variant="primary" onPress={goMap}>
           Ver
         </Button>
-      </Pressable>
+      </PressableScale>
 
       {/* ── Results count + Grade/Lista toggle ── */}
       <View className="flex-row items-center justify-between px-4 mt-6">

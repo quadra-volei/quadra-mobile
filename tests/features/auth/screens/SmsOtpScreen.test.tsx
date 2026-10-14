@@ -29,13 +29,16 @@ import React from 'react';
 
 // reanimated -> Animated.View becomes a plain View; shake helpers inert.
 jest.mock('react-native-reanimated', () => {
+  // Shared mock first (motion pieces: PressableScale, UnderlineTab, FadeIn).
+  const base = jest.requireActual('../../../__mocks__/react-native-reanimated');
   const ReactLocal = require('react');
   const { View } = require('react-native');
   const AnimatedView = ({ children, style, ...props }: any) =>
     ReactLocal.createElement(View, { ...props, style }, children);
   return {
+    ...base,
     __esModule: true,
-    default: { View: AnimatedView },
+    default: { ...base.default, View: AnimatedView },
     useSharedValue: (initial: number) => ({ value: initial }),
     withTiming: (to: number) => to,
     withSequence: (...args: number[]) => args[args.length - 1] ?? 0,

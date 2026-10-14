@@ -1,13 +1,13 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { MapPin, Users } from 'lucide-react-native';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { CourtImage } from '@/components/ui/CourtImage';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { Tag } from '@/components/ui/Tag';
 import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
 import type { NearbyMatch } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
-import { PRESS_RIPPLE } from '@/theme/layout';
 
 export type MatchCardProps = {
   match: NearbyMatch;
@@ -29,12 +29,11 @@ function formatDistance(km: number): string {
  */
 export function MatchCard({ match, onPress, testID }: MatchCardProps) {
   return (
-    <Pressable
+    <PressableScale
       onPress={() => onPress(match.id)}
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={`${match.name}, ${formatDistance(match.distanceKm)}`}
-      android_ripple={PRESS_RIPPLE}
       className="rounded-card overflow-hidden"
     >
       <CourtImage tint={match.tint} imageUri={match.coverUrl} height={172} radius={16}>
@@ -94,6 +93,6 @@ export function MatchCard({ match, onPress, testID }: MatchCardProps) {
           </View>
         </View>
       </CourtImage>
-    </Pressable>
+    </PressableScale>
   );
 }

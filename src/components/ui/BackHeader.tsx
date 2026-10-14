@@ -1,11 +1,12 @@
 import { router } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import type { ReactNode } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
+import { PressableScale } from "@/components/ui/PressableScale";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { colors } from "@/theme/colors";
-import { ICON_HIT_SLOP, ICON_RIPPLE } from "@/theme/layout";
+import { ICON_HIT_SLOP } from "@/theme/layout";
 
 type BackHeaderProps = {
   /** Screen title, rendered in the display face (uppercased by the token). */
@@ -36,15 +37,14 @@ export function BackHeader({
     <ScreenHeader tint={tint} onHeight={onHeight}>
       <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
         <View className="flex-1 flex-row items-center gap-3">
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel="Voltar"
             hitSlop={ICON_HIT_SLOP}
-            android_ripple={ICON_RIPPLE}
             onPress={() => router.back()}
           >
             <ChevronLeft size={24} color={iconColor} />
-          </Pressable>
+          </PressableScale>
           <Text
             numberOfLines={1}
             className={`shrink font-display text-h1 uppercase ${titleColor}`}
