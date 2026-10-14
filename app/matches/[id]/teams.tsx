@@ -16,8 +16,8 @@ import { dialog } from '@/components/ui/Dialog';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { StepperField } from '@/components/ui/StepperField';
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
-import { useDrawTeams } from '@/features/matches/api/drawTeams';
-import type { DrawMode } from '@/features/matches/types/matchDetail';
+import { useDrawTeams, useMovePlayer } from '@/features/matches/api/drawTeams';
+import type { DrawMode, PresencePlayer } from '@/features/matches/types/matchDetail';
 import type { Team } from '@/features/matches/types/team';
 import { colors } from '@/theme/colors';
 import { useStartSet } from '@/features/matches/api/liveGame';
@@ -57,6 +57,7 @@ const DRAW_MODE_ICON: Record<DrawMode, ReactNode> = {
  * - choose how many teams, how many players each and how to draw them
  *   (defaults from the match's `teamConfig`);
  * - "Sortear times" draws on the backend and shows the rosters;
+ * - tapping a drawn player moves them to another team (saved on the backend);
  * - "Refazer sorteio" brings the configuration back; whoever did not fit in the
  *   teams is listed as sitting out;
  * - "Começar partida" shows a confirmation dialog, then goes to the scoreboard.
@@ -75,6 +76,7 @@ export default function TeamsScreen() {
   const defaults = matchQuery.data?.teamConfig;
 
   const draw = useDrawTeams(matchId);
+  const movePlayer = useMovePlayer(matchId);
   const startSet = useStartSet(matchId);
 
   // ── Local UI state ──
@@ -144,6 +146,26 @@ export default function TeamsScreen() {
         },
       },
     );
+  };
+
+  // After the draw the organizer can still fix the teams: tap a player, pick
+  // the team they go to. Saved on the backend, which answers with every team.
+  const handleMovePlayer = (player: PresencePlayer, fromTeamId: string) => {
+    const others = teams.filter((team) => team.id !== fromTeamId);
+    dialog.alert(`Mover ${player.name} para`, undefined, [
+      ...others.map((team) => ({
+        text: team.name || `Time ${team.number}`,
+        onPress: () =>
+          movePlayer.mutate(
+            { players: confirmedPlayers, playerId: player.id, teamId: team.id },
+            {
+              onSuccess: (result) => setTeams(result.teams),
+              onError: (error) => dialog.alert('Erro ao mover', error.message),
+            },
+          ),
+      })),
+      { text: 'Cancelar', style: 'cancel' as const },
+    ]);
   };
 
   const handleStartMatch = () => {
@@ -243,6 +265,10 @@ export default function TeamsScreen() {
                 </Button>
               </View>
 
+              <Text className="font-body text-caption text-text-muted">
+                Toque em um jogador para trocá-lo de time.
+              </Text>
+
               <View className="mt-2 gap-3">
                 {teams.map((team, index) => (
                   <TeamRoster
@@ -251,6 +277,11 @@ export default function TeamsScreen() {
                     teamName={team.name || `Time ${team.number}`}
                     players={team.players}
                     colorIndex={index}
+                    onPlayerPress={
+                      movePlayer.isPending
+                        ? undefined
+                        : (player) => handleMovePlayer(player, team.id)
+                    }
                     testID={`team-roster-${team.id}`}
                   />
                 ))}

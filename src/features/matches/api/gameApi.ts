@@ -94,7 +94,7 @@ async function getOrNull<T>(path: string): Promise<T | null> {
   }
 }
 
-function send<T>(method: 'POST' | 'DELETE', path: string, body?: unknown): Promise<T> {
+function send<T>(method: 'POST' | 'PUT' | 'DELETE', path: string, body?: unknown): Promise<T> {
   return authorizedApiClient<T>(path, {
     method,
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -116,6 +116,19 @@ export async function postDraft(
     'POST',
     gamePath(matchId, 'teams/draft'),
     options,
+  );
+  return teams;
+}
+
+/** Moves a drawn player to another team; answers with every team after the move. */
+export async function putTeamMember(
+  matchId: string,
+  teamId: string,
+  playerId: string,
+): Promise<ApiTeam[]> {
+  const { teams } = await send<{ teams: ApiTeam[] }>(
+    'PUT',
+    gamePath(matchId, `teams/${teamId}/members/${playerId}`),
   );
   return teams;
 }

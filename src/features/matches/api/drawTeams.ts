@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 
-import { postDraft, toTeams } from '@/features/matches/api/gameApi';
+import { postDraft, putTeamMember, toTeams } from '@/features/matches/api/gameApi';
 import { toMatchError } from '@/features/matches/api/matchesApi';
 import type { PresencePlayer } from '@/features/matches/types/matchDetail';
 import type {
@@ -34,6 +34,33 @@ export function useDrawTeams(id: string) {
         throw toMatchError(error, {
           403: 'Só quem organiza a partida pode sortear os times.',
           409: 'Ainda não dá para sortear: confirme os jogadores e aguarde as confirmações abrirem.',
+        });
+      }
+    },
+  });
+}
+
+export type MovePlayerVariables = {
+  players: PresencePlayer[];
+  playerId: string;
+  teamId: string;
+};
+
+/**
+ * Moves one drawn player to another team after the draw
+ * (`PUT /matches/{id}/teams/{teamId}/members/{playerId}`) and answers with
+ * every team as it is now.
+ */
+export function useMovePlayer(id: string) {
+  return useMutation<DrawTeamsResponse, Error, MovePlayerVariables>({
+    mutationFn: async ({ players, playerId, teamId }) => {
+      try {
+        return { teams: toTeams(await putTeamMember(id, teamId, playerId), players) };
+      } catch (error) {
+        throw toMatchError(error, {
+          403: 'Só quem organiza a partida pode mexer nos times.',
+          404: 'Os times mudaram. Refaça o sorteio.',
+          409: 'Os times não podem mais ser alterados.',
         });
       }
     },
