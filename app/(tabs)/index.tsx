@@ -4,22 +4,17 @@ import { useState } from "react";
 import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { MatchCard } from "@/components/domain/MatchCard";
 import { MatchCardCompact } from "@/components/domain/MatchCardCompact";
+import { HomeHeroArt } from "@/components/icons/HomeHeroArt";
 import { Button } from "@/components/ui/Button";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { IconButton } from "@/components/ui/IconButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { useNearbyMatches } from "@/features/matches/api/getNearby";
 import { useUpcomingMatches } from "@/features/matches/api/getUpcoming";
 import { formatStartsAt } from "@/features/matches/lib/formatWhen";
 import { pickNextGame } from "@/features/matches/lib/nextGame";
-import { useDeviceCoords } from "@/features/matches/lib/useDeviceCoords";
-import type {
-  NearbyMatch,
-  UpcomingMatch,
-} from "@/features/matches/types/match";
+import type { UpcomingMatch } from "@/features/matches/types/match";
 import { useFollowState } from "@/features/network/api/postsApi";
 import { useAuthStore } from "@/stores/auth";
 import { colors } from "@/theme/colors";
@@ -28,18 +23,8 @@ import {
   TAB_BAR_CLEARANCE,
 } from "@/theme/layout";
 
-// Where "perto de você" searches when the device location is not available:
-// São Paulo centre. Home never prompts for location (S5 spec "Permissions").
-const DEFAULT_GEO = { lat: -23.55, lon: -46.63, radiusKm: 5 };
-
-function goCreate() {
-  router.push("/matches/create");
-}
 function goExplore() {
   router.push("/explore");
-}
-function goMap() {
-  router.push("/explore/map");
 }
 function goMatch(id: string) {
   router.push({ pathname: "/matches/[id]", params: { id } });
@@ -99,35 +84,39 @@ function FriendsChip({ userId }: { userId: string }) {
 
 /**
  * Empty Home hero — the blue "Bora pra quadra?" card shown when there is no
- * next game, no upcoming and no nearby match. A faint circle arc decorates its
- * right edge. Creating starts from the tab bar's "+" (DECISIONS #98).
+ * next game and no upcoming match. Portrait 4:5, filled by a faint
+ * court-and-ball art centred behind the copy: the eyebrow on top, the title
+ * and chips at the bottom (DECISIONS #102). Creating starts from the tab bar's
+ * "+" (DECISIONS #98).
  */
 function HomeHero() {
   const userId = useAuthStore((s) => s.userId);
   return (
-    <View testID="home-hero" className="mx-4 rounded-card bg-primary p-4 overflow-hidden">
-      <View
-        pointerEvents="none"
-        className="absolute rounded-full border-2 border-white/10"
-        style={{ width: 240, height: 240, right: -120, top: -30 }}
-      />
+    <View
+      testID="home-hero"
+      className="mx-4 justify-between rounded-card bg-primary p-6 overflow-hidden"
+      style={{ aspectRatio: 4 / 5 }}
+    >
+      <HomeHeroArt />
       <Text
         className="font-body-bold text-eyebrow text-accent uppercase"
-        style={{ letterSpacing: 1 }}
+        style={{ letterSpacing: 1.5 }}
       >
         Seu próximo jogo começa aqui
       </Text>
-      <Text className="mt-1 font-display text-display text-white uppercase">
-        Bora pra
-      </Text>
-      <Text className="font-display text-display text-accent uppercase">
-        Quadra?
-      </Text>
-      {userId ? (
-        <View className="mt-3 flex-row flex-wrap gap-2">
-          <FriendsChip userId={userId} />
-        </View>
-      ) : null}
+      <View>
+        <Text className="font-display text-display text-white uppercase">
+          Bora pra
+        </Text>
+        <Text className="font-display text-display text-accent uppercase">
+          Quadra?
+        </Text>
+        {userId ? (
+          <View className="mt-6 flex-row flex-wrap gap-2">
+            <FriendsChip userId={userId} />
+          </View>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -227,65 +216,7 @@ function UpcomingSection({
         renderItem={({ item }) => (
           <MatchCardCompact match={item} onPress={goMatch} />
         )}
-        ListEmptyComponent={
-          <StateMessage
-            message="Você ainda não tem partidas marcadas"
-            actionLabel="Criar partida"
-            onAction={goCreate}
-          />
-        }
       />
-    </>
-  );
-}
-
-function NearbySection({ query }: { query: ReturnType<typeof useNearbyMatches> }) {
-  const { data, isPending, isError, refetch } = query;
-
-  let body;
-  if (isPending) {
-    body = (
-      <View className="flex-row flex-wrap justify-between px-4 gap-y-3 mt-2">
-        <View className="w-[48%]">
-          <SkeletonBlock className="h-[172px]" />
-        </View>
-        <View className="w-[48%]">
-          <SkeletonBlock className="h-[172px]" />
-        </View>
-      </View>
-    );
-  } else if (isError) {
-    body = (
-      <StateMessage
-        message="Não foi possível carregar"
-        actionLabel="Tentar novamente"
-        onAction={() => refetch()}
-      />
-    );
-  } else if (data.length === 0) {
-    body = (
-      <StateMessage
-        message="Nenhuma partida perto de você ainda"
-        actionLabel="Criar partida"
-        onAction={goCreate}
-      />
-    );
-  } else {
-    body = (
-      <View className="flex-row flex-wrap justify-between px-4 gap-y-3 mt-2">
-        {data.map((m: NearbyMatch) => (
-          <View key={m.id} className="w-[48%]">
-            <MatchCard match={m} onPress={goMatch} />
-          </View>
-        ))}
-      </View>
-    );
-  }
-
-  return (
-    <>
-      <SectionHeader title="JOGOS PERTO DE VOCÊ" actionLabel="Mapa" onAction={goMap} />
-      {body}
     </>
   );
 }
@@ -295,21 +226,11 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
 
   const upcoming = useUpcomingMatches();
-  const coords = useDeviceCoords();
-  const nearby = useNearbyMatches(
-    coords
-      ? { ...DEFAULT_GEO, lat: coords.latitude, lon: coords.longitude }
-      : DEFAULT_GEO,
-  );
 
   const nextGame = upcoming.data ? pickNextGame(upcoming.data) : undefined;
-  // Empty Home: both lists loaded and empty (no next game follows). Loading
-  // and errors keep the sections, each with its own state.
-  const empty =
-    upcoming.isSuccess &&
-    upcoming.data.length === 0 &&
-    nearby.isSuccess &&
-    nearby.data.length === 0;
+  // Empty Home: no upcoming match at all (so no next game either). Loading
+  // and errors keep the section with its own state (DECISIONS #104).
+  const empty = upcoming.isSuccess && upcoming.data.length === 0;
 
   return (
     <View className="flex-1 bg-bg-light">
@@ -334,7 +255,6 @@ export default function HomeScreen() {
               </>
             ) : null}
             <UpcomingSection query={upcoming} nextGame={nextGame} />
-            <NearbySection query={nearby} />
           </>
         )}
       </ScrollView>

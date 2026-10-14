@@ -8,12 +8,9 @@
  *  - "Ver todas" navigates to /explore.
  *  - "PRÓXIMAS PARTIDAS" renders a horizontal scroll of MatchCardCompact from
  *    useUpcomingMatches; tapping a card navigates to S12 with its id.
- *  - "JOGOS PERTO DE VOCÊ" renders a 2-col grid of MatchCard from
- *    useNearbyMatches; tapping a card navigates to S12 with its id.
- *  - "Mapa" navigates to /explore/map.
- *  - Each section shows its own loading placeholder while pending, its own empty
- *    state when its list is empty, and its own retry row on error — independently.
- *  - No location permission prompt fires on Home; no stories/feed/weather/ads.
+ *  - No "JOGOS PERTO DE VOCÊ" on Home (#104).
+ *  - The upcoming section shows its loading placeholder and its retry row.
+ *  - No stories/feed/weather/ads.
  *
  * Both read hooks are mocked at the hook boundary so the four query states
  * (pending / error / empty / populated) are controlled deterministically per
@@ -98,10 +95,7 @@ jest.mock('expo-router', () => {
 
 // --- Read hook mocks (mocked at the boundary) -----------------------------
 // `mock`-prefixed holders so the jest.mock factories may reference them.
-import type {
-  NearbyMatch,
-  UpcomingMatch,
-} from '@/features/matches/types/match';
+import type { UpcomingMatch } from '@/features/matches/types/match';
 
 const UPCOMING_FIXTURE: UpcomingMatch[] = [
   {
@@ -130,35 +124,6 @@ const UPCOMING_FIXTURE: UpcomingMatch[] = [
   },
 ];
 
-const NEARBY_FIXTURE: NearbyMatch[] = [
-  {
-    id: 'near-1',
-    name: 'Arena Sky Beach',
-    format: '4X4',
-    level: 'INTERMEDIARIO',
-    distanceKm: 1.2,
-    confirmed: 6,
-    capacity: 8,
-    priceLabel: 'R$ 25',
-    tint: '#1A1AFF',
-    lat: -23.5605,
-    lon: -46.6433,
-  },
-  {
-    id: 'near-2',
-    name: 'Quadra do Parque',
-    format: '6X6',
-    level: 'INICIANTE',
-    distanceKm: 2.6,
-    confirmed: 9,
-    capacity: 12,
-    priceLabel: 'Grátis',
-    tint: '#00B4D8',
-    lat: -23.5731,
-    lon: -46.6289,
-  },
-];
-
 type QueryState<T> = {
   data: T[];
   isPending: boolean;
@@ -183,17 +148,6 @@ const mockUpcoming: QueryState<UpcomingMatch> & { refetch: jest.Mock } = {
   refetch: jest.fn(),
 };
 
-const mockNearby: QueryState<NearbyMatch> & {
-  refetch: jest.Mock;
-  lastParams: unknown;
-} = {
-  data: NEARBY_FIXTURE,
-  isPending: false,
-  isError: false,
-  refetch: jest.fn(),
-  lastParams: undefined,
-};
-
 jest.mock('@/features/matches/api/getUpcoming', () => ({
   useUpcomingMatches: () => ({
     data: mockUpcoming.data,
@@ -202,19 +156,6 @@ jest.mock('@/features/matches/api/getUpcoming', () => ({
     refetch: mockUpcoming.refetch,
     isSuccess: !mockUpcoming.isPending && !mockUpcoming.isError,
   }),
-}));
-
-jest.mock('@/features/matches/api/getNearby', () => ({
-  useNearbyMatches: (params: unknown) => {
-    mockNearby.lastParams = params;
-    return {
-      data: mockNearby.data,
-      isPending: mockNearby.isPending,
-      isError: mockNearby.isError,
-      refetch: mockNearby.refetch,
-      isSuccess: !mockNearby.isPending && !mockNearby.isError,
-    };
-  },
 }));
 
 import { fireEvent, render, screen } from '@testing-library/react-native';
@@ -228,19 +169,10 @@ function resetUpcoming() {
   mockUpcoming.refetch.mockClear();
 }
 
-function resetNearby() {
-  mockNearby.data = NEARBY_FIXTURE;
-  mockNearby.isPending = false;
-  mockNearby.isError = false;
-  mockNearby.refetch.mockClear();
-  mockNearby.lastParams = undefined;
-}
-
 beforeEach(() => {
   mockPush.mockClear();
   mockFollow.followingCount = 0;
   resetUpcoming();
-  resetNearby();
 });
 
 describe('S5 — Home screen', () => {
@@ -318,194 +250,34 @@ describe('S5 — Home screen', () => {
     });
   });
 
-  // ---------------------------------------------- JOGOS PERTO DE VOCÊ section
-  /**
-   * Covers: S5 — Home
-   * Criterion: "'JOGOS PERTO DE VOCÊ' renders a 2-col grid of dark MatchCard from
-   *  useNearbyMatches."
-   */
-  it('renders the nearby matches from useNearbyMatches as dark grid cards', async () => {
+  // ---------------------------------------------- no "perto de você" on Home
+  /** "JOGOS PERTO DE VOCÊ" left the Home (DECISIONS #104); the map stays in Explorar. */
+  it('does not show the nearby section', async () => {
     await render(<HomeScreen />);
 
-    expect(screen.getByText('JOGOS PERTO DE VOCÊ')).toBeTruthy();
-    expect(screen.getByText('Arena Sky Beach')).toBeTruthy();
-    expect(screen.getByText('Quadra do Parque')).toBeTruthy();
-    // dark-card meta (format/level pills + distance) confirms it's the MatchCard
-    expect(screen.getByText('4X4')).toBeTruthy();
-    expect(screen.getByText('Iniciante')).toBeTruthy();
-    expect(screen.getByText('1,2 km')).toBeTruthy();
+    expect(screen.queryByText('JOGOS PERTO DE VOCÊ')).toBeNull();
+    expect(screen.queryByText('Mapa')).toBeNull();
   });
 
-  /**
-   * Covers: S5 — Home
-   * Criterion: "tapping a [nearby] card navigates to S12 with its id."
-   */
-  it('navigates to /matches/[id] with the match id when a grid card is tapped', async () => {
-    await render(<HomeScreen />);
-
-    fireEvent.press(screen.getByLabelText(/Arena Sky Beach/));
-
-    expect(mockPush).toHaveBeenCalledWith({
-      pathname: '/matches/[id]',
-      params: { id: 'near-1' },
-    });
-  });
-
-  // ------------------------------------------------------------- map navigation
-  /**
-   * Covers: S5 — Home
-   * Criterion: "'Mapa' navigates to S17 (/explore/map)."
-   */
-  it('navigates to /explore/map from "Mapa"', async () => {
-    await render(<HomeScreen />);
-
-    fireEvent.press(screen.getByText('Mapa'));
-
-    expect(mockPush).toHaveBeenCalledWith('/explore/map');
-  });
-
-  // -------------------------------------------- per-section loading (independent)
-  /**
-   * Covers: S5 — Home
-   * Criterion: "Each section shows its own loading placeholder while pending ...
-   *  independently."
-   *
-   * Only the upcoming query is pending: the upcoming list is replaced by its
-   * skeleton while the nearby grid still renders its cards.
-   */
-  it('shows the upcoming loading placeholder independently of nearby', async () => {
+  // ------------------------------------------------- upcoming loading / error
+  it('shows the upcoming loading placeholder, not the hero, while pending', async () => {
     mockUpcoming.isPending = true;
     await render(<HomeScreen />);
 
-    // upcoming content gone (skeleton in its place)
+    expect(screen.getByText('PRÓXIMAS PARTIDAS')).toBeTruthy();
     expect(screen.queryByText('Vôlei de Quinta')).toBeNull();
-    expect(screen.queryByText('Você ainda não tem partidas marcadas')).toBeNull();
-    // nearby still rendered -> sections load independently
-    expect(screen.getByText('Arena Sky Beach')).toBeTruthy();
+    expect(screen.queryByTestId('home-hero')).toBeNull();
   });
 
-  /**
-   * Covers: S5 — Home
-   * Criterion: "Each section shows its own loading placeholder while pending ...
-   *  independently." (nearby pending, upcoming populated)
-   */
-  it('shows the nearby loading placeholder independently of upcoming', async () => {
-    mockNearby.isPending = true;
-    await render(<HomeScreen />);
-
-    expect(screen.queryByText('Arena Sky Beach')).toBeNull();
-    expect(screen.queryByText('Nenhuma partida perto de você ainda')).toBeNull();
-    // upcoming still rendered
-    expect(screen.getByText('Vôlei de Quinta')).toBeTruthy();
-  });
-
-  // --------------------------------------------- per-section empty (independent)
-  /**
-   * Covers: S5 — Home
-   * Criterion: "[Each section shows] its own empty state when its list is empty
-   *  ... independently."
-   */
-  it('shows the upcoming empty state independently of nearby', async () => {
-    mockUpcoming.data = [];
-    await render(<HomeScreen />);
-
-    expect(
-      screen.getByText('Você ainda não tem partidas marcadas'),
-    ).toBeTruthy();
-    // nearby still renders its cards
-    expect(screen.getByText('Arena Sky Beach')).toBeTruthy();
-    expect(screen.queryByText('Nenhuma partida perto de você ainda')).toBeNull();
-  });
-
-  /**
-   * Covers: S5 — Home
-   * Criterion: "[Each section shows] its own empty state when its list is empty
-   *  ... independently."
-   */
-  it('shows the nearby empty state independently of upcoming', async () => {
-    mockNearby.data = [];
-    await render(<HomeScreen />);
-
-    expect(
-      screen.getByText('Nenhuma partida perto de você ainda'),
-    ).toBeTruthy();
-    expect(screen.getByText('Vôlei de Quinta')).toBeTruthy();
-    expect(
-      screen.queryByText('Você ainda não tem partidas marcadas'),
-    ).toBeNull();
-  });
-
-  // ----------------------------------------------- per-section error (independent)
-  /**
-   * Covers: S5 — Home
-   * Criterion: "[Each section shows] its own retry row on error — independently."
-   *
-   * Upcoming errors -> its retry row appears and calls refetch(); nearby is
-   * unaffected and keeps rendering its cards.
-   */
-  it('shows the upcoming error/retry row independently and refetches on retry', async () => {
+  it('shows the upcoming retry row on error and refetches on retry', async () => {
     mockUpcoming.isError = true;
     await render(<HomeScreen />);
 
     expect(screen.getByText('Não foi possível carregar')).toBeTruthy();
-    // nearby unaffected
-    expect(screen.getByText('Arena Sky Beach')).toBeTruthy();
+    expect(screen.queryByTestId('home-hero')).toBeNull();
 
-    fireEvent.press(screen.getByText('Tentar novamente'));
+    await fireEvent.press(screen.getByText('Tentar novamente'));
     expect(mockUpcoming.refetch).toHaveBeenCalledTimes(1);
-    expect(mockNearby.refetch).not.toHaveBeenCalled();
-  });
-
-  /**
-   * Covers: S5 — Home
-   * Criterion: "[Each section shows] its own retry row on error — independently."
-   */
-  it('shows the nearby error/retry row independently and refetches on retry', async () => {
-    mockNearby.isError = true;
-    await render(<HomeScreen />);
-
-    expect(screen.getByText('Não foi possível carregar')).toBeTruthy();
-    expect(screen.getByText('Vôlei de Quinta')).toBeTruthy();
-
-    fireEvent.press(screen.getByText('Tentar novamente'));
-    expect(mockNearby.refetch).toHaveBeenCalledTimes(1);
-    expect(mockUpcoming.refetch).not.toHaveBeenCalled();
-  });
-
-  /**
-   * Covers: S5 — Home
-   * Criterion: the two sections are fully independent — one erroring while the
-   *  other is empty renders both states at once without bleeding into each other.
-   */
-  it('renders an error row and an empty state side-by-side for the two sections', async () => {
-    mockUpcoming.isError = true;
-    mockNearby.data = [];
-    await render(<HomeScreen />);
-
-    // upcoming error row
-    expect(screen.getByText('Não foi possível carregar')).toBeTruthy();
-    // nearby empty state
-    expect(screen.getByText('Nenhuma partida perto de você ainda')).toBeTruthy();
-  });
-
-  // ------------------------------------------- permissions + exclusions (scope)
-  /**
-   * Covers: S5 — Home
-   * Criterion: "No location permission prompt fires on Home" — the screen never
-   *  imports/calls expo-location; nearby uses fixed placeholder params.
-   */
-  it('reads nearby with placeholder geo params and never requests device location', async () => {
-    await render(<HomeScreen />);
-
-    // The hook was called with fixed placeholder params (no device geo read).
-    expect(mockNearby.lastParams).toEqual({
-      lat: -23.55,
-      lon: -46.63,
-      radiusKm: 5,
-    });
-    // No permission-prompt copy rendered on Home.
-    expect(screen.queryByText(/permiss[ãa]o/i)).toBeNull();
-    expect(screen.queryByText(/localiza[çc][ãa]o/i)).toBeNull();
   });
 
   /**
@@ -570,9 +342,8 @@ describe('S5 — Home screen', () => {
 
   // --------------------------------------------------------------- empty Home
   /** Nothing to show: only the header and the blue hero, no sections. */
-  it('shows only the hero when there are no upcoming and no nearby matches', async () => {
+  it('shows only the hero when there are no upcoming matches', async () => {
     mockUpcoming.data = [];
-    mockNearby.data = [];
     mockFollow.followingCount = 3;
     await render(<HomeScreen />);
 
@@ -582,30 +353,19 @@ describe('S5 — Home screen', () => {
     expect(screen.getByText('Quadra?')).toBeTruthy();
     expect(screen.getByText('3 amigos no Quadra')).toBeTruthy();
     expect(screen.queryByText('PRÓXIMAS PARTIDAS')).toBeNull();
-    expect(screen.queryByText('JOGOS PERTO DE VOCÊ')).toBeNull();
+    expect(screen.getByTestId('home-hero-art')).toBeTruthy();
+    expect(screen.getByTestId('home-hero').props.style).toEqual(
+      expect.objectContaining({ aspectRatio: 4 / 5 }),
+    );
     expect(screen.getByText('INÍCIO')).toBeTruthy();
   });
 
   it('hides the friends chip when the user follows nobody', async () => {
     mockUpcoming.data = [];
-    mockNearby.data = [];
     await render(<HomeScreen />);
 
     expect(screen.getByTestId('home-hero')).toBeTruthy();
     expect(screen.queryByText(/no Quadra$/)).toBeNull();
-  });
-
-  it('keeps the sections (not the hero) while loading or on error', async () => {
-    mockUpcoming.data = [];
-    mockNearby.isPending = true;
-    await render(<HomeScreen />);
-    expect(screen.queryByTestId('home-hero')).toBeNull();
-
-    mockNearby.isPending = false;
-    mockNearby.isError = true;
-    await render(<HomeScreen />);
-    expect(screen.queryByTestId('home-hero')).toBeNull();
-    expect(screen.getByText('Não foi possível carregar')).toBeTruthy();
   });
 
   /**

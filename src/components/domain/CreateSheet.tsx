@@ -1,7 +1,7 @@
 import { BlurView } from 'expo-blur';
 import type { RefObject } from 'react';
 import { useEffect } from 'react';
-import { BackHandler, Pressable, Text, View } from 'react-native';
+import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HARD_SHADOW } from '@/theme/colors';
@@ -42,28 +42,30 @@ export function CreateSheet({
   }, [onClose]);
 
   return (
-    <View
-      testID="create-sheet"
-      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-    >
+    <View testID="create-sheet" style={StyleSheet.absoluteFill}>
+      {/* Blur and veil both fill the whole screen (tab bar included), behind
+          and around the card — not only the strip above it. */}
       <BlurView
+        testID="create-sheet-blur"
         intensity={30}
         tint="dark"
         blurMethod="dimezisBlurViewSdk31Plus"
         blurTarget={blurTarget}
-        style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+        style={StyleSheet.absoluteFill}
       />
       {/* Navy veil over the blur: keeps the dim where the blur falls back. */}
       <Pressable
+        testID="create-sheet-veil"
         accessibilityRole="button"
         accessibilityLabel="Fechar"
         onPress={onClose}
-        className="flex-1 bg-surface-dark/30"
+        className="bg-surface-dark/30"
+        style={StyleSheet.absoluteFill}
       />
 
       <View
-        className="mx-4 rounded-card border-2 border-surface-dark bg-white px-6 pt-6 pb-4"
-        style={{ ...HARD_SHADOW, marginBottom: insets.bottom + 12 }}
+        className="absolute left-4 right-4 rounded-card border-2 border-surface-dark bg-white px-6 pt-6 pb-4"
+        style={{ ...HARD_SHADOW, bottom: insets.bottom + 12 }}
       >
         <Text className="font-display text-h3 text-surface-dark uppercase">
           O que você quer criar?

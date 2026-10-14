@@ -385,7 +385,7 @@ export default function MatchDetailScreen() {
                 </Text>
               </View>
               <View
-                className="rounded-pill border-[1.5px] border-surface-dark px-3 py-1"
+                className="rounded-pill border-[1.5px] border-white px-3 py-1"
                 style={{ backgroundColor: levelBadge.bg }}
               >
                 <Text
