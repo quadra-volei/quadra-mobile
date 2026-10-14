@@ -70,6 +70,8 @@ export type ApiMatchDetail = {
   myPresence: { playerType: ApiPlayerType; status: ApiPresenceStatus } | null;
   myWaitingListPosition: number | null;
   canJoin: boolean;
+  /** Short-lived read URL of the cover the organizer uploaded; null without one. */
+  coverUrl?: string | null;
   /** Null until a scoreboard exists. */
   game?: {
     scoreboardState: 'NotStarted' | 'InProgress' | 'Ended';
@@ -125,6 +127,8 @@ export type ApiCreateMatch = {
   inviteMode: 'Code' | 'Guests' | null;
   priceMonthly: number | null;
   recurrenceDays: number[] | null;
+  /** Storage key of the uploaded cover (`uploadProfilePhoto`), or null. */
+  coverObjectKey: string | null;
 };
 
 export type Coords = { latitude: number; longitude: number };
@@ -203,6 +207,7 @@ export function toApiCreateMatch(
   input: CreateMatchInput,
   startsAt: string,
   coords: Coords,
+  coverObjectKey: string | null = null,
 ): ApiCreateMatch {
   const recurring = input.type === 'Recurring';
   const isPrivate = input.privacy === 'private';
@@ -228,6 +233,7 @@ export function toApiCreateMatch(
     recurrenceDays: recurring
       ? input.recDays.map((day) => (day === 0 ? 7 : day)).sort((a, b) => a - b)
       : null,
+    coverObjectKey,
   };
 }
 
@@ -319,6 +325,7 @@ export function toMatchDetail(api: ApiMatchDetail, userId: string | null): Match
     lat: match.latitude,
     lon: match.longitude,
     tint: tintForLevel(level),
+    coverUrl: api.coverUrl ?? undefined,
     priceLabel: formatPriceLabel(match.price),
     pricePlan: monthly ? 'RECORRENTE' : 'AVULSO',
     priceMonthlyLabel: monthly ? formatPriceLabel(match.priceMonthly) : undefined,

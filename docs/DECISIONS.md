@@ -240,3 +240,9 @@ Source: the designer's `Quadra-App.html` (`SplashScreen`, `OnboardingScreen`) an
 | # | Decision | Why |
 | --- | --- | --- |
 | 91 | **After the draw the organizer can move any player to another team**: tapping a player on S13 opens a dialog listing the other teams; the pick calls the existing `PUT /matches/{id}/teams/{teamId}/members/{playerId}` (`useMovePlayer`) and the screen shows the teams the backend answers with, so the scoreboard reads the edited teams. Only drawn players move (who sat out stays out; redraw to change that). | Owner's ask (Johny, 2026-10-14): fix the draw by hand. The backend already had the route, so no API change. |
+
+## 2026-10-14 — Match cover
+
+| # | Decision | Why |
+| --- | --- | --- |
+| 92 | **The cover picked on S11 is uploaded and shown**: `createMatch` uploads it with `uploadProfilePhoto` (the profile photo's signed URL, so the key lives under `profiles/{me}/`) and sends `coverObjectKey`; the S12 hero shows `coverUrl` from the detail through `CourtImage`'s new `imageUri`, falling back to the tinted court. Without photo storage (503) the match is created without a cover. Cards and the Rede still use the tinted court. Only at creation: there is no edit-match screen. | Owner's ask (Johny, 2026-10-14): upload a match cover reusing the profile photo flow. Backend side in `quadra-api` DECISIONS #51. |

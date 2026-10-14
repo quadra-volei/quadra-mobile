@@ -32,6 +32,12 @@ jest.mock('expo-location', () => ({
   getCurrentPositionAsync: jest.fn(),
 }));
 
+// The cover goes through the profile-photo upload (signed URL), stubbed here.
+jest.mock('@/features/profile/api/profileApi', () => ({
+  ...jest.requireActual('@/features/profile/api/profileApi'),
+  uploadProfilePhoto: jest.fn(async () => 'profiles/me/photo/cover.jpg'),
+}));
+
 import * as Location from 'expo-location';
 import * as SecureStore from 'expo-secure-store';
 
@@ -226,6 +232,7 @@ describe('useCreateMatch', () => {
       durationMinutes: 90,
       visibility: 'Private',
       inviteMode: 'Code',
+      coverObjectKey: null,
     });
     // no window: the backend opens confirmations at creation
     expect(post.body).not.toHaveProperty('confirmationOpensHoursBefore');
@@ -258,6 +265,14 @@ describe('useCreateMatch', () => {
       visibility: 'Open',
       inviteMode: null,
     });
+  });
+
+  it('uploads a picked cover first and sends its key', async () => {
+    fetchMock.mockResolvedValueOnce(respond(201, apiMatch));
+
+    await runMutation(useCreateMatch, { ...payload, coverUri: 'file:///cover.jpg' });
+
+    expect(call().body).toMatchObject({ coverObjectKey: 'profiles/me/photo/cover.jpg' });
   });
 
   it('refuses a start time that already passed without calling the API', async () => {
@@ -386,6 +401,7 @@ describe('useMatchDetail', () => {
       canJoin: true,
       requiresInviteCode: false,
     });
+    expect(match.coverUrl).toBeUndefined();
     expect(match.players).toEqual([
       {
         id: ORGANIZER,
@@ -396,6 +412,11 @@ describe('useMatchDetail', () => {
       },
       { id: 'guest-1', name: 'Zé da Praia', status: 'CONFIRMADO', position: 'LIB', isGuest: true },
     ]);
+  });
+
+  it('maps the cover the organizer uploaded', async () => {
+    const match = await detail(apiDetail({ coverUrl: 'https://cdn.test/cover.jpg' }));
+    expect(match.coverUrl).toBe('https://cdn.test/cover.jpg');
   });
 
   it('shows the organizer as a pending Regular with the invite code to share', async () => {

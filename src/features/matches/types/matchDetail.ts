@@ -83,6 +83,8 @@ export type MatchDetail = {
   lon: number;
   /** Hex tint the hero cover gradient runs from (tint → navy). */
   tint: string;
+  /** The cover the organizer uploaded; without one the hero is the tinted court. */
+  coverUrl?: string;
   /** "R$ 25" | "Grátis" — the per-session (avulso) price. */
   priceLabel: string;
   /** Whether the match charges per session only, or also on a monthly plan. */

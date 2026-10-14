@@ -340,6 +340,7 @@ export default function MatchDetailScreen() {
         {/* ── Court-image hero (bleeds under the status bar) ── */}
         <CourtImage
           tint={match.tint}
+          imageUri={match.coverUrl}
           height={HERO_HEIGHT}
           radius={0}
           label="FOTO DA QUADRA"

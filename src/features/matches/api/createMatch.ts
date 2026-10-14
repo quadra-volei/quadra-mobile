@@ -7,6 +7,7 @@ import {
   toApiCreateMatch,
   toMatchError,
 } from '@/features/matches/api/matchesApi';
+import { uploadProfilePhoto } from '@/features/profile/api/profileApi';
 import { resolveMatchStartsAt } from '@/features/matches/lib/buildMatchDetail';
 import type { CreateMatchInput } from '@/features/matches/schema/createMatch';
 
@@ -15,7 +16,7 @@ import type { CreateMatchInput } from '@/features/matches/schema/createMatch';
  * optional local cover image URI (set by the picker, not a validated field).
  */
 export type CreateMatchPayload = CreateMatchInput & {
-  /** Local URI of the picked cover image (optional). Not uploaded yet. */
+  /** Local URI of the picked cover image (optional), uploaded before the match is created. */
   coverUri?: string;
 };
 
@@ -55,7 +56,8 @@ async function resolveMatchCoords(payload: CreateMatchPayload): Promise<Coords> 
 
 /**
  * Creates a match from the validated create-match input (`POST /api/v1/matches`).
- * The cover image is not sent: the backend has no match cover yet.
+ * A picked cover is uploaded first, through the same signed-URL upload as the
+ * profile photo; without photo storage the match is created without it.
  */
 async function createMatch(payload: CreateMatchPayload): Promise<CreateMatchResult> {
   const startsAt = resolveMatchStartsAt(payload);
@@ -65,7 +67,8 @@ async function createMatch(payload: CreateMatchPayload): Promise<CreateMatchResu
 
   try {
     const coords = await resolveMatchCoords(payload);
-    const match = await postMatch(toApiCreateMatch(payload, startsAt, coords));
+    const coverKey = payload.coverUri ? await uploadProfilePhoto(payload.coverUri) : null;
+    const match = await postMatch(toApiCreateMatch(payload, startsAt, coords, coverKey));
     return { match: { id: match.id } };
   } catch (error) {
     throw toMatchError(error, {
