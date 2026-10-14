@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
@@ -13,6 +14,8 @@ export type CourtImageProps = {
   radius?: number;
   /** Optional mono label printed top-right (e.g. "FOTO DA QUADRA"). */
   label?: string;
+  /** A real photo (the match cover); replaces the court motif and the label. */
+  imageUri?: string;
   /** Overlaid content (tags, bottom info) positioned absolutely by the caller. */
   children?: ReactNode;
 };
@@ -31,6 +34,7 @@ export function CourtImage({
   height,
   radius = 16,
   label,
+  imageUri,
   children,
 }: CourtImageProps) {
   return (
@@ -42,10 +46,19 @@ export function CourtImage({
         end={{ x: 0.9, y: 1 }}
         style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
       />
+      {imageUri ? (
+        <Image
+          source={{ uri: imageUri }}
+          contentFit="cover"
+          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+          testID="court-image-photo"
+        />
+      ) : null}
       {/* faint court line motif: outer box, center line, two dashed attack lines */}
       <View
         pointerEvents="none"
         className="absolute inset-0 items-center justify-center"
+        style={imageUri ? { display: 'none' } : undefined}
       >
         <View
           style={{
@@ -90,7 +103,7 @@ export function CourtImage({
           />
         </View>
       </View>
-      {label ? (
+      {label && !imageUri ? (
         <Text
           className="font-mono absolute top-2 right-3"
           style={{ fontSize: 8.5, letterSpacing: 1.5, color: 'rgba(255,255,255,0.55)' }}

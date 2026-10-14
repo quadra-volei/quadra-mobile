@@ -189,7 +189,7 @@ Each entry follows this structure:
 ### `CourtImage`
 - **Path**: `src/components/ui/CourtImage.tsx`
 - **Category**: ui
-- **Props**: `{ tint: string; height: number; radius?: number; label?: string; children?: ReactNode }`
+- **Props**: `{ tint: string; height: number; radius?: number; label?: string; imageUri?: string; children?: ReactNode }` (`imageUri`: a real photo, the match cover, drawn instead of the court motif and label)
 - **Used in**: S5 Home / S6 Explore match-card covers (`MatchCard`, `MatchCardCompact`) and the S12 Match Detail hero (full-bleed, `radius={0}`, with a scrim + overlaid title block)
 - **Example**:
   ```tsx
