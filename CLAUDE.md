@@ -88,7 +88,7 @@ Android emulator, the machine's LAN IP on a phone). Log in with the test environ
 The API is the only authority on who may see or change what; this app never enforces access by
 hiding a button. Shared knowledge (threat model, endpoint matrix, findings) lives outside git in
 the workspace folder `../security/`; the `security-audit` skill and the `security-auditor` agent
-are in `../quadra-api/.claude/` (start Claude from `quadra-api`, or the workspace root, to use them).
+are in the workspace root `.claude/`, outside git (start Claude from the workspace root to use them).
 
 - Tokens only in `expo-secure-store`; never in AsyncStorage, logs, URLs (except the SignalR
   `access_token` the library needs) or error reports.
