@@ -38,6 +38,8 @@ jest.mock('react-native-svg', () => {
 // Every `with*` helper resolves to its end value, so assertions see the settled
 // frame (the intro rise is finished, the sheet is at its target offset).
 jest.mock('react-native-reanimated', () => {
+  // Shared mock first (motion pieces: PressableScale, UnderlineTab, FadeIn).
+  const base = jest.requireActual('../../../__mocks__/react-native-reanimated');
   const ReactLocal = require('react');
   const { Text, View } = require('react-native');
   const AnimatedView = ({ children, style, ...props }: any) =>
@@ -47,8 +49,9 @@ jest.mock('react-native-reanimated', () => {
   const easing = (fn?: unknown) => fn ?? 0;
   const createAnimatedComponent = (Component: any) => Component;
   return {
+    ...base,
     __esModule: true,
-    default: { View: AnimatedView, Text: AnimatedText, createAnimatedComponent },
+    default: { ...base.default, View: AnimatedView, Text: AnimatedText, createAnimatedComponent },
     createAnimatedComponent,
     useSharedValue: (initial: number) => ({ value: initial }),
     withTiming: (to: number, _config?: object, cb?: (finished: boolean) => void) => {

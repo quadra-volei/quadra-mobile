@@ -10,6 +10,7 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { BackHeader } from '@/components/ui/BackHeader';
 import { Button } from '@/components/ui/Button';
 import { FilterChip } from '@/components/ui/FilterChip';
+import { PressableScale } from '@/components/ui/PressableScale';
 import {
   type NewPost,
   newPostSchema,
@@ -19,7 +20,7 @@ import {
 } from '@/features/network/api/postsApi';
 import { useRecentMatches } from '@/features/profile/api/getRecentMatches';
 import { colors } from '@/theme/colors';
-import { ICON_HIT_SLOP, PRESS_RIPPLE } from '@/theme/layout';
+import { ICON_HIT_SLOP } from '@/theme/layout';
 
 function SectionLabel({ children }: { children: string }) {
   return (
@@ -135,17 +136,16 @@ export default function NewPostScreen() {
             </Pressable>
           </View>
         ) : (
-          <Pressable
+          <PressableScale
             accessibilityRole="button"
             accessibilityLabel="Escolher foto"
-            android_ripple={PRESS_RIPPLE}
             onPress={pickPhoto}
             testID="post-pick-photo"
             className="h-24 rounded-card border border-line bg-white items-center justify-center overflow-hidden"
           >
             <ImagePlus size={24} color={colors.primary} />
             <Text className="mt-2 font-body text-caption text-text-primary">Escolher foto</Text>
-          </Pressable>
+          </PressableScale>
         )}
         {permissionDenied ? (
           <Text className="mt-2 font-body text-caption text-danger" accessibilityLiveRegion="polite">

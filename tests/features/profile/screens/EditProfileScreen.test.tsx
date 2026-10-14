@@ -27,6 +27,8 @@ import React from 'react';
 // --- Native / module mocks ------------------------------------------------
 
 jest.mock('react-native-reanimated', () => {
+  // Shared mock first (motion pieces: PressableScale, UnderlineTab, FadeIn).
+  const base = jest.requireActual('../../../__mocks__/react-native-reanimated');
   const ReactLocal = require('react');
   const { ScrollView, View } = require('react-native');
   const AnimatedScrollView = ({ children, style, ...props }: any) =>
@@ -34,8 +36,9 @@ jest.mock('react-native-reanimated', () => {
   const AnimatedView = ({ children, style, ...props }: any) =>
     ReactLocal.createElement(View, { ...props, style }, children);
   return {
+    ...base,
     __esModule: true,
-    default: { ScrollView: AnimatedScrollView, View: AnimatedView },
+    default: { ...base.default, ScrollView: AnimatedScrollView, View: AnimatedView },
     useAnimatedKeyboard: () => ({ height: { value: 0 } }),
     useAnimatedStyle: (cb: () => object) => cb(),
   };

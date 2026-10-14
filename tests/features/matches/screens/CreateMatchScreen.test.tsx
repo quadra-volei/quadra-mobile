@@ -31,6 +31,8 @@ import React from 'react';
 // --- Native / module mocks ------------------------------------------------
 
 jest.mock('react-native-reanimated', () => {
+  // Shared mock first (motion pieces: PressableScale, UnderlineTab, FadeIn).
+  const base = jest.requireActual('../../../__mocks__/react-native-reanimated');
   const ReactLocal = require('react');
   const { ScrollView, View } = require('react-native');
   // Strip animation-only props so RN host components don't receive them.
@@ -44,8 +46,9 @@ jest.mock('react-native-reanimated', () => {
     springify: () => chain,
   };
   return {
+    ...base,
     __esModule: true,
-    default: { View: AnimatedView, ScrollView: AnimatedScrollView },
+    default: { ...base.default, View: AnimatedView, ScrollView: AnimatedScrollView },
     FadeInDown: chain,
     useAnimatedStyle: (cb: () => object) => cb(),
   };

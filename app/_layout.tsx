@@ -30,6 +30,7 @@ import { prefetchProfileTab } from '@/features/profile/api/prefetchProfileTab';
 import { getAccessToken } from '@/lib/auth/getAccessToken';
 import { verifySession } from '@/lib/auth/verifySession';
 import { useAuthStore } from '@/stores/auth';
+import { STACK_OPTIONS } from '@/theme/motion';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -136,7 +137,12 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <StatusBar style="auto" />
-          <Stack screenOptions={{ headerShown: false }} />
+          <Stack screenOptions={STACK_OPTIONS}>
+            {/* Splash → login / tabs swaps the whole app: a fade, not a push. */}
+            <Stack.Screen name="index" options={{ animation: 'fade' }} />
+            <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
+            <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+          </Stack>
           <DialogHost />
         </QueryClientProvider>
       </SafeAreaProvider>

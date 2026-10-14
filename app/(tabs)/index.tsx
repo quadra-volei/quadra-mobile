@@ -1,12 +1,13 @@
 import { router } from "expo-router";
 import { Bell, Settings, Volleyball } from "lucide-react-native";
 import { useState } from "react";
-import { FlatList, Pressable, ScrollView, Text, View } from "react-native";
+import { FlatList, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { MatchCardCompact } from "@/components/domain/MatchCardCompact";
 import { HomeHeroArt } from "@/components/icons/HomeHeroArt";
 import { Button } from "@/components/ui/Button";
+import { PressableScale } from "@/components/ui/PressableScale";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { IconButton } from "@/components/ui/IconButton";
@@ -18,10 +19,7 @@ import type { UpcomingMatch } from "@/features/matches/types/match";
 import { useFollowState } from "@/features/network/api/postsApi";
 import { useAuthStore } from "@/stores/auth";
 import { colors } from "@/theme/colors";
-import {
-  PRESS_RIPPLE,
-  TAB_BAR_CLEARANCE,
-} from "@/theme/layout";
+import { TAB_BAR_CLEARANCE } from "@/theme/layout";
 
 function goExplore() {
   router.push("/explore");
@@ -125,11 +123,10 @@ function HomeHero() {
 function NextGameCard({ match }: { match: UpcomingMatch }) {
   const when = formatStartsAt(match.startsAt);
   return (
-    <Pressable
+    <PressableScale
       onPress={() => goMatch(match.id)}
       accessibilityRole="button"
       accessibilityLabel={`Seu próximo jogo: ${match.name}, ${when}`}
-      android_ripple={PRESS_RIPPLE}
       className="mx-4 mt-2 flex-row items-center rounded-card border border-line bg-white p-4 shadow-card overflow-hidden"
     >
       <View className="absolute left-0 top-0 bottom-0 w-1 bg-accent" />
@@ -162,7 +159,7 @@ function NextGameCard({ match }: { match: UpcomingMatch }) {
           {match.venue ? `${when} · ${match.venue}` : when}
         </Text>
       </View>
-    </Pressable>
+    </PressableScale>
   );
 }
 

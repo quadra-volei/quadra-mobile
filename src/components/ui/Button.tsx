@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
 
+import { PressableScale } from "@/components/ui/PressableScale";
 import { HARD_SHADOW, colors } from "@/theme/colors";
 
 export type ButtonVariant =
@@ -89,7 +90,7 @@ export function Button({
   const greyed = Boolean(disabled) && !loading && HAS_SHADOW[variant];
 
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       disabled={isDisabled}
       testID={testID}
@@ -119,6 +120,6 @@ export function Button({
           </Text>
         </>
       )}
-    </Pressable>
+    </PressableScale>
   );
 }

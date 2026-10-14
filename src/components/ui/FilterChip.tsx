@@ -1,7 +1,7 @@
-import { Pressable, Text } from 'react-native';
+import { Text } from 'react-native';
 
+import { PressableScale } from '@/components/ui/PressableScale';
 import { colors } from '@/theme/colors';
-import { PRESS_RIPPLE } from '@/theme/layout';
 
 export type FilterChipProps = {
   label: string;
@@ -43,13 +43,12 @@ export function FilterChip({
       : undefined;
 
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       disabled={disabled}
       testID={testID}
       accessibilityRole="button"
       accessibilityState={{ selected, disabled: Boolean(disabled) }}
-      android_ripple={PRESS_RIPPLE}
       className="h-9 px-4 rounded-pill items-center justify-center overflow-hidden bg-white border border-line"
       style={fill ? { backgroundColor: fill, borderColor: fill } : undefined}
     >
@@ -60,6 +59,6 @@ export function FilterChip({
       >
         {label}
       </Text>
-    </Pressable>
+    </PressableScale>
   );
 }

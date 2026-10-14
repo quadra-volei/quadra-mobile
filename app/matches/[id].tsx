@@ -15,6 +15,7 @@ import {
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Linking, Pressable, ScrollView, Share, Text, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AddGuestSheet } from '@/components/domain/AddGuestSheet';
@@ -23,7 +24,9 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { CourtImage } from '@/components/ui/CourtImage';
 import { dialog } from '@/components/ui/Dialog';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { TextField } from '@/components/ui/TextField';
+import { TabIndicator, TabLabel } from '@/components/ui/UnderlineTab';
 import { useAddGuest } from '@/features/matches/api/addGuest';
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
 import { useShareMatch } from '@/features/network/api/postsApi';
@@ -43,7 +46,8 @@ import type {
 } from '@/features/matches/types/matchDetail';
 import { useAuthStore } from '@/stores/auth';
 import { colors, COVER_SCRIM, COVER_SCRIM_LOCATIONS } from '@/theme/colors';
-import { ICON_HIT_SLOP, PRESS_RIPPLE } from '@/theme/layout';
+import { ICON_HIT_SLOP } from '@/theme/layout';
+import { MOTION } from '@/theme/motion';
 
 // ── Pure label maps (token-free; presentational copy) ──
 const POSITION_LABEL: Record<PlayerPosition, string> = {
@@ -124,7 +128,10 @@ function InfoRow({
   );
 }
 
-/** One of the two tabs under the cover ("Detalhes" / "Confirmados"). */
+/**
+ * One of the two tabs under the cover ("Detalhes" / "Confirmados"). No press
+ * background: the underline sliding under it (TabIndicator) is the feedback.
+ */
 function TabButton({
   selected,
   onPress,
@@ -141,19 +148,16 @@ function TabButton({
       accessibilityRole="tab"
       accessibilityState={{ selected }}
       onPress={onPress}
-      android_ripple={PRESS_RIPPLE}
       testID={testID}
-      className={`flex-1 items-center border-b-2 py-3 ${
-        selected ? 'border-primary' : 'border-transparent'
-      }`}
+      className="flex-1 items-center pt-3 pb-[14px]"
     >
-      <Text
-        className={`font-body-semibold text-body-bold ${
-          selected ? 'text-primary' : 'text-text-muted'
-        }`}
+      <TabLabel
+        selected={selected}
+        activeColor={colors.primary}
+        className="font-body-semibold text-body-bold text-text-muted"
       >
         {children}
-      </Text>
+      </TabLabel>
     </Pressable>
   );
 }
@@ -404,7 +408,8 @@ export default function MatchDetailScreen() {
         </CourtImage>
 
         {/* ── Tabs ── */}
-        <View className="flex-row border-b border-line px-5" accessibilityRole="tablist">
+        <View className="border-b border-line px-5">
+        <View className="flex-row" accessibilityRole="tablist">
           <TabButton
             selected={tab === 'details'}
             onPress={() => setTab('details')}
@@ -422,10 +427,17 @@ export default function MatchDetailScreen() {
               {confirmedCount}/{match.capacity}
             </Text>
           </TabButton>
+          <TabIndicator index={tab === 'details' ? 0 : 1} count={2} thickness={2} />
+        </View>
         </View>
 
+        {/* The tab's content fades in on a switch instead of cutting. */}
         {tab === 'details' ? (
-        <View className="px-5 pb-5 pt-3">
+        <Animated.View
+          key="details"
+          entering={FadeIn.duration(MOTION.fadeIn)}
+          className="px-5 pb-5 pt-3"
+        >
           {/* ── Essentials: when, where, price, who organizes ── */}
           <InfoRow icon={<Calendar size={22} color={colors.primary} />}>
             <Text className="font-body-semibold text-body-bold text-text-primary">
@@ -442,7 +454,7 @@ export default function MatchDetailScreen() {
           <InfoRow
             icon={<MapPin size={22} color={colors.primary} />}
             trailing={
-              <Pressable
+              <PressableScale
                 onPress={() =>
                   // Universal Maps link: opens the Google Maps app (or the browser)
                   // with the route from where the user is.
@@ -453,7 +465,6 @@ export default function MatchDetailScreen() {
                 accessibilityRole="button"
                 accessibilityLabel="Como chegar"
                 hitSlop={ICON_HIT_SLOP}
-                android_ripple={PRESS_RIPPLE}
                 testID="match-directions"
                 className="flex-row items-center gap-2 overflow-hidden rounded-pill bg-bg-light px-3 py-2"
               >
@@ -461,7 +472,7 @@ export default function MatchDetailScreen() {
                 <Text className="font-body-semibold text-body-bold text-primary">
                   Como chegar
                 </Text>
-              </Pressable>
+              </PressableScale>
             }
           >
             <Text className="font-body-semibold text-body-bold text-text-primary">
@@ -541,9 +552,13 @@ export default function MatchDetailScreen() {
               </Button>
             </View>
           ) : null}
-        </View>
+        </Animated.View>
         ) : (
-        <View className="px-5 pb-5 pt-4">
+        <Animated.View
+          key="players"
+          entering={FadeIn.duration(MOTION.fadeIn)}
+          className="px-5 pb-5 pt-4"
+        >
           {/* ── Who is going; the organizer invites and fills open slots ── */}
           <View className="mb-5 flex-row items-center gap-3">
             <View className="flex-1">
@@ -580,7 +595,7 @@ export default function MatchDetailScreen() {
             onPressEmpty={isOrganizer ? () => setGuestSheetOpen(true) : undefined}
             testID="presence-grid"
           />
-        </View>
+        </Animated.View>
         )}
       </ScrollView>
 

@@ -234,6 +234,21 @@ Each entry follows this structure:
 - **Example**: `<StateMessage message="Não foi possível carregar" actionLabel="Tentar novamente" onAction={() => refetch()} />`
 - **Notes**: Body-size line, polite live region, at most one action (ghost on light, lime outline on dark).
 
+### `PressableScale`
+- **Path**: `src/components/ui/PressableScale.tsx`
+- **Purpose**: `Pressable` with the app's press feedback (shrink + fade, `MOTION.press`). Use it for every tappable surface instead of `android_ripple`.
+- **Props**: same as `Pressable` (`className` included); `style` must be a value, not a function.
+- **Used in**: `Button`, `IconButton`, `FilterChip`, `BackHeader`, match cards, navbar, `CreateSheet`, feed, scoreboard, MVP vote
+- **Notes**: A static `opacity` in `style` (a disabled button) is kept and faded from.
+
+### `TabIndicator` / `TabLabel`
+- **Path**: `src/components/ui/UnderlineTab.tsx`
+- **Purpose**: Underline tabs: the line slides to the selected tab and the label color follows it (`MOTION.tab`).
+- **Props**: `TabIndicator { index; count; thickness; widthRatio? }`, `TabLabel { selected; activeColor; className; children }`
+- **Used in**: Rede ("Para você" / "Seguindo"), match detail ("Detalhes" / "Confirmados")
+- **Example**: `<View className="flex-row">{tabs}<TabIndicator index={i} count={2} thickness={2} /></View>`
+- **Notes**: The row holds only the `flex-1` tabs. Each tab is a plain `Pressable` (no press background) with bottom padding equal to `thickness`.
+
 ### `Dialog` (`dialog.alert` + `DialogHost`)
 - **Path**: `src/components/ui/Dialog.tsx`
 - **Purpose**: The confirmation / message dialog. Use it instead of the native `Alert`.

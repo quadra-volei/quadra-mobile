@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { Pressable } from "react-native";
 
+import { PressableScale } from "@/components/ui/PressableScale";
 import { HARD_SHADOW } from "@/theme/colors";
 
 type IconButtonProps = {
@@ -19,7 +19,7 @@ type IconButtonProps = {
  */
 export function IconButton({ label, onPress, children, testID }: IconButtonProps) {
   return (
-    <Pressable
+    <PressableScale
       accessibilityRole="button"
       accessibilityLabel={label}
       testID={testID}
@@ -29,6 +29,6 @@ export function IconButton({ label, onPress, children, testID }: IconButtonProps
       style={HARD_SHADOW}
     >
       {children}
-    </Pressable>
+    </PressableScale>
   );
 }

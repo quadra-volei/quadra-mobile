@@ -1,14 +1,14 @@
 import { Image } from 'expo-image';
 import { Clock } from 'lucide-react-native';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { CourtImage } from '@/components/ui/CourtImage';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { Tag } from '@/components/ui/Tag';
 import { formatStartsAt } from '@/features/matches/lib/formatWhen';
 import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
 import type { UpcomingMatch } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
-import { PRESS_RIPPLE } from '@/theme/layout';
 
 export type MatchCardCompactProps = {
   match: UpcomingMatch;
@@ -35,12 +35,11 @@ export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactPro
   const isFree = match.priceLabel.toLowerCase() === 'grátis';
 
   return (
-    <Pressable
+    <PressableScale
       onPress={() => onPress(match.id)}
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={`${match.name}, ${formatStartsAt(match.startsAt)}`}
-      android_ripple={PRESS_RIPPLE}
       className="w-[262px] bg-white rounded-card shadow-card overflow-hidden"
     >
       {/* cover */}
@@ -119,6 +118,6 @@ export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactPro
           </View>
         </View>
       </View>
-    </Pressable>
+    </PressableScale>
   );
 }

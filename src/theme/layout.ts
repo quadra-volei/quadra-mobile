@@ -10,13 +10,8 @@
 //   paddingBottom: insets.bottom + TAB_BAR_CLEARANCE
 export const TAB_BAR_CLEARANCE = 100;
 
-// Press feedback is Android's own ripple (the app targets Android), navy-tinted
-// so it reads as part of the palette. `foreground` draws it over image covers.
-// ponytail: iOS gets no press feedback; add a pressed-opacity style when iOS ships.
-export const PRESS_RIPPLE = { color: 'rgba(10,10,60,0.10)', foreground: true } as const;
-// Same, for surfaces that are already navy.
-export const PRESS_RIPPLE_ON_DARK = { color: 'rgba(255,255,255,0.16)', foreground: true } as const;
-// Round ripple for bare 24px icons (header actions, tab icons).
-export const ICON_RIPPLE = { color: 'rgba(10,10,60,0.10)', borderless: true, radius: 22 } as const;
+// Press feedback is PressableScale (a slight shrink + fade, src/theme/motion.ts),
+// not Android's ripple, which flashed a grey background (DECISIONS #109).
+
 // Grows a bare 24px icon to Android's 48dp minimum touch target.
 export const ICON_HIT_SLOP = 12;
