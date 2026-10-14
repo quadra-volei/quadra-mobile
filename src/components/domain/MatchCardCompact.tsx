@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 
 import { CourtImage } from '@/components/ui/CourtImage';
 import { Tag } from '@/components/ui/Tag';
+import { formatStartsAt } from '@/features/matches/lib/formatWhen';
 import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
 import type { UpcomingMatch } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
@@ -19,32 +20,6 @@ const MAX_AVATARS = 3;
 
 // pt-BR "Grátis" price → green; everything else navy (prototype).
 const PRICE_FREE_COLOR = '#1F8A5B';
-
-/**
- * Formats an ISO timestamp as "Hoje · 19h30" / "Amanhã · 20h00" / "20/06 · 19h30",
- * relative to the current day. Pure, no external date lib.
- */
-function formatStartsAt(iso: string): string {
-  const date = new Date(iso);
-  const now = new Date();
-
-  const startOfDay = (d: Date) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const dayDiff = Math.round(
-    (startOfDay(date) - startOfDay(now)) / (1000 * 60 * 60 * 24),
-  );
-
-  const hh = String(date.getHours()).padStart(2, '0');
-  const mm = String(date.getMinutes()).padStart(2, '0');
-  const time = `${hh}h${mm}`;
-
-  if (dayDiff === 0) return `Hoje · ${time}`;
-  if (dayDiff === 1) return `Amanhã · ${time}`;
-
-  const dd = String(date.getDate()).padStart(2, '0');
-  const mo = String(date.getMonth() + 1).padStart(2, '0');
-  return `${dd}/${mo} · ${time}`;
-}
 
 /**
  * Compact match card for the "PRÓXIMAS PARTIDAS" scroll (S5 Home). A `CourtImage`

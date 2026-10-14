@@ -2,9 +2,8 @@
  * S5 — Bottom tab bar tests (app/(tabs)/_layout.tsx).
  *
  * Covers what the tab layout owns (not the Home screen body): the four tabs
- * persist across navigation with Home active, and the bar has no central
- * button (DECISIONS #88; "Criar partida" lives in the Home hero, covered in
- * HomeScreen.test.tsx).
+ * persist across navigation with Home active, and the central "+" opens the
+ * create sheet (DECISIONS #98).
  *
  * The `Tabs` navigator is mocked so its `tabBar` render prop is invoked with a
  * synthetic navigation state (Home = index 0, active), without a real navigation
@@ -19,6 +18,23 @@ import React from 'react';
 jest.mock('@/components/domain/LocationGate',() => ({
   LocationGate: ({ children }: any) => children,
 }));
+
+// Blur (native) -> plain Views.
+jest.mock('expo-blur', () => {
+  const ReactLocal = require('react');
+  const { View } = require('react-native');
+  const Plain = ReactLocal.forwardRef((props: any, ref: any) =>
+    ReactLocal.createElement(View, { ...props, ref }),
+  );
+  return { BlurView: Plain, BlurTargetView: Plain };
+});
+
+// lucide "+" -> inert node.
+jest.mock('lucide-react-native', () => {
+  const { View } = require('react-native');
+  const ReactLocal = require('react');
+  return { Plus: (props: any) => ReactLocal.createElement(View, props) };
+});
 
 // safe-area insets -> zero (no provider under test).
 jest.mock('react-native-safe-area-context', () => ({
@@ -94,7 +110,7 @@ describe('S5 — Bottom tab bar', () => {
    * Criterion: "The bottom tab bar persists ... and Home is the active tab." —
    *  the four tabs render and there is no central button (DECISIONS #88).
    */
-  it('renders the four tabs and no central button', async () => {
+  it('renders the four tabs and the central create button', async () => {
     await render(<TabsLayout />);
 
     // The bar is icon-only (compact redesign) — tabs are identified by their
@@ -104,8 +120,37 @@ describe('S5 — Bottom tab bar', () => {
     expect(screen.getByLabelText('Rede')).toBeTruthy();
     expect(screen.getByLabelText('Perfil')).toBeTruthy();
 
-    expect(screen.queryByLabelText('Jogar')).toBeNull();
-    expect(screen.getAllByRole('button')).toHaveLength(4);
+    expect(screen.getByLabelText('Criar')).toBeTruthy();
+    expect(screen.getAllByRole('button')).toHaveLength(5);
+  });
+
+  /** The "+" opens the sheet; each option navigates and closes it. */
+  it('opens the create sheet from the central button', async () => {
+    await render(<TabsLayout />);
+    expect(screen.queryByTestId('create-sheet')).toBeNull();
+
+    await fireEvent.press(screen.getByLabelText('Criar'));
+    expect(screen.getByTestId('create-sheet')).toBeTruthy();
+    expect(screen.getByText('O que você quer criar?')).toBeTruthy();
+
+    await fireEvent.press(screen.getByLabelText('Criar partida'));
+    expect(mockPush).toHaveBeenCalledWith('/matches/create');
+    expect(screen.queryByTestId('create-sheet')).toBeNull();
+
+    await fireEvent.press(screen.getByLabelText('Criar'));
+    await fireEvent.press(screen.getByLabelText('Criar publicação'));
+    expect(mockPush).toHaveBeenCalledWith('/network/new');
+    expect(screen.queryByTestId('create-sheet')).toBeNull();
+  });
+
+  it('closes the create sheet on Cancelar without navigating', async () => {
+    await render(<TabsLayout />);
+
+    await fireEvent.press(screen.getByLabelText('Criar'));
+    await fireEvent.press(screen.getByLabelText('Cancelar'));
+
+    expect(screen.queryByTestId('create-sheet')).toBeNull();
+    expect(mockPush).not.toHaveBeenCalled();
   });
 
   /**

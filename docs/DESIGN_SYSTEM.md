@@ -232,8 +232,11 @@ The same rule covers everything that is pressed like a button:
 - **Position cards** (onboarding step 1, DECISIONS #85): white, `rounded-btn`, 2px `line`
   border and a soft 4px hard shadow; the **selected** card takes a blue (`primary`) border and
   shadow, a pale blue fill (`bg-light-alt`), a blue icon box and a lime check in its radio.
-- **Home hero**: a blue (`primary`) card, "BORA PRA QUADRA?" in display type (white + lime),
-  holding "Criar partida" (lime) and "Buscar jogo" (white), both with the border and shadow.
+- **Home hero** (empty Home only): a blue (`primary`) card, a lime eyebrow, "BORA PRA QUADRA?"
+  in display type (white + lime) and translucent white chips; no buttons (DECISIONS #100).
+- **Tab bar "+"** and **`CreateSheet`**: the lime round "+" and the sheet's two wide options
+  ("Criar partida" lime, "Criar publicação" white) carry the border and shadow; the sheet card
+  has the 2px navy border and the shadow too (DECISIONS #98).
 - **Dialog** (`Dialog.tsx`): lime for the action, red (`danger`) for `destructive`, both with the
   border and shadow; `ghost` for `cancel`.
 - **On navy** the navy border and shadow cannot be seen, so `outlineW` / `outlineLime` carry a
@@ -294,7 +297,7 @@ For agents producing screen specs, the Quadra identity has these traits:
 
 ## Chrome, states and touch
 
-- **No glass.** Header and tab bar are solid surfaces with a hairline (`border-line`); no backdrop blur (DECISIONS #46).
+- **No glass.** Header and tab bar are solid surfaces with a hairline (`border-line`); no backdrop blur (DECISIONS #46). The only blur is the backdrop behind `CreateSheet` (DECISIONS #98).
 - **Loading**: `SkeletonBlock`, sized to the content it replaces, slow opacity pulse.
 - **Empty / error**: `StateMessage` — one body-size line and at most one action.
 - **Press feedback**: Android ripple from `src/theme/layout.ts` (`PRESS_RIPPLE`, `PRESS_RIPPLE_ON_DARK`, `ICON_RIPPLE`); bare 24px icons take `hitSlop={ICON_HIT_SLOP}`.

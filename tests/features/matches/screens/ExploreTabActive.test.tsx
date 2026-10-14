@@ -20,6 +20,21 @@ jest.mock('@/components/domain/LocationGate',() => ({
   LocationGate: ({ children }: any) => children,
 }));
 
+// Blur (native) and the "+" icon -> plain Views.
+jest.mock('expo-blur', () => {
+  const ReactLocal = require('react');
+  const { View } = require('react-native');
+  const Plain = ReactLocal.forwardRef((props: any, ref: any) =>
+    ReactLocal.createElement(View, { ...props, ref }),
+  );
+  return { BlurView: Plain, BlurTargetView: Plain };
+});
+jest.mock('lucide-react-native', () => {
+  const { View } = require('react-native');
+  const ReactLocal = require('react');
+  return { Plus: (props: any) => ReactLocal.createElement(View, props) };
+});
+
 // safe-area insets -> zero (no provider under test).
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
