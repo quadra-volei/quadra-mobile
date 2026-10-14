@@ -881,9 +881,25 @@ describe('S12 — Match Detail screen', () => {
    */
   it('renders only the grad forward CTA in the organizer footer', async () => {
     await renderOrganizer();
+    await openPlayersTab();
     // the only grad button on screen is build-teams; participant primaries absent
     expect(variantOf(screen.getByTestId('build-teams'))).toBe('grad');
     expect(screen.queryByTestId('no-action')).toBeNull();
+  });
+
+  /**
+   * "Montar os times" works off the confirmed list, so it only shows on the
+   * Confirmados tab; the organizer's "Vou jogar" toggle shows on every tab.
+   */
+  it('shows Montar os times only on the Confirmados tab', async () => {
+    await renderOrganizer({ myParticipationType: 'REGULAR', myStatus: 'PENDENTE' });
+
+    expect(screen.queryByTestId('build-teams')).toBeNull();
+    expect(screen.getByTestId('organizer-presence')).toBeTruthy();
+
+    await openPlayersTab();
+    expect(screen.getByTestId('build-teams')).toBeTruthy();
+    expect(screen.getByTestId('organizer-presence')).toBeTruthy();
   });
 
   // ------------------------------------------- organizer presence (owner rule)
@@ -894,6 +910,7 @@ describe('S12 — Match Detail screen', () => {
    */
   it('offers the organizer a Vou jogar toggle while keeping Montar os times', async () => {
     await renderOrganizer({ myParticipationType: 'REGULAR', myStatus: 'PENDENTE' });
+    await openPlayersTab();
 
     const toggle = screen.getByTestId('organizer-presence');
     expect(variantOf(toggle)).toBe('ghost');
@@ -993,6 +1010,7 @@ describe('S12 — Match Detail screen', () => {
    */
   it('navigates to /matches/[id]/teams from Montar os times', async () => {
     await renderOrganizer();
+    await openPlayersTab();
 
     await act(async () => {
       fireEvent.press(screen.getByTestId('build-teams'));
@@ -1082,6 +1100,7 @@ describe('S12 — joining against the real backend', () => {
     });
     useAuthStore.setState({ userId: ORGANIZER_USER_ID });
     await renderScreen();
+    await openPlayersTab();
 
     const toggle = screen.getByTestId('organizer-presence');
     expect(toggle.props.accessibilityState?.disabled).toBe(true);

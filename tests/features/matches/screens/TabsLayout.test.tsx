@@ -39,6 +39,12 @@ jest.mock('@/components/icons/TabExploreIcon', () => ({ TabExploreIcon: tabIconS
 jest.mock('@/components/icons/TabNetworkIcon', () => ({ TabNetworkIcon: tabIconStub('network') }));
 jest.mock('@/components/icons/TabProfileIcon', () => ({ TabProfileIcon: tabIconStub('profile') }));
 
+// Signed-in profile for the "Perfil" tab avatar; no photo by default.
+let mockProfile: { avatarUrl?: string; firstName: string } | undefined;
+jest.mock('@/features/profile/api/getMyProfile', () => ({
+  useMyProfile: () => ({ data: mockProfile }),
+}));
+
 // expo-router: spyable router.push + a `Tabs` that renders only the `tabBar` prop
 // against a synthetic navigation state (Home active).
 const mockPush = jest.fn();
@@ -76,6 +82,7 @@ import { Keyboard } from 'react-native';
 import TabsLayout from '../../../../app/(tabs)/_layout';
 
 beforeEach(() => {
+  mockProfile = undefined;
   mockPush.mockClear();
   mockNavigate.mockClear();
   mockEmit.mockClear();
@@ -157,5 +164,21 @@ describe('S5 — Bottom tab bar', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith('explore');
     expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  /**
+   * "Perfil" shows the user's photo in a small circle (Instagram-style); with
+   * no photo it falls back to the regular profile icon.
+   */
+  it('shows the profile photo on the Perfil tab, or the icon without one', async () => {
+    await render(<TabsLayout />);
+    expect(screen.getByTestId('tab-icon-profile')).toBeTruthy();
+    expect(screen.queryByTestId('tab-profile-avatar')).toBeNull();
+
+    mockProfile = { avatarUrl: 'https://cdn.example/me.jpg', firstName: 'Ana' };
+    await render(<TabsLayout />);
+    expect(screen.getByTestId('tab-profile-avatar')).toBeTruthy();
+    expect(screen.getByLabelText('Avatar de Ana')).toBeTruthy();
+    expect(screen.queryByTestId('tab-icon-profile')).toBeNull();
   });
 });

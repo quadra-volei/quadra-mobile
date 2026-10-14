@@ -246,6 +246,8 @@ Source: the designer's `Quadra-App.html` (`SplashScreen`, `OnboardingScreen`) an
 | # | Decision | Why |
 | --- | --- | --- |
 | 92 | **The cover picked on S11 is uploaded and shown**: `createMatch` uploads it with `uploadProfilePhoto` (the profile photo's signed URL, so the key lives under `profiles/{me}/`) and sends `coverObjectKey`; the S12 hero shows `coverUrl` from the detail through `CourtImage`'s new `imageUri`, falling back to the tinted court. Without photo storage (503) the match is created without a cover. Cards and the Rede still use the tinted court. Only at creation: there is no edit-match screen. | Owner's ask (Johny, 2026-10-14): upload a match cover reusing the profile photo flow. Backend side in `quadra-api` DECISIONS #51. |
+| 93 | **The "Perfil" tab shows the user's photo**: when `useMyProfile` has an `avatarUrl`, the tab icon is that photo in a small circle (`Avatar` size `xs`) with a `primary` ring when the tab is active, Instagram-style. No photo, or still loading → the regular `TabProfileIcon`. | Owner's ask (Johny, 2026-10-14). |
+| 94 | **S12 "Montar os times" only on the Confirmados tab**: the organizer's forward CTA is hidden on Detalhes; the "Vou jogar" toggle stays on both tabs. | Owner's ask (Johny, 2026-10-14): building teams works off the confirmed list. |
 
 ## 2026-10-14 — Cover on the cards, map preview, draw errors
 
