@@ -39,6 +39,11 @@ jest.mock('@/components/icons/TabExploreIcon', () => ({ TabExploreIcon: tabIconS
 jest.mock('@/components/icons/TabNetworkIcon', () => ({ TabNetworkIcon: tabIconStub('network') }));
 jest.mock('@/components/icons/TabProfileIcon', () => ({ TabProfileIcon: tabIconStub('profile') }));
 
+// The Perfil tab reads the signed-in profile; no photo -> regular icon.
+jest.mock('@/features/profile/api/getMyProfile', () => ({
+  useMyProfile: () => ({ data: undefined }),
+}));
+
 // expo-router: a `Tabs` that renders only the `tabBar` prop against a synthetic
 // navigation state where Explore (index 1) is active.
 const mockPush = jest.fn();
