@@ -9,7 +9,7 @@ export type TagProps = {
   color?: string;
   /** Render a small leading dot in the label color. */
   dot?: boolean;
-  /** Navy outline, so a colored pill stays readable over a cover of any tint. */
+  /** White outline, so a colored pill stands out from a cover of any tint (even its own color). */
   outlined?: boolean;
 };
 
@@ -22,7 +22,7 @@ export type TagProps = {
 export function Tag({ children, bg = '#AADD00', color = '#0A0A3C', dot, outlined }: TagProps) {
   return (
     <View
-      className={`flex-row items-center rounded-pill px-[9px] py-1 ${outlined ? 'border-[1.5px] border-surface-dark' : ''}`}
+      className={`flex-row items-center rounded-pill px-[9px] py-1 ${outlined ? 'border-[1.5px] border-white' : ''}`}
       style={{ backgroundColor: bg, columnGap: 5 }}
     >
       {dot ? (
