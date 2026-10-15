@@ -89,6 +89,8 @@ export type MatchDetail = {
   priceLabel: string;
   /** Whether the match charges per session only, or also on a monthly plan. */
   pricePlan: PricePlan;
+  /** A recurring game (scores in its group ranking), whatever its prices. */
+  recurring?: boolean;
   /** "R$ 50" — the monthly price; present only when pricePlan is RECORRENTE. */
   priceMonthlyLabel?: string;
   /** Total slots; PresenceGrid renders empties beyond confirmed as "vaga". */

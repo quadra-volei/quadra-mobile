@@ -1,64 +1,53 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { Bell, ChevronDown } from 'lucide-react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { Bell } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { RankingRow } from '@/components/domain/RankingRow';
 import { Avatar } from '@/components/ui/Avatar';
+import { BackHeader } from '@/components/ui/BackHeader';
+import { FilterChip } from '@/components/ui/FilterChip';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
-import { FilterChip } from '@/components/ui/FilterChip';
-import { BackHeader } from '@/components/ui/BackHeader';
+import { POSITIONS, positionLabel, type Position } from '@/features/profile/schema/onboarding';
 import {
-  useGroupRanking,
-  useRankingGroupName,
+  useRanking,
+  useRankingGroups,
+  type RankingScope,
 } from '@/features/ranking/api/getGroupRanking';
 import type { RankingRow as RankingRowData } from '@/features/ranking/types/ranking';
-import { useAuthStore } from '@/stores/auth';
 import { colors, HERO_GRADIENT } from '@/theme/colors';
 import { ICON_HIT_SLOP } from '@/theme/layout';
 
 function noop() {}
 
-// ── Scope tabs (Amigos active/functional; Bairro/Geral disabled "Em breve") ──
-function ScopeTabs({
-  scope,
-  onSelectAmigos,
-}: {
-  scope: 'amigos';
-  onSelectAmigos: () => void;
-}) {
-  return (
-    <View className="flex-row gap-2 px-4 pb-2">
-      <FilterChip label="Bairro" selected={false} onPress={noop} disabled />
-      <FilterChip
-        label="Amigos"
-        selected={scope === 'amigos'}
-        onPress={onSelectAmigos}
-      />
-      <FilterChip label="Geral" selected={false} onPress={noop} disabled />
-    </View>
-  );
+function openPlayer(id: string) {
+  router.push(`/players/${id}`);
 }
 
-// ── Group selector: names the group being ranked. Inert — a user is ranked in
-// one group at a time (the recurring match they scored in most recently). ──
-function GroupSelector({ groupName }: { groupName: string }) {
+const SCOPES: { scope: RankingScope; label: string }[] = [
+  { scope: 'friends', label: 'Amigos' },
+  { scope: 'group', label: 'Grupos' },
+  { scope: 'general', label: 'Geral' },
+];
+
+const EMPTY_MESSAGE: Record<RankingScope, string> = {
+  friends: 'Ninguém que você segue pontuou neste mês. Jogos recorrentes contam pontos.',
+  group: 'Ninguém pontuou neste grupo neste mês',
+  general: 'Ninguém tem jogos suficientes neste mês ainda',
+};
+
+function ChipRow({ children }: { children: React.ReactNode }) {
   return (
-    <View className="px-4 pb-2">
-      <Pressable
-        className="flex-row items-center gap-1"
-        accessibilityRole="button"
-        accessibilityLabel="Selecionar grupo"
-        onPress={noop}
-      >
-        <Text className="font-body-semibold text-body-bold text-text-primary">
-          {groupName}
-        </Text>
-        <ChevronDown size={18} color={colors.surfaceDark} />
-      </Pressable>
-    </View>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerClassName="gap-2 px-4 pb-2"
+    >
+      {children}
+    </ScrollView>
   );
 }
 
@@ -76,9 +65,17 @@ function PodiumColumn({
   const pedestalHeight = isFirst ? 'h-24' : place === 2 ? 'h-16' : 'h-12';
 
   return (
-    <View className="items-center w-24">
-      <Avatar uri={undefined} name={row.name} size="lg" level={row.level} />
-      <Text className="font-body-semibold text-body-bold text-text-primary mt-2 text-center">
+    <Pressable
+      className="items-center w-24"
+      accessibilityRole="button"
+      accessibilityLabel={`${row.position}º, ${row.name}, ${row.score} pontos`}
+      onPress={() => openPlayer(row.playerId)}
+    >
+      <Avatar uri={row.photoUrl} name={row.name} size="lg" level={row.level} />
+      <Text
+        numberOfLines={1}
+        className="font-body-semibold text-body-bold text-text-primary mt-2 text-center"
+      >
         {row.name}
       </Text>
       <Text className="font-num text-primary text-body">{row.score}</Text>
@@ -90,17 +87,17 @@ function PodiumColumn({
             end={{ x: 1, y: 1 }}
             style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
           >
-            <Text className="font-num text-accent text-body">1º</Text>
+            <Text className="font-num text-accent text-body">{row.position}º</Text>
           </LinearGradient>
         </View>
       ) : (
         <View
           className={`bg-white rounded-card shadow-card items-center justify-center w-24 mt-2 ${pedestalHeight}`}
         >
-          <Text className="font-num text-text-muted text-body">{place}º</Text>
+          <Text className="font-num text-text-muted text-body">{row.position}º</Text>
         </View>
       )}
-    </View>
+    </Pressable>
   );
 }
 
@@ -131,63 +128,146 @@ function RankingSkeleton() {
   );
 }
 
+function seasonName(seasonStart: string): string {
+  return new Date(seasonStart).toLocaleDateString('pt-BR', {
+    month: 'long',
+    timeZone: 'America/Sao_Paulo',
+  });
+}
+
+/**
+ * Season ranking (quadra-api DECISIONS #63): Amigos · Grupos · Geral, filtered
+ * by court position. `?scope=group&groupId=` opens a group directly (match detail).
+ */
 export default function RankingScreen() {
-  const userId = useAuthStore((s) => s.userId);
-  // Local UI state: the only functional scope is "amigos" (Bairro/Geral disabled).
-  const [scope, setScope] = useState<'amigos'>('amigos');
-  const { data, isPending, isError, refetch } = useGroupRanking({ preview: false });
-  const groupName = useRankingGroupName();
+  const params = useLocalSearchParams<{ scope?: RankingScope; groupId?: string }>();
+  const [scope, setScope] = useState<RankingScope>(params.scope ?? 'friends');
+  const [pickedGroupId, setGroupId] = useState<string | undefined>(params.groupId);
+  const [position, setPosition] = useState<Position | undefined>();
 
-  const isMe = (row: RankingRowData) =>
-    userId != null ? row.playerId === userId : Boolean(row.isMe);
-
-  const top = data?.slice(0, 3) ?? [];
-  const rest = data?.slice(3) ?? [];
+  const groups = useRankingGroups();
+  const groupId = pickedGroupId ?? groups.data?.[0]?.id;
+  const ranking = useRanking({
+    scope,
+    groupId: scope === 'group' ? groupId : undefined,
+    position,
+  });
 
   const [headerHeight, setHeaderHeight] = useState(0);
 
+  const data = ranking.data;
+  const top = data?.rows.slice(0, 3) ?? [];
+  const rest = data?.rows.slice(3) ?? [];
+  const me = data?.me;
+  const meListed = me != null && data?.rows.some((r) => r.playerId === me.playerId);
+  const noGroups = scope === 'group' && groups.isSuccess && groups.data.length === 0;
+
+  let body: React.ReactNode;
+  if (noGroups) {
+    body = <StateMessage message="Jogue uma partida recorrente para ter o ranking do grupo" />;
+  } else if (ranking.isPending) {
+    body = <RankingSkeleton />;
+  } else if (ranking.isError) {
+    body = (
+      <StateMessage
+        message="Não foi possível carregar o ranking"
+        actionLabel="Tentar novamente"
+        onAction={() => ranking.refetch()}
+      />
+    );
+  } else if (data!.rows.length === 0) {
+    body = <StateMessage message={EMPTY_MESSAGE[scope]} />;
+  } else {
+    body = (
+      <>
+        <Podium top={top} />
+        {rest.length > 0 ? (
+          <View className="mx-4 mt-6 bg-white rounded-card shadow-card overflow-hidden">
+            {rest.map((row, i) => (
+              <Pressable
+                key={row.playerId}
+                accessibilityRole="button"
+                onPress={() => openPlayer(row.playerId)}
+              >
+                {i > 0 ? <View className="h-px bg-line mx-4" /> : null}
+                <RankingRow row={row} isMe={Boolean(row.isMe)} />
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+      </>
+    );
+  }
+
   return (
     <View className="flex-1 bg-bg-light">
-      <View style={{ flex: 1 }}>
-        <ScrollView
-          contentContainerClassName="pb-10"
-          contentContainerStyle={{ paddingTop: headerHeight }}
-        >
-          <ScopeTabs scope={scope} onSelectAmigos={() => setScope('amigos')} />
-          {groupName ? <GroupSelector groupName={groupName} /> : null}
+      <ScrollView
+        contentContainerClassName="pb-10"
+        contentContainerStyle={{ paddingTop: headerHeight }}
+      >
+        <ChipRow>
+          {SCOPES.map((s) => (
+            <FilterChip
+              key={s.scope}
+              label={s.label}
+              selected={scope === s.scope}
+              onPress={() => setScope(s.scope)}
+            />
+          ))}
+        </ChipRow>
 
-          {isPending ? (
-            <RankingSkeleton />
-          ) : isError ? (
-            <View className="mt-6">
-              <StateMessage
-                message="Não foi possível carregar o ranking"
-                actionLabel="Tentar novamente"
-                onAction={() => refetch()}
+        {scope === 'group' && groups.data && groups.data.length > 0 ? (
+          <ChipRow>
+            {groups.data.map((g) => (
+              <FilterChip
+                key={g.id}
+                label={g.name}
+                selected={groupId === g.id}
+                onPress={() => setGroupId(g.id)}
               />
-            </View>
-          ) : data.length === 0 ? (
-            <View className="mt-6">
-              <StateMessage message="Entre em uma partida recorrente para aparecer no ranking" />
-            </View>
-          ) : (
-            <>
-              <Podium top={top} />
+            ))}
+          </ChipRow>
+        ) : null}
 
-              {rest.length > 0 ? (
-                <View className="mx-4 mt-6 bg-white rounded-card shadow-card overflow-hidden">
-                  {rest.map((row, i) => (
-                    <View key={row.playerId}>
-                      {i > 0 ? <View className="h-px bg-line mx-4" /> : null}
-                      <RankingRow row={row} isMe={isMe(row)} />
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-            </>
-          )}
-        </ScrollView>
-      </View>
+        <ChipRow>
+          <FilterChip
+            label="Todas"
+            selected={position === undefined}
+            onPress={() => setPosition(undefined)}
+          />
+          {POSITIONS.map((p) => (
+            <FilterChip
+              key={p}
+              label={positionLabel(p) ?? p}
+              selected={position === p}
+              onPress={() => setPosition(p)}
+            />
+          ))}
+        </ChipRow>
+
+        {data ? (
+          <Text className="font-body text-caption text-text-muted px-4 pb-2">
+            Temporada de {seasonName(data.seasonStart)}
+            {scope === 'general' ? ` · mínimo de ${data.minMatches} jogos` : ''}
+          </Text>
+        ) : null}
+
+        <View className="mt-2">{body}</View>
+
+        {me && !meListed ? (
+          <View className="mx-4 mt-6">
+            <View className="bg-white rounded-card shadow-card overflow-hidden">
+              <RankingRow row={me} isMe />
+            </View>
+            {me.position == null && data ? (
+              <Text className="font-body text-caption text-text-muted mt-2 text-center">
+                Jogue mais {Math.max(data.minMatches - (me.matches ?? 0), 1)} jogo(s) neste mês
+                para entrar no ranking
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
+      </ScrollView>
 
       <BackHeader
         title="Ranking"

@@ -1,6 +1,6 @@
 /**
  * S8 / S9 — ranking and "partidas recentes" against the real backend contract
- * (F2.3 `GET /rankings/mine`, F2.1 `GET /profiles/me/match-history`), with
+ * (`GET /rankings?scope=friends`, F2.1 `GET /profiles/me/match-history`), with
  * `fetch` stubbed at the transport.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -46,12 +46,16 @@ beforeEach(async () => {
 });
 
 describe('useGroupRanking', () => {
-  it('maps my ranking to rows, flagging me, with the short list for the preview', async () => {
+  it('maps the friends season ranking to rows, flagging me, with the short list for the preview', async () => {
     fetchMock.mockResolvedValueOnce(
       respond(200, {
+        groupName: null,
+        minMatches: 1,
+        seasonStart: '2026-10-01T03:00:00Z',
+        callerEntry: null,
         items: [
-          { rank: 1, userId: 'user-ana', totalPoints: 30, displayName: 'Ana Souza', handle: 'ana', position: 'LEV' },
-          { rank: 2, userId: ME, totalPoints: 10, displayName: 'Renan Dias', handle: null, position: null },
+          { rank: 1, userId: 'user-ana', points: 30, matches: 1, displayName: 'Ana Souza', handle: 'ana', position: 'LEV', photoUrl: null },
+          { rank: 2, userId: ME, points: 10, matches: 2, displayName: 'Renan Dias', handle: null, position: null, photoUrl: 'https://p/me.jpg' },
         ],
       }),
     );
@@ -59,21 +63,11 @@ describe('useGroupRanking', () => {
     const { result } = await renderHook(() => useGroupRanking({ preview: true }), { wrapper });
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(requestedUrl()).toContain('/api/v1/rankings/mine?page=1&pageSize=4');
+    expect(requestedUrl()).toContain('/api/v1/rankings?scope=friends&page=1&pageSize=4');
     expect(result.current.data).toEqual([
-      { position: 1, playerId: 'user-ana', name: 'Ana Souza', subtitle: '@ana · Levantador', score: 30, isMe: false },
-      { position: 2, playerId: ME, name: 'Renan Dias', subtitle: '', score: 10, isMe: true },
+      { position: 1, playerId: 'user-ana', name: 'Ana Souza', subtitle: '@ana · Levantador · 1 jogo', score: 30, matches: 1, photoUrl: undefined, isMe: false },
+      { position: 2, playerId: ME, name: 'Renan Dias', subtitle: '2 jogos', score: 10, matches: 2, photoUrl: 'https://p/me.jpg', isMe: true },
     ]);
-  });
-
-  it('is empty when I am in no ranking yet (204)', async () => {
-    fetchMock.mockResolvedValueOnce(respond(204));
-
-    const { result } = await renderHook(() => useGroupRanking({ preview: false }), { wrapper });
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-    expect(requestedUrl()).toContain('pageSize=50');
-    expect(result.current.data).toEqual([]);
   });
 });
 
