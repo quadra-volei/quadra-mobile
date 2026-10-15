@@ -11,11 +11,22 @@ import { authorizedApiClient } from '@/lib/api/authorizedClient';
 /** Query key (ARCHITECTURE convention). */
 export const myProfileQueryKey = ['profile', 'me'] as const;
 
-// PLACEHOLDER: the backend has no XP / numeric level system yet (Gamification
-// only tracks group-ranking points), so the "Level N · XP x / y" bar shows a
-// neutral starting state instead of invented progress.
-// TODO(real-api): replace once the backend exposes player XP.
-const PLACEHOLDER_PROGRESS = { level: 1, xp: 0, xpToNext: 100 } as const;
+/** Points needed to reach level n: 10 × n × (n − 1) (API DECISIONS #57). */
+const pointsForLevel = (level: number) => 10 * level * (level - 1);
+
+/**
+ * "Level N · XP x / y": the level number and the points earned inside it, out
+ * of the points the level spans. A backend without these fields reads as level 1.
+ */
+export function toProgress(stats: ApiProfile['stats']): Pick<MyProfile, 'level' | 'xp' | 'xpToNext'> {
+  const level = stats.levelNumber ?? 1;
+  const floor = pointsForLevel(level);
+  return {
+    level,
+    xp: Math.max(0, (stats.totalPoints ?? 0) - floor),
+    xpToNext: (stats.nextLevelPoints ?? pointsForLevel(level + 1)) - floor,
+  };
+}
 
 type CurrentAccount = {
   phoneNumber: string | null;
@@ -49,7 +60,8 @@ export function toMyProfile(api: ApiProfile, phoneNumber: string | null): MyProf
     // the overall until serve/receive ratings exist.
     srv: api.skills.overall,
     rec: api.skills.overall,
-    ...PLACEHOLDER_PROGRESS,
+    ...toProgress(api.stats),
+    shareActivity: api.shareActivity ?? true,
   };
 }
 

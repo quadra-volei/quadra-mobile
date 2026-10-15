@@ -4,6 +4,7 @@ import { useState } from "react";
 import { FlatList, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { ActivityRow } from "@/components/domain/ActivityRow";
 import { MatchCardCompact } from "@/components/domain/MatchCardCompact";
 import { HomeHeroArt } from "@/components/icons/HomeHeroArt";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +13,7 @@ import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { IconButton } from "@/components/ui/IconButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { type ActivityLine, useFriendsActivity } from "@/features/activity/api/activityApi";
 import { useUpcomingMatches } from "@/features/matches/api/getUpcoming";
 import { formatStartsAt } from "@/features/matches/lib/formatWhen";
 import { pickNextGame } from "@/features/matches/lib/nextGame";
@@ -218,11 +220,87 @@ function UpcomingSection({
   );
 }
 
+function goActivityTarget(target: ActivityLine["target"]) {
+  router.push({ pathname: target.pathname, params: { id: target.id } });
+}
+function goAllActivity() {
+  router.push("/activity");
+}
+
+/**
+ * "ATIVIDADE DOS AMIGOS": what the players the user follows did, up to five
+ * lines in one card. Hidden while the user follows nobody. On the empty Home
+ * (`onlyWithItems`) it only shows up when there is something to show.
+ */
+function FriendsActivitySection({
+  userId,
+  onlyWithItems,
+}: {
+  userId: string;
+  onlyWithItems?: boolean;
+}) {
+  const follows = (useFollowState(userId).data?.followingCount ?? 0) > 0;
+  const { data, isPending, isError, refetch } = useFriendsActivity(follows);
+
+  if (!follows) return null;
+  if (onlyWithItems && !data?.length) return null;
+
+  const header = (
+    <SectionHeader title="ATIVIDADE DOS AMIGOS" actionLabel="Ver tudo" onAction={goAllActivity} />
+  );
+
+  if (isPending) {
+    return (
+      <>
+        {header}
+        <View testID="activity-loading" className="mx-4 mt-2 gap-2">
+          <SkeletonBlock className="h-[68px]" />
+          <SkeletonBlock className="h-[68px]" />
+        </View>
+      </>
+    );
+  }
+
+  if (isError) {
+    return (
+      <>
+        {header}
+        <StateMessage
+          message="Não foi possível carregar a atividade"
+          actionLabel="Tentar novamente"
+          onAction={() => refetch()}
+        />
+      </>
+    );
+  }
+
+  return (
+    <>
+      {header}
+      <View className="mx-4 mt-2 rounded-card border border-line bg-white shadow-card overflow-hidden">
+        {data.length === 0 ? (
+          <Text className="px-4 py-4 font-body text-caption text-text-muted">
+            Seus amigos ainda não jogaram esta semana
+          </Text>
+        ) : (
+          data.map((activity, i) => (
+            <View key={activity.id}>
+              {i > 0 ? <View className="h-px bg-line mx-4" /> : null}
+              <ActivityRow activity={activity} onPress={goActivityTarget} testID="activity-row" />
+            </View>
+          ))
+        )}
+      </View>
+    </>
+  );
+}
+
 export default function HomeScreen() {
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
 
   const upcoming = useUpcomingMatches();
+  const userId = useAuthStore((s) => s.userId);
 
   const nextGame = upcoming.data ? pickNextGame(upcoming.data) : undefined;
   // Empty Home: no upcoming match at all (so no next game either). Loading
@@ -254,6 +332,7 @@ export default function HomeScreen() {
             <UpcomingSection query={upcoming} nextGame={nextGame} />
           </>
         )}
+        {userId ? <FriendsActivitySection userId={userId} onlyWithItems={empty} /> : null}
       </ScrollView>
 
       {/* Screen header */}

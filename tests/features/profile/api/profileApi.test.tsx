@@ -75,7 +75,17 @@ const apiProfile: ApiProfile = {
   photoObjectKey: `profiles/${USER_ID}/photo/current.jpg`,
   onboardingCompleted: true,
   skills: { overall: 62, ace: 64, block: 60, attack: 60, defense: 64 },
-  stats: { matchesPlayed: 0, wins: 0, losses: 0, draws: 0, mvpsReceived: 0 },
+  stats: {
+    matchesPlayed: 2,
+    wins: 1,
+    losses: 1,
+    draws: 0,
+    mvpsReceived: 0,
+    totalPoints: 35,
+    levelNumber: 2,
+    nextLevelPoints: 60,
+  },
+  shareActivity: false,
 };
 
 const fetchMock = jest.fn();
@@ -266,12 +276,14 @@ describe('useMyProfile', () => {
       blk: 60,
       ata: 60,
       def: 64,
-      // Placeholders until the backend has serve/receive ratings and XP.
+      // Placeholders until the backend has serve/receive ratings.
       srv: 62,
       rec: 62,
-      level: 1,
-      xp: 0,
-      xpToNext: 100,
+      // 35 points: level 2 (20 points) on the way to level 3 (60).
+      level: 2,
+      xp: 15,
+      xpToNext: 40,
+      shareActivity: false,
     });
   });
 

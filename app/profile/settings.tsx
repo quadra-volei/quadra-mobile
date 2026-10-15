@@ -9,6 +9,7 @@ import {
   MapPin,
   MessageSquare,
   User,
+  Users,
 } from 'lucide-react-native';
 import { type ReactNode, useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
@@ -16,7 +17,9 @@ import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
+import { ToggleField } from '@/components/ui/ToggleField';
 import { BackHeader } from '@/components/ui/BackHeader';
+import { useSetActivitySharing } from '@/features/activity/api/activityApi';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import { positionLabel } from '@/features/profile/schema/onboarding';
 import { logout } from '@/lib/auth/logout';
@@ -189,6 +192,24 @@ function SummaryCard() {
   );
 }
 
+// "Mostrar minhas atividades para quem me segue" (on by default). Follows the
+// tap while the server answers; the profile in the cache takes the result.
+function ActivitySharingToggle() {
+  const { data } = useMyProfile();
+  const setSharing = useSetActivitySharing();
+  const value = setSharing.isPending ? (setSharing.variables ?? true) : (data?.shareActivity ?? true);
+  return (
+    <ToggleField
+      icon={<Users size={24} color={colors.surfaceDark} />}
+      title="Mostrar minhas atividades"
+      caption="Quem te segue vê quando você joga, é MVP ou sobe de nível"
+      value={value}
+      onValueChange={(enabled) => setSharing.mutate(enabled)}
+      testID="activity-sharing-switch"
+    />
+  );
+}
+
 export default function SettingsScreen() {
   const queryClient = useQueryClient();
   const theme = useThemeStore((s) => s.theme);
@@ -279,6 +300,12 @@ export default function SettingsScreen() {
                 void Linking.openSettings();
               }}
             />
+          </View>
+
+          {/* PRIVACIDADE */}
+          <SectionLabel>Privacidade</SectionLabel>
+          <View className="mx-4">
+            <ActivitySharingToggle />
           </View>
 
           {/* SUPORTE */}

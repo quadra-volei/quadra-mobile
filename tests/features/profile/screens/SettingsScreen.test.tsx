@@ -92,6 +92,7 @@ jest.mock('lucide-react-native', () => {
     MapPin: stub('map-pin'),
     MessageSquare: stub('message-square'),
     User: stub('user'),
+    Users: stub('users'),
   };
 });
 
@@ -169,6 +170,12 @@ const mockProfile: {
   isError: false,
   refetch: jest.fn(),
 };
+
+// "Mostrar minhas atividades" switch: the mutation is mocked at the hook boundary.
+const mockSetSharing = jest.fn();
+jest.mock('@/features/activity/api/activityApi', () => ({
+  useSetActivitySharing: () => ({ mutate: mockSetSharing, isPending: false, variables: undefined }),
+}));
 
 jest.mock('@/features/profile/api/getMyProfile', () => ({
   useMyProfile: () => ({
@@ -451,5 +458,17 @@ describe('S10 — Settings list screen', () => {
     expect(screen.queryByText('Explorar')).toBeNull();
     expect(screen.queryByText('Rede')).toBeNull();
     expect(screen.queryByText('Perfil')).toBeNull();
+  });
+
+  it('shows the activity-sharing switch from the profile and saves a change', async () => {
+    mockProfile.data = { ...PROFILE_FIXTURE, shareActivity: true };
+    await renderScreen();
+
+    const toggle = screen.getByTestId('activity-sharing-switch');
+    expect(screen.getByText('Mostrar minhas atividades')).toBeTruthy();
+    expect(toggle.props.value).toBe(true);
+
+    fireEvent(toggle, 'valueChange', false);
+    expect(mockSetSharing).toHaveBeenCalledWith(false);
   });
 });

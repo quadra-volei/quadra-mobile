@@ -46,7 +46,15 @@ export type ApiProfile = {
     losses: number;
     draws: number;
     mvpsReceived: number;
+    /** Accumulated points: attendance +10, win +15, MVP +25. */
+    totalPoints?: number;
+    /** Level number reached with those points (starts at 1). */
+    levelNumber?: number;
+    /** Total points needed for the next level number. */
+    nextLevelPoints?: number;
   };
+  /** Only on my own profile: whether my followers see my activities. */
+  shareActivity?: boolean | null;
 };
 
 /** `PUT /api/v1/profiles/me` body. */
