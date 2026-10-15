@@ -5,7 +5,7 @@ import {
   Clock,
   Heart,
   MessageCircle,
-  Plus,
+  Bell,
   Settings,
   Trash2,
   Trophy,
@@ -39,6 +39,9 @@ import { MOTION } from '@/theme/motion';
 
 function goSettings() {
   router.push('/profile/settings');
+}
+function goNotifications() {
+  router.push('/profile/notifications');
 }
 function goNewPost() {
   router.push('/network/new');
@@ -298,8 +301,8 @@ export default function NetworkScreen() {
             REDE
           </Text>
           <View className="flex-row items-center gap-3">
-            <IconButton label="Novo post" onPress={goNewPost}>
-              <Plus size={20} color={colors.surfaceDark} />
+            <IconButton label="Notificações" onPress={goNotifications}>
+              <Bell size={20} color={colors.surfaceDark} />
             </IconButton>
             <IconButton label="Configurações" onPress={goSettings}>
               <Settings size={20} color={colors.surfaceDark} />

@@ -15,7 +15,7 @@ export type PhoneInputProps = {
 const MAX_DIGITS = 11;
 
 /** Formats national digits as "(11) 00000-0000" for display only. */
-function formatBR(digits: string): string {
+export function formatBR(digits: string): string {
   const d = digits.slice(0, MAX_DIGITS);
   if (d.length === 0) {
     return '';
