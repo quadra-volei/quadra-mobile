@@ -15,9 +15,9 @@ State of the MVP on the `dev` branch, as of 2026-10-06. Reasons for each choice 
 | S5 Home | `app/(tabs)/index.tsx` | My next confirmed game (one card), my other upcoming matches; "Atividade dos amigos" (up to 5, "Ver tudo" opens `app/activity.tsx`; hidden while following nobody); empty state with the hero (plus the friends' activity when there is some). Nearby matches are only in Explorar. Central "+" in the tab bar opens "Criar partida" / "Criar publicação" |
 | S6 Explore | `app/(tabs)/explore.tsx` | Search, "Filtros" sheet (sort, when, distance, format, level, price, open spots) plus quick chips, mini map of the results, results grid/list |
 | S7 Network | `app/(tabs)/network.tsx`, `app/network/new.tsx`, `app/network/[id].tsx`, `app/players/[id].tsx` | Feed in two tabs, "Para você" and "Seguindo" (who I follow): posts with text, one photo and a tied match, invite card with "Participar", the card of a match its organizer shared ("criou a partida"), likes, comments, delete my own. New post with text, one photo and either an upcoming open match of mine or one of my last 5 finished. Another player's profile with follow |
-| S8 Profile | `app/(tabs)/profile.tsx` | Progress card, recent matches (last 5), ranking preview |
+| S8 Profile | `app/(tabs)/profile.tsx` | Progress card, recent matches (last 5), friends season ranking preview |
 | S8b Player card | `app/profile/card.tsx` | Collectible card from the profile: rarity by GERAL (Bronze / Prata / Ouro / Elite), six ratings, level, share |
-| S9 Ranking | `app/profile/ranking.tsx` | Ranking of the recurring match where I scored most recently; "Bairro" and "Geral" tabs disabled |
+| S9 Ranking | `app/profile/ranking.tsx` | Season ranking (this month): Amigos · Grupos · Geral, position chips, group chips, podium and list open the player, my line with the games I miss (DECISIONS #117) |
 | S10 Settings | `app/profile/settings.tsx`, `edit.tsx`, `notifications.tsx`, `feedback.tsx` | Edit profile with photo upload, theme (light / dark / auto), "Mostrar minhas atividades" switch, feedback form, logout |
 | S11 Create match | `app/matches/create.tsx` | Address search with free text fallback, recurrence, privacy (open / code / guests), optional cover photo (shown on the S12 hero) |
 | S12 Match detail | `app/matches/[id].tsx` | Presence, join, waiting list, guests, invite code; the organizer's "Compartilhar na Rede", "Editar" and "Cancelar" (Detalhes tab); a cancelled match says so; says when confirmations open; main button follows the game |
@@ -46,8 +46,7 @@ Not built yet:
 
 - **Push notifications**: the notifications screen only stores local preferences; nothing is
   sent or received. The bell has no notification list behind it.
-- **Full match history** ("Ver tudo" on recent matches is inert) and a **group selector** on
-  the ranking.
+- **Full match history** ("Ver tudo" on recent matches is inert).
 - **Summary with rotating teams** does not say which pair played each set (backend limit).
 - **iOS**: only the Android test APK has been built.
 
@@ -55,9 +54,6 @@ Not built yet:
 
 Human rulings (do not build without a new decision):
 
-- **Recurring match = one game** (2026-07-03, confirmed 2026-10-06): the backend generates no
-  future occurrences, so a ranking holds the points of a single game and there is nothing to
-  show as weekly progress.
 - **Apple login**: deferred.
 - **Per-player stats input** after a game (self-reported ACE/BLK/ATA/DEF): out; the summary
   block is display-only.
@@ -65,7 +61,7 @@ Human rulings (do not build without a new decision):
 
 Rede (social feed, in scope since 2026-10-09, DECISIONS #66 to #83): each next step waits for
 the owner's approval. Not built yet: followers / following lists, opening a player from a
-roster or the ranking, friends ranking, a match's posts, several photos, video, posts on a
+roster, a match's posts, several photos, video, posts on a
 profile, reporting a post, notifications for likes, comments and follows.
 
 Never part of the MVP (Layer 3):
@@ -73,7 +69,7 @@ Never part of the MVP (Layer 3):
 - Stories; friend suggestions; contacts sync
 - Player search; player rating after a match; per-player OVR on rosters
 - Court and arena screens with reviews
-- Achievements gallery; city ("Bairro") and global ("Geral") rankings
+- Achievements gallery; city ("Bairro") ranking
 - Premium upsell, in-app purchases, billing
 - Chat; generated shareable image; onboarding tutorial
 - Granular notification settings; languages other than Portuguese

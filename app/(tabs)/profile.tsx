@@ -251,7 +251,7 @@ function RankingPreviewRow({ row, isMe }: { row: RankingRow; isMe: boolean }) {
       >
         {row.position}
       </Text>
-      <Avatar name={row.name} size="sm" level={row.level} />
+      <Avatar uri={row.photoUrl} name={row.name} size="sm" level={row.level} />
       <View className="flex-1 ml-3">
         <Text className="font-body-semibold text-body-bold text-text-on-dark">
           {row.name}
@@ -272,7 +272,7 @@ function RankingPreviewRow({ row, isMe }: { row: RankingRow; isMe: boolean }) {
   );
 }
 
-// ── Ranking semanal (dark preview card; "Meus amigos" relabeled to ranking) ──
+// ── Ranking da temporada (friends; dark preview card; "Meus amigos" relabeled to ranking) ──
 function RankingSection() {
   const userId = useAuthStore((s) => s.userId);
   const { data, isPending, isError, refetch } = useGroupRanking({
@@ -300,7 +300,7 @@ function RankingSection() {
     // title is "Meus amigos"; this brightLime label names the card's content.
     <View className="mx-4 mt-2 rounded-card overflow-hidden bg-surface-dark p-4">
       <Text className="font-body-bold text-caption text-accent-light mb-3">
-        Ranking semanal
+        Ranking da temporada · amigos
       </Text>
       {data.length === 0 ? (
         <StateMessage

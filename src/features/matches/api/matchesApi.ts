@@ -343,6 +343,7 @@ export function toMatchDetail(api: ApiMatchDetail, userId: string | null): Match
     coverUrl: api.coverUrl ?? undefined,
     priceLabel: formatPriceLabel(match.price),
     pricePlan: monthly ? 'RECORRENTE' : 'AVULSO',
+    recurring: match.type === 'Recurring',
     priceMonthlyLabel: monthly ? formatPriceLabel(match.priceMonthly) : undefined,
     capacity: match.maxPlayers,
     startsAt: match.dateTime,

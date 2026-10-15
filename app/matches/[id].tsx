@@ -11,6 +11,7 @@ import {
   Pencil,
   Play,
   Share2,
+  Trophy,
   XCircle,
   UserPlus,
 } from 'lucide-react-native';
@@ -571,6 +572,25 @@ export default function MatchDetailScreen() {
                 testID="share-to-feed"
               >
                 Compartilhar na Rede
+              </Button>
+            </View>
+          ) : null}
+
+          {/* Points of a recurring game add up in its group ranking (API DECISIONS #63). */}
+          {match.recurring ? (
+            <View className="mt-3">
+              <Button
+                variant="outline"
+                onPress={() =>
+                  router.push({
+                    pathname: '/profile/ranking',
+                    params: { scope: 'group', groupId: match.id },
+                  })
+                }
+                leftIcon={<Trophy size={18} color={colors.surfaceDark} />}
+                testID="group-ranking"
+              >
+                Ranking do grupo
               </Button>
             </View>
           ) : null}

@@ -412,7 +412,7 @@ More UI primitives will live here:
 ### `RankingRow`
 - **Path**: `src/components/domain/RankingRow.tsx`
 - **Category**: domain
-- **Props**: `{ row: RankingRow; isMe: boolean; testID?: string }` where `RankingRow = { position: number; playerId: string; name: string; subtitle: string; score: number; isMe?: boolean; trend?: { direction: 'up' | 'down' | 'flat'; delta: number } }` (from `@/features/ranking/types/ranking`)
+- **Props**: `{ row: RankingRow; isMe: boolean; testID?: string }` where `RankingRow = { position: number | null; playerId: string; name: string; subtitle: string; score: number; photoUrl?: string; matches?: number; isMe?: boolean; trend?: { direction: 'up' | 'down' | 'flat'; delta: number } }` (from `@/features/ranking/types/ranking`)
 - **Used in**: S9 Ranking (position-4+ list). Available to S8 to replace its inline preview rows later (not required yet).
 - **Example**:
   ```tsx

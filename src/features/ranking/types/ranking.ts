@@ -8,8 +8,12 @@
  * `useAuthStore().userId` matched against `playerId` (see S8 spec impl notes).
  */
 export type RankingRow = {
-  /** 1-based standing position. */
-  position: number;
+  /** 1-based standing position; null when the player does not qualify yet (too few games). */
+  position: number | null;
+  /** Short-lived photo URL. */
+  photoUrl?: string;
+  /** Games played this season. */
+  matches?: number;
   /** Stable player id (matched against the auth userId for the "você" row). */
   playerId: string;
   name: string;
