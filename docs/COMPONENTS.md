@@ -358,6 +358,13 @@ More UI primitives will live here:
   ```
 - **Notes**: Image-forward card mirroring the prototype's `NearbyCard`. A `<CourtImage>` cover (`height 172`) tinted per match by `match.tint`, with a dark bottom scrim. Top-left: a stacked `<Tag>` pair — a translucent-white format tag + a lime level tag. Overlaid bottom block: a `MapPin` distance in `font-mono` brightLime (`"1,2 km"`, comma decimal), the venue name (`font-body-bold`, single line, white), and a row with a `Users` confirmed/capacity and a `font-num` brightLime price. Single `accessibilityRole="button"` target announcing name + distance. Receives plain data via props; never fetches. No hardcoded hex — colors come from `src/theme/colors.ts`.
 
+### `PlayerCard`
+- **Path**: `src/components/domain/PlayerCard.tsx`
+- **Category**: domain
+- **Props**: `{ profile: MyProfile; testID?: string }`
+- **Used in**: S8b Player card (`app/profile/card.tsx`)
+- **Notes**: Collectible trading card (DECISIONS #113). Rarity from GERAL via `cardRarity` (`src/theme/cardRarity.ts`): Bronze < 60, Prata 60–69, Ouro 70–79, Elite 80+ (brand blue → lime foil). Metallic `LinearGradient` frame, GERAL + position in the top corner, rarity tag, photo in a foil ring over faint court lines (SVG), name on a foil ribbon, six ratings in two columns (ATA/ACE/SRV · DEF/BLK/REC), footer with the level chip (`levelTier`), the wordmark and a card number from the profile id. A light band sweeps across it in a loop (reanimated; skipped with the system reduce-motion setting).
+
 ### `MatchCardCompact`
 - **Path**: `src/components/domain/MatchCardCompact.tsx`
 - **Category**: domain

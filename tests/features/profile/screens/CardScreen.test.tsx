@@ -180,6 +180,15 @@ describe('S8b — Carta do Jogador', () => {
     expect(screen.getByText('24')).toBeTruthy(); // REC
   });
 
+  it('shows the rarity from GERAL and no premium note', async () => {
+    await render(<CardScreen />);
+
+    // GERAL 68 → Prata (60–69).
+    expect(screen.getByText('PRATA')).toBeTruthy();
+    expect(screen.getByText('NV 15')).toBeTruthy();
+    expect(screen.queryByText(/Premium/)).toBeNull();
+  });
+
   it('opens the native share sheet from "Compartilhar carta"', async () => {
     await render(<CardScreen />);
 

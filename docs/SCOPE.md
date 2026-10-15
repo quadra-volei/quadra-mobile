@@ -16,7 +16,7 @@ State of the MVP on the `dev` branch, as of 2026-10-06. Reasons for each choice 
 | S6 Explore | `app/(tabs)/explore.tsx` | Search, filter chips, map preview, results grid |
 | S7 Network | `app/(tabs)/network.tsx`, `app/network/new.tsx`, `app/network/[id].tsx`, `app/players/[id].tsx` | Feed in two tabs, "Para você" and "Seguindo" (who I follow): posts with text, one photo and a tied match, invite card with "Participar", the card of a match its organizer shared ("criou a partida"), likes, comments, delete my own. New post with text, one photo and either an upcoming open match of mine or one of my last 5 finished. Another player's profile with follow |
 | S8 Profile | `app/(tabs)/profile.tsx` | Progress card, recent matches (last 5), ranking preview |
-| S8b Player card | `app/profile/card.tsx` | Reads the profile |
+| S8b Player card | `app/profile/card.tsx` | Collectible card from the profile: rarity by GERAL (Bronze / Prata / Ouro / Elite), six ratings, level, share |
 | S9 Ranking | `app/profile/ranking.tsx` | Ranking of the recurring match where I scored most recently; "Bairro" and "Geral" tabs disabled |
 | S10 Settings | `app/profile/settings.tsx`, `edit.tsx`, `notifications.tsx`, `feedback.tsx` | Edit profile with photo upload, theme (light / dark / auto), "Mostrar minhas atividades" switch, feedback form, logout |
 | S11 Create match | `app/matches/create.tsx` | Address search with free text fallback, recurrence, privacy (open / code / guests), optional cover photo (shown on the S12 hero) |
