@@ -12,13 +12,13 @@ State of the MVP on the `dev` branch, as of 2026-10-06. Reasons for each choice 
 | S2 Login | `app/(auth)/login.tsx` | Phone (SMS) and Google; no Apple, no password |
 | S3 SMS code | `app/(auth)/sms-otp.tsx` | 6 digits, resend countdown |
 | S4 Onboarding | `app/(auth)/onboarding.tsx` | Name, surname, birth date, `@handle` (checked while typing), position, level, modality |
-| S5 Home | `app/(tabs)/index.tsx` | My next confirmed game (one card), my other upcoming matches; empty state with the hero. Nearby matches are only in Explorar. "Atividade dos amigos" is on hold (owner's call; needs a backend source, DECISIONS #104). Central "+" in the tab bar opens "Criar partida" / "Criar publicação" |
+| S5 Home | `app/(tabs)/index.tsx` | My next confirmed game (one card), my other upcoming matches; "Atividade dos amigos" (up to 5, "Ver tudo" opens `app/activity.tsx`; hidden while following nobody); empty state with the hero (plus the friends' activity when there is some). Nearby matches are only in Explorar. Central "+" in the tab bar opens "Criar partida" / "Criar publicação" |
 | S6 Explore | `app/(tabs)/explore.tsx` | Search, filter chips, map preview, results grid |
 | S7 Network | `app/(tabs)/network.tsx`, `app/network/new.tsx`, `app/network/[id].tsx`, `app/players/[id].tsx` | Feed in two tabs, "Para você" and "Seguindo" (who I follow): posts with text, one photo and a tied match, invite card with "Participar", the card of a match its organizer shared ("criou a partida"), likes, comments, delete my own. New post with text, one photo and either an upcoming open match of mine or one of my last 5 finished. Another player's profile with follow |
 | S8 Profile | `app/(tabs)/profile.tsx` | Progress card, recent matches (last 5), ranking preview |
 | S8b Player card | `app/profile/card.tsx` | Reads the profile |
 | S9 Ranking | `app/profile/ranking.tsx` | Ranking of the recurring match where I scored most recently; "Bairro" and "Geral" tabs disabled |
-| S10 Settings | `app/profile/settings.tsx`, `edit.tsx`, `notifications.tsx`, `feedback.tsx` | Edit profile with photo upload, theme (light / dark / auto), feedback form, logout |
+| S10 Settings | `app/profile/settings.tsx`, `edit.tsx`, `notifications.tsx`, `feedback.tsx` | Edit profile with photo upload, theme (light / dark / auto), "Mostrar minhas atividades" switch, feedback form, logout |
 | S11 Create match | `app/matches/create.tsx` | Address search with free text fallback, recurrence, privacy (open / code / guests), optional cover photo (shown on the S12 hero) |
 | S12 Match detail | `app/matches/[id].tsx` | Presence, join, waiting list, guests, invite code; the organizer's "Compartilhar na Rede" (Detalhes tab); says when confirmations open; main button follows the game |
 | S13 Teams | `app/matches/[id]/teams.tsx` | Team setup (count, players per team, draw mode) and draw on the backend (balanced or random), 2 to 4 teams; says who fits and who sat out; after the draw the organizer taps a player to move them to another team |
@@ -37,7 +37,7 @@ Waiting on configuration (no code):
 
 Neutral placeholders, because the backend has no such data yet:
 
-- Level / XP bar (Level 1, 0 XP) and "Meu desempenho" in the summary (zeros)
+- "Meu desempenho" in the summary (zeros). The Level / XP bar is real since #111.
 - SRV / REC on the player card (shown equal to the overall)
 - Ranking trend arrows and level dots on rosters (absent)
 

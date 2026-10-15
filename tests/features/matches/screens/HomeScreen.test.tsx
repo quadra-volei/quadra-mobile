@@ -76,6 +76,9 @@ jest.mock('lucide-react-native', () => {
     Plus: stub('plus'),
     Search: stub('search'),
     Volleyball: stub('volleyball'),
+    ArrowUp: stub('arrow-up'),
+    Check: stub('check'),
+    Star: stub('star'),
   };
 });
 
@@ -136,6 +139,50 @@ jest.mock('@/features/network/api/postsApi', () => ({
   useFollowState: () => ({
     data: { followersCount: 0, followingCount: mockFollow.followingCount, followedByMe: false },
   }),
+  timeAgo: () => 'há 18 min',
+}));
+
+// Friends' activity (ATIVIDADE DOS AMIGOS), mocked at the hook boundary.
+import type { Activity } from '@/features/activity/api/activityApi';
+
+const ACTIVITY_FIXTURE: Activity[] = [
+  {
+    id: 'act-1',
+    type: 'LevelUp',
+    actor: { userId: 'caio', displayName: 'Caio', handle: 'caio', photoUrl: null, level: 16 },
+    match: null,
+    othersCount: 0,
+    outcome: null,
+    setsWon: null,
+    setsLost: null,
+    levelFrom: 15,
+    levelTo: 16,
+    occurredAt: '2026-10-14T20:00:00Z',
+  },
+  {
+    id: 'act-2',
+    type: 'MatchEnded',
+    actor: { userId: 'erica', displayName: 'Érica', handle: 'erica', photoUrl: null, level: 18 },
+    match: { id: 'm-9', name: 'Vôlei de Quinta' },
+    othersCount: 0,
+    outcome: 'Win',
+    setsWon: 2,
+    setsLost: 1,
+    levelFrom: null,
+    levelTo: null,
+    occurredAt: '2026-10-14T19:30:00Z',
+  },
+];
+
+const mockActivity = {
+  data: ACTIVITY_FIXTURE as Activity[] | undefined,
+  isPending: false,
+  isError: false,
+  refetch: jest.fn(),
+};
+jest.mock('@/features/activity/api/activityApi', () => ({
+  ...jest.requireActual('@/features/activity/api/activityApi'),
+  useFriendsActivity: () => mockActivity,
 }));
 jest.mock('@/stores/auth', () => ({
   useAuthStore: (select: (s: { userId: string }) => unknown) => select({ userId: 'me' }),
@@ -158,7 +205,7 @@ jest.mock('@/features/matches/api/getUpcoming', () => ({
   }),
 }));
 
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import HomeScreen from '../../../../app/(tabs)/index';
 
@@ -172,6 +219,10 @@ function resetUpcoming() {
 beforeEach(() => {
   mockPush.mockClear();
   mockFollow.followingCount = 0;
+  mockActivity.data = ACTIVITY_FIXTURE;
+  mockActivity.isPending = false;
+  mockActivity.isError = false;
+  mockActivity.refetch.mockClear();
   resetUpcoming();
 });
 
@@ -379,5 +430,86 @@ describe('S5 — Home screen', () => {
     fireEvent.press(screen.getByLabelText('Configurações'));
 
     expect(mockPush).toHaveBeenCalledWith('/profile/settings');
+  });
+
+  // ---------------------------------------------------- friends' activity
+  describe('ATIVIDADE DOS AMIGOS', () => {
+    it('is hidden while the user follows nobody', async () => {
+      await render(<HomeScreen />);
+
+      expect(screen.queryByText('ATIVIDADE DOS AMIGOS')).toBeNull();
+    });
+
+    it('lists what the followed players did, with their level number', async () => {
+      mockFollow.followingCount = 3;
+      await render(<HomeScreen />);
+
+      expect(screen.getByText('ATIVIDADE DOS AMIGOS')).toBeTruthy();
+      expect(screen.getAllByTestId('activity-row')).toHaveLength(2);
+      expect(screen.getByText('nível 16')).toBeTruthy();
+      expect(screen.getByText('Novo nível desbloqueado · há 18 min')).toBeTruthy();
+      expect(screen.getByText('Vitória por 2 sets a 1 · há 18 min')).toBeTruthy();
+      expect(screen.getAllByTestId('avatar-level-badge').map((b) => b.props.accessibilityLabel)).toEqual([
+        'Nível 16',
+        'Nível 18',
+      ]);
+    });
+
+    it("opens the friend's profile for a level up and the match for a game", async () => {
+      mockFollow.followingCount = 3;
+      await render(<HomeScreen />);
+
+      const rows = screen.getAllByTestId('activity-row');
+      await act(async () => {
+        fireEvent.press(rows[0]!);
+        fireEvent.press(rows[1]!);
+      });
+
+      expect(mockPush).toHaveBeenNthCalledWith(1, { pathname: '/players/[id]', params: { id: 'caio' } });
+      expect(mockPush).toHaveBeenNthCalledWith(2, { pathname: '/matches/[id]', params: { id: 'm-9' } });
+    });
+
+    it('opens the full list from "Ver tudo"', async () => {
+      mockFollow.followingCount = 3;
+      await render(<HomeScreen />);
+
+      fireEvent.press(screen.getByText('Ver tudo'));
+
+      expect(mockPush).toHaveBeenCalledWith('/activity');
+    });
+
+    it('says so when the friends did nothing yet', async () => {
+      mockFollow.followingCount = 3;
+      mockActivity.data = [];
+      await render(<HomeScreen />);
+
+      expect(screen.getByText('Seus amigos ainda não jogaram esta semana')).toBeTruthy();
+    });
+
+    it('shows its loading placeholder and its retry row', async () => {
+      mockFollow.followingCount = 3;
+      mockActivity.isPending = true;
+      mockActivity.data = undefined;
+      await render(<HomeScreen />);
+      expect(screen.getByTestId('activity-loading')).toBeTruthy();
+
+      mockActivity.isPending = false;
+      mockActivity.isError = true;
+      await render(<HomeScreen />);
+      fireEvent.press(screen.getAllByText('Tentar novamente').at(-1)!);
+      expect(mockActivity.refetch).toHaveBeenCalled();
+    });
+
+    it('joins the empty Home only when there is activity to show', async () => {
+      mockFollow.followingCount = 3;
+      mockUpcoming.data = [];
+      await render(<HomeScreen />);
+      expect(screen.getByTestId('home-hero')).toBeTruthy();
+      expect(screen.getAllByTestId('activity-row')).toHaveLength(2);
+
+      mockActivity.data = [];
+      await render(<HomeScreen />);
+      expect(screen.queryByText('Seus amigos ainda não jogaram esta semana')).toBeNull();
+    });
   });
 });

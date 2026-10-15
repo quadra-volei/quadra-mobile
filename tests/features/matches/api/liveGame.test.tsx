@@ -31,6 +31,7 @@ import {
   useAddPoint,
   useLiveGame,
   useStartSet,
+  TOO_EARLY_TO_START,
 } from '@/features/matches/api/liveGame';
 import type { ApiMatchDetail } from '@/features/matches/api/matchesApi';
 import {
@@ -314,6 +315,15 @@ describe('teams and live game', () => {
       teamAId: 'team-a',
       teamBId: 'team-c',
     });
+  });
+
+  it('starting before the match time explains why it was refused', async () => {
+    serve({ 'POST /scoreboard': { status: 422 } });
+
+    const settled = await run(() => useStartSet(MATCH), ['team-a', 'team-c'] as [string, string]);
+
+    expect(settled.status).toBe('rejected');
+    expect((settled as PromiseRejectedResult).reason.message).toBe(TOO_EARLY_TO_START);
   });
 
   it('starting a later set opens it between the picked teams', async () => {

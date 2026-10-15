@@ -64,7 +64,12 @@ export default function PlayerScreen() {
         ) : (
           <>
             <View className="bg-white rounded-card shadow-card p-4 items-center">
-              <Avatar uri={profile.data.photoUrl ?? undefined} name={profile.data.displayName} size="lg" />
+              <Avatar
+                uri={profile.data.photoUrl ?? undefined}
+                name={profile.data.displayName}
+                size="lg"
+                level={profile.data.stats.levelNumber}
+              />
               <Text className="mt-3 font-body-extrabold text-h3 text-text-primary text-center">
                 {profile.data.displayName}
               </Text>

@@ -369,6 +369,17 @@ More UI primitives will live here:
   ```
 - **Notes**: Light `bg-white rounded-card shadow-card` compact card (`w-[262px]`) mirroring the prototype's upcoming card. A `<CourtImage>` cover (`height 124`, flush top, `radius 0`) tinted by `match.tint` with the level badge (`LEVEL_BADGE[match.level]`, outlined `<Tag>`) top-left. Content block: the match name (`font-body-bold` 16px, single line), a `Clock` datetime rendered relatively (`"Hoje · 19h30"` / `"Amanhã · 20h00"` / `"20/06 · 19h30"` via `formatStartsAt` in `features/matches/lib/formatWhen.ts`, `font-body-semibold`), then a hairline footer with a confirmed-avatar stack (`expo-image`, max 3 + "+N" overflow) and two matched badges — `"N vagas"` (blue on blue-tint) and price (`font-body-bold`, green when "Grátis", else navy, on `bg-light`). Single `accessibilityRole="button"` target announcing name + datetime. Receives plain data via props; never fetches. No hardcoded hex — colors come from `src/theme/colors.ts`.
 
+### `ActivityRow`
+- **Path**: `src/components/domain/ActivityRow.tsx`
+- **Category**: domain
+- **Props**: `{ activity: Activity; onPress: (target) => void; now?: number; testID?: string }`
+- **Used in**: S5 Home (ATIVIDADE DOS AMIGOS), `app/activity.tsx` (Ver tudo)
+- **Example**:
+  ```tsx
+  <ActivityRow activity={item} onPress={(t) => router.push({ pathname: t.pathname, params: { id: t.id } })} />
+  ```
+- **Notes**: One friend's activity: `Avatar` (md) with the level-number badge, the sentence from `describeActivity` (name bold, object bold primary blue), a grey caption ("Vitória por 2 sets a 1 · há 42 min"), and a lilac `bg-quaternary/10` tile with the kind's icon (arrow up, check, ball, star). The parent draws the white card and the hairlines. Tap target is the whole row; it opens the match, or the friend's profile for a level up.
+
 ### `LevelBar`
 - **Path**: `src/components/domain/LevelBar.tsx`
 - **Category**: domain

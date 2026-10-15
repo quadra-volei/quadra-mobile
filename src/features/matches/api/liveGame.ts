@@ -199,8 +199,14 @@ export function useStartSet(matchId: string) {
       );
     }
     return postNextSet(matchId, teamAId, teamBId);
-  });
+  }, START_ERRORS);
 }
+
+/** The API refuses the game until 15 minutes before the match time (`422`). */
+export const TOO_EARLY_TO_START =
+  'A partida só pode começar a partir de 15 minutos antes do horário marcado.';
+
+const START_ERRORS = { 422: TOO_EARLY_TO_START };
 
 /** Key of the point mutations of a match (see `useAddPoint`). */
 export const scoreMutationKey = (matchId: string) =>
