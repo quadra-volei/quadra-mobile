@@ -85,6 +85,7 @@ jest.mock('lucide-react-native', () => {
     MapPin: stub('map-pin'),
     Megaphone: stub('megaphone'),
     Navigation: stub('navigation'),
+    Pencil: stub('pencil'),
     Play: stub('play'),
     Share2: stub('share2'),
     UserPlus: stub('user-plus'),
@@ -94,6 +95,7 @@ jest.mock('lucide-react-native', () => {
     Minus: stub('minus'),
     Plus: stub('plus'),
     X: stub('x'),
+    XCircle: stub('x-circle'),
   };
 });
 
@@ -252,6 +254,14 @@ jest.mock('@/features/network/api/postsApi', () => ({
   useShareMatch: () => ({
     mutate: mockShareMatch.mutate,
     isPending: mockShareMatch.isPending,
+  }),
+}));
+
+const mockCancelMatch = { mutate: jest.fn(), isPending: false };
+jest.mock('@/features/matches/api/editMatch', () => ({
+  useCancelMatch: () => ({
+    mutate: mockCancelMatch.mutate,
+    isPending: mockCancelMatch.isPending,
   }),
 }));
 
@@ -992,6 +1002,29 @@ describe('S12 — Match Detail screen', () => {
 
     expect(mockShareMatch.mutate).toHaveBeenCalledTimes(1);
     expect(typeof mockShareMatch.mutate.mock.calls[0][0]).toBe('string');
+  });
+
+  it('offers Editar and Cancelar while the match is editable', async () => {
+    await renderOrganizer({ editable: true });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('edit-match'));
+    });
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/matches/[id]/edit',
+      params: { id: 'mine-1' },
+    });
+    expect(screen.getByTestId('cancel-match')).toBeTruthy();
+  });
+
+  it('hides Editar and Cancelar once the match is no longer editable', async () => {
+    await renderOrganizer({ editable: false });
+    expect(screen.queryByTestId('edit-match')).toBeNull();
+    expect(screen.queryByTestId('cancel-match')).toBeNull();
+  });
+
+  it('shows a cancelled match as cancelled', async () => {
+    await renderOrganizer({ cancelled: true });
+    expect(screen.getByTestId('match-cancelled')).toBeTruthy();
   });
 
   it('does not offer Compartilhar na Rede to a participant', async () => {
