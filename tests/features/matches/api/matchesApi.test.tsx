@@ -366,6 +366,7 @@ describe('match lists', () => {
         confirmed: 9,
         capacity: 12,
         priceLabel: 'Grátis',
+        price: null,
         tint: '#00B4D8',
         lat: -23.57,
         lon: -46.62,

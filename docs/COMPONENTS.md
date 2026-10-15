@@ -442,6 +442,13 @@ More UI primitives will live here:
   ```
 - **Notes**: Bottom-sheet (`Modal transparent animationType="slide"`) with a RHF + Zod form — required `Nome` (`TextField`) + optional `Posição` (`FilterChip` row; tap again to clear). Form resets each time it opens. Backdrop tap and the close/× dismiss. Respects the bottom safe-area inset. Presentational: the parent owns the `useAddGuest` mutation and closes the sheet on success.
 
+### `ExploreFilterSheet`
+- **Path**: `src/components/domain/ExploreFilterSheet.tsx`
+- **Category**: domain
+- **Props**: `{ visible: boolean; value: ExploreFilters; source: NearbyMatch[]; onApply: (next: ExploreFilters) => void; onClose: () => void }` (`ExploreFilters` from `@/features/explore/lib/filters`)
+- **Used in**: S6 Explore — the "Filtros" button.
+- **Notes**: Bottom sheet like `AddGuestSheet`. Sections of `FilterChip`s (Ordenar por, Quando, Distância, Formato, Nível, Preço) plus a "Só com vaga aberta" `ToggleField`. Edits a draft; the sticky footer has "Limpar" and "Ver N partidas", N counted live with `applyFilters` over `source`. Nothing applies until "Ver"; closing discards the draft.
+
 ### `CreateSheet`
 - **Path**: `src/components/domain/CreateSheet.tsx`
 - **Category**: domain
