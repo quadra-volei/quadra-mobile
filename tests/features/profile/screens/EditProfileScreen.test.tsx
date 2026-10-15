@@ -71,6 +71,12 @@ jest.mock('lucide-react-native', () => {
     ChevronLeft: stub('chevron-left'),
     Pencil: stub('pencil'),
     Calendar: stub('calendar'),
+    Check: stub('check'),
+    Share2: stub('share'),
+    ArrowUp: stub('arrow-up'),
+    Zap: stub('zap'),
+    ShieldCheck: stub('shield'),
+    Shuffle: stub('shuffle'),
   };
 });
 
@@ -239,7 +245,7 @@ describe('S10 — Edit-profile screen', () => {
     expect(screen.getByText('SOBRENOME')).toBeTruthy();
     expect(screen.getByText('APELIDO')).toBeTruthy();
     expect(screen.getByText('DATA DE NASCIMENTO')).toBeTruthy();
-    expect(screen.getByText('Número de telefone')).toBeTruthy();
+    expect(screen.getByText('NÚMERO DE TELEFONE')).toBeTruthy();
     expect(screen.getByText('Posição em quadra')).toBeTruthy();
 
     // pre-filled values
@@ -249,6 +255,8 @@ describe('S10 — Edit-profile screen', () => {
     expect(screen.getByTestId('edit-birth-date').props.value).toBe('14/03/1998');
     // phone renders the BR mask of the national digits
     expect(screen.getByTestId('edit-phone').props.value).toBe('(11) 98472-1130');
+    // the phone is the login identity: shown, never editable
+    expect(screen.getByTestId('edit-phone').props.editable).toBe(false);
 
     // exactly the 6 position chips, with LEV pre-selected (single-select)
     for (const code of ['LEV', 'PON', 'OPO', 'CEN', 'LIB', 'COR']) {
@@ -341,7 +349,6 @@ describe('S10 — Edit-profile screen', () => {
       lastName: 'Dias',
       handle: 'renan',
       birthDate: '14/03/1998',
-      phone: '11984721130',
       position: 'LEV',
     });
     expect(mockBack).toHaveBeenCalledTimes(1);

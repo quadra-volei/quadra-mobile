@@ -30,6 +30,9 @@ function goCard() {
 function goSettings() {
   router.push("/profile/settings");
 }
+function goNotifications() {
+  router.push("/profile/notifications");
+}
 // "Ver tudo" on MINHAS PARTIDAS has no full-history screen in MVP — the button is
 // present (matching the prototype) but inert until a history screen exists.
 function noop() {}
@@ -94,8 +97,10 @@ function ProfileHeader() {
           <SkeletonBlock className="h-8 w-32" />
         </View>
       )}
-      <View className="flex-row items-center gap-3">
-        <IconButton label="Notificações" onPress={() => {}}>
+      {/* Pinned to the top so the icons sit where the title-only tab headers put
+          them (their row is the 40px icon height; this one is the 48px avatar). */}
+      <View className="flex-row items-center gap-3 self-start">
+        <IconButton label="Notificações" onPress={goNotifications}>
           <Bell size={20} color={colors.surfaceDark} />
         </IconButton>
         <IconButton label="Configurações" onPress={goSettings}>

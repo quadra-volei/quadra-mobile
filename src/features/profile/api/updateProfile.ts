@@ -17,11 +17,9 @@ export type UpdateProfileResult = {
 /**
  * Saves the edit-profile form (S10) with `PUT /api/v1/profiles/me`.
  *
- * Two form fields are not persisted yet:
- *  - `phone` — it is the login identity and belongs to the Auth backend; the
- *    profile endpoint has no phone, so the value is echoed back unchanged.
- *  - `avatarUri` — photo upload is not wired (the backend's photo storage is
- *    optional and currently off); the current photo is kept.
+ * The phone is never sent: it is the login identity and the profile endpoint has
+ * no phone field. `avatarUri` is uploaded first when photo storage is on; without
+ * it the current photo is kept.
  *
  * Rejects with a pt-BR message ready for display — e.g. when the `@handle` is
  * already taken (409).

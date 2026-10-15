@@ -55,7 +55,6 @@ const editInput: EditProfileInput = {
   lastName: 'Dias',
   handle: 'renan_d',
   birthDate: '14/03/1998',
-  phone: '11984721130',
   position: 'LIB',
   avatarUri: 'file:///tmp/new-avatar.jpg',
 };

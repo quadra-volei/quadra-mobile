@@ -16,8 +16,8 @@ import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { DateField } from "@/components/ui/DateField";
 import { BackHeader } from "@/components/ui/BackHeader";
-import { FilterChip } from "@/components/ui/FilterChip";
-import { PhoneInput } from "@/components/ui/PhoneInput";
+import { PositionGrid } from "@/components/domain/PositionPicker";
+import { formatBR } from "@/components/ui/PhoneInput";
 import { TextField } from "@/components/ui/TextField";
 import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { useUpdateProfile } from "@/features/profile/api/updateProfile";
@@ -25,7 +25,6 @@ import {
   editProfileSchema,
   type EditProfileInput,
 } from "@/features/profile/schema/editProfile";
-import { POSITION_OPTIONS } from "@/features/profile/schema/onboarding";
 import type { MyProfile } from "@/features/profile/types/profile";
 import { colors } from "@/theme/colors";
 import { DEFAULT_AVATAR } from "@/theme/defaultAvatars";
@@ -107,7 +106,6 @@ function EditProfileForm({
       lastName: profile.lastName ?? "",
       handle: profile.handle ?? "",
       birthDate: profile.birthDate ?? "",
-      phone: profile.phone ?? "",
       position: profile.position,
       avatarUri: undefined,
     },
@@ -259,45 +257,37 @@ function EditProfileForm({
           />
         </View>
 
-        {/* NÚMERO DE TELEFONE */}
-        <View className="mt-4">
-          <Text className="font-body-bold text-eyebrow text-text-primary uppercase mb-2">
-            Número de telefone
-          </Text>
-          <Controller
-            control={control}
-            name="phone"
-            render={({ field: { value, onChange } }) => (
-              <PhoneInput
-                value={value}
-                onChangeText={onChange}
-                country="BR"
-                error={errors.phone?.message}
-                testID="edit-phone"
-              />
-            )}
-          />
-        </View>
+        {/* NÚMERO DE TELEFONE — the login identity, shown read-only */}
+        {profile.phone ? (
+          <View className="mt-4">
+            <TextField
+              label="NÚMERO DE TELEFONE"
+              value={formatBR(profile.phone)}
+              editable={false}
+              onChangeText={() => {}}
+              testID="edit-phone"
+              leftAdornment={
+                <Text className="font-body-semibold text-body-bold text-primary">
+                  +55
+                </Text>
+              }
+            />
+          </View>
+        ) : null}
 
-        {/* POSIÇÃO EM QUADRA — single-select chips */}
-        <Text className="font-body-bold text-eyebrow text-text-primary uppercase mt-6 mb-2">
+        {/* POSIÇÃO EM QUADRA — same cards as the onboarding */}
+        <Text className="font-body-bold text-eyebrow text-text-primary uppercase mt-6 mb-3">
           Posição em quadra
         </Text>
         <Controller
           control={control}
           name="position"
           render={({ field: { value, onChange } }) => (
-            <View className="flex-row flex-wrap gap-2">
-              {POSITION_OPTIONS.map((option) => (
-                <FilterChip
-                  key={option.code}
-                  label={option.name}
-                  selected={value === option.code}
-                  onPress={() => onChange(option.code)}
-                  testID={`edit-position-${option.code}`}
-                />
-              ))}
-            </View>
+            <PositionGrid
+              value={value}
+              onChange={onChange}
+              testIDPrefix="edit-position"
+            />
           )}
         />
         {errors.position ? (

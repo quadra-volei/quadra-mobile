@@ -467,6 +467,13 @@ More UI primitives will live here:
   ```
 - **Notes**: Rectangular match-cover banner (`h-40 rounded-card`) — distinct from the circular `Avatar`. With no `uri` it renders a navy `HERO_GRADIENT` (`expo-linear-gradient`) placeholder with a "CAPA DA PARTIDA" eyebrow, a dashed frame, and a pencil + "Trocar capa" affordance; once picked it shows the chosen image (`expo-image`, `contentFit="cover"`) with the same affordance overlaid. Presentational: the consuming screen owns the `expo-image-picker` invocation (passed via `onPress`); the component never touches the picker or fetches. Single `accessibilityRole="button"` announcing "Trocar capa da partida". No hardcoded hex — gradient/icon colors from `src/theme/colors.ts`.
 
+### `PositionGrid`
+- **Path**: `src/components/domain/PositionPicker.tsx`
+- **Category**: domain
+- **Props**: `{ value?: Position; onChange: (v: Position) => void; testIDPrefix?: string }` (cards are `${testIDPrefix}-${code}`, default `position`)
+- **Used in**: onboarding step 1, `app/profile/edit.tsx`
+- **Notes**: Single-select court-position cards of DECISIONS #85 (icon box, name, radio; blue border and hard shadow when chosen) plus the navy hint bar for the chosen position. Cards rise in (`useRiseIn`).
+
 ### `TeamRoster`
 - **Path**: `src/components/domain/TeamRoster.tsx`
 - **Category**: domain

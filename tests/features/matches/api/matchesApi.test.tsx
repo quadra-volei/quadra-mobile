@@ -373,7 +373,7 @@ describe('match lists', () => {
         capacity: 12,
         priceLabel: 'Grátis',
         price: null,
-        tint: '#00B4D8',
+        tint: '#1A1AFF',
         lat: -23.57,
         lon: -46.62,
       },

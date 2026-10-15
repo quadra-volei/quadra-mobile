@@ -25,7 +25,7 @@ jest.mock('lucide-react-native', () => {
     Clock: stub('clock'),
     Heart: stub('heart'),
     MessageCircle: stub('message'),
-    Plus: stub('plus'),
+    Bell: stub('bell'),
     Settings: stub('settings'),
     Trash2: stub('trash'),
     Trophy: stub('trophy'),
@@ -211,13 +211,13 @@ describe('S7 — Rede (feed)', () => {
     expect(mockPush).toHaveBeenCalledWith('/network/new');
   });
 
-  it('opens the new-post screen from the header', async () => {
+  it('opens the notifications from the header bell (new posts come from the tab bar +)', async () => {
     mockFeed.mockReturnValue(feedWith([post({})]));
 
     await render(<NetworkScreen />);
-    await fireEvent.press(screen.getByLabelText('Novo post'));
+    await fireEvent.press(screen.getByLabelText('Notificações'));
 
-    expect(mockPush).toHaveBeenCalledWith('/network/new');
+    expect(mockPush).toHaveBeenCalledWith('/profile/notifications');
   });
 
   it('offers a retry when the feed fails to load', async () => {

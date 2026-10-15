@@ -193,9 +193,9 @@ export function formatPriceLabel(price: number | null): string {
 
 /** Court-image cover tint per level, mirroring the prototype's level scale. */
 export function tintForLevel(level: MatchLevel): string {
-  if (level === 'INICIANTE') return '#00B4D8';
+  if (level === 'INICIANTE') return '#1A1AFF';
   if (level === 'AVANCADO') return '#6B1AFF';
-  return '#1A1AFF'; // INTERMEDIARIO
+  return '#00B4D8'; // INTERMEDIARIO
 }
 
 /** '1h30' → 90. */
