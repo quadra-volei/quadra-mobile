@@ -222,7 +222,7 @@ export default function RankingScreen() {
               <FilterChip
                 key={g.id}
                 label={g.name}
-                selected={groupId === g.id}
+                selected={(data?.groupId ?? groupId) === g.id}
                 onPress={() => setGroupId(g.id)}
               />
             ))}

@@ -54,9 +54,6 @@ Not built yet:
 
 Human rulings (do not build without a new decision):
 
-- **Recurring match = one game** (2026-07-03, confirmed 2026-10-06): the backend generates no
-  future occurrences, so a group ranking holds the points of a single game (the friends and
-  general rankings add up every recurring game).
 - **Apple login**: deferred.
 - **Per-player stats input** after a game (self-reported ACE/BLK/ATA/DEF): out; the summary
   block is display-only.

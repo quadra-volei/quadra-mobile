@@ -23,6 +23,8 @@ export type Ranking = {
   /** The signed-in player's line, even when outside the list or not qualified yet. */
   me: RankingRow | null;
   groupName: string | null;
+  /** The group ranked (its first game's id), whatever game id was asked for. */
+  groupId: string | null;
   /** Games needed this season to be ranked (3 in general, 1 elsewhere). */
   minMatches: number;
   /** First day of the season (ISO). */
@@ -43,6 +45,7 @@ type ApiRankingEntry = {
 };
 
 type ApiRanking = {
+  groupId: string | null;
   groupName: string | null;
   minMatches: number;
   seasonStart: string;
@@ -86,6 +89,7 @@ export async function getRanking(params: RankingParams, pageSize = FULL_SIZE): P
     rows: ranking.items.map((entry) => toRankingRow(entry, userId)),
     me: ranking.callerEntry ? toRankingRow(ranking.callerEntry, userId) : null,
     groupName: ranking.groupName,
+    groupId: ranking.groupId,
     minMatches: ranking.minMatches,
     seasonStart: ranking.seasonStart,
   };

@@ -113,8 +113,9 @@ const ROWS: RankingRow[] = [
 
 const RANKING: Ranking = {
   rows: ROWS,
-  me: ROWS[3],
+  me: ROWS[3] ?? null,
   groupName: null,
+  groupId: null,
   minMatches: 1,
   seasonStart: '2026-10-01T03:00:00Z',
 };
