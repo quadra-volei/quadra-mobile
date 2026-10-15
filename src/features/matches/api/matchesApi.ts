@@ -269,6 +269,7 @@ export function toNearbyMatch(item: ApiNearbyMatch): NearbyMatch {
     confirmed: item.confirmedCount,
     capacity: item.maxPlayers,
     priceLabel: formatPriceLabel(item.price),
+    price: item.price,
     tint: tintForLevel(level),
     coverUrl: item.coverUrl ?? undefined,
     venue: item.address,

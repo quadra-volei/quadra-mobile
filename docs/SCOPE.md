@@ -13,7 +13,7 @@ State of the MVP on the `dev` branch, as of 2026-10-06. Reasons for each choice 
 | S3 SMS code | `app/(auth)/sms-otp.tsx` | 6 digits, resend countdown |
 | S4 Onboarding | `app/(auth)/onboarding.tsx` | Name, surname, birth date, `@handle` (checked while typing), position, level, modality |
 | S5 Home | `app/(tabs)/index.tsx` | My next confirmed game (one card), my other upcoming matches; "Atividade dos amigos" (up to 5, "Ver tudo" opens `app/activity.tsx`; hidden while following nobody); empty state with the hero (plus the friends' activity when there is some). Nearby matches are only in Explorar. Central "+" in the tab bar opens "Criar partida" / "Criar publicação" |
-| S6 Explore | `app/(tabs)/explore.tsx` | Search, filter chips, map preview, results grid |
+| S6 Explore | `app/(tabs)/explore.tsx` | Search, "Filtros" sheet (sort, when, distance, format, level, price, open spots) plus quick chips, mini map of the results, results grid/list |
 | S7 Network | `app/(tabs)/network.tsx`, `app/network/new.tsx`, `app/network/[id].tsx`, `app/players/[id].tsx` | Feed in two tabs, "Para você" and "Seguindo" (who I follow): posts with text, one photo and a tied match, invite card with "Participar", the card of a match its organizer shared ("criou a partida"), likes, comments, delete my own. New post with text, one photo and either an upcoming open match of mine or one of my last 5 finished. Another player's profile with follow |
 | S8 Profile | `app/(tabs)/profile.tsx` | Progress card, recent matches (last 5), ranking preview |
 | S8b Player card | `app/profile/card.tsx` | Reads the profile |

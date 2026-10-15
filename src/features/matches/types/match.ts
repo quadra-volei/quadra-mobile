@@ -51,6 +51,8 @@ export type NearbyMatch = {
   capacity: number;
   /** "R$ 25" | "Grátis". */
   priceLabel: string;
+  /** Price in reais, null when free (Explore price filter). */
+  price?: number | null;
   /** Hex tint for the card's court-image cover gradient (tint → navy). */
   tint: string;
   /** The cover the organizer uploaded; without one the card shows the tinted court. */
