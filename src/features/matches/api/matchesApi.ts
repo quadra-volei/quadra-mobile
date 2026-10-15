@@ -1,4 +1,8 @@
-import type { CreateMatchInput } from '@/features/matches/schema/createMatch';
+import {
+  MATCH_DURATIONS,
+  type CreateMatchInput,
+} from '@/features/matches/schema/createMatch';
+import type { EditMatchInput } from '@/features/matches/schema/editMatch';
 import type {
   MatchFormat,
   MatchLevel,
@@ -43,6 +47,7 @@ export type ApiMatch = {
   format: string | null;
   level: string | null;
   durationMinutes: number | null;
+  description?: string | null;
   visibility: 'Open' | 'Private';
   inviteMode: 'Code' | 'Guests' | null;
   priceMonthly: number | null;
@@ -365,6 +370,12 @@ export function toMatchDetail(api: ApiMatchDetail, userId: string | null): Match
     inviteCode: api.inviteCode ?? undefined,
     myWaitingListPosition: api.myWaitingListPosition,
     game: toGameStage(api.game),
+    cancelled: match.status === 'Cancelled',
+    // The API refuses edits once the game started or the window closed (DECISIONS).
+    editable:
+      isOrganizer &&
+      (match.status === 'Draft' || windowOpen) &&
+      (!api.game || api.game.scoreboardState === 'NotStarted'),
   };
 }
 
@@ -399,6 +410,85 @@ export async function fetchNearbyMatches(params: {
     `${MATCHES_PATH}/nearby?lat=${params.lat}&lon=${params.lon}&radiusKm=${params.radiusKm}`,
   );
   return items;
+}
+
+/** `PUT /matches/{id}` body: the editable part. `coverObjectKey` null keeps the cover. */
+export type ApiUpdateMatch = {
+  name: string;
+  description: string | null;
+  address: string;
+  latitude: number;
+  longitude: number;
+  dateTime: string;
+  maxPlayers: number;
+  regularSlots: number;
+  price: number | null;
+  format: MatchFormat;
+  level: ApiMatchLevel;
+  durationMinutes: number;
+  priceMonthly: number | null;
+  coverObjectKey: string | null;
+};
+
+/** The edit form → `PUT /matches/{id}`. As at creation, every slot is a regular slot. */
+export function toApiUpdateMatch(
+  input: EditMatchInput,
+  dateTime: string,
+  coverObjectKey: string | null,
+): ApiUpdateMatch {
+  return {
+    name: input.name,
+    description: input.description.trim() || null,
+    address: input.location,
+    latitude: input.latitude,
+    longitude: input.longitude,
+    dateTime,
+    maxPlayers: input.players,
+    regularSlots: input.players,
+    price: input.price > 0 ? input.price : null,
+    format: input.format,
+    level: LEVEL_TO_API[input.level],
+    durationMinutes: toMinutes(input.duration),
+    priceMonthly: input.priceMonthly > 0 ? input.priceMonthly : null,
+    coverObjectKey,
+  };
+}
+
+/** `GET /matches/{id}/detail` → the edit form's starting values. */
+export function toEditMatchDefaults(api: ApiMatchDetail): EditMatchInput {
+  const { match } = api;
+  const start = new Date(match.dateTime);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const minutes = match.durationMinutes ?? 90;
+  return {
+    name: match.name,
+    description: match.description ?? '',
+    location: match.address,
+    latitude: match.latitude,
+    longitude: match.longitude,
+    date: `${pad(start.getDate())}/${pad(start.getMonth() + 1)}/${start.getFullYear()}`,
+    time: `${pad(start.getHours())}h${pad(start.getMinutes())}`,
+    players: match.maxPlayers,
+    price: match.price ?? 0,
+    priceMonthly: match.priceMonthly ?? 0,
+    format: toFormat(match.format),
+    level: toLevel(match.level),
+    // A duration the app has no preset for (made elsewhere) starts at the default.
+    duration:
+      MATCH_DURATIONS.find((d) => toMinutes(d) === minutes) ?? '1h30',
+  };
+}
+
+export function putMatch(id: string, body: ApiUpdateMatch): Promise<ApiMatch> {
+  return authorizedApiClient<ApiMatch>(`${MATCHES_PATH}/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
+  });
+}
+
+/** Cancels the match (kept as Cancelled by the API). */
+export function deleteMatch(id: string): Promise<unknown> {
+  return authorizedApiClient<unknown>(`${MATCHES_PATH}/${id}`, { method: 'DELETE' });
 }
 
 export function fetchMatchDetail(id: string): Promise<ApiMatchDetail> {

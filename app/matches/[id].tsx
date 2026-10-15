@@ -8,8 +8,10 @@ import {
   MapPin,
   Megaphone,
   Navigation,
+  Pencil,
   Play,
   Share2,
+  XCircle,
   UserPlus,
 } from 'lucide-react-native';
 import type { ReactNode } from 'react';
@@ -30,6 +32,7 @@ import { TabIndicator, TabLabel } from '@/components/ui/UnderlineTab';
 import { useAddGuest } from '@/features/matches/api/addGuest';
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
 import { useShareMatch } from '@/features/network/api/postsApi';
+import { useCancelMatch } from '@/features/matches/api/editMatch';
 import { distanceKm } from '@/features/matches/lib/distanceKm';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
 import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
@@ -229,6 +232,7 @@ export default function MatchDetailScreen() {
   const joinMatch = useJoinMatch(matchId);
   const addGuest = useAddGuest(matchId);
   const shareMatch = useShareMatch();
+  const cancelMatch = useCancelMatch(matchId);
 
   // Invite code typed by someone joining a private match.
   const [inviteCode, setInviteCode] = useState('');
@@ -276,6 +280,24 @@ export default function MatchDetailScreen() {
         dialog.alert('Partida compartilhada', 'Ela já aparece na Rede com o botão Participar.'),
       onError: (error) => dialog.alert('Não deu para compartilhar', error.message),
     });
+  };
+
+  const onCancelMatch = () => {
+    dialog.alert(
+      'Cancelar a partida?',
+      'Ela sai do mapa e das listas. Quem confirmou vai ver que foi cancelada.',
+      [
+        { text: 'Voltar', style: 'cancel' },
+        {
+          text: 'Cancelar partida',
+          style: 'destructive',
+          onPress: () =>
+            cancelMatch.mutate(undefined, {
+              onError: (error) => dialog.alert('Não deu para cancelar', error.message),
+            }),
+        },
+      ],
+    );
   };
 
   const handleAddGuest = (values: AddGuestInput) => {
@@ -552,6 +574,35 @@ export default function MatchDetailScreen() {
               </Button>
             </View>
           ) : null}
+
+          {/* Editing and cancelling stop once the game starts (API DECISIONS #62). */}
+          {match.editable ? (
+            <View className="mt-3 flex-row gap-3">
+              <View className="flex-1">
+                <Button
+                  variant="outline"
+                  onPress={() =>
+                    router.push({ pathname: '/matches/[id]/edit', params: { id: match.id } })
+                  }
+                  leftIcon={<Pencil size={18} color={colors.surfaceDark} />}
+                  testID="edit-match"
+                >
+                  Editar
+                </Button>
+              </View>
+              <View className="flex-1">
+                <Button
+                  variant="outline"
+                  onPress={onCancelMatch}
+                  loading={cancelMatch.isPending}
+                  leftIcon={<XCircle size={18} color={colors.surfaceDark} />}
+                  testID="cancel-match"
+                >
+                  Cancelar
+                </Button>
+              </View>
+            </View>
+          ) : null}
         </Animated.View>
         ) : (
         <Animated.View
@@ -613,7 +664,11 @@ export default function MatchDetailScreen() {
             {actionError}
           </Text>
         ) : null}
-        {gameCta ? (
+        {match.cancelled ? (
+          <Button variant="primary" onPress={() => {}} disabled testID="match-cancelled">
+            Partida cancelada
+          </Button>
+        ) : gameCta ? (
           <Button variant="grad" onPress={goToGame} testID="game-cta">
             {gameCta.label}
           </Button>

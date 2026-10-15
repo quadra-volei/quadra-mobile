@@ -132,6 +132,10 @@ export type MatchDetail = {
   myWaitingListPosition?: number | null;
   /** Where the game is; null/absent until the organizer starts it. */
   game?: MatchGameStage | null;
+  /** The organizer cancelled the match. */
+  cancelled?: boolean;
+  /** The caller organizes it and it can still be edited or cancelled (before the game). */
+  editable?: boolean;
 };
 
 /**

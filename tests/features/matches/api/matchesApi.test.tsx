@@ -50,7 +50,13 @@ import {
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
 import { useNearbyMatches } from '@/features/matches/api/getNearby';
 import { useUpcomingMatches } from '@/features/matches/api/getUpcoming';
-import type { ApiMatch, ApiMatchDetail } from '@/features/matches/api/matchesApi';
+import { useCancelMatch, useEditMatch } from '@/features/matches/api/editMatch';
+import {
+  toEditMatchDefaults,
+  toMatchDetail,
+  type ApiMatch,
+  type ApiMatchDetail,
+} from '@/features/matches/api/matchesApi';
 import {
   useConfirmPresence,
   useDeclinePresence,
@@ -554,6 +560,64 @@ describe('useAddGuest', () => {
     const settled = await runMutation(() => useAddGuest(MATCH_ID), { name: 'Maria' });
 
     expect(rejectionMessage(settled)).toBe('A partida já está cheia.');
+  });
+});
+
+describe('edit and cancel', () => {
+  it('the organizer of an open match may edit; a cancelled one is flagged', async () => {
+    useAuthStore.setState({ userId: ORGANIZER });
+    fetchMock.mockResolvedValueOnce(respond(200, apiDetail()));
+    const open = await renderHook(() => useMatchDetail(MATCH_ID), { wrapper });
+    await waitFor(() => expect(open.result.current.isSuccess).toBe(true));
+    expect(open.result.current.data).toMatchObject({ editable: true, cancelled: false });
+
+    expect(
+      toMatchDetail(apiDetail({ match: { ...apiMatch, status: 'Cancelled' } }), ORGANIZER),
+    ).toMatchObject({ editable: false, cancelled: true });
+    expect(toMatchDetail(apiDetail(), ME).editable).toBe(false);
+    expect(
+      toMatchDetail(
+        apiDetail({ game: { scoreboardState: 'InProgress', mvpVotingState: 'None', hasSummary: false } }),
+        ORGANIZER,
+      ).editable,
+    ).toBe(false);
+  });
+
+  it('PUTs the form starting from the current values, keeping the cover', async () => {
+    fetchMock.mockResolvedValueOnce(respond(200, apiMatch));
+    const values = { ...toEditMatchDefaults(apiDetail()), date: '25/06/2099', name: 'Racha novo' };
+
+    const settled = await runMutation(() => useEditMatch(MATCH_ID), values);
+
+    expect(settled.status).toBe('fulfilled');
+    const put = call();
+    expect(put.method).toBe('PUT');
+    expect(put.url).toMatch(new RegExp(`/api/v1/matches/${MATCH_ID}$`));
+    expect(put.body).toMatchObject({
+      name: 'Racha novo',
+      address: 'Arena Central',
+      latitude: -23.55,
+      longitude: -46.63,
+      maxPlayers: 8,
+      regularSlots: 8,
+      price: 15,
+      priceMonthly: 80,
+      format: '4X4',
+      level: 'Advanced',
+      durationMinutes: 90,
+      coverObjectKey: null,
+    });
+  });
+
+  it('DELETE cancels; a started game is a readable error', async () => {
+    fetchMock.mockResolvedValueOnce(respond(204));
+    expect((await runMutation(() => useCancelMatch(MATCH_ID), undefined)).status).toBe('fulfilled');
+    expect(call().method).toBe('DELETE');
+
+    fetchMock.mockResolvedValueOnce(respond(409, {}));
+    expect(rejectionMessage(await runMutation(() => useCancelMatch(MATCH_ID), undefined))).toBe(
+      'O jogo já começou; a partida não pode mais ser cancelada.',
+    );
   });
 });
 
