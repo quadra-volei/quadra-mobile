@@ -23,11 +23,19 @@ jest.mock('expo-image-picker', () => ({
   launchImageLibraryAsync: jest.fn(() => Promise.resolve({ canceled: true, assets: [] })),
 }));
 
+const mockCapture = jest.fn((..._args: any[]) => Promise.resolve('file:///tmp/carta.png'));
+jest.mock('react-native-view-shot', () => ({ captureRef: (...args: any[]) => mockCapture(...args) }));
+const mockShare = jest.fn((..._args: any[]) => Promise.resolve());
+jest.mock('expo-sharing', () => ({
+  isAvailableAsync: () => Promise.resolve(true),
+  shareAsync: (...args: any[]) => mockShare(...args),
+}));
+
 jest.mock('lucide-react-native', () => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
   const stub = (props: any) => ReactLocal.createElement(View, props);
-  return { Check: stub, ChevronLeft: stub, Maximize2: stub, Plus: stub, RefreshCw: stub };
+  return { Check: stub, ChevronLeft: stub, Download: stub, Maximize2: stub, Plus: stub, RefreshCw: stub };
 });
 
 jest.mock('@/components/ui/Button', () => {
@@ -82,7 +90,7 @@ jest.mock('@/features/profile/api/saveCardStyle', () => ({
   useSaveCardStyle: () => ({ mutate: mockMutate, isPending: false, error: null, variables: undefined }),
 }));
 
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import CardScreen from '../../../../app/profile/card';
 
@@ -129,6 +137,15 @@ describe('S8b — Sua carta', () => {
 
     await fireEvent.press(screen.getByTestId("flip-card"));
     expect(screen.getByText('Ver frente')).toBeTruthy();
+  });
+
+  it('exports the face being shown as a PNG and opens the share sheet', async () => {
+    await render(<CardScreen />);
+
+    await fireEvent.press(screen.getByTestId('export-card'));
+    await waitFor(() => expect(mockShare).toHaveBeenCalledTimes(1));
+    expect(mockCapture).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ format: 'png', result: 'tmpfile' }));
+    expect(mockShare).toHaveBeenCalledWith('file:///tmp/carta.png', expect.objectContaining({ mimeType: 'image/png' }));
   });
 
   it('equips a finish and keeps the title', async () => {
