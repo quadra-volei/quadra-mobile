@@ -6,7 +6,7 @@
  *    plus a notification bell and a theme toggle.
  *  - "Seu progresso" shows the GERAL number (font-num) + the ACE/BLK/ATA/DEF
  *    stats grid + a Level/XP bar ("Level N", "XP: a / b").
- *  - The "Ver a sua carta" gradient CTA navigates to the player card
+ *  - The "Ver sua carta" gradient CTA navigates to the player card
  *    (/profile/card).
  *  - "MINHAS PARTIDAS" renders rows from useRecentMatches (name, date·format,
  *    Vitória/Derrota colored success/danger, set score); tapping a row navigates
@@ -142,6 +142,9 @@ const PROFILE_FIXTURE: MyProfile = {
   level: 15,
   xp: 2450,
   xpToNext: 5000,
+  record: { matches: 0, wins: 0, losses: 0, draws: 0, mvps: 0 },
+  points: 0,
+  cardStyle: { finish: 'Prisma', title: null, photoObjectKey: null },
 };
 
 const RECENT_FIXTURE: RecentMatch[] = [
@@ -360,13 +363,13 @@ describe('S8 — Profile screen', () => {
 
   /**
    * Covers: S8 — Profile
-   * Criterion: "The 'Ver a sua carta' gradient CTA navigates to the player card
+   * Criterion: "The 'Ver sua carta' gradient CTA navigates to the player card
    *  (/profile/card)."
    */
-  it('renders the "Ver a sua carta" CTA and navigates to /profile/card', async () => {
+  it('renders the "Ver sua carta" CTA and navigates to /profile/card', async () => {
     await render(<ProfileScreen />);
 
-    const cta = screen.getByText('Ver a sua carta');
+    const cta = screen.getByText('Ver sua carta');
     expect(cta).toBeTruthy();
 
     fireEvent.press(cta);

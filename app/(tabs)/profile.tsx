@@ -168,10 +168,10 @@ function ProgressSection() {
         </View>
       </View>
 
-      {/* Ver a sua carta → player card (S8b) */}
+      {/* Ver sua carta → player card (S8b) */}
       <View className="mt-4">
         <Button variant="grad" onPress={goCard}>
-          Ver a sua carta
+          Ver sua carta
         </Button>
       </View>
 

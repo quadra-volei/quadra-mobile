@@ -361,9 +361,9 @@ More UI primitives will live here:
 ### `PlayerCard`
 - **Path**: `src/components/domain/PlayerCard.tsx`
 - **Category**: domain
-- **Props**: `{ profile: MyProfile; testID?: string }`
-- **Used in**: S8b Player card (`app/profile/card.tsx`)
-- **Notes**: Collectible trading card (DECISIONS #113). Rarity from GERAL via `cardRarity` (`src/theme/cardRarity.ts`): Bronze < 60, Prata 60–69, Ouro 70–79, Elite 80+ (brand blue → lime foil). Metallic `LinearGradient` frame, GERAL + position in the top corner, rarity tag, photo in a foil ring over faint court lines (SVG), name on a foil ribbon, six ratings in two columns (ATA/ACE/SRV · DEF/BLK/REC), footer with the level chip (`levelTier`), the wordmark and a card number from the profile id. A light band sweeps across it in a loop (reanimated; skipped with the system reduce-motion setting).
+- **Props**: `{ profile: MyProfile; finish: CardFinish; title: CardTitleCode; photoUrl?: string; flipped: boolean; onFlip: () => void; width: number; testID?: string }`
+- **Used in**: S8b "Sua carta" (`app/profile/card.tsx`), on the screen and in the enlarged view
+- **Notes**: Collectible card with front and back (DECISIONS #119), drawn on a 292 × 406 grid and scaled to `width`. Finish tokens in `src/theme/cardFinish.ts` (Prisma and Eclipse chamfered, Íon rounded); titles in `src/features/profile/card/cardTitles.ts`. Material is SVG (frame gradient, body, photo clipped to the shape, a foil band and a glare that follow the finger through reanimated animated props); text is RN on top. Drag tilts it (±11° / ±14°) and settles back in 350 ms; a tap or a horizontal swipe over 65 px flips it in 600 ms, showing only the face towards the viewer. Gestures live on the card only. Reduced motion: no tilt, instant flip.
 
 ### `MatchCardCompact`
 - **Path**: `src/components/domain/MatchCardCompact.tsx`

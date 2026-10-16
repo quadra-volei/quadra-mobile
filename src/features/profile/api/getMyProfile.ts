@@ -62,6 +62,21 @@ export function toMyProfile(api: ApiProfile, phoneNumber: string | null): MyProf
     rec: api.skills.overall,
     ...toProgress(api.stats),
     shareActivity: api.shareActivity ?? true,
+    record: {
+      matches: api.stats.matchesPlayed,
+      wins: api.stats.wins,
+      losses: api.stats.losses,
+      draws: api.stats.draws,
+      mvps: api.stats.mvpsReceived,
+    },
+    points: api.stats.totalPoints ?? 0,
+    // An API without card styles reads as the default card.
+    cardStyle: {
+      finish: api.cardStyle?.finish ?? 'Prisma',
+      title: api.cardStyle?.title ?? null,
+      photoUrl: api.cardStyle?.photoUrl ?? undefined,
+      photoObjectKey: api.cardStyle?.photoObjectKey ?? null,
+    },
   };
 }
 

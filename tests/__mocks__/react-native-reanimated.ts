@@ -20,6 +20,8 @@ const withDelay = (_ms: number, animation: unknown) => animation;
 // Lands on the last step, like the finished animation.
 const withSequence = (...animations: unknown[]) => animations[animations.length - 1];
 const useAnimatedStyle = (cb: () => object) => cb();
+const useAnimatedProps = (cb: () => object) => cb();
+const useReducedMotion = () => false;
 
 // Keyboard hook stub — reports a closed keyboard (height 0).
 const useAnimatedKeyboard = () => ({ height: { value: 0 } });
@@ -88,6 +90,8 @@ module.exports = {
   withDelay,
   withSequence,
   useAnimatedStyle,
+  useAnimatedProps,
+  useReducedMotion,
   useAnimatedKeyboard,
   runOnJS,
   Easing,

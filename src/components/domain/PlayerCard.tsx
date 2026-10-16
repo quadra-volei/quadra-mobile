@@ -1,221 +1,364 @@
-import { LinearGradient } from 'expo-linear-gradient';
-import { type ReactNode, useEffect } from 'react';
-import { Text, View, useWindowDimensions } from 'react-native';
+import { useEffect } from 'react';
+import { Text, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   Easing,
+  FadeIn,
+  runOnJS,
+  useAnimatedProps,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
-  withDelay,
-  withRepeat,
   withTiming,
 } from 'react-native-reanimated';
-import Svg, { Line, Rect } from 'react-native-svg';
+import Svg, {
+  Circle,
+  ClipPath,
+  Defs,
+  G,
+  Image as SvgImage,
+  LinearGradient,
+  Polygon,
+  RadialGradient,
+  Rect,
+  Stop,
+} from 'react-native-svg';
 
-import { Avatar } from '@/components/ui/Avatar';
+import { QuadraLogo } from '@/components/icons/QuadraLogo';
+import { cardTitleName, type CardTitleCode } from '@/features/profile/card/cardTitles';
 import { positionLabel } from '@/features/profile/schema/onboarding';
 import type { MyProfile } from '@/features/profile/types/profile';
-import { cardRarity, type CardRarity } from '@/theme/cardRarity';
-import { colors, withAlpha } from '@/theme/colors';
-import { DEFAULT_AVATAR } from '@/theme/defaultAvatars';
-import { levelTier } from '@/theme/levelTier';
+import { CARD_FINISHES, CARD_LIGHT, type CardFinish, type CardFinishTokens } from '@/theme/cardFinish';
 
-export type PlayerCardProps = { profile: MyProfile; testID?: string };
+// The card is drawn on a 292 × 406 grid (the prototype's size) and scaled to `width`.
+const W = 292;
+const H = 406;
+const PHOTO_H = 292;
+// Resting pose and the reach of a drag (Johny's spec: about ±11° and ±14°).
+const REST = { rx: -3, ry: -7 };
+const TILT = { x: 22, y: 28 };
+const SETTLE_MS = 350;
+const FLIP_MS = 600;
+// A horizontal swipe this long flips the card; shorter drags only tilt it.
+const SWIPE_FLIP = 65;
 
-// Diagonal light band that sweeps across the card, like a foil card under a lamp.
-// Reanimated skips it when the system "remove animations" setting is on.
-function Shine({ width }: { width: number }) {
-  const x = useSharedValue(-160);
-  useEffect(() => {
-    x.value = withRepeat(
-      withDelay(1400, withTiming(width + 160, { duration: 1800, easing: Easing.inOut(Easing.cubic) })),
-      -1,
+const CHAMFER_OUTER = '0,18 18,0 258,0 292,34 292,388 274,406 18,406 0,388';
+const CHAMFER_INNER = '3,19.5 19.5,3 256.5,3 289,35.5 289,386.5 272.5,403 19.5,403 3,386.5';
+const LOGO_TAB = '77,3 215,3 204,48 88,48';
+
+// The card's art until the player sets a photo (the prototype's illustration).
+const CARD_DEFAULT_ART = require('../../../assets/card/carta-padrao.jpg');
+
+const AnimatedRect = Animated.createAnimatedComponent(Rect);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+export type PlayerCardProps = {
+  profile: MyProfile;
+  finish: CardFinish;
+  title: CardTitleCode;
+  /** The card's own photo, else the profile photo; none shows the default art. */
+  photoUrl?: string;
+  flipped: boolean;
+  onFlip: () => void;
+  /** Rendered width; the height follows the card's proportion. */
+  width: number;
+  testID?: string;
+};
+
+function Shape({ t, inner, fill }: { t: CardFinishTokens; inner: boolean; fill: string }) {
+  if (t.shape === 'rounded') {
+    return inner ? (
+      <Rect x={3} y={3} width={W - 6} height={H - 6} rx={24} fill={fill} />
+    ) : (
+      <Rect x={0} y={0} width={W} height={H} rx={27} fill={fill} />
     );
-  }, [x, width]);
-  const style = useAnimatedStyle(() => ({
-    transform: [{ translateX: x.value }, { rotate: '18deg' }],
-  }));
-
-  return (
-    <Animated.View
-      pointerEvents="none"
-      className="absolute -top-20 -bottom-20 w-24"
-      style={style}
-    >
-      <LinearGradient
-        colors={['rgba(255,255,255,0)', 'rgba(255,255,255,0.28)', 'rgba(255,255,255,0)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={{ flex: 1 }}
-      />
-    </Animated.View>
-  );
+  }
+  return <Polygon points={inner ? CHAMFER_INNER : CHAMFER_OUTER} fill={fill} />;
 }
 
-// Faint volleyball court behind the photo: side lines, net and both attack lines.
-function CourtLines({ ink }: { ink: string }) {
-  const stroke = withAlpha(ink, 0.12);
+/**
+ * The card's material: metallic frame, body, photo (front) and the light that
+ * follows the finger — a foil band on the frame, a faint one over the face and
+ * a soft glare. `mx` / `my` are the touch point, 0–1 across the card.
+ */
+function Material({
+  t,
+  side,
+  photoUrl,
+  mx,
+  my,
+}: {
+  t: CardFinishTokens;
+  side: 'front' | 'back';
+  photoUrl?: string;
+  mx: { value: number };
+  my: { value: number };
+}) {
+  const foilFrame = useAnimatedProps(() => ({ x: -W * 1.6 + mx.value * W * 1.6 }));
+  const foilFace = useAnimatedProps(() => ({ x: -W * 1.6 + (1 - my.value) * W * 1.6 }));
+  const glare = useAnimatedProps(() => ({ cx: mx.value * W, cy: my.value * H }));
+  const id = (name: string) => `${side}-${name}`;
+
   return (
-    <Svg
-      pointerEvents="none"
-      viewBox="0 0 100 140"
-      preserveAspectRatio="none"
-      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
-    >
-      <Rect x={12} y={10} width={76} height={120} stroke={stroke} strokeWidth={0.6} fill="none" />
-      <Line x1={6} y1={70} x2={94} y2={70} stroke={withAlpha(ink, 0.2)} strokeWidth={1.2} />
-      <Line x1={12} y1={50} x2={88} y2={50} stroke={stroke} strokeWidth={0.5} />
-      <Line x1={12} y1={90} x2={88} y2={90} stroke={stroke} strokeWidth={0.5} />
+    <Svg width="100%" height="100%" viewBox={`0 0 ${W} ${H}`} style={{ position: 'absolute' }}>
+      <Defs>
+        <LinearGradient id={id('frame')} x1="0" y1="0" x2="1" y2="1">
+          {t.frame.map((c, i) => (
+            <Stop key={i} offset={i / (t.frame.length - 1)} stopColor={c} />
+          ))}
+        </LinearGradient>
+        <LinearGradient id={id('foil')} x1="0" y1="0" x2="1" y2="0.35">
+          {t.foil.map((c, i) => (
+            <Stop key={i} offset={i / (t.foil.length - 1)} stopColor={c} />
+          ))}
+        </LinearGradient>
+        <RadialGradient id={id('glare')} cx="0.5" cy="0.5" r="0.5">
+          <Stop offset="0" stopColor={CARD_LIGHT.glare} stopOpacity={0.55} />
+          <Stop offset="1" stopColor={CARD_LIGHT.glare} stopOpacity={0} />
+        </RadialGradient>
+        <LinearGradient id={id('shade')} x1="0" y1="0" x2="0" y2="1">
+          <Stop offset="0" stopColor={CARD_LIGHT.photoTop} stopOpacity={0.45} />
+          <Stop offset="0.27" stopColor={t.surface} stopOpacity={0} />
+          <Stop offset="0.56" stopColor={t.surface} stopOpacity={0} />
+          <Stop offset="0.74" stopColor={t.surface} stopOpacity={1} />
+        </LinearGradient>
+        <RadialGradient id={id('glow')} cx="1" cy="0" r="0.8">
+          <Stop offset="0" stopColor={t.accent} stopOpacity={0.18} />
+          <Stop offset="1" stopColor={t.accent} stopOpacity={0} />
+        </RadialGradient>
+        <ClipPath id={id('inner')}>
+          <Shape t={t} inner fill="#000" />
+        </ClipPath>
+      </Defs>
+
+      {/* Frame, then the foil band sliding over it (the body covers its middle). */}
+      <Shape t={t} inner={false} fill={`url(#${id('frame')})`} />
+      <AnimatedRect animatedProps={foilFrame} y={0} width={W * 2.6} height={H} fill={`url(#${id('foil')})`} opacity={0.75} />
+      <Shape t={t} inner fill={t.surface} />
+
+      <G clipPath={`url(#${id('inner')})`}>
+        {side === 'front' ? (
+          <SvgImage
+            href={photoUrl ? { uri: photoUrl } : CARD_DEFAULT_ART}
+            x={3}
+            y={3}
+            width={W - 6}
+            height={PHOTO_H}
+            preserveAspectRatio="xMidYMid slice"
+          />
+        ) : null}
+        {side === 'front' ? (
+          <Rect x={0} y={0} width={W} height={H} fill={`url(#${id('shade')})`} />
+        ) : (
+          <Rect x={0} y={0} width={W} height={H} fill={`url(#${id('glow')})`} />
+        )}
+        {/* Faint foil over the face: the face stays readable. */}
+        <AnimatedRect animatedProps={foilFace} y={0} width={W * 2.6} height={H} fill={`url(#${id('foil')})`} opacity={0.14} />
+        <AnimatedCircle animatedProps={glare} r={170} fill={`url(#${id('glare')})`} opacity={0.35} />
+      </G>
+
+      {side === 'front' ? (
+        <>
+          <Polygon points={LOGO_TAB} fill={t.tab} />
+          <Rect x={88} y={47} width={116} height={1} fill={t.accent} opacity={0.55} />
+        </>
+      ) : null}
     </Svg>
   );
 }
 
-// One FIFA-style stat line: big number, short label.
-function Stat({ label, value, ink }: { label: string; value: number; ink: string }) {
+function Wordmark({ t, k, size }: { t: CardFinishTokens; k: number; size: number }) {
   return (
-    <View className="flex-row items-baseline gap-2 py-1">
-      <Text className="font-num text-h3" style={{ color: ink }}>
-        {value}
+    <View className="flex-row items-center" style={{ gap: 7 * k }}>
+      <QuadraLogo size={size * k} blockColor={t.wordmark} />
+      <Text className="font-word" style={{ color: t.wordmark, fontSize: size * k, lineHeight: size * k * 1.15 }}>
+        quadra
       </Text>
-      <Text className="font-body-bold text-caption text-white/70">{label}</Text>
     </View>
   );
 }
 
-function StatColumn({ stats, ink }: { stats: [string, number][]; ink: string }) {
+function Front({ profile, t, k, title }: { profile: MyProfile; t: CardFinishTokens; k: number; title: string }) {
+  const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ');
   return (
-    <View className="flex-1 items-center">
-      {stats.map(([label, value]) => (
-        <Stat key={label} label={label} value={value} ink={ink} />
+    <View className="absolute inset-0" style={{ paddingHorizontal: 20 * k, paddingTop: 12 * k, paddingBottom: 22 * k }}>
+      <View className="items-center">
+        <Wordmark t={t} k={k} size={21} />
+      </View>
+      <View className="mt-auto">
+        <Text className="font-body-bold uppercase" style={{ color: t.accent, fontSize: 11 * k, letterSpacing: 1.5 * k }}>
+          {title}
+        </Text>
+        <Text className="font-num" numberOfLines={2} style={{ color: t.ink, fontSize: 24 * k, lineHeight: 27 * k, marginTop: 8 * k, marginBottom: 11 * k }}>
+          {name}
+        </Text>
+        <View className="flex-row items-center justify-between" style={{ gap: 8 * k }}>
+          <Text className="font-body flex-1" numberOfLines={1} style={{ color: t.muted, fontSize: 12 * k }}>
+            {profile.handle ? `@${profile.handle}` : ''}
+          </Text>
+          {profile.position ? (
+            <View className="rounded-full border" style={{ borderColor: t.edge, paddingHorizontal: 9 * k, paddingVertical: 4 * k }}>
+              <Text className="font-body-semibold" style={{ color: t.ink, fontSize: 10 * k }}>
+                {positionLabel(profile.position)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// "—" until there is a match to count from.
+const percent = (part: number, total: number) => (total > 0 ? `${Math.round((part / total) * 100)}%` : '—');
+
+function Back({ profile, t, k, title }: { profile: MyProfile; t: CardFinishTokens; k: number; title: string }) {
+  const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ');
+  const r = profile.record;
+  const groups: { label: string; cells: [string, string][] }[] = [
+    { label: 'Resultados', cells: [['Derrotas', String(r.losses)], ['Empates', String(r.draws)], ['Aproveitamento', percent(r.wins, r.matches)]] },
+    { label: 'Evolução', cells: [['Nível', String(profile.level)], ['Pontos', String(profile.points)], ['MVP por jogo', percent(r.mvps, r.matches)]] },
+  ];
+  const line = { borderColor: t.edge };
+
+  return (
+    <View className="absolute inset-0" style={{ paddingHorizontal: 21 * k, paddingTop: 22 * k, paddingBottom: 20 * k }}>
+      <Wordmark t={t} k={k} size={20} />
+      <View style={{ marginTop: 20 * k }}>
+        <Text className="font-mono" style={{ color: t.muted, fontSize: 8 * k, letterSpacing: 1.6 * k }}>EM QUADRA</Text>
+        <Text className="font-num" numberOfLines={1} style={{ color: t.ink, fontSize: 19 * k, marginTop: 5 * k }}>{name}</Text>
+        <Text className="font-body" style={{ color: t.muted, fontSize: 11 * k, marginTop: 2 * k }}>
+          {[title, positionLabel(profile.position)].filter(Boolean).join('  ·  ')}
+        </Text>
+      </View>
+
+      <View className="flex-row border-b" style={[line, { marginTop: 16 * k, paddingBottom: 14 * k }]}>
+        {([['Partidas', r.matches], ['Vitórias', r.wins], ['MVPs', r.mvps]] as const).map(([label, value], i) => (
+          <View key={label} className={i ? 'flex-1 border-l' : 'flex-1'} style={[line, { paddingLeft: i ? 12 * k : 0 }]}>
+            <Text className="font-num" style={{ color: t.accent, fontSize: 24 * k, lineHeight: 29 * k }}>{value}</Text>
+            <Text className="font-body" style={{ color: t.muted, fontSize: 10 * k, marginTop: 2 * k }}>{label}</Text>
+          </View>
+        ))}
+      </View>
+
+      {groups.map((g) => (
+        <View key={g.label} style={{ marginTop: 13 * k }}>
+          <Text className="font-mono uppercase" style={{ color: t.muted, fontSize: 8 * k, letterSpacing: 1.6 * k }}>{g.label}</Text>
+          <View className="flex-row" style={{ marginTop: 6 * k }}>
+            {g.cells.map(([label, value]) => (
+              <View key={label} className="flex-1">
+                <Text className="font-num" style={{ color: t.ink, fontSize: 17 * k, lineHeight: 21 * k }}>{value}</Text>
+                <Text className="font-body" numberOfLines={1} style={{ color: t.muted, fontSize: 10 * k }}>{label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
       ))}
-    </View>
-  );
-}
 
-function Frame({ rarity, className, children }: { rarity: CardRarity; className?: string; children: ReactNode }) {
-  return (
-    <LinearGradient
-      colors={rarity.frame}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      // Rounding is per use, so it goes through style, never a className on LinearGradient.
-      style={{ borderRadius: 999 }}
-    >
-      <View className={className}>{children}</View>
-    </LinearGradient>
+      <View className="mt-auto flex-row items-center justify-between border-t" style={[line, { paddingTop: 12 * k }]}>
+        <Text className="font-body-bold" style={{ color: t.ink, fontSize: 10 * k }}>Bora pra quadra.</Text>
+        <Text className="font-body" style={{ color: t.muted, fontSize: 9 * k }}>{profile.handle ? `@${profile.handle}` : ''}</Text>
+      </View>
+    </View>
   );
 }
 
 /**
- * The collectible player card (S8b): a metallic frame whose rarity follows GERAL
- * (Bronze / Prata / Ouro / Elite, `cardRarity`), the rating and position in the
- * top corner, the photo over a faint court, the name on a foil ribbon, the six
- * ratings in two columns and a footer with level, the wordmark and the card
- * number. A light band sweeps across it now and then.
+ * The collectible player card ("Sua carta", DECISIONS #119). Front: logo on the
+ * top tab, photo, title, name, @handle and position. Back: the real record
+ * (matches, wins, MVPs) and grouped numbers. Dragging tilts it on both axes
+ * and moves the holographic light; releasing settles it back; a tap or a long
+ * horizontal swipe flips it. The gesture lives on the card only, so the
+ * screen still scrolls around it. Reduced motion: no tilt, instant flip.
  */
-export function PlayerCard({ profile, testID }: PlayerCardProps) {
-  const rarity = cardRarity(profile.overall);
-  const { width } = useWindowDimensions();
-  const level = levelTier(profile.level);
+export function PlayerCard({ profile, finish, title, photoUrl, flipped, onFlip, width, testID }: PlayerCardProps) {
+  const t = CARD_FINISHES[finish];
+  const k = width / W;
+  const height = H * k;
+  const reduceMotion = useReducedMotion();
+  const titleName = cardTitleName(title);
 
-  const fullName = [profile.firstName, profile.lastName].filter(Boolean).join(' ');
-  const nick = profile.handle ? `@${profile.handle}` : undefined;
-  const subtitle = [nick, positionLabel(profile.position)].filter(Boolean).join(' · ');
-  const serial = `#${profile.id.replace(/-/g, '').slice(0, 4).toUpperCase()}`;
+  const rx = useSharedValue(REST.rx);
+  const ry = useSharedValue(REST.ry);
+  const mx = useSharedValue(0.5);
+  const my = useSharedValue(0.4);
+  const turn = useSharedValue(flipped ? 1 : 0);
+
+  useEffect(() => {
+    turn.value = withTiming(flipped ? 1 : 0, {
+      duration: reduceMotion ? 0 : FLIP_MS,
+      easing: Easing.bezier(0.2, 0.7, 0.2, 1),
+    });
+  }, [flipped, reduceMotion, turn]);
+
+  const settle = () => {
+    'worklet';
+    const config = { duration: SETTLE_MS, easing: Easing.out(Easing.cubic) };
+    rx.value = withTiming(REST.rx, config);
+    ry.value = withTiming(REST.ry, config);
+    mx.value = withTiming(0.5, config);
+    my.value = withTiming(0.4, config);
+  };
+
+  const pan = Gesture.Pan()
+    .minDistance(4)
+    .onUpdate((e) => {
+      const x = Math.min(Math.max(e.x / width, 0), 1);
+      const y = Math.min(Math.max(e.y / height, 0), 1);
+      mx.value = x;
+      my.value = y;
+      if (!reduceMotion) {
+        rx.value = (0.5 - y) * TILT.x;
+        ry.value = (x - 0.5) * TILT.y;
+      }
+    })
+    .onEnd((e) => {
+      // Only a clearly horizontal, long swipe flips: a small tilt never does.
+      if (Math.abs(e.translationX) > SWIPE_FLIP && Math.abs(e.translationX) > 2 * Math.abs(e.translationY)) {
+        runOnJS(onFlip)();
+      }
+    })
+    .onFinalize(() => settle());
+  const tap = Gesture.Tap().onEnd((_e, success) => {
+    if (success) {
+      runOnJS(onFlip)();
+    }
+  });
+
+  const tilt = useAnimatedStyle(() => ({
+    transform: [{ perspective: 1000 }, { rotateX: `${rx.value}deg` }, { rotateY: `${ry.value}deg` }],
+  }));
+  // Only the face turned towards the viewer is shown.
+  const front = useAnimatedStyle(() => ({
+    opacity: turn.value < 0.5 ? 1 : 0,
+    transform: [{ perspective: 1000 }, { rotateY: `${turn.value * 180}deg` }],
+  }));
+  const back = useAnimatedStyle(() => ({
+    opacity: turn.value >= 0.5 ? 1 : 0,
+    transform: [{ perspective: 1000 }, { rotateY: `${turn.value * 180 - 180}deg` }],
+  }));
 
   return (
-    <LinearGradient
-      testID={testID}
-      colors={rarity.frame}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{ borderRadius: 26, padding: 4 }}
-    >
-      <View className="rounded-[22px] overflow-hidden">
-        <LinearGradient
-          colors={[rarity.deep, colors.surfaceDark]}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14 }}
-        >
-          <CourtLines ink={rarity.ink} />
-
-          {/* GERAL + position (left), rarity tag (right) */}
-          <View className="flex-row items-start justify-between">
-            <View className="items-center">
-              <Text className="font-num text-[56px] leading-[60px]" style={{ color: rarity.ink }}>
-                {profile.overall}
-              </Text>
-              <Text className="font-body-bold text-eyebrow text-white/70 uppercase tracking-widest">
-                Geral
-              </Text>
-              {profile.position ? (
-                <Text className="font-num text-h3 text-text-on-dark mt-1">{profile.position}</Text>
-              ) : null}
-            </View>
-            <Frame rarity={rarity} className="px-3 py-1">
-              <Text className="font-body-extrabold text-eyebrow tracking-widest" style={{ color: rarity.onFrame }}>
-                {rarity.label}
-              </Text>
-            </Frame>
-          </View>
-
-          {/* Photo with a foil ring and a soft glow */}
-          <View className="items-center -mt-10 mb-4">
-            <View
-              className="absolute top-2 h-40 w-40 rounded-full"
-              style={{ backgroundColor: withAlpha(rarity.ink, 0.14) }}
-            />
-            <Frame rarity={rarity} className="p-1">
-              <Avatar uri={profile.avatarUrl} name={profile.firstName} size="xl" defaultSource={DEFAULT_AVATAR} />
-            </Frame>
-          </View>
-
-          {/* Name ribbon */}
-          <LinearGradient
-            colors={rarity.frame}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={{ borderRadius: 10, paddingVertical: 8, paddingHorizontal: 12, marginHorizontal: -8 }}
-          >
-            <Text
-              className="font-display text-h1 uppercase text-center"
-              style={{ color: rarity.onFrame }}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-            >
-              {fullName}
-            </Text>
-          </LinearGradient>
-          {subtitle ? (
-            <Text className="font-body-semibold text-caption text-white/80 mt-2 text-center">{subtitle}</Text>
-          ) : null}
-
-          {/* Six ratings, two columns split by a foil rule */}
-          <View className="flex-row mt-3">
-            <StatColumn
-              ink={rarity.ink}
-              stats={[['ATA', profile.ata], ['ACE', profile.ace], ['SRV', profile.srv]]}
-            />
-            <View className="w-px my-2" style={{ backgroundColor: withAlpha(rarity.ink, 0.35) }} />
-            <StatColumn
-              ink={rarity.ink}
-              stats={[['DEF', profile.def], ['BLK', profile.blk], ['REC', profile.rec]]}
-            />
-          </View>
-
-          {/* Footer: level · wordmark · card number */}
-          <View className="flex-row items-center justify-between mt-3 pt-3 border-t border-white/10">
-            <View className="rounded-pill px-2 py-[2px]" style={{ backgroundColor: level.color }}>
-              <Text className="font-num text-caption" style={{ color: level.textColor }}>
-                NV {profile.level}
-              </Text>
-            </View>
-            <Text className="font-word text-body text-text-on-dark">quadra</Text>
-            <Text className="font-mono text-mono text-white/60">{serial}</Text>
-          </View>
-        </LinearGradient>
-        <Shine width={width} />
-      </View>
-    </LinearGradient>
+    <GestureDetector gesture={Gesture.Race(pan, tap)}>
+      <Animated.View
+        testID={testID}
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel={`Carta de ${[profile.firstName, profile.lastName].filter(Boolean).join(' ')}. ${flipped ? 'Verso' : 'Frente'}. Toque para virar.`}
+        onAccessibilityTap={onFlip}
+        style={[{ width, height }, tilt]}
+      >
+        <Animated.View key={finish} entering={FadeIn.duration(reduceMotion ? 0 : 300)} className="absolute inset-0">
+          <Animated.View className="absolute inset-0" style={[{ backfaceVisibility: 'hidden' }, front]}>
+            <Material t={t} side="front" photoUrl={photoUrl} mx={mx} my={my} />
+            <Front profile={profile} t={t} k={k} title={titleName} />
+          </Animated.View>
+          <Animated.View className="absolute inset-0" style={[{ backfaceVisibility: 'hidden' }, back]}>
+            <Material t={t} side="back" mx={mx} my={my} />
+            <Back profile={profile} t={t} k={k} title={titleName} />
+          </Animated.View>
+        </Animated.View>
+      </Animated.View>
+    </GestureDetector>
   );
 }
