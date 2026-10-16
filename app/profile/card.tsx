@@ -1,10 +1,12 @@
 import * as ImagePicker from "expo-image-picker";
+import * as Sharing from "expo-sharing";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { Check, ChevronLeft, Maximize2, Plus, RefreshCw } from "lucide-react-native";
-import { type ReactNode, useState } from "react";
+import { Check, ChevronLeft, Download, Maximize2, Plus, RefreshCw } from "lucide-react-native";
+import { type ReactNode, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { captureRef } from "react-native-view-shot";
 
 import { QuadraLogo } from "@/components/icons/QuadraLogo";
 import { PlayerCard } from "@/components/domain/PlayerCard";
@@ -35,11 +37,13 @@ function ErrorBlock({ onRetry }: { onRetry: () => void }) {
 }
 
 // One of the outlined buttons under the card ("Ver verso", "Ampliar").
-function ToolButton({ label, icon, onPress, testID }: { label: string; icon: ReactNode; onPress: () => void; testID?: string }) {
+function ToolButton({ label, icon, onPress, disabled, testID }: { label: string; icon: ReactNode; onPress: () => void; disabled?: boolean; testID?: string }) {
   return (
     <PressableScale
       accessibilityRole="button"
+      accessibilityState={{ disabled }}
       onPress={onPress}
+      disabled={disabled}
       testID={testID}
       className="flex-1 flex-row items-center justify-center gap-2 rounded-chip border border-white/20 bg-white/5 py-3"
     >
@@ -168,6 +172,29 @@ function CardBody({ profile }: { profile: MyProfile }) {
   const [inspecting, setInspecting] = useState(false);
   const save = useSaveCardStyle();
   const flip = () => setFlipped((v) => !v);
+  const faceRefs = { front: useRef<View>(null), back: useRef<View>(null) };
+  const [exporting, setExporting] = useState(false);
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
+
+  // A still image of the face being shown (no tilt, no live light), 3× the card's grid.
+  const exportPng = async () => {
+    const face = (flipped ? faceRefs.back : faceRefs.front).current;
+    if (!face) return;
+    setExporting(true);
+    setExportMessage(null);
+    try {
+      const uri = await captureRef(face, { format: "png", width: 876, height: 1218, result: "tmpfile" });
+      if (!(await Sharing.isAvailableAsync())) {
+        setExportMessage("Este aparelho não permite compartilhar arquivos.");
+        return;
+      }
+      await Sharing.shareAsync(uri, { mimeType: "image/png", dialogTitle: "Minha carta Quadra", UTI: "public.png" });
+    } catch {
+      setExportMessage("Não foi possível exportar a carta. Tente novamente.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const style = profile.cardStyle;
   const cardProps = {
@@ -194,7 +221,7 @@ function CardBody({ profile }: { profile: MyProfile }) {
   return (
     <>
       <View className="items-center mt-2 mb-4">
-        <PlayerCard {...cardProps} width={Math.min(screenWidth - 80, 300)} testID="player-card" />
+        <PlayerCard {...cardProps} width={Math.min(screenWidth - 80, 300)} faceRefs={faceRefs} testID="player-card" />
       </View>
       <Text className="font-body text-caption text-white/60 text-center mb-3">
         Arraste para inclinar · toque para virar
@@ -213,7 +240,20 @@ function CardBody({ profile }: { profile: MyProfile }) {
           onPress={() => setInspecting(true)}
           testID="inspect-card"
         />
+        <ToolButton
+          label={exporting ? "Exportando…" : "Salvar PNG"}
+          icon={<Download size={14} color={colors.textOnDark} />}
+          onPress={exportPng}
+          disabled={exporting}
+          testID="export-card"
+        />
       </View>
+
+      {exportMessage ? (
+        <Text className="font-body text-caption text-danger mb-3" accessibilityLiveRegion="polite">
+          {exportMessage}
+        </Text>
+      ) : null}
 
       {save.error ? (
         <Text className="font-body text-caption text-danger mb-3" accessibilityLiveRegion="polite">

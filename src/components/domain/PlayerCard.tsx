@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { type RefObject, useEffect } from 'react';
 import { Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -62,6 +62,8 @@ export type PlayerCardProps = {
   onFlip: () => void;
   /** Rendered width; the height follows the card's proportion. */
   width: number;
+  /** The two faces, flat (no tilt), for the PNG export. */
+  faceRefs?: { front: RefObject<View | null>; back: RefObject<View | null> };
   testID?: string;
 };
 
@@ -129,11 +131,17 @@ function Material({
         <ClipPath id={id('inner')}>
           <Shape t={t} inner fill="#000" />
         </ClipPath>
+        <ClipPath id={id('outer')}>
+          <Shape t={t} inner={false} fill="#000" />
+        </ClipPath>
       </Defs>
 
-      {/* Frame, then the foil band sliding over it (the body covers its middle). */}
+      {/* Frame, then the foil band sliding over it, kept inside the cut corners
+          (the body covers its middle). */}
       <Shape t={t} inner={false} fill={`url(#${id('frame')})`} />
-      <AnimatedRect animatedProps={foilFrame} y={0} width={W * 2.6} height={H} fill={`url(#${id('foil')})`} opacity={0.75} />
+      <G clipPath={`url(#${id('outer')})`}>
+        <AnimatedRect animatedProps={foilFrame} y={0} width={W * 2.6} height={H} fill={`url(#${id('foil')})`} opacity={0.75} />
+      </G>
       <Shape t={t} inner fill={t.surface} />
 
       <G clipPath={`url(#${id('inner')})`}>
@@ -271,7 +279,7 @@ function Back({ profile, t, k, title }: { profile: MyProfile; t: CardFinishToken
  * horizontal swipe flips it. The gesture lives on the card only, so the
  * screen still scrolls around it. Reduced motion: no tilt, instant flip.
  */
-export function PlayerCard({ profile, finish, title, photoUrl, flipped, onFlip, width, testID }: PlayerCardProps) {
+export function PlayerCard({ profile, finish, title, photoUrl, flipped, onFlip, width, faceRefs, testID }: PlayerCardProps) {
   const t = CARD_FINISHES[finish];
   const k = width / W;
   const height = H * k;
@@ -349,11 +357,11 @@ export function PlayerCard({ profile, finish, title, photoUrl, flipped, onFlip, 
         style={[{ width, height }, tilt]}
       >
         <Animated.View key={finish} entering={FadeIn.duration(reduceMotion ? 0 : 300)} className="absolute inset-0">
-          <Animated.View className="absolute inset-0" style={[{ backfaceVisibility: 'hidden' }, front]}>
+          <Animated.View ref={faceRefs?.front} collapsable={false} className="absolute inset-0" style={[{ backfaceVisibility: 'hidden' }, front]}>
             <Material t={t} side="front" photoUrl={photoUrl} mx={mx} my={my} />
             <Front profile={profile} t={t} k={k} title={titleName} />
           </Animated.View>
-          <Animated.View className="absolute inset-0" style={[{ backfaceVisibility: 'hidden' }, back]}>
+          <Animated.View ref={faceRefs?.back} collapsable={false} className="absolute inset-0" style={[{ backfaceVisibility: 'hidden' }, back]}>
             <Material t={t} side="back" mx={mx} my={my} />
             <Back profile={profile} t={t} k={k} title={titleName} />
           </Animated.View>
