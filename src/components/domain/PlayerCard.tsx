@@ -29,7 +29,6 @@ import { cardTitleName, type CardTitleCode } from '@/features/profile/card/cardT
 import { positionLabel } from '@/features/profile/schema/onboarding';
 import type { MyProfile } from '@/features/profile/types/profile';
 import { CARD_FINISHES, CARD_LIGHT, type CardFinish, type CardFinishTokens } from '@/theme/cardFinish';
-import { withAlpha } from '@/theme/colors';
 
 // The card is drawn on a 292 × 406 grid (the prototype's size) and scaled to `width`.
 const W = 292;
@@ -47,6 +46,9 @@ const CHAMFER_OUTER = '0,18 18,0 258,0 292,34 292,388 274,406 18,406 0,388';
 const CHAMFER_INNER = '3,19.5 19.5,3 256.5,3 289,35.5 289,386.5 272.5,403 19.5,403 3,386.5';
 const LOGO_TAB = '77,3 215,3 204,48 88,48';
 
+// The card's art until the player sets a photo (the prototype's illustration).
+const CARD_DEFAULT_ART = require('../../../assets/card/carta-padrao.jpg');
+
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
@@ -54,7 +56,7 @@ export type PlayerCardProps = {
   profile: MyProfile;
   finish: CardFinish;
   title: CardTitleCode;
-  /** The card's own photo, else the profile photo. */
+  /** The card's own photo, else the profile photo; none shows the default art. */
   photoUrl?: string;
   flipped: boolean;
   onFlip: () => void;
@@ -135,8 +137,15 @@ function Material({
       <Shape t={t} inner fill={t.surface} />
 
       <G clipPath={`url(#${id('inner')})`}>
-        {side === 'front' && photoUrl ? (
-          <SvgImage href={{ uri: photoUrl }} x={3} y={3} width={W - 6} height={PHOTO_H} preserveAspectRatio="xMidYMid slice" />
+        {side === 'front' ? (
+          <SvgImage
+            href={photoUrl ? { uri: photoUrl } : CARD_DEFAULT_ART}
+            x={3}
+            y={3}
+            width={W - 6}
+            height={PHOTO_H}
+            preserveAspectRatio="xMidYMid slice"
+          />
         ) : null}
         {side === 'front' ? (
           <Rect x={0} y={0} width={W} height={H} fill={`url(#${id('shade')})`} />
@@ -169,20 +178,13 @@ function Wordmark({ t, k, size }: { t: CardFinishTokens; k: number; size: number
   );
 }
 
-function Front({ profile, t, k, title, hasPhoto }: { profile: MyProfile; t: CardFinishTokens; k: number; title: string; hasPhoto: boolean }) {
+function Front({ profile, t, k, title }: { profile: MyProfile; t: CardFinishTokens; k: number; title: string }) {
   const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ');
   return (
     <View className="absolute inset-0" style={{ paddingHorizontal: 20 * k, paddingTop: 12 * k, paddingBottom: 22 * k }}>
       <View className="items-center">
         <Wordmark t={t} k={k} size={21} />
       </View>
-      {!hasPhoto ? (
-        <View className="items-center" style={{ marginTop: 52 * k }}>
-          <Text className="font-num" style={{ color: withAlpha(t.ink, 0.35), fontSize: 90 * k, lineHeight: 100 * k }}>
-            {profile.firstName.slice(0, 1).toUpperCase()}
-          </Text>
-        </View>
-      ) : null}
       <View className="mt-auto">
         <Text className="font-body-bold uppercase" style={{ color: t.accent, fontSize: 11 * k, letterSpacing: 1.5 * k }}>
           {title}
@@ -349,7 +351,7 @@ export function PlayerCard({ profile, finish, title, photoUrl, flipped, onFlip, 
         <Animated.View key={finish} entering={FadeIn.duration(reduceMotion ? 0 : 300)} className="absolute inset-0">
           <Animated.View className="absolute inset-0" style={[{ backfaceVisibility: 'hidden' }, front]}>
             <Material t={t} side="front" photoUrl={photoUrl} mx={mx} my={my} />
-            <Front profile={profile} t={t} k={k} title={titleName} hasPhoto={!!photoUrl} />
+            <Front profile={profile} t={t} k={k} title={titleName} />
           </Animated.View>
           <Animated.View className="absolute inset-0" style={[{ backfaceVisibility: 'hidden' }, back]}>
             <Material t={t} side="back" mx={mx} my={my} />
