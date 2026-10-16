@@ -1,88 +1,47 @@
 /**
- * S8b — Carta do Jogador (player card) screen tests.
- *
- * Covers:
- *  - Header shows a back affordance (→ router.back) and the "Carta do Jogador" title.
- *  - The card shows the GERAL number, the position tag, the player name +
- *    "@handle · Posição" subtitle, and the full 6-stat grid (ACE/BLK/ATA/DEF/SRV/REC).
- *  - "Compartilhar carta" opens the native share sheet.
- *  - Loading and error states render from the mocked useMyProfile query.
- *
- * useMyProfile is mocked at the hook boundary; native modules (safe-area,
- * expo-image, lucide, Button) are stubbed inline, mirroring the S8 screen test.
+ * "Sua carta" (S8b) screen tests: the card's front and back from the real
+ * profile, flipping, the finish / title / stats tabs and saving a choice.
+ * Native pieces (safe-area, gesture handler, image picker, icons) are stubbed;
+ * the profile and save hooks are mocked at the hook boundary.
  */
 import React from 'react';
 
-// safe-area -> plain View.
-jest.mock('react-native-safe-area-context', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+
+// gesture-handler -> GestureDetector renders its child; gestures chain to themselves.
+jest.mock('react-native-gesture-handler', () => {
+  const chain: any = new Proxy({}, { get: () => () => chain });
   return {
-    SafeAreaView: ({ children, ...props }: any) =>
-      ReactLocal.createElement(View, props, children),
-    useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+    GestureDetector: ({ children }: any) => children,
+    Gesture: { Pan: () => chain, Tap: () => chain, Race: () => chain },
   };
 });
 
-// expo-image -> inert node (the xl avatar with a uri).
-jest.mock('expo-image', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  return { Image: (props: any) => ReactLocal.createElement(View, props) };
-});
+jest.mock('expo-image-picker', () => ({
+  launchImageLibraryAsync: jest.fn(() => Promise.resolve({ canceled: true, assets: [] })),
+}));
 
-// lucide icons -> inert nodes.
 jest.mock('lucide-react-native', () => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    ChevronLeft: stub('chevron-left'),
-    Lock: stub('lock'),
-    Share2: stub('share'),
-  };
+  const stub = (props: any) => ReactLocal.createElement(View, props);
+  return { Check: stub, ChevronLeft: stub, Maximize2: stub, Plus: stub, RefreshCw: stub };
 });
 
-// Button -> plain Pressable (its gradient/css-interop internals are covered by
-// its own tests; here we only need the onPress wiring).
 jest.mock('@/components/ui/Button', () => {
   const ReactLocal = require('react');
   const { Pressable, Text } = require('react-native');
   return {
     Button: ({ children, onPress, testID }: any) =>
-      ReactLocal.createElement(
-        Pressable,
-        { onPress, testID, accessibilityRole: 'button' },
-        ReactLocal.createElement(Text, null, children),
-      ),
+      ReactLocal.createElement(Pressable, { onPress, testID, accessibilityRole: 'button' },
+        ReactLocal.createElement(Text, null, children)),
   };
 });
 
-// expo-router: spyable back() + push().
 const mockBack = jest.fn();
-const mockPush = jest.fn();
-jest.mock('expo-router', () => ({
-  router: {
-    back: (...args: any[]) => mockBack(...args),
-    push: (...args: any[]) => mockPush(...args),
-  },
-}));
-
-// react-native's `Share` is exposed on the index via a getter delegating to
-// `./Libraries/Share/Share`.default; under jest-expo the auto-mocked reference
-// the test spies on diverges from the one the component calls. Mock the module
-// path directly so both sides observe the same `share` jest.fn.
-jest.mock('react-native/Libraries/Share/Share', () => ({
-  __esModule: true,
-  default: {
-    share: jest.fn(() => Promise.resolve({ action: 'sharedAction' })),
-    sharedAction: 'sharedAction',
-    dismissedAction: 'dismissedAction',
-  },
-}));
-const shareSpy = require('react-native/Libraries/Share/Share').default
-  .share as jest.Mock;
+jest.mock('expo-router', () => ({ router: { back: (...args: any[]) => mockBack(...args) } }));
 
 import type { MyProfile } from '@/features/profile/types/profile';
 
@@ -100,30 +59,27 @@ const PROFILE_FIXTURE: MyProfile = {
   def: 31,
   srv: 27,
   rec: 24,
-  level: 15,
-  xp: 2450,
-  xpToNext: 5000,
+  level: 7,
+  xp: 40,
+  xpToNext: 140,
+  record: { matches: 32, wins: 20, losses: 11, draws: 1, mvps: 4 },
+  points: 720,
+  cardStyle: { finish: 'Prisma', title: null, photoObjectKey: null },
 };
 
-const mockProfile: {
-  data: MyProfile | undefined;
-  isPending: boolean;
-  isError: boolean;
-  refetch: jest.Mock;
-} = {
-  data: PROFILE_FIXTURE,
+const mockProfile = {
+  data: PROFILE_FIXTURE as MyProfile | undefined,
   isPending: false,
   isError: false,
   refetch: jest.fn(),
 };
-
 jest.mock('@/features/profile/api/getMyProfile', () => ({
-  useMyProfile: () => ({
-    data: mockProfile.data,
-    isPending: mockProfile.isPending,
-    isError: mockProfile.isError,
-    refetch: mockProfile.refetch,
-  }),
+  useMyProfile: () => ({ ...mockProfile }),
+}));
+
+const mockMutate = jest.fn();
+jest.mock('@/features/profile/api/saveCardStyle', () => ({
+  useSaveCardStyle: () => ({ mutate: mockMutate, isPending: false, error: null, variables: undefined }),
 }));
 
 import { fireEvent, render, screen } from '@testing-library/react-native';
@@ -132,80 +88,77 @@ import CardScreen from '../../../../app/profile/card';
 
 beforeEach(() => {
   mockBack.mockClear();
-  mockPush.mockClear();
-  shareSpy.mockClear();
+  mockMutate.mockClear();
   mockProfile.data = PROFILE_FIXTURE;
   mockProfile.isPending = false;
   mockProfile.isError = false;
   mockProfile.refetch.mockClear();
 });
 
-describe('S8b — Carta do Jogador', () => {
-  it('renders the header with a back affordance and the title', async () => {
+describe('S8b — Sua carta', () => {
+  it('renders the header with a back affordance', async () => {
     await render(<CardScreen />);
 
-    expect(screen.getByText('Carta do Jogador')).toBeTruthy();
-
+    expect(screen.getByText('Sua carta')).toBeTruthy();
     fireEvent.press(screen.getByLabelText('Voltar'));
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
-  it('renders the GERAL number and the position tag', async () => {
+  it('shows the front: title from the position, name, @handle and position, no GERAL or premium note', async () => {
     await render(<CardScreen />);
 
-    const geral = screen.getByText('68');
-    expect(geral.props.className).toContain('font-num');
-    // position tag (short code)
-    expect(screen.getByText('LEV')).toBeTruthy();
-  });
-
-  it('renders the player name and "@handle · Posição" subtitle', async () => {
-    await render(<CardScreen />);
-
-    const name = screen.getByText('Renan Dias');
-    expect(name.props.className).toContain('font-display');
-    expect(name.props.className).toContain('uppercase');
-    expect(screen.getByText('@renan · Levantador')).toBeTruthy();
-  });
-
-  it('renders the full 6-stat grid (ACE/BLK/ATA/DEF/SRV/REC)', async () => {
-    await render(<CardScreen />);
-
-    for (const label of ['ACE', 'BLK', 'ATA', 'DEF', 'SRV', 'REC']) {
-      expect(screen.getByText(label)).toBeTruthy();
-    }
-    // a couple of the distinct values
-    expect(screen.getByText('30')).toBeTruthy(); // ACE
-    expect(screen.getByText('27')).toBeTruthy(); // SRV
-    expect(screen.getByText('24')).toBeTruthy(); // REC
-  });
-
-  it('shows the rarity from GERAL and no premium note', async () => {
-    await render(<CardScreen />);
-
-    // GERAL 68 → Prata (60–69).
-    expect(screen.getByText('PRATA')).toBeTruthy();
-    expect(screen.getByText('NV 15')).toBeTruthy();
+    expect(screen.getAllByText('O Maestro').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Renan Dias').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('@renan').length).toBeGreaterThan(0);
+    expect(screen.getByText('Levantador')).toBeTruthy();
+    expect(screen.queryByText('68')).toBeNull();
     expect(screen.queryByText(/Premium/)).toBeNull();
   });
 
-  it('opens the native share sheet from "Compartilhar carta"', async () => {
+  it('shows the real record on the back', async () => {
     await render(<CardScreen />);
 
-    fireEvent.press(screen.getByTestId('share-card'));
-    expect(shareSpy).toHaveBeenCalledTimes(1);
-    const [payload] = shareSpy.mock.calls[0] as [{ message: string }];
-    expect(payload.message).toContain('Renan Dias');
-    expect(payload.message).toContain('68');
+    expect(screen.getByText('32')).toBeTruthy(); // partidas
+    expect(screen.getByText('20')).toBeTruthy(); // vitórias
+    expect(screen.getByText('4')).toBeTruthy(); // MVPs
+    expect(screen.getByText('63%')).toBeTruthy(); // aproveitamento 20/32
+  });
+
+  it('flips with the "Ver verso" button', async () => {
+    await render(<CardScreen />);
+
+    await fireEvent.press(screen.getByTestId("flip-card"));
+    expect(screen.getByText('Ver frente')).toBeTruthy();
+  });
+
+  it('equips a finish and keeps the title', async () => {
+    await render(<CardScreen />);
+
+    fireEvent.press(screen.getByTestId('finish-Eclipse'));
+    expect(mockMutate).toHaveBeenCalledWith({ finish: 'Eclipse', title: null });
+  });
+
+  it('picks a title on the Título tab', async () => {
+    await render(<CardScreen />);
+
+    await fireEvent.press(screen.getByText("Título"));
+    fireEvent.press(screen.getByTestId('title-MURALHA'));
+    expect(mockMutate).toHaveBeenCalledWith({ finish: 'Prisma', title: 'MURALHA' });
+  });
+
+  it('lists the real numbers on the Estatísticas tab', async () => {
+    await render(<CardScreen />);
+
+    await fireEvent.press(screen.getByText("Estatísticas"));
+    expect(screen.getAllByText('720')).toHaveLength(2); // back of the card + the list
+    expect(screen.getByText('Vezes eleito o melhor da partida')).toBeTruthy();
   });
 
   it('shows a loading placeholder while the profile is pending', async () => {
     mockProfile.isPending = true;
     await render(<CardScreen />);
 
-    // The card body content is absent while loading.
     expect(screen.queryByText('Renan Dias')).toBeNull();
-    expect(screen.queryByText('Compartilhar carta')).toBeNull();
   });
 
   it('shows the error/retry row and refetches on retry', async () => {

@@ -283,6 +283,10 @@ describe('useMyProfile', () => {
       xp: 15,
       xpToNext: 40,
       shareActivity: false,
+      record: { matches: 2, wins: 1, losses: 1, draws: 0, mvps: 0 },
+      points: 35,
+      // No cardStyle from this backend: the default card.
+      cardStyle: { finish: 'Prisma', title: null, photoUrl: undefined, photoObjectKey: null },
     });
   });
 

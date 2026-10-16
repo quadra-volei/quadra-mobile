@@ -1,30 +1,29 @@
+import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { ChevronLeft, Share2 } from "lucide-react-native";
-import { useState } from "react";
-import { Pressable, ScrollView, Share, Text, View } from "react-native";
+import { Check, ChevronLeft, Maximize2, Plus, RefreshCw } from "lucide-react-native";
+import { type ReactNode, useState } from "react";
+import { Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { QuadraLogo } from "@/components/icons/QuadraLogo";
 import { PlayerCard } from "@/components/domain/PlayerCard";
 import { Button } from "@/components/ui/Button";
+import { PressableScale } from "@/components/ui/PressableScale";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
-import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { useMyProfile } from "@/features/profile/api/getMyProfile";
+import { useSaveCardStyle } from "@/features/profile/api/saveCardStyle";
+import { CARD_TITLES, cardTitleCode } from "@/features/profile/card/cardTitles";
 import type { MyProfile } from "@/features/profile/types/profile";
+import { CARD_FINISHES, CARD_FINISH_ORDER, CARD_SCREEN } from "@/theme/cardFinish";
 import { colors } from "@/theme/colors";
 
-/** Opens the native share sheet with a short player-card summary. */
-async function shareCard(name: string, overall: number) {
-  try {
-    await Share.share({
-      message: `Confira minha carta na Quadra — ${name}, GERAL ${overall}.`,
-    });
-  } catch {
-    // User dismissed the sheet or the platform share failed — nothing to do.
-  }
-}
+const TABS = ["Acabamento", "Título", "Estatísticas"] as const;
+type Tab = (typeof TABS)[number];
 
 function ErrorBlock({ onRetry }: { onRetry: () => void }) {
   return (
-    <View className="mt-10 items-center" accessibilityLiveRegion="polite">
+    <View className="mt-10 items-center gap-4" accessibilityLiveRegion="polite">
       <Text className="font-body text-body text-white/70 text-center">
         Não foi possível carregar a carta
       </Text>
@@ -35,77 +34,264 @@ function ErrorBlock({ onRetry }: { onRetry: () => void }) {
   );
 }
 
-// ── Header (inline; back + title variant — a pushed dark stack screen) ──
-function CardHeader() {
+// One of the outlined buttons under the card ("Ver verso", "Ampliar").
+function ToolButton({ label, icon, onPress, testID }: { label: string; icon: ReactNode; onPress: () => void; testID?: string }) {
   return (
-    <View className="flex-row items-center gap-3 px-4 pt-2 pb-3">
-      <Pressable
+    <PressableScale
+      accessibilityRole="button"
+      onPress={onPress}
+      testID={testID}
+      className="flex-1 flex-row items-center justify-center gap-2 rounded-chip border border-white/20 bg-white/5 py-3"
+    >
+      <Text className="font-body-bold text-caption text-text-on-dark">{label}</Text>
+      {icon}
+    </PressableScale>
+  );
+}
+
+type Save = ReturnType<typeof useSaveCardStyle>;
+
+function FinishPicker({ profile, save, onPickPhoto }: { profile: MyProfile; save: Save; onPickPhoto: () => void }) {
+  const saving = save.isPending && !!save.variables?.photoUri;
+  const current = profile.cardStyle;
+  return (
+    <>
+      <View className="flex-row gap-2">
+        {CARD_FINISH_ORDER.map((finish) => {
+          const t = CARD_FINISHES[finish];
+          const equipped = current.finish === finish;
+          return (
+            <PressableScale
+              key={finish}
+              accessibilityRole="button"
+              accessibilityState={{ selected: equipped }}
+              onPress={() => save.mutate({ finish, title: current.title })}
+              testID={`finish-${finish}`}
+              className={`flex-1 rounded-chip border p-2 ${equipped ? "border-accent-light" : "border-white/15"}`}
+              style={{ backgroundColor: CARD_SCREEN.bg }}
+            >
+              <LinearGradient
+                colors={t.swatch}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ height: 56, borderRadius: t.shape === "rounded" ? 14 : 7, alignItems: "center", justifyContent: "center" }}
+              >
+                <QuadraLogo size={30} blockColor={t.wordmark} />
+              </LinearGradient>
+              <Text className="font-body-bold text-caption text-text-on-dark mt-2">{t.name}</Text>
+              <Text className="font-mono text-mono text-white/60 mt-1">{equipped ? "EQUIPADO" : "EXPERIMENTAR"}</Text>
+            </PressableScale>
+          );
+        })}
+      </View>
+      <Text className="font-body text-caption text-white/60 my-4">Escolha o visual que combina com você.</Text>
+      <PressableScale
         accessibilityRole="button"
-        accessibilityLabel="Voltar"
-        onPress={() => router.back()}
+        onPress={onPickPhoto}
+        disabled={saving}
+        className="items-center rounded-chip border border-dashed border-white/30 py-3"
+        testID="pick-card-photo"
       >
-        <ChevronLeft size={24} color={colors.textOnDark} />
-      </Pressable>
-      <Text className="font-body-bold text-body-bold text-text-on-dark">
-        Carta do Jogador
+        <Text className="font-body-bold text-caption text-text-on-dark">
+          {saving ? "Enviando foto…" : "Trocar foto da carta"}
+        </Text>
+      </PressableScale>
+    </>
+  );
+}
+
+function TitlePicker({ profile, save }: { profile: MyProfile; save: Save }) {
+  const shown = cardTitleCode(profile.cardStyle.title, profile.position);
+  return (
+    <>
+      {CARD_TITLES.map((title) => {
+        const on = shown === title.code;
+        return (
+          <PressableScale
+            key={title.code}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+            onPress={() => save.mutate({ finish: profile.cardStyle.finish, title: title.code })}
+            testID={`title-${title.code}`}
+            className={`flex-row items-center justify-between gap-3 rounded-chip border px-3 py-3 mb-2 ${on ? "border-accent-light bg-accent-light/10" : "border-white/15 bg-white/5"}`}
+          >
+            <View className="flex-1">
+              <Text className="font-body-bold text-body text-text-on-dark">{title.name}</Text>
+              <Text className="font-body text-caption text-white/60 mt-1">{title.description}</Text>
+            </View>
+            {on ? <Check size={18} color={colors.accentLight} /> : <Plus size={18} color={colors.textMuted} />}
+          </PressableScale>
+        );
+      })}
+      <Text className="font-body text-caption text-white/60 my-3">
+        Títulos de identidade. Eles não representam uma classificação técnica.
       </Text>
-    </View>
+    </>
+  );
+}
+
+function StatsList({ profile }: { profile: MyProfile }) {
+  const r = profile.record;
+  const rows: [string, string, number][] = [
+    ["Partidas", "Partidas concluídas com você em quadra", r.matches],
+    ["Vitórias", "Partidas que seu time venceu", r.wins],
+    ["Derrotas", "Partidas que seu time perdeu", r.losses],
+    ["Empates", "Partidas encerradas empatadas", r.draws],
+    ["MVPs", "Vezes eleito o melhor da partida", r.mvps],
+    ["Pontos", "Presença +10, vitória +15, MVP +25", profile.points],
+  ];
+  return (
+    <>
+      <Text className="font-body text-caption text-white/60 mb-3">
+        Só partidas concluídas e registradas compõem a carta.
+      </Text>
+      {rows.map(([label, hint, value]) => (
+        <View key={label} className="flex-row items-center justify-between rounded-chip border border-white/15 bg-white/5 px-3 py-3 mb-2">
+          <View className="flex-1">
+            <Text className="font-body-bold text-body text-text-on-dark">{label}</Text>
+            <Text className="font-body text-caption text-white/60 mt-1">{hint}</Text>
+          </View>
+          <Text className="font-num text-h3 text-text-on-dark">{value}</Text>
+        </View>
+      ))}
+      <Text className="font-body text-caption text-white/60 my-3">
+        O nível representa experiência no app. Acabamentos e títulos não dão pontos nem vantagem no sorteio.
+      </Text>
+    </>
   );
 }
 
 function CardBody({ profile }: { profile: MyProfile }) {
-  const fullName = [profile.firstName, profile.lastName]
-    .filter(Boolean)
-    .join(" ");
+  const { width: screenWidth } = useWindowDimensions();
+  const [flipped, setFlipped] = useState(false);
+  const [tab, setTab] = useState<Tab>("Acabamento");
+  const [inspecting, setInspecting] = useState(false);
+  const save = useSaveCardStyle();
+  const flip = () => setFlipped((v) => !v);
+
+  const style = profile.cardStyle;
+  const cardProps = {
+    profile,
+    finish: style.finish,
+    title: cardTitleCode(style.title, profile.position),
+    photoUrl: style.photoUrl ?? profile.avatarUrl,
+    flipped,
+    onFlip: flip,
+  };
+
+  const pickPhoto = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"],
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.85,
+    });
+    if (!result.canceled && result.assets[0]) {
+      save.mutate({ finish: style.finish, title: style.title, photoUri: result.assets[0].uri });
+    }
+  };
 
   return (
     <>
-      <View className="mt-2">
-        <PlayerCard profile={profile} testID="player-card" />
+      <View className="items-center mt-2 mb-4">
+        <PlayerCard {...cardProps} width={Math.min(screenWidth - 80, 300)} testID="player-card" />
+      </View>
+      <Text className="font-body text-caption text-white/60 text-center mb-3">
+        Arraste para inclinar · toque para virar
+      </Text>
+
+      <View className="flex-row gap-2 mb-4">
+        <ToolButton
+          label={flipped ? "Ver frente" : "Ver verso"}
+          icon={<RefreshCw size={14} color={colors.textOnDark} />}
+          onPress={flip}
+          testID="flip-card"
+        />
+        <ToolButton
+          label="Ampliar"
+          icon={<Maximize2 size={14} color={colors.textOnDark} />}
+          onPress={() => setInspecting(true)}
+          testID="inspect-card"
+        />
       </View>
 
-      {/* Share */}
-      <View className="mt-6">
-        <Button
-          variant="grad"
-          onPress={() => shareCard(fullName, profile.overall)}
-          leftIcon={<Share2 size={18} color={colors.surfaceDark} />}
-          testID="share-card"
-        >
-          Compartilhar carta
-        </Button>
+      {save.error ? (
+        <Text className="font-body text-caption text-danger mb-3" accessibilityLiveRegion="polite">
+          {save.error.message}
+        </Text>
+      ) : null}
+
+      <View className="flex-row gap-6 border-b border-white/10 mb-4" accessibilityRole="tablist">
+        {TABS.map((t) => (
+          <Pressable
+            key={t}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: tab === t }}
+            onPress={() => setTab(t)}
+            className={`pb-3 border-b-2 ${tab === t ? "border-accent-light" : "border-transparent"}`}
+          >
+            <Text className={`font-body-bold text-body ${tab === t ? "text-accent-light" : "text-white/60"}`}>{t}</Text>
+          </Pressable>
+        ))}
       </View>
+
+      {tab === "Acabamento" ? (
+        <FinishPicker profile={profile} save={save} onPickPhoto={pickPhoto} />
+      ) : tab === "Título" ? (
+        <TitlePicker profile={profile} save={save} />
+      ) : (
+        <StatsList profile={profile} />
+      )}
+
+      <Modal visible={inspecting} transparent animationType="fade" onRequestClose={() => setInspecting(false)} statusBarTranslucent>
+        <View className="flex-1 items-center justify-center px-5" style={{ backgroundColor: CARD_SCREEN.bg }}>
+          <Text className="font-mono text-mono text-white/60 tracking-widest mb-4">SUA CARTA</Text>
+          <PlayerCard {...cardProps} width={Math.min(screenWidth - 40, 380)} testID="player-card-inspect" />
+          <Text className="font-body text-caption text-white/60 text-center my-4">
+            Mova a carta para explorar a luz.
+          </Text>
+          <View className="flex-row gap-2 self-stretch">
+            <ToolButton label="Virar" icon={<RefreshCw size={14} color={colors.textOnDark} />} onPress={flip} />
+            <ToolButton label="Concluir" icon={<Check size={14} color={colors.textOnDark} />} onPress={() => setInspecting(false)} />
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
 
 export default function CardScreen() {
   const { data, isPending, isError, refetch } = useMyProfile();
-  const [headerHeight, setHeaderHeight] = useState(0);
+  const insets = useSafeAreaInsets();
 
   return (
-    <View className="flex-1 bg-surface-dark">
-      <View style={{ flex: 1 }}>
-        <ScrollView
-          contentContainerClassName="px-5 pb-10"
-          contentContainerStyle={{ paddingTop: headerHeight }}
+    <View className="flex-1" style={{ backgroundColor: CARD_SCREEN.bg }}>
+      {/* Blue glow behind the card. */}
+      <LinearGradient
+        colors={[CARD_SCREEN.glow, "transparent"]}
+        style={{ position: "absolute", top: 0, left: 0, right: 0, height: 420 }}
+      />
+      <View className="flex-row items-center px-4 pb-3" style={{ paddingTop: insets.top + 8 }}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Voltar"
+          onPress={() => router.back()}
+          className="h-9 w-9 items-center justify-center rounded-chip bg-white/10"
         >
-          {isPending ? (
-            <SkeletonBlock tone="dark" className="h-96 mt-2" />
-          ) : isError ? (
-            <ErrorBlock onRetry={() => refetch()} />
-          ) : (
-            <CardBody profile={data} />
-          )}
-        </ScrollView>
+          <ChevronLeft size={22} color={colors.textOnDark} />
+        </Pressable>
+        <Text className="flex-1 text-center font-body-bold text-body-bold text-text-on-dark">Sua carta</Text>
+        <View className="w-9" />
       </View>
-
-      <ScreenHeader
-        tint="dark"
-        onHeight={setHeaderHeight}
-      >
-        <CardHeader />
-      </ScreenHeader>
+      <ScrollView contentContainerClassName="px-5 pb-10">
+        {isPending ? (
+          <SkeletonBlock tone="dark" className="h-96 mt-2" />
+        ) : isError ? (
+          <ErrorBlock onRetry={() => refetch()} />
+        ) : (
+          <CardBody profile={data} />
+        )}
+      </ScrollView>
     </View>
   );
 }

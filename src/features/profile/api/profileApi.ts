@@ -5,8 +5,10 @@ import type {
 } from '@/features/profile/schema/onboarding';
 import { FileSystemUploadType, uploadAsync } from 'expo-file-system/legacy';
 
+import type { CardTitleCode } from '@/features/profile/card/cardTitles';
 import { ApiError } from '@/lib/api/client';
 import { authorizedApiClient } from '@/lib/api/authorizedClient';
+import type { CardFinish } from '@/theme/cardFinish';
 
 /** The single profile resource of the signed-in user (backend F2.1). */
 export const MY_PROFILE_PATH = '/api/v1/profiles/me';
@@ -55,6 +57,18 @@ export type ApiProfile = {
   };
   /** Only on my own profile: whether my followers see my activities. */
   shareActivity?: boolean | null;
+  /** How the player dressed their card (API DECISIONS #65). */
+  cardStyle?: ApiCardStyle | null;
+};
+
+/** `cardStyle` on the profile and the `PUT /profiles/me/card-style` response. */
+export type ApiCardStyle = {
+  finish: CardFinish;
+  title: CardTitleCode | null;
+  /** The card's own photo; null shows the profile photo. */
+  photoUrl: string | null;
+  /** Only for the owner: sent back to keep the card photo. */
+  photoObjectKey: string | null;
 };
 
 /** `PUT /api/v1/profiles/me` body. */
