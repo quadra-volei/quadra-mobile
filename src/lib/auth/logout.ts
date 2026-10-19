@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 
 import { apiClient } from '@/lib/api/client';
 import { clearTokens, getRefreshToken } from '@/lib/auth/tokenStorage';
+import { unregisterPush } from '@/lib/push/pushNotifications';
 import { useAuthStore } from '@/stores/auth';
 
 /**
@@ -35,6 +36,8 @@ async function revokeRemoteSession(): Promise<void> {
  * module-local client.
  */
 export async function logout(queryClient: QueryClient): Promise<void> {
+  // While the session still works: this phone stops getting the account's pushes.
+  await unregisterPush();
   await revokeRemoteSession();
   await clearTokens();
   useAuthStore.getState().clearAuth();

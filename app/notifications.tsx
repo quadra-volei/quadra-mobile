@@ -8,6 +8,7 @@ import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { type AppNotification, useMarkRead, useNotifications } from '@/features/notifications/api/notificationsApi';
 import { timeAgo } from '@/features/network/api/postsApi';
+import { pushTarget } from '@/lib/push/pushNotifications';
 
 // The bell: what happened to my games (API DECISIONS #77). Opening one marks it read and takes
 // me to its match; the switches live in Configurações → Notificações.
@@ -18,9 +19,9 @@ export default function NotificationsListScreen() {
 
   const open = (n: AppNotification) => {
     if (!n.read) markRead.mutate(n.id);
-    if (n.matchId) {
-      const pathname = n.type === 'SummaryReady' ? '/matches/[id]/summary' : n.type === 'MvpVotingOpen' ? '/matches/[id]/mvp-vote' : '/matches/[id]';
-      router.push({ pathname, params: { id: n.matchId } });
+    const target = pushTarget(n);
+    if (target) {
+      router.push(target);
     }
   };
 
