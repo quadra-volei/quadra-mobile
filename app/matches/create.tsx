@@ -55,6 +55,8 @@ import {
   createMatchSchema,
   isCreateMatchComplete,
   isValidBrDate,
+  DEFAULT_GAME_POINTS,
+  GAME_POINTS,
   MATCH_DURATIONS,
   SUGGESTED_PLAYERS,
   TIME_PRESETS,
@@ -389,6 +391,7 @@ export default function CreateMatchScreen() {
       recStart: '',
       time: '',
       duration: '1h30',
+      gamePoints: DEFAULT_GAME_POINTS,
       players: 0,
       price: 25,
       priceMonthly: 80,
@@ -406,6 +409,7 @@ export default function CreateMatchScreen() {
     time,
     duration,
     format,
+    gamePoints,
     level,
     privacy,
     inviteMode,
@@ -941,6 +945,20 @@ export default function CreateMatchScreen() {
                   />
                 ))}
               </View>
+              <Reveal show={!!format}>
+                <MiniLabel>O jogo vai até quantos pontos?</MiniLabel>
+                <View className="flex-row flex-wrap gap-2">
+                  {GAME_POINTS.map((p) => (
+                    <FilterChip
+                      key={p}
+                      label={`${p} pontos`}
+                      selected={gamePoints === p}
+                      onPress={() => setValue('gamePoints', p, { shouldValidate: true })}
+                      testID={`game-points-${p}`}
+                    />
+                  ))}
+                </View>
+              </Reveal>
             </Reveal>
           </View>
 

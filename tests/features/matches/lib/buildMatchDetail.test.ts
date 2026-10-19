@@ -16,6 +16,7 @@ const baseInput: CreateMatchInput = {
   recStart: '03/07/2026',
   time: '22h00',
   duration: '1h30',
+  gamePoints: 25,
   format: '4X4',
   level: 'AVANCADO',
   players: 8,

@@ -18,6 +18,7 @@ export const editMatchSchema = z.object({
   time: z.string().regex(/^\d{1,2}h\d{2}$/, 'Escolha um horário'),
   duration: z.enum(MATCH_DURATIONS),
   format: z.enum(['2X2', '4X4', '6X6']),
+  gamePoints: z.number().int().min(5).max(50),
   players: z.number().int().min(2, 'Mínimo de 2 jogadores').max(100),
   level: z.enum(LEVELS),
   price: z.number().min(0),

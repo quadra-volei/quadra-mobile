@@ -37,7 +37,7 @@ export type ApiScoreboardSet = {
 
 export type ApiScoreboard = {
   matchId: string;
-  format: 'BestOf3' | 'BestOf5';
+  format: 'SingleGame' | 'BestOf3' | 'BestOf5';
   state: 'NotStarted' | 'InProgress' | 'Ended';
   /** The pair on court (of the current set when teams rotate). */
   teamAId: string;
@@ -49,6 +49,8 @@ export type ApiScoreboard = {
   sets: ApiScoreboardSet[];
   /** More than two teams: the organizer picks who plays each set. */
   rotatesTeams: boolean;
+  /** Points that win a single game (null on best-of games). */
+  pointsToWin?: number | null;
   /** In progress with no open set: waiting for the next pair. */
   awaitingNextSet: boolean;
 };
@@ -64,7 +66,7 @@ export type ApiMvpVoting = {
 };
 
 export type ApiMatchSummary = {
-  format: 'BestOf3' | 'BestOf5';
+  format: 'SingleGame' | 'BestOf3' | 'BestOf5';
   teamAId: string;
   teamBId: string;
   teamASetsWon: number;
@@ -169,7 +171,7 @@ export async function postStartGame(
   teamBId: string,
 ): Promise<ApiScoreboard> {
   await send('POST', gamePath(matchId, 'scoreboard'), {
-    format: 'BestOf3',
+    format: 'SingleGame',
     teamAId,
     teamBId,
   });
