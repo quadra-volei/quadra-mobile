@@ -16,3 +16,7 @@ expo-env.d.ts
 android/
 ios/
 *:Zone.Identifier
+
+# Firebase: google-services.json comes from EAS (GOOGLE_SERVICES_JSON); service account keys never enter git.
+google-services.json
+*firebase-adminsdk*.json
