@@ -6,7 +6,8 @@
  *    (uppercase, font-display).
  *  - Summary card shows the authenticated user's avatar, full name, and
  *    "@handle · position".
- *  - The "CONTA" section shows ONLY "Editar perfil" (no "Pagamentos e Premium").
+ *  - The "CONTA" section shows "Editar perfil", "Exportar meus dados" and "Excluir conta"
+ *    (no "Pagamentos e Premium"); deleting asks for confirmation first.
  *  - "Editar perfil" navigates to /profile/edit.
  *  - "Aparência" offers Claro / Escuro / Automático, the selected option is
  *    visually marked, the choice persists via useThemeStore, and dark/system show
@@ -88,9 +89,11 @@ jest.mock('lucide-react-native', () => {
     Check: stub('check'),
     ChevronLeft: stub('chevron-left'),
     ChevronRight: stub('chevron-right'),
+    Download: stub('download'),
     Globe: stub('globe'),
     MapPin: stub('map-pin'),
     MessageSquare: stub('message-square'),
+    Trash2: stub('trash'),
     User: stub('user'),
     Users: stub('users'),
   };
@@ -180,6 +183,14 @@ jest.mock('@/features/activity/api/activityApi', () => ({
   useSetActivitySharing: () => ({ mutate: mockSetSharing, isPending: false, variables: undefined }),
 }));
 
+// Account export / deletion: the mutations are mocked at the hook boundary.
+const mockExport = jest.fn();
+const mockDelete = jest.fn();
+jest.mock('@/features/auth/api/account', () => ({
+  useExportAccount: () => ({ mutate: mockExport, isPending: false }),
+  useDeleteAccount: () => ({ mutate: mockDelete, isPending: false }),
+}));
+
 jest.mock('@/features/profile/api/getMyProfile', () => ({
   useMyProfile: () => ({
     data: mockProfile.data,
@@ -189,7 +200,7 @@ jest.mock('@/features/profile/api/getMyProfile', () => ({
   }),
 }));
 
-import { Linking } from 'react-native';
+import { Alert, Linking } from 'react-native';
 
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 
@@ -213,6 +224,8 @@ beforeEach(() => {
   jest.spyOn(Linking, 'openSettings').mockImplementation(mockOpenSettings);
   jest.spyOn(Linking, 'openURL').mockImplementation(mockOpenURL);
   mockLogout.mockClear();
+  mockExport.mockClear();
+  mockDelete.mockClear();
   mockSetTheme.mockClear();
   mockProfile.data = PROFILE_FIXTURE;
   mockProfile.isPending = false;
@@ -273,6 +286,8 @@ describe('S10 — Settings list screen', () => {
     expect(screen.queryByText('Renan Dias')).toBeNull();
     // static rows still render
     expect(screen.getByText('Editar perfil')).toBeTruthy();
+    expect(screen.getByText('Exportar meus dados')).toBeTruthy();
+    expect(screen.getByText('Excluir conta')).toBeTruthy();
   });
 
   /**
@@ -296,10 +311,12 @@ describe('S10 — Settings list screen', () => {
    * Criterion: "The 'CONTA' section shows only 'Editar perfil' (no 'Pagamentos e
    *  Premium' row)."
    */
-  it('shows only "Editar perfil" under CONTA — no "Pagamentos e Premium"', async () => {
+  it('shows the account rows under CONTA — no "Pagamentos e Premium"', async () => {
     await renderScreen();
 
     expect(screen.getByText('Editar perfil')).toBeTruthy();
+    expect(screen.getByText('Exportar meus dados')).toBeTruthy();
+    expect(screen.getByText('Excluir conta')).toBeTruthy();
     expect(screen.queryByText(/pagamentos/i)).toBeNull();
     expect(screen.queryByText(/premium/i)).toBeNull();
     expect(screen.queryByText('PRO')).toBeNull();
@@ -473,5 +490,25 @@ describe('S10 — Settings list screen', () => {
 
     fireEvent(toggle, 'valueChange', false);
     expect(mockSetSharing).toHaveBeenCalledWith(false);
+  });
+
+  it('exports the account data when "Exportar meus dados" is tapped', async () => {
+    await renderScreen();
+
+    fireEvent.press(screen.getByText('Exportar meus dados'));
+    expect(mockExport).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks for confirmation before deleting the account', async () => {
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    await renderScreen();
+
+    fireEvent.press(screen.getByText('Excluir conta'));
+    expect(mockDelete).not.toHaveBeenCalled();
+    expect(alert).toHaveBeenCalledTimes(1);
+
+    const buttons = alert.mock.calls[0]?.[2] ?? [];
+    buttons.find((b) => b.style === 'destructive')?.onPress?.();
+    expect(mockDelete).toHaveBeenCalledTimes(1);
   });
 });
