@@ -25,6 +25,7 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { UpdateGate } from '@/components/domain/UpdateGate';
 import { DialogHost } from '@/components/ui/Dialog';
 import { prefetchProfileTab } from '@/features/profile/api/prefetchProfileTab';
 import { getAccessToken } from '@/lib/auth/getAccessToken';
@@ -143,6 +144,7 @@ export default function RootLayout() {
             <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
             <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
           </Stack>
+          <UpdateGate />
           <DialogHost />
         </QueryClientProvider>
       </SafeAreaProvider>
