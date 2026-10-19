@@ -6,6 +6,7 @@ import {
   Heart,
   MessageCircle,
   MoreHorizontal,
+  Search,
   Bell,
   Settings,
   Trash2,
@@ -43,6 +44,9 @@ import { MOTION } from '@/theme/motion';
 
 function goSettings() {
   router.push('/profile/settings');
+}
+function goSearch() {
+  router.push('/network/search');
 }
 function goNotifications() {
   router.push('/profile/notifications');
@@ -365,6 +369,9 @@ export default function NetworkScreen() {
             REDE
           </Text>
           <View className="flex-row items-center gap-3">
+            <IconButton label="Buscar jogador" onPress={goSearch}>
+              <Search size={20} color={colors.surfaceDark} />
+            </IconButton>
             <IconButton label="Notificações" onPress={goNotifications}>
               <Bell size={20} color={colors.surfaceDark} />
             </IconButton>

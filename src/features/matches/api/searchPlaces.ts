@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
 
 import type { Coords } from '@/features/matches/api/matchesApi';
+import { useDebounced } from '@/hooks/useDebounced';
 import { authorizedApiClient } from '@/lib/api/authorizedClient';
 
 /** Backend address search (Geo module): a proxy over Google Places / OpenStreetMap. */
@@ -36,15 +36,6 @@ export function newPlaceSessionToken(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 }
 
-function useDebounced(value: string): string {
-  const [debounced, setDebounced] = useState(value);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(value), DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [value]);
-  return debounced;
-}
-
 /**
  * Suggestions for what the user typed so far (`GET /places/autocomplete`),
  * debounced, closest to `near` first. Disabled until there is enough text. A
@@ -55,7 +46,7 @@ export function usePlaceSuggestions(
   text: string,
   options: { near: Coords | null; sessionToken: string; enabled?: boolean },
 ) {
-  const query = useDebounced(text.trim());
+  const query = useDebounced(text.trim(), DEBOUNCE_MS);
   const { near, sessionToken } = options;
   return useQuery({
     queryKey: ['places', query, near?.latitude, near?.longitude] as const,
