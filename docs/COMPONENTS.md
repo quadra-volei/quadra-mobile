@@ -347,6 +347,13 @@ More UI primitives will live here:
 - **Used in**: `app/(tabs)/_layout.tsx` (around the tabs)
 - **Notes**: Asks for the location permission before rendering its children, only while the permission was never answered (DECISIONS #72). Denied: explains what is lost, offers the phone settings, then lets the user in.
 
+### `UpdateGate`
+- **Path**: `src/components/domain/UpdateGate.tsx`
+- **Category**: domain
+- **Props**: none
+- **Used in**: `app/_layout.tsx` (after the stack, before `DialogHost`)
+- **Notes**: Reads `GET /api/v1/app/version` once per launch (`useUpdateStatus`). Below the minimum version it covers the whole app with "Atualize o app" and the store button; below the recommended one it opens a dialog once. A failed check never blocks (DECISIONS #127).
+
 ### `MatchCard`
 - **Path**: `src/components/domain/MatchCard.tsx`
 - **Category**: domain
