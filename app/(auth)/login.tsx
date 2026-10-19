@@ -3,7 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Dimensions, Pressable, Text, View } from "react-native";
+import { Dimensions, Linking, Pressable, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { ChevronLeft } from "lucide-react-native";
 import Animated, {
@@ -28,6 +28,7 @@ import { useRequestOtp } from "@/features/auth/api/requestOtp";
 import { useRiseIn } from "@/hooks/useRiseIn";
 import { useAuthStore } from "@/stores/auth";
 import { colors, HERO_GRADIENT } from "@/theme/colors";
+import { LEGAL_URLS } from "@/lib/legal";
 
 const SWIPE_CLOSE_THRESHOLD = 120; // drag distance (px) past which a release closes the sheet
 
@@ -336,11 +337,19 @@ export default function LoginScreen() {
 
                 <Text className="font-body text-caption text-text-muted text-center mt-6">
                   Ao continuar, você aceita os{" "}
-                  <Text className="font-body text-caption text-text-primary">
-                    Termos
+                  <Text
+                    accessibilityRole="link"
+                    onPress={() => void Linking.openURL(LEGAL_URLS.terms)}
+                    className="font-body text-caption text-text-primary underline"
+                  >
+                    Termos de Uso
                   </Text>{" "}
                   e a{" "}
-                  <Text className="font-body text-caption text-text-primary">
+                  <Text
+                    accessibilityRole="link"
+                    onPress={() => void Linking.openURL(LEGAL_URLS.privacy)}
+                    className="font-body text-caption text-text-primary underline"
+                  >
                     Política de Privacidade
                   </Text>
                   .
