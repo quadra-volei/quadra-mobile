@@ -378,3 +378,55 @@ export function timeAgo(iso: string, now: number = Date.now()): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}`;
 }
+
+/** Why a post is reported (`POST /api/v1/posts/{id}/report`). */
+export type ReportReason = 'Spam' | 'Offensive' | 'Inappropriate' | 'Other';
+
+/** Reports a post to the team; it leaves my feed. */
+export function useReportPost() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, { postId: string; reason: ReportReason }>({
+    mutationFn: ({ postId, reason }) =>
+      authorizedApiClient<void>(`/api/v1/posts/${postId}/report`, {
+        method: 'POST',
+        body: JSON.stringify({ reason }),
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: postFeedQueryKey }),
+  });
+}
+
+/** One item of `GET /api/v1/profiles/me/blocks`. */
+export type BlockedPlayer = {
+  userId: string;
+  displayName: string;
+  handle: string | null;
+  blockedAt: string;
+};
+
+const blockedPlayersQueryKey = ['players', 'blocked'] as const;
+
+/** The players I blocked (Configurações → Jogadores bloqueados). */
+export function useBlockedPlayers() {
+  return useQuery({
+    queryKey: blockedPlayersQueryKey,
+    queryFn: () => authorizedApiClient<BlockedPlayer[]>('/api/v1/profiles/me/blocks'),
+  });
+}
+
+/**
+ * Blocks (`true`) or unblocks (`false`) a player (`PUT / DELETE
+ * /api/v1/profiles/{userId}/block`). A block hides each one's posts and
+ * comments from the other and ends the follows between them.
+ */
+export function useSetBlock() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, { userId: string; blocked: boolean }>({
+    mutationFn: ({ userId, blocked }) =>
+      authorizedApiClient<void>(`/api/v1/profiles/${userId}/block`, { method: blocked ? 'PUT' : 'DELETE' }),
+    onSuccess: (_, { userId }) => {
+      queryClient.invalidateQueries({ queryKey: postFeedQueryKey });
+      queryClient.invalidateQueries({ queryKey: blockedPlayersQueryKey });
+      queryClient.invalidateQueries({ queryKey: followStateQueryKey(userId) });
+    },
+  });
+}

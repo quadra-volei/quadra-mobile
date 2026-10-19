@@ -25,6 +25,7 @@ jest.mock('lucide-react-native', () => {
     Clock: stub('clock'),
     Heart: stub('heart'),
     MessageCircle: stub('message'),
+    MoreHorizontal: stub('more'),
     Bell: stub('bell'),
     Settings: stub('settings'),
     Trash2: stub('trash'),
@@ -45,11 +46,15 @@ jest.mock('expo-router', () => ({
 const mockFeed = jest.fn();
 const mockDelete = jest.fn();
 const mockSetLike = jest.fn();
+const mockReport = jest.fn();
+const mockSetBlock = jest.fn();
 jest.mock('@/features/network/api/postsApi', () => ({
   ...jest.requireActual('@/features/network/api/postsApi'),
   usePostFeed: (scope: string) => mockFeed(scope),
   useDeletePost: () => ({ mutate: mockDelete }),
   useSetPostLike: () => ({ mutate: mockSetLike }),
+  useReportPost: () => ({ mutate: mockReport }),
+  useSetBlock: () => ({ mutate: mockSetBlock }),
 }));
 
 import { fireEvent, render, screen } from '@testing-library/react-native';
@@ -141,6 +146,36 @@ describe('S7 — Rede (feed)', () => {
     const buttons = alert.mock.calls[0]![2]!;
     buttons.find((b) => b.text === 'Apagar')!.onPress!();
     expect(mockDelete).toHaveBeenCalledWith('p1');
+  });
+
+  it("reports someone else's post with a reason", async () => {
+    mockFeed.mockReturnValue(feedWith([post({ mine: true }), post({ id: 'p2' })]));
+    const alert = jest.spyOn(dialog, 'alert').mockImplementation(() => {});
+
+    await render(<NetworkScreen />);
+
+    const more = screen.getAllByLabelText(/Mais opções do post/);
+    expect(more).toHaveLength(1);
+    await fireEvent.press(more[0]!);
+    alert.mock.calls[0]![2]!.find((b) => b.text === 'Denunciar post')!.onPress!();
+    alert.mock.calls[1]![2]!.find((b) => b.text === 'Ofensivo')!.onPress!();
+
+    expect(mockReport).toHaveBeenCalledWith({ postId: 'p2', reason: 'Offensive' }, expect.anything());
+  });
+
+  it("blocks a post's author only after a confirmation", async () => {
+    const other = post({ id: 'p2' });
+    mockFeed.mockReturnValue(feedWith([other]));
+    const alert = jest.spyOn(dialog, 'alert').mockImplementation(() => {});
+
+    await render(<NetworkScreen />);
+
+    await fireEvent.press(screen.getByLabelText(/Mais opções do post/));
+    alert.mock.calls[0]![2]!.find((b) => b.text.startsWith('Bloquear'))!.onPress!();
+    expect(mockSetBlock).not.toHaveBeenCalled();
+    alert.mock.calls[1]![2]!.find((b) => b.text === 'Bloquear')!.onPress!();
+
+    expect(mockSetBlock).toHaveBeenCalledWith({ userId: other.author.userId, blocked: true }, expect.anything());
   });
 
   it('shows the likes and toggles mine at the tap', async () => {
