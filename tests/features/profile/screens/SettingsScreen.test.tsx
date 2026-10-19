@@ -95,6 +95,7 @@ jest.mock('lucide-react-native', () => {
     MessageSquare: stub('message-square'),
     Trash2: stub('trash'),
     User: stub('user'),
+    UserX: stub('user-x'),
     Users: stub('users'),
   };
 });
@@ -200,7 +201,9 @@ jest.mock('@/features/profile/api/getMyProfile', () => ({
   }),
 }));
 
-import { Alert, Linking } from 'react-native';
+import { Linking } from 'react-native';
+
+import { dialog } from '@/components/ui/Dialog';
 
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 
@@ -500,7 +503,7 @@ describe('S10 — Settings list screen', () => {
   });
 
   it('asks for confirmation before deleting the account', async () => {
-    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+    const alert = jest.spyOn(dialog, 'alert').mockImplementation(() => {});
     await renderScreen();
 
     fireEvent.press(screen.getByText('Excluir conta'));
@@ -510,5 +513,12 @@ describe('S10 — Settings list screen', () => {
     const buttons = alert.mock.calls[0]?.[2] ?? [];
     buttons.find((b) => b.style === 'destructive')?.onPress?.();
     expect(mockDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the blocked players list from Privacidade', async () => {
+    await renderScreen();
+
+    fireEvent.press(screen.getByText('Jogadores bloqueados'));
+    expect(mockPush).toHaveBeenCalledWith('/profile/blocked');
   });
 });

@@ -5,6 +5,7 @@ import {
   Clock,
   Heart,
   MessageCircle,
+  MoreHorizontal,
   Bell,
   Settings,
   Trash2,
@@ -27,9 +28,12 @@ import { TabIndicator, TabLabel } from '@/components/ui/UnderlineTab';
 import {
   type FeedScope,
   type Post,
+  type ReportReason,
   timeAgo,
   useDeletePost,
   usePostFeed,
+  useReportPost,
+  useSetBlock,
   useSetPostLike,
 } from '@/features/network/api/postsApi';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
@@ -110,10 +114,12 @@ function MatchInvite({
 function PostCard({
   post,
   onDelete,
+  onMore,
   onToggleLike,
 }: {
   post: Post;
   onDelete: () => void;
+  onMore: () => void;
   onToggleLike: () => void;
 }) {
   const match = post.match;
@@ -162,7 +168,16 @@ function PostCard({
           >
             <Trash2 size={20} color={colors.textMuted} />
           </PressableScale>
-        ) : null}
+        ) : (
+          <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel={`Mais opções do post de ${post.author.displayName}`}
+            hitSlop={ICON_HIT_SLOP}
+            onPress={onMore}
+          >
+            <MoreHorizontal size={20} color={colors.textMuted} />
+          </PressableScale>
+        )}
       </View>
 
       {post.text ? (
@@ -226,6 +241,8 @@ export default function NetworkScreen() {
   const [scope, setScope] = useState<FeedScope>('all');
   const feed = usePostFeed(scope);
   const deletePost = useDeletePost();
+  const reportPost = useReportPost();
+  const setBlock = useSetBlock();
   const setLike = useSetPostLike();
   const posts = feed.data?.pages.flatMap((page) => page.items) ?? [];
 
@@ -233,6 +250,52 @@ export default function NetworkScreen() {
     dialog.alert('Apagar este post?', 'Ele some do feed para todo mundo.', [
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Apagar', style: 'destructive', onPress: () => deletePost.mutate(post.id) },
+    ]);
+  };
+
+  const failed = () => dialog.alert('Não deu certo', 'Tente de novo em instantes.');
+
+  // Someone else's post: report it to the team or block its author.
+  const openMore = (post: Post) => {
+    const name = post.author.displayName;
+    const report = (reason: ReportReason) =>
+      reportPost.mutate(
+        { postId: post.id, reason },
+        {
+          onSuccess: () => dialog.alert('Denúncia enviada', 'O time do Quadra vai analisar. O post saiu do seu feed.'),
+          onError: failed,
+        },
+      );
+    dialog.alert(`Post de ${name}`, undefined, [
+      {
+        text: 'Denunciar post',
+        onPress: () =>
+          dialog.alert('Qual o problema?', undefined, [
+            { text: 'Spam', onPress: () => report('Spam') },
+            { text: 'Ofensivo', onPress: () => report('Offensive') },
+            { text: 'Conteúdo impróprio', onPress: () => report('Inappropriate') },
+            { text: 'Outro motivo', onPress: () => report('Other') },
+            { text: 'Cancelar', style: 'cancel' },
+          ]),
+      },
+      {
+        text: `Bloquear ${name}`,
+        style: 'destructive',
+        onPress: () =>
+          dialog.alert(
+            `Bloquear ${name}?`,
+            'Vocês deixam de ver os posts e comentários um do outro e de se seguir. Dá para desbloquear em Configurações.',
+            [
+              { text: 'Cancelar', style: 'cancel' },
+              {
+                text: 'Bloquear',
+                style: 'destructive',
+                onPress: () => setBlock.mutate({ userId: post.author.userId, blocked: true }, { onError: failed }),
+              },
+            ],
+          ),
+      },
+      { text: 'Cancelar', style: 'cancel' },
     ]);
   };
 
@@ -248,6 +311,7 @@ export default function NetworkScreen() {
           <PostCard
             post={item}
             onDelete={() => confirmDelete(item)}
+            onMore={() => openMore(item)}
             onToggleLike={() => setLike.mutate({ post: item, liked: !item.likedByMe })}
           />
         )}

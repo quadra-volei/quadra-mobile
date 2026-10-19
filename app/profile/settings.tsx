@@ -11,13 +11,15 @@ import {
   MessageSquare,
   Trash2,
   User,
+  UserX,
   Users,
 } from 'lucide-react-native';
 import { type ReactNode, useState } from 'react';
-import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { dialog } from '@/components/ui/Dialog';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { ToggleField } from '@/components/ui/ToggleField';
 import { BackHeader } from '@/components/ui/BackHeader';
@@ -228,13 +230,13 @@ export default function SettingsScreen() {
 
   const onExport = () => {
     exportAccount.mutate(undefined, {
-      onError: (error) => Alert.alert('Exportar meus dados', error.message),
+      onError: (error) => dialog.alert('Exportar meus dados', error.message),
     });
   };
 
   // Irreversible: the API deletes the account and its data (LGPD), then we sign out.
   const onDelete = () => {
-    Alert.alert(
+    dialog.alert(
       'Excluir conta?',
       'Seu perfil, posts, seguidores e pontos serão apagados e as partidas que você organiza e ainda não começaram serão canceladas. Não dá para desfazer.',
       [
@@ -244,7 +246,7 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: () =>
             deleteAccount.mutate(undefined, {
-              onError: (error) => Alert.alert('Excluir conta', error.message),
+              onError: (error) => dialog.alert('Excluir conta', error.message),
             }),
         },
       ],
@@ -353,6 +355,14 @@ export default function SettingsScreen() {
           <SectionLabel>Privacidade</SectionLabel>
           <View className="mx-4">
             <ActivitySharingToggle />
+          </View>
+          <View className="mx-4 mt-3 bg-white rounded-card shadow-card overflow-hidden">
+            <SettingsRow
+              icon={<UserX size={24} color={colors.surfaceDark} />}
+              title="Jogadores bloqueados"
+              subtitle="Quem você bloqueou na Rede"
+              onPress={() => router.push('/profile/blocked')}
+            />
           </View>
 
           {/* SUPORTE */}
