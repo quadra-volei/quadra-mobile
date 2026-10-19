@@ -48,6 +48,7 @@ import type {
   MatchDetail,
   PlayerPosition,
 } from '@/features/matches/types/matchDetail';
+import { inviteLink } from '@/lib/inviteLink';
 import { useAuthStore } from '@/stores/auth';
 import { colors, COVER_SCRIM, COVER_SCRIM_LOCATIONS } from '@/theme/colors';
 import { ICON_HIT_SLOP } from '@/theme/layout';
@@ -221,12 +222,14 @@ function MatchDetailError({ onRetry }: { onRetry: () => void }) {
 }
 
 export default function MatchDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, c } = useLocalSearchParams<{ id: string; c?: string }>();
   const matchId = id ?? '';
   const userId = useAuthStore((s) => s.userId);
   const insets = useSafeAreaInsets();
 
-  const matchQuery = useMatchDetail(matchId);
+  // An invite link brings the code of a private match (app/p/[id].tsx).
+  const linkCode = c?.trim().toUpperCase() || undefined;
+  const matchQuery = useMatchDetail(matchId, linkCode);
   const deviceCoords = useDeviceCoords();
   const confirmPresence = useConfirmPresence(matchId);
   const declinePresence = useDeclinePresence(matchId);
@@ -236,7 +239,7 @@ export default function MatchDetailScreen() {
   const cancelMatch = useCancelMatch(matchId);
 
   // Invite code typed by someone joining a private match.
-  const [inviteCode, setInviteCode] = useState('');
+  const [inviteCode, setInviteCode] = useState(linkCode ?? '');
 
   // Organizer "add guest to fill a vaga" sheet (S12).
   const [guestSheetOpen, setGuestSheetOpen] = useState(false);
@@ -270,8 +273,8 @@ export default function MatchDetailScreen() {
   const onShare = () => {
     void Share.share({
       message:
-        `Bora jogar? "${match.name}" na Quadra. (match:${match.id})` +
-        (match.inviteCode ? ` Código de convite: ${match.inviteCode}` : ''),
+        `Bora jogar? "${match.name}" no Quadra: ${inviteLink(match.id, match.inviteCode)}` +
+        (match.inviteCode ? ` (código de convite: ${match.inviteCode})` : ''),
     });
   };
 

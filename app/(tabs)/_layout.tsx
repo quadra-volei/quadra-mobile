@@ -17,6 +17,7 @@ import type { TabIconProps } from '@/components/icons/tabIcon';
 import { Avatar } from '@/components/ui/Avatar';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
+import { takePendingLink } from '@/lib/pendingLink';
 import { HARD_SHADOW, colors } from '@/theme/colors';
 import { MOTION } from '@/theme/motion';
 
@@ -101,6 +102,14 @@ export default function TabsLayout() {
   const closeSheet = useCallback(() => setSheetOpen(false), []);
   // What the sheet's backdrop blurs on Android.
   const blurTarget = useRef<View>(null);
+
+  // A link opened while signed out (an invite) goes on once the user is in.
+  useEffect(() => {
+    const link = takePendingLink();
+    if (link) {
+      router.push(link);
+    }
+  }, []);
   // Android resizes the window for the keyboard, which would lift the floating
   // bar on top of it (Explore's search) — hide the bar while typing instead.
   const [keyboardOpen, setKeyboardOpen] = useState(false);
