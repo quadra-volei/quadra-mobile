@@ -1,3 +1,6 @@
+jest.mock('@/components/domain/BellWithBadge', () => ({
+  BellWithBadge: () => require('react').createElement(require('react-native').View, { testID: 'icon-bell' }),
+}));
 /**
  * S5 — Home screen tests.
  *
@@ -348,12 +351,12 @@ describe('S5 — Home screen', () => {
   });
 
   /** The bell opens the notification settings (the closest existing screen). */
-  it('navigates to /profile/notifications when the bell is tapped', async () => {
+  it('navigates to /notifications when the bell is tapped', async () => {
     await render(<HomeScreen />);
 
     fireEvent.press(screen.getByLabelText('Notificações'));
 
-    expect(mockPush).toHaveBeenCalledWith('/profile/notifications');
+    expect(mockPush).toHaveBeenCalledWith('/notifications');
   });
 
   // ------------------------------------------------------- SEU PRÓXIMO JOGO

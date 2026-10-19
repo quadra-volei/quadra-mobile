@@ -1,9 +1,10 @@
 import { router } from "expo-router";
-import { Bell, Settings, Volleyball } from "lucide-react-native";
+import { Settings, Volleyball } from "lucide-react-native";
 import { useState } from "react";
 import { FlatList, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { BellWithBadge } from '@/components/domain/BellWithBadge';
 import { ActivityRow } from "@/components/domain/ActivityRow";
 import { MatchCardCompact } from "@/components/domain/MatchCardCompact";
 import { HomeHeroArt } from "@/components/icons/HomeHeroArt";
@@ -33,7 +34,7 @@ function goSettings() {
   router.push("/profile/settings");
 }
 function goNotifications() {
-  router.push("/profile/notifications");
+  router.push("/notifications");
 }
 
 function SectionHeader({
@@ -343,7 +344,7 @@ export default function HomeScreen() {
           </Text>
           <View className="flex-row items-center gap-3">
             <IconButton label="Notificações" onPress={goNotifications}>
-              <Bell size={20} color={colors.surfaceDark} />
+              <BellWithBadge />
             </IconButton>
             <IconButton label="Configurações" onPress={goSettings}>
               <Settings size={20} color={colors.surfaceDark} />

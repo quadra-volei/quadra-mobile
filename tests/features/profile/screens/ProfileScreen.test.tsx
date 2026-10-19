@@ -1,3 +1,6 @@
+jest.mock('@/components/domain/BellWithBadge', () => ({
+  BellWithBadge: () => require('react').createElement(require('react-native').View, { testID: 'icon-bell' }),
+}));
 /**
  * S8 — Profile screen tests.
  *
