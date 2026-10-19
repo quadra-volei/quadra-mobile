@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
@@ -115,6 +115,16 @@ export default function PlayerScreen() {
               <Count value={profile.data.stats.matchesPlayed} label="Partidas" />
               <Count value={profile.data.stats.wins} label="Vitórias" />
               <Count value={profile.data.stats.mvpsReceived} label="MVPs" />
+            </View>
+
+            <View className="mt-4">
+              <Button
+                variant="outline"
+                onPress={() => router.push({ pathname: '/players/[id]/card', params: { id } })}
+                testID="see-card"
+              >
+                Ver carta
+              </Button>
             </View>
           </>
         )}

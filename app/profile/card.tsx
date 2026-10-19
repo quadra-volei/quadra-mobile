@@ -134,12 +134,12 @@ function TitlePicker({ profile, save }: { profile: MyProfile; save: Save }) {
   );
 }
 
-function StatsList({ profile }: { profile: MyProfile }) {
+export function StatsList({ profile }: { profile: MyProfile }) {
   const r = profile.record;
   const rows: [string, string, number][] = [
-    ["Partidas", "Partidas concluídas com você em quadra", r.matches],
-    ["Vitórias", "Partidas que seu time venceu", r.wins],
-    ["Derrotas", "Partidas que seu time perdeu", r.losses],
+    ["Partidas", "Partidas concluídas em quadra", r.matches],
+    ["Vitórias", "Partidas em que o time venceu", r.wins],
+    ["Derrotas", "Partidas em que o time perdeu", r.losses],
     ["Empates", "Partidas encerradas empatadas", r.draws],
     ["MVPs", "Vezes eleito o melhor da partida", r.mvps],
     ["Pontos", "Presença +10, vitória +15, MVP +25", profile.points],
