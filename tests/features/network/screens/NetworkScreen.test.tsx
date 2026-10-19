@@ -26,6 +26,7 @@ jest.mock('lucide-react-native', () => {
     Heart: stub('heart'),
     MessageCircle: stub('message'),
     MoreHorizontal: stub('more'),
+    Search: stub('search'),
     Bell: stub('bell'),
     Settings: stub('settings'),
     Trash2: stub('trash'),

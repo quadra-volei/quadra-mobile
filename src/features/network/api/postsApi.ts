@@ -9,6 +9,7 @@ import { z } from 'zod';
 
 import { fetchMyMatches } from '@/features/matches/api/matchesApi';
 import { type ApiProfile, uploadProfilePhoto } from '@/features/profile/api/profileApi';
+import type { Position } from '@/features/profile/schema/onboarding';
 import { ApiError } from '@/lib/api/client';
 import { authorizedApiClient } from '@/lib/api/authorizedClient';
 
@@ -428,5 +429,33 @@ export function useSetBlock() {
       queryClient.invalidateQueries({ queryKey: blockedPlayersQueryKey });
       queryClient.invalidateQueries({ queryKey: followStateQueryKey(userId) });
     },
+  });
+}
+
+/** One item of `GET /api/v1/profiles/search` (API DECISIONS #75). */
+export type PlayerSearchResult = {
+  userId: string;
+  displayName: string;
+  handle: string;
+  photoUrl: string | null;
+  position: Position | null;
+};
+
+/** "@an" or "AN" → "an"; null while it is not a searchable handle prefix (2–20 of a-z, 0-9, _). */
+export function toHandleQuery(text: string): string | null {
+  const q = text.trim().replace(/^@/, '').toLowerCase();
+  return /^[a-z0-9_]{2,20}$/.test(q) ? q : null;
+}
+
+/** Players whose @ starts with what was typed (debounced by the screen). Never by name. */
+export function usePlayerSearch(query: string | null) {
+  return useQuery({
+    queryKey: ['players', 'search', query] as const,
+    queryFn: () =>
+      authorizedApiClient<{ items: PlayerSearchResult[] }>(
+        `/api/v1/profiles/search?handle=${encodeURIComponent(query ?? '')}`,
+      ).then((r) => r.items),
+    enabled: query !== null,
+    staleTime: 30_000,
   });
 }

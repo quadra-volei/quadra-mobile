@@ -324,6 +324,12 @@ More UI primitives will live here:
   ```
 
 ---
+### `useDebounced`
+- **Path**: `src/hooks/useDebounced.ts`
+- **Props**: `(value: T, delayMs = 350) => T`
+- **Used in**: address search (`searchPlaces.ts`), "Buscar jogador" (`app/network/search.tsx`)
+- **Notes**: The value once it stopped changing for `delayMs`; feed it what the user types so the API is asked once per pause.
+
 
 ## Layout (`src/components/layout/`)
 
