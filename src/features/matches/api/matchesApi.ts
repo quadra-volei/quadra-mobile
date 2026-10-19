@@ -1,4 +1,5 @@
 import {
+  DEFAULT_GAME_POINTS,
   MATCH_DURATIONS,
   type CreateMatchInput,
 } from '@/features/matches/schema/createMatch';
@@ -47,6 +48,8 @@ export type ApiMatch = {
   format: string | null;
   level: string | null;
   durationMinutes: number | null;
+  /** Points that win the single game; null on matches from before (API DECISIONS #72). */
+  gamePoints?: number | null;
   description?: string | null;
   visibility: 'Open' | 'Private';
   inviteMode: 'Code' | 'Guests' | null;
@@ -132,6 +135,7 @@ export type ApiCreateMatch = {
   format: MatchFormat;
   level: ApiMatchLevel;
   durationMinutes: number;
+  gamePoints: number;
   visibility: 'Open' | 'Private';
   inviteMode: 'Code' | 'Guests' | null;
   priceMonthly: number | null;
@@ -236,6 +240,7 @@ export function toApiCreateMatch(
     format: input.format,
     level: LEVEL_TO_API[input.level],
     durationMinutes: toMinutes(input.duration),
+    gamePoints: input.gamePoints,
     visibility: isPrivate ? 'Private' : 'Open',
     inviteMode: isPrivate ? (input.inviteMode === 'guests' ? 'Guests' : 'Code') : null,
     priceMonthly: recurring && input.priceMonthly > 0 ? input.priceMonthly : null,
@@ -428,6 +433,7 @@ export type ApiUpdateMatch = {
   format: MatchFormat;
   level: ApiMatchLevel;
   durationMinutes: number;
+  gamePoints: number;
   priceMonthly: number | null;
   coverObjectKey: string | null;
 };
@@ -451,6 +457,7 @@ export function toApiUpdateMatch(
     format: input.format,
     level: LEVEL_TO_API[input.level],
     durationMinutes: toMinutes(input.duration),
+    gamePoints: input.gamePoints,
     priceMonthly: input.priceMonthly > 0 ? input.priceMonthly : null,
     coverObjectKey,
   };
@@ -475,6 +482,7 @@ export function toEditMatchDefaults(api: ApiMatchDetail): EditMatchInput {
     priceMonthly: match.priceMonthly ?? 0,
     format: toFormat(match.format),
     level: toLevel(match.level),
+    gamePoints: match.gamePoints ?? DEFAULT_GAME_POINTS,
     // A duration the app has no preset for (made elsewhere) starts at the default.
     duration:
       MATCH_DURATIONS.find((d) => toMinutes(d) === minutes) ?? '1h30',

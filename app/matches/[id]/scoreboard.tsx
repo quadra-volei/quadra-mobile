@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { dialog } from '@/components/ui/Dialog';
 import { PressableScale } from '@/components/ui/PressableScale';
 import {
+  gameLabel,
   type LiveGame,
   useAddPoint,
   useEndGame,
@@ -188,7 +189,7 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-white/10">
           <BackButton />
           <Text className="font-body-bold text-eyebrow text-white/70 uppercase">
-            SET {game.setNumber} - MELHOR DE {game.bestOf}
+            {gameLabel(game, game.setNumber, game.teams.length > 2)}
           </Text>
           <View className="w-6" />
         </View>
@@ -383,7 +384,7 @@ function LiveScoreboard({
               <Text className="font-mono text-mono text-white/70 ml-1">{elapsed}</Text>
             </View>
             <Text className="font-body text-caption text-white/70 text-center" numberOfLines={1}>
-              {game.matchName} · Set {setNumber} melhor de {game.bestOf}
+              {game.matchName} · {gameLabel(game, setNumber, game.teams.length > 2)}
             </Text>
           </View>
           {/* Spacer to keep the AO VIVO block centered opposite the back button */}

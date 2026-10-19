@@ -27,6 +27,7 @@ import type { ApiScoreboard, ApiTeam } from '@/features/matches/api/gameApi';
 import { SUMMARY_NOT_READY, useMatchSummary } from '@/features/matches/api/getMatchSummary';
 import {
   type LiveGameData,
+  gameLabel,
   toLiveGame,
   useAddPoint,
   useLiveGame,
@@ -212,6 +213,15 @@ describe('toLiveGame', () => {
     expect(toLiveGame(data(null))).toMatchObject({ phase: 'NOT_STARTED', setNumber: 1, pair: null });
   });
 
+  it('reads a single game with its points and labels it by game', () => {
+    const game = toLiveGame(data({ ...scoreboard(), format: 'SingleGame', pointsToWin: 21 }));
+
+    expect(game).toMatchObject({ bestOf: null, pointsToWin: 21 });
+    expect(gameLabel(game, 1, false)).toBe('Jogo até 21 pontos');
+    expect(gameLabel(game, 2, true)).toBe('Jogo 2 · até 21 pontos');
+    expect(gameLabel({ bestOf: 3, pointsToWin: null }, 2, false)).toBe('Set 2 · melhor de 3');
+  });
+
   it('is PLAYING with the pair, the points and the undo of the set on court', () => {
     const game = toLiveGame(data(scoreboard()));
 
@@ -311,7 +321,7 @@ describe('teams and live game', () => {
 
     expect(requests()).toEqual(['GET /scoreboard', 'POST /scoreboard', 'POST /scoreboard/start']);
     expect(bodyOf('POST /scoreboard')).toEqual({
-      format: 'BestOf3',
+      format: 'SingleGame',
       teamAId: 'team-a',
       teamBId: 'team-c',
     });

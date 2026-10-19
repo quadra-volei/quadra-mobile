@@ -33,6 +33,8 @@ export type LiveGameData = {
   isOrganizer: boolean;
   teams: Team[];
   scoreboard: ApiScoreboard | null;
+  /** The match's game points, shown before the scoreboard exists. */
+  gamePoints?: number | null;
 };
 
 /**
@@ -49,7 +51,10 @@ export type LiveGame = {
   isOrganizer: boolean;
   teams: Team[];
   phase: GamePhase;
-  bestOf: 3 | 5;
+  /** Best of 3 or 5 on games from before the single game; null for a single game. */
+  bestOf: 3 | 5 | null;
+  /** Points that win a single game (API DECISIONS #72); null on best-of games. */
+  pointsToWin: number | null;
   /** The set on court, or the next one to open. */
   setNumber: number;
   /** The two teams on court (PLAYING), else null. */
@@ -72,7 +77,8 @@ export function toLiveGame(data: LiveGameData): LiveGame {
     matchName: data.matchName,
     isOrganizer: data.isOrganizer,
     teams,
-    bestOf: scoreboard?.format === 'BestOf5' ? (5 as const) : (3 as const),
+    bestOf: scoreboard?.format === 'BestOf5' ? (5 as const) : scoreboard?.format === 'BestOf3' ? (3 as const) : null,
+    pointsToWin: scoreboard?.format === 'BestOf3' || scoreboard?.format === 'BestOf5' ? null : (scoreboard?.pointsToWin ?? data.gamePoints ?? 25),
     scores: [0, 0] as [number, number],
     setsWon: {} as Record<string, number>,
     canUndo: false,
@@ -129,6 +135,7 @@ async function loadLiveGame(matchId: string): Promise<LiveGameData> {
     isOrganizer: match.organizerId === userId,
     teams: toTeams(apiTeams, match.players),
     scoreboard,
+    gamePoints: detail.match.gamePoints ?? null,
   };
 }
 
@@ -310,4 +317,13 @@ export function useEndSet(matchId: string) {
 /** Ends the whole game now; the team with the most sets wins. */
 export function useEndGame(matchId: string) {
   return useGameMutation<void>(matchId, () => postEndGame(matchId));
+}
+
+/** "Jogo 2 · até 21 pontos" (single game) or "Set 2 · melhor de 3" (older games). */
+export function gameLabel(game: Pick<LiveGame, 'bestOf' | 'pointsToWin'>, setNumber: number, rotates: boolean): string {
+  if (game.bestOf) {
+    return `Set ${setNumber} · melhor de ${game.bestOf}`;
+  }
+  const points = `até ${game.pointsToWin} pontos`;
+  return rotates ? `Jogo ${setNumber} · ${points}` : `Jogo ${points}`;
 }

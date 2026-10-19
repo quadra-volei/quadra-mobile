@@ -85,6 +85,7 @@ const payload: CreateMatchPayload = {
   recStart: '25/06/2099',
   time: '19h30',
   duration: '1h30',
+  gamePoints: 21,
   format: '4X4',
   players: 8,
   level: 'AVANCADO',

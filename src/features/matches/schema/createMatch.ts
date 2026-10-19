@@ -49,6 +49,10 @@ export const MATCH_DURATIONS = [
 ] as const;
 export type MatchDuration = (typeof MATCH_DURATIONS)[number];
 
+/** "O jogo vai até quantos pontos?" — one game to these points, win by 2 (API DECISIONS #72). */
+export const GAME_POINTS = [12, 15, 21, 25] as const;
+export const DEFAULT_GAME_POINTS = 25;
+
 /** PRIVACIDADE — Aberta (open) / Privada (private). */
 export const PRIVACY_MODES = ['open', 'private'] as const;
 export type PrivacyMode = (typeof PRIVACY_MODES)[number];
@@ -108,6 +112,7 @@ export const createMatchSchema = z
     duration: z.enum(MATCH_DURATIONS),
     // ── Bloco 4 · formato ──
     format: z.enum(MATCH_FORMATS),
+    gamePoints: z.number().int().min(5).max(50),
     players: z.number().int().min(2, 'Mínimo de 2 jogadores'),
     // ── Bloco 5 · nível ──
     level: z.enum(LEVELS),

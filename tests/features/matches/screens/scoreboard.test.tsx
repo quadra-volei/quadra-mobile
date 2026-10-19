@@ -71,6 +71,7 @@ const mockEndSet = mockMutation();
 const mockEndGame = mockMutation();
 
 jest.mock('@/features/matches/api/liveGame', () => ({
+  gameLabel: jest.requireActual('@/features/matches/api/liveGame').gameLabel,
   useLiveGame: () => ({ ...mockGame, refetch: jest.fn() }),
   useStartSet: () => mockStartSet,
   useAddPoint: () => mockAddPoint,
@@ -97,7 +98,8 @@ function game(overrides: Partial<LiveGame>): LiveGame {
     isOrganizer: true,
     teams,
     phase: 'NOT_STARTED',
-    bestOf: 3,
+    bestOf: null,
+    pointsToWin: 21,
     setNumber: 1,
     pair: null,
     scores: [0, 0],
@@ -156,7 +158,7 @@ describe('S13.5 — set team picker', () => {
   it('between sets flags the winner that stays on court and allows ending the game', async () => {
     await show({ phase: 'PICK_NEXT', setNumber: 2, lastSetWinnerId: 'team-2', setsWon: { 'team-2': 1 } });
 
-    expect(screen.getByText('SET 2 - MELHOR DE 3')).toBeTruthy();
+    expect(screen.getByText(/Jogo 2 · até 21 pontos|Jogo até 21 pontos/)).toBeTruthy();
     expect(screen.getByText('Venceu o set e continua em quadra')).toBeTruthy();
     expect(screen.getByText('Começar set')).toBeTruthy();
     expect(screen.getByTestId('end-game-button')).toBeTruthy();
@@ -183,7 +185,7 @@ describe('S14 — live scoreboard', () => {
   it('shows the set on court and lets the organizer score, undo and end the set', async () => {
     await show(playing);
 
-    expect(screen.getByText('Racha de Quinta · Set 2 melhor de 3')).toBeTruthy();
+    expect(screen.getByText(/^Racha de Quinta · Jogo (2 · )?até 21 pontos$/)).toBeTruthy();
     expect(screen.getByTestId('score-team1').props.children).toBe(7);
     expect(screen.getByTestId('score-team2').props.children).toBe(5);
 

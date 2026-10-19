@@ -24,7 +24,7 @@ import {
   type PlaceSuggestion,
 } from '@/features/matches/api/searchPlaces';
 import { useDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
-import { MATCH_DURATIONS } from '@/features/matches/schema/createMatch';
+import { GAME_POINTS, MATCH_DURATIONS } from '@/features/matches/schema/createMatch';
 import { editMatchSchema, type EditMatchInput } from '@/features/matches/schema/editMatch';
 import type { MatchLevel } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
@@ -115,6 +115,7 @@ function EditMatchForm({
   const format = watch('format');
   const level = watch('level');
   const duration = watch('duration');
+  const gamePoints = watch('gamePoints');
 
   const pickCover = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -294,6 +295,17 @@ function EditMatchForm({
                   label={f}
                   selected={format === f}
                   onPress={() => setValue('format', f)}
+                />
+              ))}
+            </View>
+            <View className="mb-3 flex-row flex-wrap gap-2">
+              {GAME_POINTS.map((p) => (
+                <FilterChip
+                  key={p}
+                  label={`Até ${p} pontos`}
+                  selected={gamePoints === p}
+                  onPress={() => setValue('gamePoints', p)}
+                  testID={`edit-game-points-${p}`}
                 />
               ))}
             </View>
