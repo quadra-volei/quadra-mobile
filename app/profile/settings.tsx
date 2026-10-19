@@ -6,9 +6,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  FileText,
   Globe,
   MapPin,
   MessageSquare,
+  Shield,
   Trash2,
   User,
   UserX,
@@ -28,6 +30,7 @@ import { useDeleteAccount, useExportAccount } from '@/features/auth/api/account'
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import { positionLabel } from '@/features/profile/schema/onboarding';
 import { logout } from '@/lib/auth/logout';
+import { LEGAL_URLS } from '@/lib/legal';
 import { useThemeStore, type ThemePreference } from '@/stores/theme';
 import { colors } from '@/theme/colors';
 
@@ -373,6 +376,18 @@ export default function SettingsScreen() {
               title="Enviar feedback"
               subtitle="Sugestões, problemas e elogios"
               onPress={() => router.push('/profile/feedback')}
+            />
+            <Divider />
+            <SettingsRow
+              icon={<FileText size={24} color={colors.surfaceDark} />}
+              title="Termos de Uso"
+              onPress={() => void Linking.openURL(LEGAL_URLS.terms)}
+            />
+            <Divider />
+            <SettingsRow
+              icon={<Shield size={24} color={colors.surfaceDark} />}
+              title="Política de Privacidade"
+              onPress={() => void Linking.openURL(LEGAL_URLS.privacy)}
             />
             <Divider />
             <SettingsRow

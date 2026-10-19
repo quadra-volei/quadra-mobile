@@ -90,9 +90,11 @@ jest.mock('lucide-react-native', () => {
     ChevronLeft: stub('chevron-left'),
     ChevronRight: stub('chevron-right'),
     Download: stub('download'),
+    FileText: stub('file-text'),
     Globe: stub('globe'),
     MapPin: stub('map-pin'),
     MessageSquare: stub('message-square'),
+    Shield: stub('shield'),
     Trash2: stub('trash'),
     User: stub('user'),
     UserX: stub('user-x'),
@@ -520,5 +522,14 @@ describe('S10 — Settings list screen', () => {
 
     fireEvent.press(screen.getByText('Jogadores bloqueados'));
     expect(mockPush).toHaveBeenCalledWith('/profile/blocked');
+  });
+
+  it('opens the Terms and the Privacy Policy pages', async () => {
+    await renderScreen();
+
+    fireEvent.press(screen.getByText('Termos de Uso'));
+    expect(mockOpenURL).toHaveBeenCalledWith('https://quadra-volei.app/termos');
+    fireEvent.press(screen.getByText('Política de Privacidade'));
+    expect(mockOpenURL).toHaveBeenCalledWith('https://quadra-volei.app/privacidade');
   });
 });

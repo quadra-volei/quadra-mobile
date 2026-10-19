@@ -179,6 +179,7 @@ jest.mock('@/features/auth/api/googleSignIn', () => ({
 }));
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { Linking } from 'react-native';
 
 import { useAuthStore } from '@/stores/auth';
 
@@ -476,7 +477,10 @@ describe('S2 — Login screen', () => {
     expect(screen.getByText('Entrar com Google')).toBeTruthy();
     expect(screen.getByTestId('google-signin')).toBeTruthy();
     expect(screen.getByText(/Ao continuar, você aceita os/i)).toBeTruthy();
-    expect(screen.getByText('Termos')).toBeTruthy();
-    expect(screen.getByText('Política de Privacidade')).toBeTruthy();
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    await fireEvent.press(screen.getByText('Termos de Uso'));
+    expect(openURL).toHaveBeenCalledWith('https://quadra-volei.app/termos');
+    await fireEvent.press(screen.getByText('Política de Privacidade'));
+    expect(openURL).toHaveBeenCalledWith('https://quadra-volei.app/privacidade');
   });
 });
