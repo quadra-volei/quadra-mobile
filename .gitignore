@@ -10,8 +10,9 @@ expo-env.d.ts
 *.mobileprovision
 *.orig.*
 *.hprof
-.env.local
-.env.*.local
+# Any env file (keys, URLs): only an example may be versioned.
+.env*
+!.env.example
 android/
 ios/
 *:Zone.Identifier
