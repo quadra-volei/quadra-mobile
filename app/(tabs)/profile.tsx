@@ -1,9 +1,10 @@
 import { router } from "expo-router";
-import { Bell, Settings } from "lucide-react-native";
+import { Settings } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { BellWithBadge } from '@/components/domain/BellWithBadge';
 import { LevelBar } from "@/components/domain/LevelBar";
 import { MatchHistoryRow } from "@/components/domain/MatchHistoryRow";
 import { Avatar } from "@/components/ui/Avatar";
@@ -31,7 +32,7 @@ function goSettings() {
   router.push("/profile/settings");
 }
 function goNotifications() {
-  router.push("/profile/notifications");
+  router.push("/notifications");
 }
 // "Ver tudo" on MINHAS PARTIDAS has no full-history screen in MVP — the button is
 // present (matching the prototype) but inert until a history screen exists.
@@ -101,7 +102,7 @@ function ProfileHeader() {
           them (their row is the 40px icon height; this one is the 48px avatar). */}
       <View className="flex-row items-center gap-3 self-start">
         <IconButton label="Notificações" onPress={goNotifications}>
-          <Bell size={20} color={colors.surfaceDark} />
+          <BellWithBadge />
         </IconButton>
         <IconButton label="Configurações" onPress={goSettings}>
           <Settings size={20} color={colors.surfaceDark} />

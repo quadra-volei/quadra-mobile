@@ -1,3 +1,7 @@
+const mockSavePrefs = jest.fn();
+jest.mock('@/features/notifications/api/notificationsApi', () => ({
+  useSaveNotificationPreferences: () => ({ mutate: mockSavePrefs }),
+}));
 /**
  * S10 — Notifications sub-screen tests (`app/profile/notifications.tsx`).
  *

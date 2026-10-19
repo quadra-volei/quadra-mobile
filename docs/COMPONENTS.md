@@ -346,6 +346,13 @@ More UI primitives will live here:
 
 ## Domain components (`src/components/domain/`)
 
+### `BellWithBadge`
+- **Path**: `src/components/domain/BellWithBadge.tsx`
+- **Category**: domain
+- **Props**: none
+- **Used in**: the bell `IconButton` of Início, Rede and Perfil
+- **Notes**: Bell icon plus a red count of unread notifications (`useUnreadCount`, re-read every minute; "9+" above nine). Tests mock it (it needs a QueryClient).
+
 ### `LocationGate`
 - **Path**: `src/components/domain/LocationGate.tsx`
 - **Category**: domain

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ScrollView, Switch, Text, View } from 'react-native';
 
 import { BackHeader } from '@/components/ui/BackHeader';
+import { useSaveNotificationPreferences } from '@/features/notifications/api/notificationsApi';
 import { useNotificationPrefsStore } from '@/stores/notificationPrefs';
 import { colors } from '@/theme/colors';
 
@@ -55,6 +56,12 @@ export default function NotificationsScreen() {
   const setRanking = useNotificationPrefsStore((s) => s.setRanking);
 
   const [headerHeight, setHeaderHeight] = useState(0);
+  // Each switch also goes to the API, which decides what to push (API DECISIONS #77).
+  const save = useSaveNotificationPreferences();
+  const change = (key: 'invites' | 'reminders' | 'ranking', set: (v: boolean) => void) => (value: boolean) => {
+    set(value);
+    save.mutate({ invites, reminders, ranking, [key]: value });
+  };
 
   return (
     <View className="flex-1 bg-bg-light">
@@ -71,21 +78,21 @@ export default function NotificationsScreen() {
               title="Convites"
               subtitle="Quando te convidam para uma partida"
               value={invites}
-              onValueChange={setInvites}
+              onValueChange={change('invites', setInvites)}
             />
             <Divider />
             <ToggleRow
               title="Lembretes"
-              subtitle="Antes das partidas confirmadas"
+              subtitle="Jogo nas próximas 24 horas e vaga da lista de espera"
               value={reminders}
-              onValueChange={setReminders}
+              onValueChange={change('reminders', setReminders)}
             />
             <Divider />
             <ToggleRow
               title="Ranking"
-              subtitle="Mudanças na sua posição do ranking"
+              subtitle="Votação de MVP aberta e resumo com seus pontos"
               value={ranking}
-              onValueChange={setRanking}
+              onValueChange={change('ranking', setRanking)}
             />
           </View>
         </ScrollView>

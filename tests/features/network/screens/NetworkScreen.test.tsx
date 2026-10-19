@@ -1,3 +1,6 @@
+jest.mock('@/components/domain/BellWithBadge', () => ({
+  BellWithBadge: () => require('react').createElement(require('react-native').View, { testID: 'icon-bell' }),
+}));
 /**
  * S7 — Rede: the feed of posts.
  *
@@ -253,7 +256,7 @@ describe('S7 — Rede (feed)', () => {
     await render(<NetworkScreen />);
     await fireEvent.press(screen.getByLabelText('Notificações'));
 
-    expect(mockPush).toHaveBeenCalledWith('/profile/notifications');
+    expect(mockPush).toHaveBeenCalledWith('/notifications');
   });
 
   it('offers a retry when the feed fails to load', async () => {

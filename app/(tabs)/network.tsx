@@ -7,7 +7,6 @@ import {
   MessageCircle,
   MoreHorizontal,
   Search,
-  Bell,
   Settings,
   Trash2,
   Trophy,
@@ -17,6 +16,7 @@ import { FlatList, Pressable, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BellWithBadge } from '@/components/domain/BellWithBadge';
 import { Avatar } from '@/components/ui/Avatar';
 import { CourtImage } from '@/components/ui/CourtImage';
 import { dialog } from '@/components/ui/Dialog';
@@ -49,7 +49,7 @@ function goSearch() {
   router.push('/network/search');
 }
 function goNotifications() {
-  router.push('/profile/notifications');
+  router.push('/notifications');
 }
 function goNewPost() {
   router.push('/network/new');
@@ -373,7 +373,7 @@ export default function NetworkScreen() {
               <Search size={20} color={colors.surfaceDark} />
             </IconButton>
             <IconButton label="Notificações" onPress={goNotifications}>
-              <Bell size={20} color={colors.surfaceDark} />
+              <BellWithBadge />
             </IconButton>
             <IconButton label="Configurações" onPress={goSettings}>
               <Settings size={20} color={colors.surfaceDark} />
