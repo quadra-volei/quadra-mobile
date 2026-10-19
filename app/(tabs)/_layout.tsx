@@ -18,6 +18,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import { takePendingLink } from '@/lib/pendingLink';
+import { listenToPushTaps, registerForPush } from '@/lib/push/pushNotifications';
 import { HARD_SHADOW, colors } from '@/theme/colors';
 import { MOTION } from '@/theme/motion';
 
@@ -102,6 +103,12 @@ export default function TabsLayout() {
   const closeSheet = useCallback(() => setSheetOpen(false), []);
   // What the sheet's backdrop blurs on Android.
   const blurTarget = useRef<View>(null);
+
+  // Signed in: ask for push once and open the match of a tapped push (API DECISIONS #77).
+  useEffect(() => {
+    void registerForPush();
+    return listenToPushTaps();
+  }, []);
 
   // A link opened while signed out (an invite) goes on once the user is in.
   useEffect(() => {

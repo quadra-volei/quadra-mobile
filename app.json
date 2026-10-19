@@ -41,6 +41,10 @@
     },
     "plugins": [
       "expo-router",
+      [
+        "expo-notifications",
+        { "color": "#1A1AFF" }
+      ],
       "expo-secure-store",
       "expo-image",
       "expo-font",
