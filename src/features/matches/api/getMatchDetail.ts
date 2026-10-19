@@ -13,14 +13,15 @@ export const matchDetailQueryKey = (id: string) =>
  * match, its organizer, the roster with guests, and the signed-in user's own
  * standing (presence, waiting-list position, whether they may join).
  */
-async function getMatchDetail(id: string): Promise<MatchDetail> {
-  return toMatchDetail(await fetchMatchDetail(id), useAuthStore.getState().userId);
+async function getMatchDetail(id: string, inviteCode?: string): Promise<MatchDetail> {
+  return toMatchDetail(await fetchMatchDetail(id, inviteCode), useAuthStore.getState().userId);
 }
 
-export function useMatchDetail(id: string) {
+/** `inviteCode` comes from an invite link: it lets a private match show before joining. */
+export function useMatchDetail(id: string, inviteCode?: string) {
   return useQuery({
     queryKey: matchDetailQueryKey(id),
-    queryFn: () => getMatchDetail(id),
+    queryFn: () => getMatchDetail(id, inviteCode),
     enabled: id.length > 0,
     staleTime: 60_000,
   });

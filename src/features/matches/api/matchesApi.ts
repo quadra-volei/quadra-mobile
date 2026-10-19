@@ -501,8 +501,9 @@ export function deleteMatch(id: string): Promise<unknown> {
   return authorizedApiClient<unknown>(`${MATCHES_PATH}/${id}`, { method: 'DELETE' });
 }
 
-export function fetchMatchDetail(id: string): Promise<ApiMatchDetail> {
-  return authorizedApiClient<ApiMatchDetail>(`${MATCHES_PATH}/${id}/detail`);
+export function fetchMatchDetail(id: string, inviteCode?: string): Promise<ApiMatchDetail> {
+  const query = inviteCode ? `?inviteCode=${encodeURIComponent(inviteCode)}` : '';
+  return authorizedApiClient<ApiMatchDetail>(`${MATCHES_PATH}/${id}/detail${query}`);
 }
 
 export function putMyPresence(
