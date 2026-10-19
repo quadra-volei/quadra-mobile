@@ -5,14 +5,16 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Download,
   Globe,
   MapPin,
   MessageSquare,
+  Trash2,
   User,
   Users,
 } from 'lucide-react-native';
 import { type ReactNode, useState } from 'react';
-import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
@@ -20,6 +22,7 @@ import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { ToggleField } from '@/components/ui/ToggleField';
 import { BackHeader } from '@/components/ui/BackHeader';
 import { useSetActivitySharing } from '@/features/activity/api/activityApi';
+import { useDeleteAccount, useExportAccount } from '@/features/auth/api/account';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import { positionLabel } from '@/features/profile/schema/onboarding';
 import { logout } from '@/lib/auth/logout';
@@ -216,8 +219,36 @@ export default function SettingsScreen() {
   const setTheme = useThemeStore((s) => s.setTheme);
   const [headerHeight, setHeaderHeight] = useState(0);
 
+  const exportAccount = useExportAccount();
+  const deleteAccount = useDeleteAccount();
+
   const onLogout = () => {
     void logout(queryClient);
+  };
+
+  const onExport = () => {
+    exportAccount.mutate(undefined, {
+      onError: (error) => Alert.alert('Exportar meus dados', error.message),
+    });
+  };
+
+  // Irreversible: the API deletes the account and its data (LGPD), then we sign out.
+  const onDelete = () => {
+    Alert.alert(
+      'Excluir conta?',
+      'Seu perfil, posts, seguidores e pontos serão apagados e as partidas que você organiza e ainda não começaram serão canceladas. Não dá para desfazer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: () =>
+            deleteAccount.mutate(undefined, {
+              onError: (error) => Alert.alert('Excluir conta', error.message),
+            }),
+        },
+      ],
+    );
   };
 
   return (
@@ -229,7 +260,7 @@ export default function SettingsScreen() {
         >
           <SummaryCard />
 
-          {/* CONTA — only "Editar perfil" (Pagamentos = Layer 3, cut) */}
+          {/* CONTA — editar perfil, exportar e excluir a conta (LGPD); Pagamentos = Layer 3, cut */}
           <SectionLabel>Conta</SectionLabel>
           <View className="mx-4 bg-white rounded-card shadow-card overflow-hidden">
             <SettingsRow
@@ -237,6 +268,22 @@ export default function SettingsScreen() {
               title="Editar perfil"
               subtitle="Nome, nascimento, telefone"
               onPress={() => router.push('/profile/edit')}
+            />
+            <Divider />
+            <SettingsRow
+              icon={<Download size={24} color={colors.surfaceDark} />}
+              title="Exportar meus dados"
+              subtitle="Tudo o que o Quadra guarda sobre você"
+              onPress={onExport}
+              disabled={exportAccount.isPending}
+            />
+            <Divider />
+            <SettingsRow
+              icon={<Trash2 size={24} color={colors.danger} />}
+              title="Excluir conta"
+              subtitle="Apaga sua conta e seus dados"
+              onPress={onDelete}
+              disabled={deleteAccount.isPending}
             />
           </View>
 
