@@ -30,8 +30,17 @@
         {
           "action": "VIEW",
           "autoVerify": true,
-          "data": [{ "scheme": "https", "host": "quadra-volei.app", "pathPrefix": "/p/" }],
-          "category": ["BROWSABLE", "DEFAULT"]
+          "data": [
+            {
+              "scheme": "https",
+              "host": "quadra-volei.app",
+              "pathPrefix": "/p/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
         }
       ]
     },
@@ -43,7 +52,9 @@
       "expo-router",
       [
         "expo-notifications",
-        { "color": "#1A1AFF" }
+        {
+          "color": "#1A1AFF"
+        }
       ],
       "expo-secure-store",
       "expo-image",
@@ -68,7 +79,9 @@
         {
           "iosUrlScheme": "com.googleusercontent.apps.REPLACE_WITH_IOS_CLIENT_ID"
         }
-      ]
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/auth"
     ],
     "experiments": {
       "typedRoutes": true
