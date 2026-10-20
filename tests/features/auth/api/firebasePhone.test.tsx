@@ -55,6 +55,14 @@ describe('Firebase phone login', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('explains an SMS blocked by the Firebase region policy', async () => {
+    (firebase.signInWithPhoneNumber as jest.Mock).mockRejectedValue(
+      Object.assign(new Error('region'), { code: 'auth/operation-not-allowed' }),
+    );
+
+    await expect(sendOtp(PHONE)).rejects.toThrow('O envio de SMS para este número não está liberado');
+  });
+
   it('without the flag the code goes through the API, as before', async () => {
     delete process.env.EXPO_PUBLIC_PHONE_AUTH;
     const fetchMock = jest.fn(async () => new Response('{}', { status: 200 }));
