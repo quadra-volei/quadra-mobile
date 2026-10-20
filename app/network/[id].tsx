@@ -1,7 +1,7 @@
 import { useLocalSearchParams } from 'expo-router';
 import { Send, Trash2 } from 'lucide-react-native';
 import { useState } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, Text, TextInput, View } from 'react-native';
+import { FlatList, KeyboardAvoidingView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
@@ -65,7 +65,9 @@ export default function PostCommentsScreen() {
   return (
     <KeyboardAvoidingView
       className="flex-1 bg-bg-light"
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      // Android too: the app draws edge-to-edge, so the window no longer resizes for the
+      // keyboard and the comment field would sit behind it.
+      behavior="padding"
     >
       <FlatList
         testID="comments"
