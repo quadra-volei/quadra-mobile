@@ -117,9 +117,11 @@ function ThemeTile({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ selected }}
+      // A tile with a badge ("Em breve") is not built yet: it shows but cannot be picked.
+      accessibilityState={{ selected, disabled: badge != null }}
+      disabled={badge != null}
       onPress={() => onPress(value)}
-      className="flex-1 items-center"
+      className={`flex-1 items-center ${badge ? 'opacity-60' : ''}`}
     >
       <View
         className={`w-full h-16 rounded-card overflow-hidden border-2 ${
@@ -347,7 +349,7 @@ export default function SettingsScreen() {
             <SettingsRow
               icon={<MapPin size={24} color={colors.surfaceDark} />}
               title="Permissões do app"
-              subtitle="Localização, câmera, contatos"
+              subtitle="Localização e notificações"
               onPress={() => {
                 void Linking.openSettings();
               }}

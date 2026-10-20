@@ -23,7 +23,7 @@ const POSITION_LABEL: Record<PlayerPosition, string> = {
   OPO: 'Oposto',
   CEN: 'Central',
   LIB: 'Líbero',
-  COR: 'Corredor',
+  COR: 'Coringa',
 };
 
 export type AddGuestSheetProps = {

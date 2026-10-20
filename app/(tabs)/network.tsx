@@ -78,30 +78,36 @@ function MatchInvite({
 }) {
   return (
     <View className="px-4 pb-4" testID="post-invite">
-      <CourtImage
-        tint={colors.primary}
-        imageUri={match.coverUrl ?? undefined}
-        height={112}
-        radius={16}
+      <Pressable
+        accessibilityRole="link"
+        accessibilityLabel={`Abrir ${match.name}`}
+        onPress={() => goMatch(match.id)}
       >
-        {/* bottom scrim: the name stays legible over a photo cover */}
-        <LinearGradient
-          colors={['rgba(10,10,60,0)', 'rgba(10,10,60,0.8)']}
-          locations={[0.3, 1]}
-          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
-        />
-        <View className="absolute left-4 right-4 bottom-3">
-          <Text className="font-body-extrabold text-h3 text-text-on-dark" numberOfLines={1}>
-            {match.name}
-          </Text>
-          <View className="flex-row items-center gap-1 mt-1">
-            <Clock size={14} color={colors.textOnDark} />
-            <Text className="font-body text-caption text-text-on-dark">
-              {formatWhen(match.startsAt)}
+        <CourtImage
+          tint={colors.primary}
+          imageUri={match.coverUrl ?? undefined}
+          height={112}
+          radius={16}
+        >
+          {/* bottom scrim: the name stays legible over a photo cover */}
+          <LinearGradient
+            colors={['rgba(10,10,60,0)', 'rgba(10,10,60,0.8)']}
+            locations={[0.3, 1]}
+            style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+          />
+          <View className="absolute left-4 right-4 bottom-3">
+            <Text className="font-body-extrabold text-h3 text-text-on-dark" numberOfLines={1}>
+              {match.name}
             </Text>
+            <View className="flex-row items-center gap-1 mt-1">
+              <Clock size={14} color={colors.textOnDark} />
+              <Text className="font-body text-caption text-text-on-dark">
+                {formatWhen(match.startsAt)}
+              </Text>
+            </View>
           </View>
-        </View>
-      </CourtImage>
+        </CourtImage>
+      </Pressable>
       <PressableScale
         accessibilityRole="button"
         accessibilityLabel={`Participar de ${match.name}`}

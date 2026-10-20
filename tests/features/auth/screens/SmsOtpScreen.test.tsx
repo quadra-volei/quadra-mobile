@@ -115,6 +115,8 @@ const mockAuth = {
   verifyIsPending: false,
   resendIsPending: false,
   resendBehavior: 'resolve' as 'resolve' | 'reject',
+  // What the hook exposes as rror after a failed verify (the API layer's message).
+  verifyError: undefined as Error | undefined,
   verifyMutate: jest.fn((input: { phone: string; code: string }, opts?: MutateOpts<VerifyResult>) => {
     if (input.code === '123456') {
       opts?.onSuccess?.({
@@ -138,6 +140,7 @@ jest.mock('@/features/auth/api/verifyOtp', () => ({
   useVerifyOtp: () => ({
     mutate: mockAuth.verifyMutate,
     isPending: mockAuth.verifyIsPending,
+    error: mockAuth.verifyError,
   }),
 }));
 jest.mock('@/features/auth/api/resendOtp', () => ({
@@ -393,6 +396,17 @@ describe('S3 — SMS Verification screen', () => {
     // no toast / alert primitive, and the user did NOT navigate away
     expect(screen.queryByRole('alert')).toBeNull();
     expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it('shows the reason the verify failed, not always "código inválido"', async () => {
+    mockAuth.verifyError = new Error('Sem conexão. Verifique sua internet e tente de novo.');
+    await renderScreen();
+
+    await typeCode('999999');
+
+    expect(await screen.findByText('Sem conexão. Verifique sua internet e tente de novo.')).toBeTruthy();
+    expect(screen.queryByText('Código inválido, tente novamente')).toBeNull();
+    mockAuth.verifyError = undefined;
   });
 
   /**

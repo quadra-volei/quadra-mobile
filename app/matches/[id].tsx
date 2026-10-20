@@ -61,7 +61,7 @@ const POSITION_LABEL: Record<PlayerPosition, string> = {
   OPO: 'Oposto',
   CEN: 'Central',
   LIB: 'Líbero',
-  COR: 'Corredor',
+  COR: 'Coringa',
 };
 
 /** Cover height; the hero bleeds under the status bar, as in the prototype. */

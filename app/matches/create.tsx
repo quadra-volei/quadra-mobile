@@ -399,6 +399,8 @@ export default function CreateMatchScreen() {
   });
 
   const values = watch();
+  // Free only when nobody pays: a recurring match also has the regulars' price.
+  const isFree = values.price === 0 && (values.type !== 'Recurring' || !values.priceMonthly);
   const {
     name = '',
     type,
@@ -1052,18 +1054,20 @@ export default function CreateMatchScreen() {
               </View>
               <View
                 className={`mt-3 flex-row items-start gap-2 rounded-chip p-3 ${
-                  values.price === 0 ? 'bg-accent/20' : 'bg-primary/5'
+                  isFree ? 'bg-accent/20' : 'bg-primary/5'
                 }`}
               >
-                {values.price === 0 ? (
+                {isFree ? (
                   <Heart size={16} color={colors.primary} />
                 ) : (
                   <Users size={16} color={colors.primary} />
                 )}
                 <Text className="flex-1 font-body-bold text-caption text-text-primary">
-                  {values.price === 0
+                  {isFree
                     ? 'Partida gratuita — todo mundo joga de graça!'
-                    : `Cada jogador paga R$ ${values.price}`}
+                    : values.price === 0
+                      ? `Avulso de graça, fixos pagam R$ ${values.priceMonthly}`
+                      : `Cada jogador paga R$ ${values.price}`}
                 </Text>
               </View>
             </Reveal>
