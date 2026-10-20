@@ -22,11 +22,15 @@
                 "buildType": "apk"
             },
             "env": {
-                "EXPO_PUBLIC_API_URL": "https://quadra-api-xj6e.onrender.com"
+                "EXPO_PUBLIC_API_URL": "https://quadra-api-xj6e.onrender.com",
+                "EXPO_PUBLIC_SENTRY_DSN": "https://7f636c1a71de59e543d21a2512e26d17@o4512291040985088.ingest.us.sentry.io/4512291066740736"
             }
         },
         "production": {
-            "autoIncrement": true
+            "autoIncrement": true,
+            "env": {
+                "EXPO_PUBLIC_SENTRY_DSN": "https://7f636c1a71de59e543d21a2512e26d17@o4512291040985088.ingest.us.sentry.io/4512291066740736"
+            }
         }
     },
     "submit": {

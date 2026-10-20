@@ -89,7 +89,15 @@
       ],
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
-      "./plugins/withReleaseSigning"
+      "./plugins/withReleaseSigning",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "organization": "quadra-un",
+          "project": "quadra-mobile"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
