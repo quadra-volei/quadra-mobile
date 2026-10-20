@@ -52,6 +52,9 @@ export function firebaseAuthMessage(error: unknown, fallback: string): Error {
     case 'auth/too-many-requests':
     case 'auth/quota-exceeded':
       return new Error('Muitas tentativas. Aguarde alguns minutos e tente de novo.');
+    case 'auth/operation-not-allowed':
+      // Phone provider off or the number's country blocked in Firebase's SMS region policy.
+      return new Error('O envio de SMS para este número não está liberado. Tente mais tarde.');
     case 'auth/network-request-failed':
       return new Error('Sem conexão. Verifique sua internet e tente de novo.');
     default:
