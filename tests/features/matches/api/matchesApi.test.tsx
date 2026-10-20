@@ -525,11 +525,22 @@ describe('presence', () => {
   });
 
   it('declining PUTs Declined; not being on the list (404) is not an error', async () => {
-    fetchMock.mockResolvedValueOnce(respond(404, {}));
+    fetchMock.mockResolvedValueOnce(respond(404, {})).mockResolvedValueOnce(respond(404, {}));
 
     const settled = await runMutation(() => useDeclinePresence(MATCH_ID), undefined);
 
     expect(call().body).toEqual({ status: 'Declined', inviteCode: null });
+    expect(settled.status).toBe('fulfilled');
+  });
+
+  it('declining from the waiting list (no presence) DELETEs the waiting-list entry', async () => {
+    fetchMock.mockResolvedValueOnce(respond(404, {})).mockResolvedValueOnce(respond(204, {}));
+
+    const settled = await runMutation(() => useDeclinePresence(MATCH_ID), undefined);
+
+    const leave = call(1);
+    expect(leave.url).toContain(`/api/v1/matches/${MATCH_ID}/waiting-list/me`);
+    expect(leave.method).toBe('DELETE');
     expect(settled.status).toBe('fulfilled');
   });
 });

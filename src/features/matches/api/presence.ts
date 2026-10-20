@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { matchDetailQueryKey } from '@/features/matches/api/getMatchDetail';
 import {
+  deleteMyWaitingListEntry,
   fetchMatchDetail,
   putMyPresence,
   toMatchError,
@@ -43,7 +44,10 @@ async function confirm(id: string, inviteCode?: string): Promise<PresenceMutatio
   }
 }
 
-/** Declines; declining a match you were never in is already the wanted state. */
+/**
+ * Declines; declining a match you were never in is already the wanted state.
+ * Someone only on the waiting list has no presence (404) and leaves the list instead.
+ */
 async function decline(id: string): Promise<PresenceMutationResult> {
   try {
     await putMyPresence(id, 'Declined');
@@ -52,6 +56,13 @@ async function decline(id: string): Promise<PresenceMutationResult> {
       throw toMatchError(error, {
         409: 'As confirmações dessa partida já fecharam.',
       });
+    }
+    try {
+      await deleteMyWaitingListEntry(id);
+    } catch (leaveError) {
+      if (!(leaveError instanceof ApiError) || leaveError.status !== 404) {
+        throw toMatchError(leaveError, {});
+      }
     }
   }
   return { match: { id } };
