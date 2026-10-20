@@ -212,7 +212,15 @@ export default function SmsOtpScreen() {
             className="font-body text-caption text-danger mt-2"
             accessibilityLiveRegion="polite"
           >
-            Código inválido, tente novamente
+            {verifyOtp.error?.message ?? "Código inválido, tente novamente"}
+          </Text>
+        ) : null}
+        {resendOtp.isError ? (
+          <Text
+            className="font-body text-caption text-danger mt-2"
+            accessibilityLiveRegion="polite"
+          >
+            {resendOtp.error.message}
           </Text>
         ) : null}
 

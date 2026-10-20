@@ -377,10 +377,18 @@ describe('S10 — Settings list screen', () => {
   it('writes the chosen appearance to the theme store when a tile is tapped', async () => {
     await renderScreen();
 
+    fireEvent.press(screen.getByLabelText('Claro'));
+
+    expect(mockSetTheme).toHaveBeenCalledWith('light');
+    expect(useThemeStore.getState().theme).toBe('light');
+  });
+
+  it('does not let an "Em breve" appearance be picked', async () => {
+    await renderScreen();
+
     fireEvent.press(screen.getByLabelText('Escuro'));
 
-    expect(mockSetTheme).toHaveBeenCalledWith('dark');
-    expect(useThemeStore.getState().theme).toBe('dark');
+    expect(mockSetTheme).not.toHaveBeenCalled();
   });
 
   /**

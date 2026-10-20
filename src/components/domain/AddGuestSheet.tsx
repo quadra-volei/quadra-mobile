@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { X } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { Modal, Pressable, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
@@ -23,7 +23,7 @@ const POSITION_LABEL: Record<PlayerPosition, string> = {
   OPO: 'Oposto',
   CEN: 'Central',
   LIB: 'Líbero',
-  COR: 'Corredor',
+  COR: 'Coringa',
 };
 
 export type AddGuestSheetProps = {
@@ -73,6 +73,8 @@ export function AddGuestSheet({
       animationType="slide"
       onRequestClose={onClose}
     >
+      {/* Keeps the name field and the button above the keyboard (edge-to-edge: no resize). */}
+      <KeyboardAvoidingView behavior="padding" className="flex-1">
       {/* Backdrop — tap to dismiss. */}
       <Pressable
         accessibilityRole="button"
@@ -155,6 +157,7 @@ export function AddGuestSheet({
           </View>
         </Pressable>
       </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
