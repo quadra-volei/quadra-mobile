@@ -61,7 +61,7 @@ const POSITION_LABEL: Record<PlayerPosition, string> = {
   OPO: 'Oposto',
   CEN: 'Central',
   LIB: 'Líbero',
-  COR: 'Corredor',
+  COR: 'Coringa',
 };
 
 /** Cover height; the hero bleeds under the status bar, as in the prototype. */
@@ -776,9 +776,21 @@ export default function MatchDetailScreen() {
             </View>
           </>
         ) : waitingPosition != null ? (
-          <Button variant="primary" onPress={() => {}} disabled testID="waiting-list">
-            {`Na fila de espera · ${waitingPosition}º`}
-          </Button>
+          <>
+            <Button variant="primary" onPress={() => {}} disabled testID="waiting-list">
+              {`Na fila de espera · ${waitingPosition}º`}
+            </Button>
+            <View className="mt-1">
+              <Button
+                variant="ghost"
+                onPress={() => declinePresence.mutate()}
+                loading={declinePresence.isPending}
+                testID="leave-waiting-list"
+              >
+                Sair da fila
+              </Button>
+            </View>
+          </>
         ) : showJoinByCode ? (
           <>
             <TextField

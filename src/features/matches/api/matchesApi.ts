@@ -517,6 +517,11 @@ export function putMyPresence(
   });
 }
 
+/** Takes the signed-in user off a match's waiting list (they have no presence row to decline). */
+export function deleteMyWaitingListEntry(id: string): Promise<unknown> {
+  return authorizedApiClient<unknown>(`${MATCHES_PATH}/${id}/waiting-list/me`, { method: 'DELETE' });
+}
+
 export function postGuest(
   id: string,
   guest: { name: string; position?: PlayerPosition },
