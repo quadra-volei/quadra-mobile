@@ -320,10 +320,10 @@ export function useEndGame(matchId: string) {
 }
 
 /** "Jogo 2 · até 21 pontos" (single game) or "Set 2 · melhor de 3" (older games). */
-export function gameLabel(game: Pick<LiveGame, 'bestOf' | 'pointsToWin'>, setNumber: number, rotates: boolean): string {
+export function gameLabel(game: Pick<LiveGame, 'bestOf' | 'pointsToWin'>, setNumber: number): string {
   if (game.bestOf) {
     return `Set ${setNumber} · melhor de ${game.bestOf}`;
   }
-  const points = `até ${game.pointsToWin} pontos`;
-  return rotates ? `Jogo ${setNumber} · ${points}` : `Jogo ${points}`;
+  // A single-game match is the day's session: game after game until the organizer ends it.
+  return `Jogo ${setNumber} · até ${game.pointsToWin} pontos`;
 }

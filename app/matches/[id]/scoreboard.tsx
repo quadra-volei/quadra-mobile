@@ -93,7 +93,7 @@ export default function ScoreboardScreen() {
         testID="waiting-game"
       >
         {game.phase === 'PICK_NEXT'
-          ? 'Aguardando quem organiza escolher os times do próximo set.'
+          ? 'Aguardando quem organiza escolher os times do próximo jogo.'
           : game.isOrganizer
             ? 'Monte os times antes de começar a partida.'
             : 'A partida ainda não começou.'}
@@ -136,7 +136,8 @@ function teamColorIndex(game: LiveGame, teamId: string): number {
 }
 
 function setsLabel(setsWon: number): string {
-  return `${setsWon} ${setsWon === 1 ? 'set' : 'sets'}`;
+  // "vitórias" reads right both for the games of a session and the sets of an old best-of.
+  return `${setsWon} ${setsWon === 1 ? 'vitória' : 'vitórias'}`;
 }
 
 /**
@@ -144,7 +145,10 @@ function setsLabel(setsWon: number): string {
  * last set is flagged ("continua em quadra") but not forced.
  */
 function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
-  const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
+  // With two teams the next game is always the same pair: both come selected.
+  const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>(() =>
+    game.teams.length === 2 ? game.teams.map((team) => team.id) : [],
+  );
   const startSet = useStartSet(matchId);
   const endGame = useEndGame(matchId);
 
@@ -164,12 +168,12 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
     const [first, second] = selectedTeamIds;
     if (!first || !second) return;
     startSet.mutate([first, second], {
-      onError: (error) => dialog.alert('Não foi possível começar o set', error.message),
+      onError: (error) => dialog.alert('Não foi possível começar o jogo', error.message),
     });
   };
 
   const handleEndGame = () => {
-    dialog.alert('Encerrar a partida?', 'Vence o time com mais sets.', [
+    dialog.alert('Encerrar a partida?', 'Vence o time que ganhou mais jogos. Um jogo em andamento não conta.', [
       { text: 'Continuar jogando', style: 'cancel' },
       {
         text: 'Encerrar',
@@ -189,7 +193,7 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-white/10">
           <BackButton />
           <Text className="font-body-bold text-eyebrow text-white/70 uppercase">
-            {gameLabel(game, game.setNumber, game.teams.length > 2)}
+            {gameLabel(game, game.setNumber)}
           </Text>
           <View className="w-6" />
         </View>
@@ -197,7 +201,7 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
         {/* ── Hero section ── */}
         <View className="px-4 pt-6 pb-4">
           <Text className="font-display text-display text-text-on-dark uppercase">
-            Quem joga este set?
+            Quem joga agora?
           </Text>
           <Text className="font-body text-body text-white/70 mt-2">
             Selecione os dois times que entram em quadra agora
@@ -247,7 +251,7 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
                     <Text className="font-body-extrabold text-h3 text-text-on-dark">{team.name}</Text>
                     {wonPreviousSet ? (
                       <Text className="font-body-semibold text-caption text-accent mt-1">
-                        Venceu o set e continua em quadra
+                        Venceu o último jogo e continua em quadra
                       </Text>
                     ) : (
                       <Text className="font-body text-caption text-white/70 mt-1">
@@ -294,7 +298,7 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
             onPress={handleStartSet}
             testID="start-set-button"
           >
-            {game.phase === 'PICK_NEXT' ? 'Começar set' : 'Começar partida'}
+            {game.phase === 'PICK_NEXT' ? 'Começar próximo jogo' : 'Começar partida'}
           </Button>
 
           {/* Between sets the organizer may call it a day. */}
@@ -358,14 +362,14 @@ function LiveScoreboard({
   const { setNumber } = game;
 
   const handleEndSet = () => {
-    dialog.alert('Encerrar o set agora?', 'Quem está na frente leva o set.', [
+    dialog.alert('Encerrar este jogo agora?', 'Quem está na frente ganha o jogo.', [
       { text: 'Continuar jogando', style: 'cancel' },
       {
-        text: 'Encerrar set',
+        text: 'Encerrar jogo',
         onPress: () =>
           endSet.mutate(
             { setNumber },
-            { onError: (error) => dialog.alert('Não foi possível encerrar o set', error.message) },
+            { onError: (error) => dialog.alert('Não foi possível encerrar o jogo', error.message) },
           ),
       },
     ]);
@@ -384,7 +388,7 @@ function LiveScoreboard({
               <Text className="font-mono text-mono text-white/70 ml-1">{elapsed}</Text>
             </View>
             <Text className="font-body text-caption text-white/70 text-center" numberOfLines={1}>
-              {game.matchName} · {gameLabel(game, setNumber, game.teams.length > 2)}
+              {game.matchName} · {gameLabel(game, setNumber)}
             </Text>
           </View>
           {/* Spacer to keep the AO VIVO block centered opposite the back button */}
@@ -491,7 +495,7 @@ function LiveScoreboard({
                   loading={endSet.isPending}
                   testID="end-set-button"
                 >
-                  Encerrar set
+                  Encerrar jogo
                 </Button>
               </View>
             </View>
