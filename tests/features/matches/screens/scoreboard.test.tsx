@@ -142,7 +142,7 @@ describe('S13.5 — set team picker', () => {
   it('lets the organizer pick exactly two teams and start with that pair', async () => {
     await show({ phase: 'NOT_STARTED' });
 
-    expect(screen.getByText('Quem joga este set?')).toBeTruthy();
+    expect(screen.getByText('Quem joga agora?')).toBeTruthy();
     expect(screen.getByTestId('start-set-button').props.accessibilityState.disabled).toBe(true);
 
     await press('team-row-1');
@@ -158,10 +158,19 @@ describe('S13.5 — set team picker', () => {
   it('between sets flags the winner that stays on court and allows ending the game', async () => {
     await show({ phase: 'PICK_NEXT', setNumber: 2, lastSetWinnerId: 'team-2', setsWon: { 'team-2': 1 } });
 
-    expect(screen.getByText(/Jogo 2 · até 21 pontos|Jogo até 21 pontos/)).toBeTruthy();
-    expect(screen.getByText('Venceu o set e continua em quadra')).toBeTruthy();
-    expect(screen.getByText('Começar set')).toBeTruthy();
+    expect(screen.getByText('Jogo 2 · até 21 pontos')).toBeTruthy();
+    expect(screen.getByText('Venceu o último jogo e continua em quadra')).toBeTruthy();
+    expect(screen.getByText('Começar próximo jogo')).toBeTruthy();
     expect(screen.getByTestId('end-game-button')).toBeTruthy();
+  });
+
+  it('with two teams the next game comes with both already picked', async () => {
+    const two = game({}).teams.slice(0, 2);
+    await show({ phase: 'PICK_NEXT', setNumber: 2, teams: two });
+
+    expect(screen.getByTestId('start-set-button').props.accessibilityState.disabled).toBe(false);
+    await press('start-set-button');
+    expect(mockStartSet.mutate).toHaveBeenCalledWith(two.map((team) => team.id), expect.anything());
   });
 
   it('makes players wait while the organizer picks', async () => {

@@ -217,9 +217,9 @@ describe('toLiveGame', () => {
     const game = toLiveGame(data({ ...scoreboard(), format: 'SingleGame', pointsToWin: 21 }));
 
     expect(game).toMatchObject({ bestOf: null, pointsToWin: 21 });
-    expect(gameLabel(game, 1, false)).toBe('Jogo até 21 pontos');
-    expect(gameLabel(game, 2, true)).toBe('Jogo 2 · até 21 pontos');
-    expect(gameLabel({ bestOf: 3, pointsToWin: null }, 2, false)).toBe('Set 2 · melhor de 3');
+    expect(gameLabel(game, 1)).toBe('Jogo 1 · até 21 pontos');
+    expect(gameLabel(game, 2)).toBe('Jogo 2 · até 21 pontos');
+    expect(gameLabel({ bestOf: 3, pointsToWin: null }, 2)).toBe('Set 2 · melhor de 3');
   });
 
   it('is PLAYING with the pair, the points and the undo of the set on court', () => {
