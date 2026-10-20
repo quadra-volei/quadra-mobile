@@ -15,7 +15,7 @@ export type PhoneInputProps = {
 const MAX_DIGITS = 11;
 
 /** Formats national digits as "(11) 00000-0000" for display only. */
-function formatBR(digits: string): string {
+export function formatBR(digits: string): string {
   const d = digits.slice(0, MAX_DIGITS);
   if (d.length === 0) {
     return '';
@@ -64,8 +64,8 @@ export function PhoneInput({
           accessibilityRole="text"
           accessibilityLabel={`País ${country}, código +55`}
         >
-          <Text className="font-body text-body-bold text-text-primary">{country}</Text>
-          <Text className="font-body text-body-bold text-primary ml-1">+55</Text>
+          <Text className="font-body-semibold text-body-bold text-text-primary">{country}</Text>
+          <Text className="font-body-semibold text-body-bold text-primary ml-1">+55</Text>
         </View>
 
         <TextInput
@@ -73,7 +73,7 @@ export function PhoneInput({
           value={formatBR(value)}
           onChangeText={handleChange}
           placeholder="(11) 00000-0000"
-          placeholderTextColor="#7A7A9A"
+          placeholderTextColor="#62628A"
           keyboardType="phone-pad"
           inputMode="numeric"
           maxLength={16}

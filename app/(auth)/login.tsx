@@ -3,7 +3,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
-import { Dimensions, Pressable, Text, View } from "react-native";
+import { Dimensions, Linking, Pressable, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { ChevronLeft } from "lucide-react-native";
 import Animated, {
@@ -20,11 +20,15 @@ import { GoogleMark } from "@/components/icons/GoogleMark";
 import { QuadraLogo } from "@/components/icons/QuadraLogo";
 import { Button } from "@/components/ui/Button";
 import { PhoneInput } from "@/components/ui/PhoneInput";
-import { useGoogleSignIn } from "@/features/auth/api/googleSignIn";
+import {
+  GoogleSignInCancelledError,
+  useGoogleSignIn,
+} from "@/features/auth/api/googleSignIn";
 import { useRequestOtp } from "@/features/auth/api/requestOtp";
 import { useRiseIn } from "@/hooks/useRiseIn";
 import { useAuthStore } from "@/stores/auth";
 import { colors, HERO_GRADIENT } from "@/theme/colors";
+import { LEGAL_URLS } from "@/lib/legal";
 
 const SWIPE_CLOSE_THRESHOLD = 120; // drag distance (px) past which a release closes the sheet
 
@@ -47,6 +51,7 @@ type LoginPhoneForm = z.infer<typeof loginPhoneSchema>;
 
 export default function LoginScreen() {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [googleError, setGoogleError] = useState<string | null>(null);
 
   const requestOtp = useRequestOtp();
   const googleSignIn = useGoogleSignIn();
@@ -106,6 +111,7 @@ export default function LoginScreen() {
   });
 
   const onGoogle = () => {
+    setGoogleError(null);
     googleSignIn.mutate(undefined, {
       onSuccess: ({ session, user }) => {
         setAuth({
@@ -117,6 +123,14 @@ export default function LoginScreen() {
           router.replace("/(tabs)");
         } else {
           router.replace("/onboarding");
+        }
+      },
+      onError: (err) => {
+        // Backing out of the Google account picker is not an error.
+        if (!(err instanceof GoogleSignInCancelledError)) {
+          setGoogleError(
+            err.message || "Não foi possível entrar com o Google.",
+          );
         }
       },
     });
@@ -184,7 +198,7 @@ export default function LoginScreen() {
             </Animated.Text>
 
             <Animated.Text
-              className="font-body text-body-bold text-text-on-dark mt-4"
+              className="font-body-semibold text-body-bold text-text-on-dark mt-4"
               style={subtitleStyle}
             >
               Encontre partidas de vôlei perto de você, monte seu time e suba no
@@ -252,7 +266,7 @@ export default function LoginScreen() {
                   Use seu telefone para entrar ou criar conta.
                 </Text>
 
-                <Text className="font-body text-eyebrow text-text-primary uppercase mt-6">
+                <Text className="font-body-bold text-eyebrow text-text-primary uppercase mt-6">
                   Número de telefone
                 </Text>
 
@@ -310,13 +324,32 @@ export default function LoginScreen() {
                   Entrar com Google
                 </Button>
 
+                {/* inline (no toast) status when Google sign-in fails */}
+                {googleError ? (
+                  <Text
+                    className="font-body text-caption text-danger text-center mt-2"
+                    accessibilityLiveRegion="polite"
+                    testID="google-error"
+                  >
+                    {googleError}
+                  </Text>
+                ) : null}
+
                 <Text className="font-body text-caption text-text-muted text-center mt-6">
                   Ao continuar, você aceita os{" "}
-                  <Text className="font-body text-caption text-text-primary">
-                    Termos
+                  <Text
+                    accessibilityRole="link"
+                    onPress={() => void Linking.openURL(LEGAL_URLS.terms)}
+                    className="font-body text-caption text-text-primary underline"
+                  >
+                    Termos de Uso
                   </Text>{" "}
                   e a{" "}
-                  <Text className="font-body text-caption text-text-primary">
+                  <Text
+                    accessibilityRole="link"
+                    onPress={() => void Linking.openURL(LEGAL_URLS.privacy)}
+                    className="font-body text-caption text-text-primary underline"
+                  >
                     Política de Privacidade
                   </Text>
                   .

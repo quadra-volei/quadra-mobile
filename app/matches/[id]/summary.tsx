@@ -37,7 +37,7 @@ import { colors } from '@/theme/colors';
  * MVP, and the vote ranking — with a text-only OS share action and a CTA back to
  * the profile (which resets out of the match stack).
  *
- * Route param: id (match id). Summary is MOCKED this iteration (F1.6).
+ * Route param: id (match id). Summary comes from the backend (F1.6).
  */
 export default function MatchSummaryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -52,7 +52,7 @@ export default function MatchSummaryScreen() {
 
   // ── Error ──
   if (summaryQuery.isError || !summaryQuery.data) {
-    return <SummaryError matchId={matchId} />;
+    return <SummaryError matchId={matchId} message={summaryQuery.error?.message} />;
   }
 
   return <SummaryContent matchId={matchId} summary={summaryQuery.data} />;
@@ -75,7 +75,7 @@ function SummaryHeader({ onShare, isSharing }: { onShare?: () => void; isSharing
       >
         <ChevronLeft size={24} color={colors.textOnDark} />
       </Pressable>
-      <Text className="text-body-bold text-text-on-dark">Resumo da partida</Text>
+      <Text className="font-body-semibold text-body-bold text-text-on-dark">Resumo da partida</Text>
       {onShare ? (
         <Pressable
           onPress={onShare}
@@ -155,8 +155,8 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
             </Text>
 
             <View className="flex-row items-center gap-1 mt-2">
-              <MapPin size={14} color={colors.textMuted} />
-              <Text className="text-caption text-text-muted">
+              <MapPin size={14} color={colors.textOnDark} />
+              <Text className="font-body text-caption text-white/70">
                 {summary.venue} · {summary.dateLabel}
               </Text>
             </View>
@@ -183,20 +183,20 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
             <View className="px-4 mt-8">
               <View className="flex-row items-center gap-2 mb-3">
                 <Trophy size={16} color={colors.accent} />
-                <Text className="text-eyebrow text-accent uppercase">MVP mais votado</Text>
+                <Text className="font-body-bold text-eyebrow text-accent uppercase">MVP mais votado</Text>
               </View>
 
               {/* Highlighted MVP card */}
               <View className="flex-row items-center gap-4 p-4 rounded-card border-2 border-accent bg-white/5">
                 <Avatar uri={summary.mvp.avatarUrl} name={summary.mvp.name} size="lg" />
                 <View className="flex-1">
-                  <Text className="text-h3 text-text-on-dark">{summary.mvp.name}</Text>
-                  <Text className="text-caption text-text-muted">
+                  <Text className="font-body-extrabold text-h3 text-text-on-dark">{summary.mvp.name}</Text>
+                  <Text className="font-body text-caption text-white/70">
                     @{summary.mvp.handle} · {summary.mvp.position}
                   </Text>
                   <Text className="font-num text-text-on-dark mt-1">
                     {summary.mvp.votes}{' '}
-                    <Text className="text-caption text-text-muted">de {summary.totalVotes} votos</Text>
+                    <Text className="font-body text-caption text-white/70">de {summary.totalVotes} votos</Text>
                   </Text>
                 </View>
               </View>
@@ -209,10 +209,10 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
                   const fillPct = Math.min(Math.max(fillRatio, 0), 1) * 100;
                   return (
                     <View key={row.id} className="flex-row items-center gap-3">
-                      <Text className="font-num text-text-muted w-4">{i + 1}</Text>
+                      <Text className="font-num text-white/70 w-4">{i + 1}</Text>
                       <Avatar uri={row.avatarUrl} name={row.name} size="sm" />
                       <View className="flex-1">
-                        <Text className="text-body-bold text-text-on-dark">
+                        <Text className="font-body-semibold text-body-bold text-text-on-dark">
                           {row.name}
                           {isCurrentUser ? (
                             <Text className="text-caption text-accent font-mono"> · você</Text>
@@ -234,7 +234,7 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
             </View>
           ) : (
             <View className="px-4 mt-8">
-              <Text className="text-caption text-text-muted text-center">
+              <Text className="font-body text-caption text-white/70 text-center">
                 Sem votação de MVP nesta partida
               </Text>
             </View>
@@ -280,7 +280,7 @@ function StatTile({
       <Text className="font-num text-text-on-dark mt-3" style={{ fontSize: 28 }}>
         {value}
       </Text>
-      <Text className="text-caption text-text-muted">{label}</Text>
+      <Text className="font-body text-caption text-white/70">{label}</Text>
     </View>
   );
 }
@@ -295,7 +295,7 @@ function PerformanceSection({ performance }: { performance: MatchPerformance }) 
     <View className="px-4 mt-8" testID="summary-performance">
       <View className="flex-row items-center gap-2 mb-3">
         <User size={16} color={colors.accent} />
-        <Text className="text-eyebrow text-accent uppercase">Meu desempenho</Text>
+        <Text className="font-body-bold text-eyebrow text-accent uppercase">Meu desempenho</Text>
       </View>
 
       {/* XP-gained card */}
@@ -304,8 +304,8 @@ function PerformanceSection({ performance }: { performance: MatchPerformance }) 
           <Flame size={22} color={colors.accent} />
         </View>
         <View className="flex-1">
-          <Text className="text-body-bold text-text-on-dark">XP ganho nesta partida</Text>
-          <Text className="text-caption text-text-muted">Some ao seu progresso de nível</Text>
+          <Text className="font-body-semibold text-body-bold text-text-on-dark">XP ganho nesta partida</Text>
+          <Text className="font-body text-caption text-white/70">Some ao seu progresso de nível</Text>
         </View>
         <Text className="font-num text-accent" style={{ fontSize: 32 }} testID="summary-xp">
           +{performance.xpGained}
@@ -357,15 +357,15 @@ function SummarySkeleton() {
 }
 
 /** Error state: centered message + recoverable retry. */
-function SummaryError({ matchId }: { matchId: string }) {
+function SummaryError({ matchId, message }: { matchId: string; message?: string }) {
   const queryClient = useQueryClient();
   return (
     <View className="flex-1 bg-surface-dark">
       <SafeAreaView edges={['top']} className="flex-1">
         <SummaryHeader />
         <View className="flex-1 items-center justify-center px-4">
-          <Text className="text-h3 text-text-on-dark text-center mb-4">
-            Não foi possível carregar o resumo
+          <Text className="font-body-extrabold text-h3 text-text-on-dark text-center mb-4">
+            {message ?? 'Não foi possível carregar o resumo'}
           </Text>
           <Button
             variant="outlineW"

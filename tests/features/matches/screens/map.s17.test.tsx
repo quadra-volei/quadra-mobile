@@ -21,7 +21,7 @@
  * never the native map canvas. Read hook is mocked at the boundary; no MSW.
  */
 import React from 'react';
-import { Linking } from 'react-native';
+import { Linking, Platform } from 'react-native';
 
 // --- Native / module mocks -------------------------------------------------
 
@@ -53,6 +53,8 @@ jest.mock('lucide-react-native', () => {
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
   return {
     ChevronLeft: stub('chevron-left'),
+    Clock: stub('clock'),
+    LocateFixed: stub('locate-fixed'),
     Volleyball: stub('volleyball'),
     MapPin: stub('map-pin'),
     Users: stub('users'),
@@ -183,7 +185,11 @@ jest.mock('@/features/matches/api/getNearby', () => ({
 
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
-import MapScreen, { pinToneFor } from '../../../../app/explore/map';
+import MapScreen, {
+  PIN_ANCHOR,
+  pinToneFor,
+  searchAreaFor,
+} from '../../../../app/explore/map';
 
 // --- Helpers ---------------------------------------------------------------
 
@@ -200,7 +206,7 @@ async function press(element: Parameters<typeof fireEvent.press>[0]) {
   });
 }
 
-/** Reads the color-coded className off a pin's wrapper View (the `rounded-full`). */
+/** Reads the color-coded className off a pin's head (the bordered shape). */
 function pinWrapperClass(testID: string): string {
   const pin = screen.getByTestId(testID);
   const stack: any[] = [...pin.children];
@@ -208,7 +214,7 @@ function pinWrapperClass(testID: string): string {
     const node = stack.shift();
     if (node && typeof node !== 'string') {
       const cn = node.props?.className;
-      if (typeof cn === 'string' && cn.includes('rounded-full')) return cn;
+      if (typeof cn === 'string' && cn.includes('border-2')) return cn;
       stack.push(...node.children);
     }
   }
@@ -239,6 +245,14 @@ beforeEach(() => {
 });
 
 // ---------------------------------------------------------------------------
+
+describe('PIN_ANCHOR', () => {
+  it('sits on the tip: at the head centre across, near the bottom edge down', () => {
+    // 32px head, 3px shadow: a 35 x 42 view with the tip at (16, 16 + 32 / √2).
+    expect(PIN_ANCHOR.x).toBeCloseTo(16 / 35);
+    expect(PIN_ANCHOR.y).toBeCloseTo(38.627 / 42, 3);
+  });
+});
 
 describe('pinToneFor (pure pin color helper)', () => {
   /**
@@ -284,6 +298,28 @@ describe('S17 — Map of Nearby Matches', () => {
     // No permission copy on the granted map.
     expect(screen.queryByText('Permitir localização')).toBeNull();
     expect(screen.queryByText('Abrir configurações')).toBeNull();
+  });
+
+  /**
+   * Covers: S17 — Map of Nearby Matches
+   * An Android build without the Google Maps key must not mount the native map
+   * (it closes the app); the nearby matches are listed instead.
+   */
+  it('lists the nearby matches instead of the map on Android without a Maps key', async () => {
+    const os = Platform.OS;
+    Platform.OS = 'android';
+    delete process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY;
+    try {
+      mockGetForeground.mockResolvedValue({ status: 'granted' });
+      await renderScreen();
+
+      await waitFor(() =>
+        expect(screen.getByTestId('map-list-near-open')).toBeTruthy(),
+      );
+      expect(screen.queryByTestId('map-view')).toBeNull();
+    } finally {
+      Platform.OS = os;
+    }
   });
 
   /**
@@ -378,7 +414,8 @@ describe('S17 — Map of Nearby Matches', () => {
     expect(screen.getByTestId('map-preview-card')).toBeTruthy();
     // Card renders that match's summary.
     expect(screen.getByText('Arena Sky Beach')).toBeTruthy();
-    expect(screen.getByText('1,2 km')).toBeTruthy();
+    // Distance from the device (mocked ~0,3 km away), not the search centre.
+    expect(screen.getByText('0,3 km')).toBeTruthy();
     expect(screen.getByText('R$ 25')).toBeTruthy();
   });
 
@@ -391,12 +428,43 @@ describe('S17 — Map of Nearby Matches', () => {
     await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
 
     await press(screen.getByTestId('map-pin-near-last'));
-    await press(screen.getByTestId('map-preview-card'));
+    await press(screen.getByText('Ver partida'));
 
     expect(mockPush).toHaveBeenCalledWith({
       pathname: '/matches/[id]',
       params: { id: 'near-last' },
     });
+  });
+
+  /**
+   * Moving the map searches the area on screen, so a match far from the user
+   * (another city) is found by taking the map there.
+   */
+  it('searches the area the map shows once the map is moved', async () => {
+    await renderScreen();
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
+
+    await act(async () => {
+      screen.getByTestId('map-view').props.onRegionChangeComplete({
+        latitude: -19.9191,
+        longitude: -43.9386,
+        latitudeDelta: 0.4,
+        longitudeDelta: 0.4,
+      });
+    });
+
+    expect(mockNearby.lastParams).toEqual({ lat: -19.92, lon: -43.94, radiusKm: 23 });
+  });
+
+  it('caps the search radius and flags a view that is too wide', () => {
+    const area = searchAreaFor({
+      latitude: -21,
+      longitude: -45,
+      latitudeDelta: 6,
+      longitudeDelta: 6,
+    });
+    expect(area.radiusKm).toBe(50);
+    expect(area.tooWide).toBe(true);
   });
 
   // ------------------------------------------------------------------- back

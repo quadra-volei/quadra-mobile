@@ -1,12 +1,11 @@
-// Shared match domain types consumed by the S5 Home cards and the mocked read
-// hooks (src/features/matches/api/*). These mirror the field shapes shown in the
-// S5 mockup so the real F1.7 / F1.1 / F1.6 payloads can slot in unchanged behind
-// the hook signatures. No `any`.
+// Shared match domain types consumed by the S5 Home cards. The read hooks
+// (src/features/matches/api/*) map the backend payloads into these shapes.
+// No `any`.
 
 /** Match format (players-per-side) shown as a mono pill on the dark card. */
 export type MatchFormat = '2X2' | '4X4' | '6X6';
 
-/** Skill level tier shown as a lime pill on the dark card. */
+/** Skill level of a match, shown as a colored badge (`LEVEL_BADGE`). */
 export type MatchLevel = 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO';
 
 /**
@@ -18,8 +17,8 @@ export type UpcomingMatch = {
   name: string;
   /** ISO timestamp; rendered as "Hoje 19h30" / "Amanhã ...". */
   startsAt: string;
-  /** e.g. "CASUAL" / "COMPETITIVO" (category tag). Optional. */
-  category?: string;
+  /** Drives the level badge on the cover. */
+  level: MatchLevel;
   /** "N vagas". */
   openSlots: number;
   /** "R$ 15" | "Grátis". */
@@ -28,6 +27,12 @@ export type UpcomingMatch = {
   avatarUrls: string[];
   /** Hex tint for the card's court-image cover gradient (tint → navy). */
   tint: string;
+  /** The cover the organizer uploaded; without one the card shows the tinted court. */
+  coverUrl?: string;
+  /** Venue address ("Hoje · 19h30 · Arena Pinheiros" on the next-game card). */
+  venue: string;
+  /** The user's own presence is confirmed (picks "SEU PRÓXIMO JOGO"). */
+  confirmed: boolean;
 };
 
 /**
@@ -46,8 +51,14 @@ export type NearbyMatch = {
   capacity: number;
   /** "R$ 25" | "Grátis". */
   priceLabel: string;
+  /** Price in reais, null when free (Explore price filter). */
+  price?: number | null;
   /** Hex tint for the card's court-image cover gradient (tint → navy). */
   tint: string;
+  /** The cover the organizer uploaded; without one the card shows the tinted court. */
+  coverUrl?: string;
+  /** The venue address (map preview). */
+  venue?: string;
   /**
    * Geographic coordinates of the venue, used to place the match pin on the S17
    * map. A geo-nearby endpoint inherently returns per-match coordinates, so this
@@ -55,4 +66,6 @@ export type NearbyMatch = {
    */
   lat: number;
   lon: number;
+  /** ISO start timestamp (drives the "Hoje" filter on Explore). */
+  startsAt?: string;
 };

@@ -1,18 +1,17 @@
 # COMPONENTS.md — Living Component Catalog
 
 > **Read before creating any new component.** This file is the source of truth for what reusable pieces exist.
-> The `implementer` updates this file when it ships a new reusable component.
-> The `screen-spec-writer` reads this file to reuse what exists instead of inventing duplicates.
+> Update this file when you ship a new reusable component.
 
 ---
 
 ## How to use this file
 
-### Before specifying a screen
-The spec-writer checks: "Does the screen need a Button? A Card? An Avatar? Is it already here?" If yes → reference by name. If no → propose a new one **in the spec**, justifying why an existing component doesn't fit.
+### Before designing a screen
+Check: "Does the screen need a Button? A Card? An Avatar? Is it already here?" If yes → reference by name. If no → propose a new one, justifying why an existing component doesn't fit.
 
 ### Before implementing
-The implementer checks: "The spec mentions `<MatchCard>`. Is it in the catalog?" If yes → import and use. If no → check the spec for the proposed new component, build it in `src/components/`, and add an entry to this file.
+Check: "The screen needs `<MatchCard>`. Is it in the catalog?" If yes → import and use. If no → check the spec for the proposed new component, build it in `src/components/`, and add an entry to this file.
 
 ### When updating
 Every PR that adds a reusable component MUST add an entry here. The PR is incomplete without it.
@@ -43,14 +42,27 @@ Each entry follows this structure:
 ### `Button`
 - **Path**: `src/components/ui/Button.tsx`
 - **Category**: ui
-- **Props**: `{ variant: 'grad' | 'primary' | 'outline' | 'outlineW' | 'ghost'; onPress: () => void; children: ReactNode; disabled?: boolean; loading?: boolean; leftIcon?: ReactNode; testID?: string }`
+- **Props**: `{ variant: 'grad' | 'primary' | 'outline' | 'outlineW' | 'outlineLime' | 'ghost'; onPress: () => void; children: ReactNode; disabled?: boolean; loading?: boolean; leftIcon?: ReactNode; testID?: string }`
 - **Used in**: S2 Login
 - **Example**:
   ```tsx
   <Button variant="grad" onPress={openSheet}>Entrar e jogar</Button>
   <Button variant="outline" onPress={onGoogle} leftIcon={<GoogleMark />}>Entrar com Google</Button>
   ```
-- **Notes**: All five DESIGN_SYSTEM variants. `grad` (blue→lime) and `primary` (navy→blue) wrap `expo-linear-gradient` with `shadow-cta` / `shadow-primary`; when `disabled` or `loading` they render a muted `bg-bg-light-alt` fill (no shadow). `outline` / `outlineW` / `ghost` are transparent (50% opacity when disabled). `loading` swaps content for an `ActivityIndicator` and disables press. Tap height ~48px (`h-12`), `rounded-btn`. Exposes `accessibilityRole="button"` and `accessibilityState` (disabled/busy).
+- **Notes**: All DESIGN_SYSTEM variants, under the button rule (flat fill, 2px navy border, `HARD_SHADOW`; DECISIONS #69). `grad` is lime, `primary` blue, `outline` white; `outlineW` / `outlineLime` are transparent for navy surfaces (no shadow); `ghost` is a text link. `disabled` is a grey fill (`line`) with a muted label, the border and no shadow on `grad` / `primary` / `outline`, and 50% opacity on the transparent variants and while `loading`; `loading` swaps content for an `ActivityIndicator`. An icon on `grad` / `outline` is navy (`colors.surfaceDark`). Tap height ~48px (`h-12`), `rounded-btn`. Exposes `accessibilityRole="button"` and `accessibilityState` (disabled/busy).
+
+### `IconButton`
+- **Path**: `src/components/ui/IconButton.tsx`
+- **Category**: ui
+- **Props**: `{ label: string; onPress: () => void; children: ReactNode; testID?: string }`
+- **Used in**: the four tab headers (Início, Explorar, Rede, Perfil)
+- **Example**:
+  ```tsx
+  <IconButton label="Configurações" onPress={goSettings}>
+    <Settings size={20} color={colors.surfaceDark} />
+  </IconButton>
+  ```
+- **Notes**: Boxed header icon under the button rule (white 40px square, 2px navy border, `HARD_SHADOW`). `label` is the accessibility label. Light surfaces only.
 
 ### `PhoneInput`
 - **Path**: `src/components/ui/PhoneInput.tsx`
@@ -72,7 +84,7 @@ Each entry follows this structure:
   ```tsx
   <OtpInput value={code} onChangeText={setCode} error={isError} autoFocus onFilled={onVerify} testID="otp-input" />
   ```
-- **Notes**: Segmented 4-box auto-advancing OTP field (length fixed at 4 for MVP, Cognito-locked). Typing a digit advances focus to the next box; backspace on an empty box clears+moves to the previous box; a pasted/autofilled full code (iOS `textContentType="oneTimeCode"`, Android `autoComplete="sms-otp"`) is distributed across boxes. Empty boxes use `border-line`, filled boxes `border-primary`, and `error` swaps to `border-danger` plus a brief horizontal shake via `react-native-reanimated`. `onFilled` fires when all boxes are filled (used for auto-submit). Each box exposes an accessible label ("Dígito N de 4"). Boxes are `h-16 w-16`, `font-num`.
+- **Notes**: Segmented 6-box auto-advancing OTP field (`length` defaults to 6, the backend SMS code length; boxes are `h-16 flex-1` so six fit a phone screen). Typing a digit advances focus to the next box; backspace on an empty box clears+moves to the previous box; a pasted/autofilled full code (iOS `textContentType="oneTimeCode"`, Android `autoComplete="sms-otp"`) is distributed across boxes. Empty boxes use `border-line`, filled boxes `border-primary`, and `error` swaps to `border-danger` plus a brief horizontal shake via `react-native-reanimated`. `onFilled` fires when all boxes are filled (used for auto-submit). Each box exposes an accessible label ("Dígito N de 4"). Boxes are `h-16 w-16`, `font-num`.
 
 ### `TextField`
 - **Path**: `src/components/ui/TextField.tsx`
@@ -120,7 +132,7 @@ Each entry follows this structure:
 - **Path**: `src/components/ui/FilterChip.tsx`
 - **Category**: ui
 - **Props**: `{ label: string; selected: boolean; onPress: () => void; disabled?: boolean; testID?: string }`
-- **Used in**: S6 Explore (filter row "Todos / Perto / Hoje / Iniciante / 6x6"), S9 Ranking (scope tabs — "Amigos" active; "Bairro"/"Geral" `disabled`), S11 Create Match (date/format/level/type/confirm-window chips), S12 Match Detail (organizer "2 times / 3 times / 4 times" team-count group, single-select)
+- **Used in**: S6 Explore (filter row "Todos / Perto / Hoje / Iniciante / 6x6"), S9 Ranking (scope tabs — "Amigos" active; "Bairro"/"Geral" `disabled`), S11 Create Match (date/format/level/type chips), S13 Teams (organizer "2 times / 3 times / 4 times" team-count group, single-select)
 - **Example**:
   ```tsx
   <FilterChip label="Perto" selected={activeFilter === 'perto'} onPress={() => setActiveFilter('perto')} />
@@ -149,13 +161,13 @@ Each entry follows this structure:
   <Avatar uri={profile.avatarUrl} name={profile.firstName} size="md" />
   <Avatar name={row.name} size="sm" />
   ```
-- **Notes**: Circular avatar (`rounded-full`). Renders a cached `expo-image` (`contentFit="cover"`) of the player's photo when `uri` is present, otherwise a **brand default illustration** from `src/theme/defaultAvatars.ts` — seeded by `name` (`defaultAvatarFor`) so a given player is stable and a roster shows variety, matching the prototype (which uses these illustrations as everyone's default photo). Pass `defaultSource={DEFAULT_AVATAR}` to pin a specific avatar to the prototype's volleyball-court illustration (used for the current user across the profile header, player card, edit, and feedback so they stay consistent). Sizes: `sm` (`h-10 w-10`, ranking/header rows), `md` (`h-12 w-12`, header), `lg` (`h-16 w-16`, S9 podium), `xl` (`h-32 w-32`, S8b player-card photo). When `level` is set, overlays a tier-colored level badge ("bolinha") at the bottom-right (colors from `src/theme/levelTier.ts`, mirroring the prototype's `BadgeAvatar`); the badge exposes `accessibilityLabel="Nível N"` and `testID="avatar-level-badge"`. Exposes `accessibilityLabel` derived from `name`. Receives plain data via props; never fetches. Designed for reuse by S9/S10/S12/S15.
+- **Notes**: Circular avatar (`rounded-full`). Renders a cached `expo-image` (`contentFit="cover"`) of the player's photo when `uri` is present, otherwise a **brand default illustration** from `src/theme/defaultAvatars.ts` — seeded by `name` (`defaultAvatarFor`) so a given player is stable and a roster shows variety, matching the prototype (which uses these illustrations as everyone's default photo). Pass `defaultSource={DEFAULT_AVATAR}` to pin a specific avatar to the prototype's volleyball-court illustration (used for the current user across the profile header, player card, edit, and feedback so they stay consistent). Sizes: `xs` (`h-6 w-6`, the "Perfil" tab icon), `sm` (`h-10 w-10`, ranking/header rows), `md` (`h-12 w-12`, header), `lg` (`h-16 w-16`, S9 podium), `xl` (`h-32 w-32`, S8b player-card photo). When `level` is set, overlays a tier-colored level badge ("bolinha") at the bottom-right (colors from `src/theme/levelTier.ts`, mirroring the prototype's `BadgeAvatar`); the badge exposes `accessibilityLabel="Nível N"` and `testID="avatar-level-badge"`. Exposes `accessibilityLabel` derived from `name`. Receives plain data via props; never fetches. Designed for reuse by S9/S10/S12/S15.
 
 ### `StepperField`
 - **Path**: `src/components/ui/StepperField.tsx`
 - **Category**: ui
 - **Props**: `{ label: string; value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; prefix?: string; testID?: string }`
-- **Used in**: S11 Create Match (VAGAS & VALOR — "Jogadores" count + "Valor / pessoa" price), S12 Match Detail (organizer "Jogadores por time" team-config stepper)
+- **Used in**: S11 Create Match (VAGAS & VALOR — "Jogadores" count + "Valor / pessoa" price), S13 Teams (organizer "Jogadores por time" team-config stepper)
 - **Example**:
   ```tsx
   <StepperField label="Jogadores" value={value} onChange={onChange} min={2} testID="players-stepper" />
@@ -177,49 +189,91 @@ Each entry follows this structure:
 ### `CourtImage`
 - **Path**: `src/components/ui/CourtImage.tsx`
 - **Category**: ui
-- **Props**: `{ tint: string; height: number; radius?: number; label?: string; children?: ReactNode }`
-- **Used in**: S5 Home / S6 Explore match-card covers (`MatchCard`, `MatchCardCompact`) and the S12 Match Detail hero (full-bleed, `radius={0}`, with a scrim + overlaid title block)
+- **Props**: `{ tint: string; height: number; radius?: number; label?: string; imageUri?: string; children?: ReactNode }` (`imageUri`: a real photo, the match cover, drawn instead of the court motif and label)
+- **Used in**: every match cover: S5 Home carousel (`MatchCardCompact`), S6 Explore grid (`MatchCard`), the S17 map preview, the Rede invite card and the S12 Match Detail hero (full-bleed, `radius={0}`, with a scrim + overlaid title block)
 - **Example**:
   ```tsx
   <CourtImage tint={match.tint} height={172} radius={16}>{overlay}</CourtImage>
   ```
-- **Notes**: On-brand match-cover placeholder (ports the prototype's `CourtImage`). A `tint → navy` `expo-linear-gradient` fill behind a faint volleyball court-line motif drawn with plain Views (outer box + center line + two dashed attack lines — **no `react-native-svg`**, so it renders cheap and is test-safe). Overlaid `children` are positioned absolutely by the caller; `radius` is `0` when the cover sits flush at a card's top. Gradient end color from `src/theme/colors.ts`.
+- **Notes**: On-brand match-cover placeholder (ports the prototype's `CourtImage`). A `tint → navy` `expo-linear-gradient` fill behind a faint volleyball court-line motif drawn with plain Views (outer box + center line + two dashed attack lines — **no `react-native-svg`**, so it renders cheap and is test-safe). Overlaid `children` are positioned absolutely by the caller; `radius` is `0` when the cover sits flush at a card's top. Gradient end color from `src/theme/colors.ts`. With `imageUri` the photo replaces the motif and gets the level filter (`tint` → navy at `COVER_FILTER_ALPHA`, DECISIONS #103); `tint` must be a `#RRGGBB` hex.
 
-### `GlassHeader`
-- **Path**: `src/components/ui/GlassHeader.tsx`
-- **Category**: ui
-- **Props**: `{ children: ReactNode; blurTarget?: RefObject<View | null>; onHeight?: (height: number) => void; tint?: 'light' | 'dark' }`
-- **Used in**: All tab screens (S5 Home, S6 Explore, S7 Network, S8 Profile) and all profile stack screens (via `GlassBackHeader`: S9 Ranking, S10 Settings/Edit/Notifications/Feedback; directly with `tint="dark"`: S8b Player card)
+### `ScreenHeader`
+- **Path**: `src/components/ui/ScreenHeader.tsx`
+- **Purpose**: Pinned, solid app header (screen color + bottom hairline).
+- **Props**: `{ children: ReactNode; onHeight?: (height: number) => void; tint?: 'light' | 'dark' }`
+- **Used in**: All tab screens (S5 Home, S6 Explore, S7 Network, S8 Profile) and all profile stack screens (via `BackHeader`; directly with `tint="dark"`: S8b Player card)
 - **Example**:
   ```tsx
-  <GlassHeader blurTarget={blurTarget} onHeight={setHeaderHeight}>
-    <ProfileHeader />
-  </GlassHeader>
+  <ScreenHeader onHeight={setHeaderHeight}>
+    {/* title + right cluster */}
+  </ScreenHeader>
   ```
-- **Notes**: Absolutely-positioned translucent app header (glassmorphism chrome from the prototype: `rgba(255,255,255,.55)` + blur). The `expo-blur` `BlurView` supplies real backdrop blur; the inner white/navy wash + hairline border approximate the tint. Because it floats (`position:absolute`, `zIndex:10`), the screen must (1) wrap its scroll content in `expo-blur`'s `<BlurTargetView ref={blurTarget}>` and pass that ref (Android `dimezisBlurView` needs an explicit backdrop; iOS blurs natively and ignores it), and (2) offset the scroll content by the height reported via `onHeight` (`contentContainerStyle={{ paddingTop: headerHeight }}`). Applies the top safe-area inset itself — the screen must NOT also wrap in a `SafeAreaView edges={['top']}`. `tint="dark"` tints the blur + wash (`bg-surface-dark/40`) for navy screens. Requires a Dev Client rebuild (native `BlurView`).
+- **Notes**: Absolutely positioned (`zIndex:10`), so the screen offsets its scroll content by the height reported via `onHeight` (`contentContainerStyle={{ paddingTop: headerHeight }}`). Applies the top safe-area inset itself — the screen must NOT also wrap in a `SafeAreaView edges={['top']}`. Solid on purpose, no blur (DECISIONS #46).
 
-### `GlassBackHeader`
-- **Path**: `src/components/ui/GlassBackHeader.tsx`
-- **Category**: ui
-- **Props**: `{ title: string; tint?: 'light' | 'dark'; right?: ReactNode; blurTarget?: RefObject<View | null>; onHeight?: (height: number) => void }`
-- **Used in**: S9 Ranking, S10 Settings / Edit profile / Notifications / Feedback (pushed profile stack screens)
+### `BackHeader`
+- **Path**: `src/components/ui/BackHeader.tsx`
+- **Purpose**: Standard header for pushed stack screens.
+- **Props**: `{ title: string; tint?: 'light' | 'dark'; right?: ReactNode; onHeight?: (height: number) => void }`
 - **Example**:
   ```tsx
-  <GlassBackHeader title="Configurações" blurTarget={blurTarget} onHeight={setHeaderHeight} />
-  <GlassBackHeader title="Ranking" right={<Bell size={24} color={colors.surfaceDark} />} blurTarget={blurTarget} onHeight={setHeaderHeight} />
+  <BackHeader title="Configurações" onHeight={setHeaderHeight} />
   ```
-- **Notes**: Standard glass header for pushed stack screens — a bare `ChevronLeft` back affordance (`accessibilityLabel="Voltar"`, `router.back()`) + `font-display text-h1 uppercase` title + optional right-aligned `right` cluster, composed over `GlassHeader`. Mirrors the tab headers' bare-chevron affordance so every screen's header reads as one system (replaced the earlier boxed-white back buttons on settings/edit/notifications/feedback). The consuming screen still owns the `BlurTargetView` + `headerHeight` wiring (see `GlassHeader`). For screens whose header row diverges (e.g. the S8b player card's smaller `font-body-bold` title on dark), wire `GlassHeader` directly with `tint="dark"` instead of this component.
+- **Notes**: Bare `ChevronLeft` back affordance (`accessibilityLabel="Voltar"`, `router.back()`, 48dp touch target) + `font-display text-h1 uppercase` title + optional `right` cluster, composed over `ScreenHeader`.
+
+### `SkeletonBlock`
+- **Path**: `src/components/ui/Skeleton.tsx`
+- **Purpose**: Loading placeholder with a slow opacity pulse.
+- **Props**: `{ className?: string; tone?: 'light' | 'dark'; testID?: string }`
+- **Example**: `<SkeletonBlock className="h-[172px]" />`
+- **Notes**: Size it to the content it stands in for so nothing jumps when data arrives. `tone="dark"` on navy surfaces.
+
+### `StateMessage`
+- **Path**: `src/components/ui/StateMessage.tsx`
+- **Purpose**: The single empty / error block.
+- **Props**: `{ message: string; actionLabel?: string; onAction?: () => void; tone?: 'light' | 'dark' }`
+- **Example**: `<StateMessage message="Não foi possível carregar" actionLabel="Tentar novamente" onAction={() => refetch()} />`
+- **Notes**: Body-size line, polite live region, at most one action (ghost on light, lime outline on dark).
+
+### `PressableScale`
+- **Path**: `src/components/ui/PressableScale.tsx`
+- **Purpose**: `Pressable` with the app's press feedback (shrink + fade, `MOTION.press`). Use it for every tappable surface instead of `android_ripple`.
+- **Props**: same as `Pressable` (`className` included); `style` must be a value, not a function.
+- **Used in**: `Button`, `IconButton`, `FilterChip`, `BackHeader`, match cards, navbar, `CreateSheet`, feed, scoreboard, MVP vote
+- **Notes**: A static `opacity` in `style` (a disabled button) is kept and faded from.
+
+### `TabIndicator` / `TabLabel`
+- **Path**: `src/components/ui/UnderlineTab.tsx`
+- **Purpose**: Underline tabs: the line slides to the selected tab and the label color follows it (`MOTION.tab`).
+- **Props**: `TabIndicator { index; count; thickness; widthRatio? }`, `TabLabel { selected; activeColor; className; children }`
+- **Used in**: Rede ("Para você" / "Seguindo"), match detail ("Detalhes" / "Confirmados")
+- **Example**: `<View className="flex-row">{tabs}<TabIndicator index={i} count={2} thickness={2} /></View>`
+- **Notes**: The row holds only the `flex-1` tabs. Each tab is a plain `Pressable` (no press background) with bottom padding equal to `thickness`.
+
+### `Dialog` (`dialog.alert` + `DialogHost`)
+- **Path**: `src/components/ui/Dialog.tsx`
+- **Purpose**: The confirmation / message dialog. Use it instead of the native `Alert`.
+- **API**: `dialog.alert(title, message?, buttons?)` with `buttons: { text; onPress?; style?: 'default' | 'cancel' | 'destructive' }[]` (no buttons = a single "OK"). `<DialogHost />` is mounted once in `app/_layout.tsx`.
+- **Used in**: team draw, scoreboard, MVP vote
+- **Example**:
+  ```tsx
+  dialog.alert('Encerrar o set agora?', 'Quem está na frente leva o set.', [
+    { text: 'Cancelar', style: 'cancel' },
+    { text: 'Encerrar', onPress: endSet },
+  ]);
+  ```
+- **Notes**: Callable from anywhere (handlers, mutation callbacks). One dialog at a time; a new call replaces the open one. Back / tap outside take the `cancel` button, or close a single-button message. In tests, `jest.spyOn(dialog, 'alert')`.
 
 ### `Tag`
 - **Path**: `src/components/ui/Tag.tsx`
 - **Category**: ui
-- **Props**: `{ children: ReactNode; bg?: string; color?: string; dot?: boolean }`
-- **Used in**: `MatchCard` (format + level tags), `MatchCardCompact` (category tag)
+- **Props**: `{ children: ReactNode; bg?: string; color?: string; dot?: boolean; outlined?: boolean }`
+- **Used in**: `MatchCard` (format + level tags), `MatchCardCompact` (level badge), map preview card
 - **Example**:
   ```tsx
-  <Tag bg={colors.primary} color={colors.textOnDark} dot>CASUAL</Tag>
+  const badge = LEVEL_BADGE[match.level]; // src/features/matches/lib/levelBadge.ts
+  <Tag bg={badge.bg} color={badge.color} outlined>{badge.label}</Tag>
   ```
-- **Notes**: Small uppercase pill label (ports the prototype's `Tag`): `font-body-bold` (DM Sans 700), 10px, letter-spacing 1, `rounded-pill`. `bg`/`color` are passed in because they vary per use (category/format/level) and the caller owns the DESIGN_SYSTEM priority-color choice; optional leading `dot` in the label color. Purely presentational.
+- **Notes**: Small uppercase pill label (ports the prototype's `Tag`): `font-body-bold` (DM Sans 700), 10px, letter-spacing 1, `rounded-pill`. `bg`/`color` are passed in because they vary per use (format/level) and the caller owns the DESIGN_SYSTEM priority-color choice; optional leading `dot` in the label color; `outlined` adds a 1.5px navy border (the match-level badge always uses it). Purely presentational.
 
 <!--
 More UI primitives will live here:
@@ -230,7 +284,6 @@ More UI primitives will live here:
 ### `Avatar`
 ### `Badge`
 ### `Pill`
-### `IconButton`
 -->
 
 ---
@@ -241,7 +294,7 @@ More UI primitives will live here:
 - **Path**: `src/components/icons/QuadraLogo.tsx`
 - **Props**: `{ size?: number; testID?: string }`
 - **Used in**: S1 Splash, S2 Login
-- **Notes**: Official brand mark (three overlapping blocks, blue + lime). Colors are fixed — never recolor.
+- **Notes**: Official brand mark (three overlapping blocks, blue + lime). Colors are fixed — never recolor. Only exception: `blockColor` replaces the two blue blocks on a blue background (the splash passes white).
 
 ### `GoogleMark`
 - **Path**: `src/components/icons/GoogleMark.tsx`
@@ -251,13 +304,19 @@ More UI primitives will live here:
 
 ---
 
+### `HomeHeroArt`
+- **Path**: `src/components/icons/HomeHeroArt.tsx`
+- **Props**: none
+- **Used in**: the empty-Home hero (`app/(tabs)/index.tsx`)
+- **Notes**: Absolute-fill SVG (`viewBox 0 0 400 500`, `slice`): court lines across the card, a ball with fading rings and a stepped glow at the centre, white strokes at 3–16% opacity (DECISIONS #102). Uses only `Circle`, `Line`, `Path`, `Rect` (no gradients, which break under Jest).
+
 ## Hooks (`src/hooks/`)
 
 ### `useRiseIn`
 - **Path**: `src/hooks/useRiseIn.ts`
 - **Props**: `({ delay?: number; distance?: number; duration?: number; easing?: WithTimingConfig['easing'] }) => AnimatedStyle`
-- **Used in**: S1 Splash (wordmark, tagline, loader block), S2 Login (lockup, headline, subtitle, CTA)
-- **Notes**: "Fade up into place" entrance, ported from the prototype's `.q-rise`. Defaults match `.q-rise` (16px / 450ms / `cubic-bezier(.2,.7,.2,1)`); the splash overrides them with its softer `qSplashUp` values. Stagger siblings by giving each a larger `delay`. Returns a style for `<Animated.View>` / `<Animated.Text>`.
+- **Used in**: S2 Login (lockup, headline, subtitle, CTA), S1 Splash (court lines, progress bar), S4 Onboarding (step content, position cards)
+- **Notes**: "Fade up into place" entrance, ported from the prototype's `.q-rise`. Defaults match `.q-rise` (16px / 450ms / `cubic-bezier(.2,.7,.2,1)`). Stagger siblings by giving each a larger `delay`. Returns a style for `<Animated.View>` / `<Animated.Text>`.
 - **Example**:
   ```tsx
   const headlineStyle = useRiseIn({ delay: 60 });
@@ -265,6 +324,12 @@ More UI primitives will live here:
   ```
 
 ---
+### `useDebounced`
+- **Path**: `src/hooks/useDebounced.ts`
+- **Props**: `(value: T, delayMs = 350) => T`
+- **Used in**: address search (`searchPlaces.ts`), "Buscar jogador" (`app/network/search.tsx`)
+- **Notes**: The value once it stopped changing for `delayMs`; feed it what the user types so the API is asked once per pause.
+
 
 ## Layout (`src/components/layout/`)
 
@@ -281,16 +346,44 @@ More UI primitives will live here:
 
 ## Domain components (`src/components/domain/`)
 
+### `BellWithBadge`
+- **Path**: `src/components/domain/BellWithBadge.tsx`
+- **Category**: domain
+- **Props**: none
+- **Used in**: the bell `IconButton` of Início, Rede and Perfil
+- **Notes**: Bell icon plus a red count of unread notifications (`useUnreadCount`, re-read every minute; "9+" above nine). Tests mock it (it needs a QueryClient).
+
+### `LocationGate`
+- **Path**: `src/components/domain/LocationGate.tsx`
+- **Category**: domain
+- **Props**: `{ children: ReactNode }`
+- **Used in**: `app/(tabs)/_layout.tsx` (around the tabs)
+- **Notes**: Asks for the location permission before rendering its children, only while the permission was never answered (DECISIONS #72). Denied: explains what is lost, offers the phone settings, then lets the user in.
+
+### `UpdateGate`
+- **Path**: `src/components/domain/UpdateGate.tsx`
+- **Category**: domain
+- **Props**: none
+- **Used in**: `app/_layout.tsx` (after the stack, before `DialogHost`)
+- **Notes**: Reads `GET /api/v1/app/version` once per launch (`useUpdateStatus`). Below the minimum version it covers the whole app with "Atualize o app" and the store button; below the recommended one it opens a dialog once. A failed check never blocks (DECISIONS #127).
+
 ### `MatchCard`
 - **Path**: `src/components/domain/MatchCard.tsx`
 - **Category**: domain
 - **Props**: `{ match: NearbyMatch; onPress: (id: string) => void; testID?: string }` where `NearbyMatch = { id: string; name: string; format: '2X2' | '4X4' | '6X6'; level: 'INICIANTE' | 'INTERMEDIARIO' | 'AVANCADO'; distanceKm: number; confirmed: number; capacity: number; priceLabel: string; tint: string }` (from `@/features/matches/types/match`)
-- **Used in**: S5 Home ("JOGOS PERTO DE VOCÊ" grid). Reused by S6 Explore grid and S17 map bottom sheet.
+- **Used in**: S6 Explore grid and S17 map bottom sheet (no longer on the Home, DECISIONS #104).
 - **Example**:
   ```tsx
   <MatchCard match={m} onPress={(id) => router.push({ pathname: '/matches/[id]', params: { id } })} />
   ```
 - **Notes**: Image-forward card mirroring the prototype's `NearbyCard`. A `<CourtImage>` cover (`height 172`) tinted per match by `match.tint`, with a dark bottom scrim. Top-left: a stacked `<Tag>` pair — a translucent-white format tag + a lime level tag. Overlaid bottom block: a `MapPin` distance in `font-mono` brightLime (`"1,2 km"`, comma decimal), the venue name (`font-body-bold`, single line, white), and a row with a `Users` confirmed/capacity and a `font-num` brightLime price. Single `accessibilityRole="button"` target announcing name + distance. Receives plain data via props; never fetches. No hardcoded hex — colors come from `src/theme/colors.ts`.
+
+### `PlayerCard`
+- **Path**: `src/components/domain/PlayerCard.tsx`
+- **Category**: domain
+- **Props**: `{ profile: MyProfile; finish: CardFinish; title: CardTitleCode; photoUrl?: string; flipped: boolean; onFlip: () => void; width: number; faceRefs?: { front; back: RefObject<View> }; testID?: string }` (`faceRefs` gives the flat faces to `captureRef` for the PNG export)
+- **Used in**: S8b "Sua carta" (`app/profile/card.tsx`), on the screen and in the enlarged view
+- **Notes**: Collectible card with front and back (DECISIONS #119), drawn on a 292 × 406 grid and scaled to `width`. Finish tokens in `src/theme/cardFinish.ts` (Prisma and Eclipse chamfered, Íon rounded); titles in `src/features/profile/card/cardTitles.ts`. Material is SVG (frame gradient, body, photo clipped to the shape, a foil band and a glare that follow the finger through reanimated animated props); text is RN on top. Drag tilts it (±11° / ±14°) and settles back in 350 ms; a tap or a horizontal swipe over 65 px flips it in 600 ms, showing only the face towards the viewer. Gestures live on the card only. Reduced motion: no tilt, instant flip.
 
 ### `MatchCardCompact`
 - **Path**: `src/components/domain/MatchCardCompact.tsx`
@@ -301,7 +394,18 @@ More UI primitives will live here:
   ```tsx
   <MatchCardCompact match={m} onPress={(id) => router.push({ pathname: '/matches/[id]', params: { id } })} />
   ```
-- **Notes**: Light `bg-white rounded-card shadow-card` compact card (`w-[262px]`) mirroring the prototype's upcoming card. A `<CourtImage>` cover (`height 124`, flush top, `radius 0`) tinted by `match.tint` with a category `<Tag>` (blue+dot for "CASUAL", else lime) top-left. Content block: the match name (`font-body-bold` 16px, single line), a `Clock` datetime rendered relatively (`"Hoje · 19h30"` / `"Amanhã · 20h00"` / `"20/06 · 19h30"` via a pure internal formatter, `font-body-semibold`), then a hairline footer with a confirmed-avatar stack (`expo-image`, max 3 + "+N" overflow) and two matched badges — `"N vagas"` (blue on blue-tint) and price (`font-body-bold`, green when "Grátis", else navy, on `bg-light`). Single `accessibilityRole="button"` target announcing name + datetime. Receives plain data via props; never fetches. No hardcoded hex — colors come from `src/theme/colors.ts`.
+- **Notes**: Light `bg-white rounded-card shadow-card` compact card (`w-[262px]`) mirroring the prototype's upcoming card. A `<CourtImage>` cover (`height 124`, flush top, `radius 0`) tinted by `match.tint` with the level badge (`LEVEL_BADGE[match.level]`, outlined `<Tag>`) top-left. Content block: the match name (`font-body-bold` 16px, single line), a `Clock` datetime rendered relatively (`"Hoje · 19h30"` / `"Amanhã · 20h00"` / `"20/06 · 19h30"` via `formatStartsAt` in `features/matches/lib/formatWhen.ts`, `font-body-semibold`), then a hairline footer with a confirmed-avatar stack (`expo-image`, max 3 + "+N" overflow) and two matched badges — `"N vagas"` (blue on blue-tint) and price (`font-body-bold`, green when "Grátis", else navy, on `bg-light`). Single `accessibilityRole="button"` target announcing name + datetime. Receives plain data via props; never fetches. No hardcoded hex — colors come from `src/theme/colors.ts`.
+
+### `ActivityRow`
+- **Path**: `src/components/domain/ActivityRow.tsx`
+- **Category**: domain
+- **Props**: `{ activity: Activity; onPress: (target) => void; now?: number; testID?: string }`
+- **Used in**: S5 Home (ATIVIDADE DOS AMIGOS), `app/activity.tsx` (Ver tudo)
+- **Example**:
+  ```tsx
+  <ActivityRow activity={item} onPress={(t) => router.push({ pathname: t.pathname, params: { id: t.id } })} />
+  ```
+- **Notes**: One friend's activity: `Avatar` (md) with the level-number badge, the sentence from `describeActivity` (name bold, object bold primary blue), a grey caption ("Vitória por 2 sets a 1 · há 42 min"), and a lilac `bg-quaternary/10` tile with the kind's icon (arrow up, check, ball, star). The parent draws the white card and the hairlines. Tap target is the whole row; it opens the match, or the friend's profile for a level up.
 
 ### `LevelBar`
 - **Path**: `src/components/domain/LevelBar.tsx`
@@ -328,7 +432,7 @@ More UI primitives will live here:
 ### `RankingRow`
 - **Path**: `src/components/domain/RankingRow.tsx`
 - **Category**: domain
-- **Props**: `{ row: RankingRow; isMe: boolean; testID?: string }` where `RankingRow = { position: number; playerId: string; name: string; subtitle: string; score: number; isMe?: boolean; trend?: { direction: 'up' | 'down' | 'flat'; delta: number } }` (from `@/features/ranking/types/ranking`)
+- **Props**: `{ row: RankingRow; isMe: boolean; testID?: string }` where `RankingRow = { position: number | null; playerId: string; name: string; subtitle: string; score: number; photoUrl?: string; matches?: number; isMe?: boolean; trend?: { direction: 'up' | 'down' | 'flat'; delta: number } }` (from `@/features/ranking/types/ranking`)
 - **Used in**: S9 Ranking (position-4+ list). Available to S8 to replace its inline preview rows later (not required yet).
 - **Example**:
   ```tsx
@@ -339,13 +443,13 @@ More UI primitives will live here:
 ### `PresenceGrid`
 - **Path**: `src/components/domain/PresenceGrid.tsx`
 - **Category**: domain
-- **Props**: `{ players: PresencePlayer[]; capacity: number; onPressEmpty?: () => void; maxEmptySlots?: number; testID?: string }` where `PresencePlayer = { id: string; name: string; avatarUrl?: string; status: 'CONFIRMADO' | 'RECUSADO' | 'PENDENTE'; position?: 'LEV' | 'PON' | 'OPO' | 'CEN' | 'LIB' | 'COR'; level?: number; isGuest?: boolean }` (from `@/features/matches/types/matchDetail`)
+- **Props**: `{ players: PresencePlayer[]; capacity: number; onPressEmpty?: () => void; testID?: string }` where `PresencePlayer = { id: string; name: string; avatarUrl?: string; status: 'CONFIRMADO' | 'RECUSADO' | 'PENDENTE'; position?: 'LEV' | 'PON' | 'OPO' | 'CEN' | 'LIB' | 'COR'; level?: number; isGuest?: boolean }` (from `@/features/matches/types/matchDetail`)
 - **Used in**: S12 Match Detail ("CONFIRMADOS" confirmed-players grid). Designed for reuse by S13 (team rosters share the avatar+slot idiom).
 - **Example**:
   ```tsx
-  <PresenceGrid players={match.players} capacity={match.capacity} maxEmptySlots={3} onPressEmpty={() => setGuestSheetOpen(true)} testID="presence-grid" />
+  <PresenceGrid players={match.players} capacity={match.capacity} onPressEmpty={() => setGuestSheetOpen(true)} testID="presence-grid" />
   ```
-- **Notes**: Capacity-aware wrapping grid (`w-1/4` cells) — renders an `<Avatar size="md" />` + **first name** per player, then dashed `border-line` "vaga" placeholders for the remaining `capacity - players.length` open slots (each tagged `{testID}-empty`). A player carrying a `level` gets the tier-colored level "bolinha" via `Avatar`'s `level` prop (guests have none, so theirs is omitted); pair the grid with a tier legend where the badge needs explaining (S12 inlines one). `maxEmptySlots` caps how many "vaga" placeholders render so a nearly-empty high-capacity match shows a hint of open slots instead of a wall of dashed circles (S12 passes 3, per the prototype); omit it to render every open slot. A player with `isGuest` gets a muted "Convidado" eyebrow under the name. When `onPressEmpty` is passed the empty slots become buttons (organizer "add guest" affordance on S12); omit it for inert placeholders. Presentational: receives plain data via props, never fetches. **No per-player OVR number is rendered** (Layer-3 cut, per SCOPE S12). Avatars are display-only (no tap navigation). Small grid (≤ capacity, typically ≤ 12) → a wrapping `View` is used, not a `FlatList`.
+- **Notes**: Capacity-aware wrapping grid (`w-1/4` cells) — renders an `<Avatar size="md" />` + **first name** per player, then dashed `border-line` "vaga" placeholders for the remaining `capacity - players.length` open slots (each tagged `{testID}-empty`). A player carrying a `level` gets the tier-colored level "bolinha" via `Avatar`'s `level` prop (guests have none, so theirs is omitted). Every open slot renders, so avatars + placeholders add up to `capacity`. A player with `isGuest` gets a muted "Convidado" eyebrow under the name. When `onPressEmpty` is passed the empty slots become buttons (organizer "add guest" affordance on S12); omit it for inert placeholders. Presentational: receives plain data via props, never fetches. **No per-player OVR number is rendered** (Layer-3 cut, per SCOPE S12). Avatars are display-only (no tap navigation). Small grid (≤ capacity, typically ≤ 12) → a wrapping `View` is used, not a `FlatList`.
 
 ### `AddGuestSheet`
 - **Path**: `src/components/domain/AddGuestSheet.tsx`
@@ -358,6 +462,20 @@ More UI primitives will live here:
   ```
 - **Notes**: Bottom-sheet (`Modal transparent animationType="slide"`) with a RHF + Zod form — required `Nome` (`TextField`) + optional `Posição` (`FilterChip` row; tap again to clear). Form resets each time it opens. Backdrop tap and the close/× dismiss. Respects the bottom safe-area inset. Presentational: the parent owns the `useAddGuest` mutation and closes the sheet on success.
 
+### `ExploreFilterSheet`
+- **Path**: `src/components/domain/ExploreFilterSheet.tsx`
+- **Category**: domain
+- **Props**: `{ visible: boolean; value: ExploreFilters; source: NearbyMatch[]; onApply: (next: ExploreFilters) => void; onClose: () => void }` (`ExploreFilters` from `@/features/explore/lib/filters`)
+- **Used in**: S6 Explore — the "Filtros" button.
+- **Notes**: Bottom sheet like `AddGuestSheet`. Sections of `FilterChip`s (Ordenar por, Quando, Distância, Formato, Nível, Preço) plus a "Só com vaga aberta" `ToggleField`. Edits a draft; the sticky footer has "Limpar" and "Ver N partidas", N counted live with `applyFilters` over `source`. Nothing applies until "Ver"; closing discards the draft.
+
+### `CreateSheet`
+- **Path**: `src/components/domain/CreateSheet.tsx`
+- **Category**: domain
+- **Props**: `{ onClose: () => void; onCreateMatch: () => void; onCreatePost: () => void; blurTarget?: RefObject<View | null> }`
+- **Used in**: `app/(tabs)/_layout.tsx` (opened by the central "+")
+- **Notes**: "O que você quer criar?" overlay (DECISIONS #98): blurred and dimmed backdrop (tap closes), white card with 2px navy border and `HARD_SHADOW`, "Criar partida" (lime) and "Criar publicação" (white) wide options, "Cancelar" link. An overlay rather than a `Modal` so the Android blur can read the `BlurTargetView` passed as `blurTarget`; Android back closes it. Mount it only while open.
+
 ### `CoverPicker`
 - **Path**: `src/components/domain/CoverPicker.tsx`
 - **Category**: domain
@@ -369,16 +487,23 @@ More UI primitives will live here:
   ```
 - **Notes**: Rectangular match-cover banner (`h-40 rounded-card`) — distinct from the circular `Avatar`. With no `uri` it renders a navy `HERO_GRADIENT` (`expo-linear-gradient`) placeholder with a "CAPA DA PARTIDA" eyebrow, a dashed frame, and a pencil + "Trocar capa" affordance; once picked it shows the chosen image (`expo-image`, `contentFit="cover"`) with the same affordance overlaid. Presentational: the consuming screen owns the `expo-image-picker` invocation (passed via `onPress`); the component never touches the picker or fetches. Single `accessibilityRole="button"` announcing "Trocar capa da partida". No hardcoded hex — gradient/icon colors from `src/theme/colors.ts`.
 
+### `PositionGrid`
+- **Path**: `src/components/domain/PositionPicker.tsx`
+- **Category**: domain
+- **Props**: `{ value?: Position; onChange: (v: Position) => void; testIDPrefix?: string }` (cards are `${testIDPrefix}-${code}`, default `position`)
+- **Used in**: onboarding step 1, `app/profile/edit.tsx`
+- **Notes**: Single-select court-position cards of DECISIONS #85 (icon box, name, radio; blue border and hard shadow when chosen) plus the navy hint bar for the chosen position. Cards rise in (`useRiseIn`).
+
 ### `TeamRoster`
 - **Path**: `src/components/domain/TeamRoster.tsx`
 - **Category**: domain
-- **Props**: `{ teamId: string; teamName?: string; players: PresencePlayer[]; testID?: string }` where `PresencePlayer = { id: string; name: string; avatarUrl?: string; status: PresenceStatus; position?: PlayerPosition }` (from `@/features/matches/types/matchDetail`)
-- **Used in**: S13 In-Game Teams (team roster columns)
+- **Props**: `{ teamId: string; teamName?: string; players: PresencePlayer[]; colorIndex?: number; onPlayerPress?: (player: PresencePlayer) => void; testID?: string }` where `PresencePlayer = { id: string; name: string; avatarUrl?: string; status: PresenceStatus; position?: PlayerPosition }` (from `@/features/matches/types/matchDetail`)
+- **Used in**: S13 In-Game Teams (one card per team)
 - **Example**:
   ```tsx
-  <TeamRoster teamId="team-1" teamName="Time 1" players={team.players} testID="team-roster-1" />
+  <TeamRoster teamId="team-1" teamName="Time 1" players={team.players} colorIndex={0} testID="team-roster-1" />
   ```
-- **Notes**: Vertical team roster column — displays a team header (name/number), a vertical stack of player `<Avatar size="md" />`, and optional position badges (PON, LEV, etc. on a `primary` pill). Presentational: receives plain data via props, never fetches. Designed for S13 where N columns (2, 3, or 4) are rendered side-by-side in a `flex-row gap-4` layout.
+- **Notes**: One team as a white card: a dot in the team's color (`getTeamBgColor(colorIndex)`), the name, the player count, and one row per player (`<Avatar size="sm" />`, name, position in `primary` mono text). Presentational: receives plain data via props, never fetches. S13 stacks one card per team (`gap-3`). With `onPlayerPress` each player row is a button (`roster-player-<id>`), which S13 uses to move the player to another team.
 
 <!--
 ### `PlayerAvatar`         — circular avatar with position-colored ring

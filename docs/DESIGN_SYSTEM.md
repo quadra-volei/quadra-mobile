@@ -1,9 +1,9 @@
 # DESIGN_SYSTEM.md — Quadra Visual Language
 
 > The visual law of the land. Every color, spacing, typography, and radius the app uses lives here.
-> Agents MUST reference these tokens. Hardcoded hex values are REJECTED by the scope-guardian.
+> Always reference these tokens. Hardcoded hex values are not allowed.
 
-> Source: `Identidade Visual.html` (brand guide) + `data.js` (QUADRA palette object) from the Claude Design prototype.
+> Source: the brand guide and palette of the original design prototype (removed from the repo on 2026-10-09; in git history under `docs/references/`). This file is now the reference.
 
 ---
 
@@ -42,7 +42,7 @@ The brand defines a **fixed priority order** for accent colors. When a UI needs 
 | --- | --- | --- |
 | `text-primary` | `#1A1A2E` | Main copy on light surfaces |
 | `text-on-dark` | `#FFFFFF` | Copy on dark surfaces |
-| `text-muted` | `#7A7A9A` | Secondary metadata (timestamps, captions, hex labels) |
+| `text-muted` | `#62628A` | Secondary metadata (timestamps, captions, hex labels) |
 | `line` | `rgba(10,10,60,0.10)` | Hairline borders/dividers on light surfaces |
 
 ### Semantic (system states — not part of the brand palette)
@@ -69,6 +69,22 @@ The dot/badge color next to a player's level is determined by their tier. These 
 
 > `#00B4D8` (cyan) is **only** valid for `level-1`. Do not use it as a general UI accent.
 
+### Match level badge (Iniciante, Intermediário, Avançado)
+
+The level of a **match** is not the player level scale above. It has three values, so it takes
+the first three colors of the priority rule, from the easiest level up, and the pair is the same
+on every surface (`LEVEL_BADGE` in `src/features/matches/lib/levelBadge.ts`):
+
+| Level | Fill | Label |
+| --- | --- | --- |
+| Iniciante | `accent` (lime) | navy |
+| Intermediário | `primary` (blue) | white |
+| Avançado | `tertiary` (orange) | navy |
+
+On a cover the badge has a 1.5px white border, so it stands out from a cover of any tint, its own
+blue included (DECISIONS #103). The
+label is the level itself; a match has no "Casual" / "Competitivo" category.
+
 ### Position badges (PON, OPO, LEV, LIB, CEN, OUT)
 
 Position abbreviations do **not** have individual fixed colors. The rule is contrast-based:
@@ -80,13 +96,11 @@ Position abbreviations do **not** have individual fixed colors. The rule is cont
 
 ## Gradients
 
-Defined as utilities `bg-gradient-cta`, `bg-gradient-primary`, `bg-gradient-cta-pressed`:
+Gradients are for **surfaces only** (hero areas, covers, the level-elite badge). **A button never
+carries a gradient** (see "Buttons", DECISIONS #69).
 
-- **`bg-gradient-cta`** — `linear-gradient(120deg, #1A1AFF, #AADD00)` (blue → lime). The **main CTA** of any screen: "Jogar", "Criar partida", "Ver a sua carta", "Começar partida". Shadow: `0 4px 16px rgba(170,221,0,.30)`.
-- **`bg-gradient-primary`** — `linear-gradient(120deg, #0A0A3C, #1A1AFF)` (navy → blue). Affirmative action on a light background when the brand gradient doesn't fit: "Confirmar presença", "Entrar na Quadra". Shadow: `0 4px 16px rgba(26,26,255,.28)`.
-- **`bg-gradient-cta-pressed`** — either gradient above, darkened ~10% for press feedback.
-
-NativeWind 4 supports gradients via `expo-linear-gradient` wrapped in a custom `<GradientButton>` component. See `COMPONENTS.md`.
+- **Hero** — navy → blue (`HERO_GRADIENT` in `src/theme/colors.ts`).
+- **Brand** — blue → lime (`CTA_GRADIENT`): progress accents, never a button fill.
 
 ---
 
@@ -134,16 +148,18 @@ These are **not** system fonts, so they must be bundled:
 > face, one step smaller — so the screen header stays dominant. Both are
 > `font-display` + `uppercase`; only the size differs.
 >
-> **Rollout status:** S5 Home applies these sizes (18/14) inline. The global
-> `text-h1` / `text-h2` tokens still resolve to the pre-prototype 21/16px and
-> will be re-pointed to 18/14 once every screen header/section has been checked
-> against the prototype — until then, don't assume the tokens match the table.
+> **Rollout status:** done — `text-h1` / `text-h2` resolve to 18/14 on every
+> screen (DECISIONS #47). Size tokens carry no `fontWeight`.
 | `text-body` | DM Sans | 14–15px | normal | 400 | Default body |
 | `text-body-bold` | DM Sans | 14–15px | normal | 600 | Emphasis in body |
 | `text-eyebrow` | DM Sans | 11px | UPPERCASE | 700 | Eyebrow / overline label, letter-spacing 1.2 |
 | `text-caption` | DM Sans | 11–12px | normal | 400 | Metadata, muted captions |
 | `text-mono` | DM Mono | 10–11.5px | UPPERCASE (for tags) | 500/700 | Tags, pills, technical legends |
 | `text-num` | Russo One | varies | normal | 400 | Scores, stats, level/overall numbers |
+| `text-score` | Russo One | 96px | normal | 400 | The points on the live scoreboard only |
+
+> **On navy surfaces** secondary text is `text-white/70`, never `text-text-muted` (about 3:1 on
+> navy), and buttons are `outlineW` / `outlineLime`, never `outline` / `ghost` (DECISIONS #57).
 
 ---
 
@@ -176,26 +192,60 @@ The Quadra style favors **generously rounded** elements — when in doubt, lean 
 | Token | Value | Use |
 | --- | --- | --- |
 | `shadow-card` | `0 2px 12px rgba(10,10,60,.06)` | Cards (subtle, blue-tinted) |
-| `shadow-cta` | `0 4px 16px rgba(170,221,0,.30)` | Lime / gradient CTA buttons |
-| `shadow-primary` | `0 4px 16px rgba(26,26,255,.28)` | Blue / navy→blue buttons |
-| `shadow-fab` | `0 4px 16px rgba(26,26,255,.28)` | The central FAB on bottom nav |
+| `HARD_SHADOW` | `3px 3px 0 0` navy (`surface-dark`), no blur | Buttons, round buttons and selection cards (see "Buttons") |
 | `shadow-modal` | tuned per `tailwind.config.js` | Bottom sheets and modals |
 
 Implementation: NativeWind shadow utilities, tuned in `tailwind.config.js`. Don't write raw `boxShadow` strings.
+The one exception is `HARD_SHADOW` (`src/theme/colors.ts`), always applied as `style={HARD_SHADOW}`: a
+NativeWind shadow class becomes Android elevation, which is blurred and cannot be offset.
 
 ---
 
 ## Buttons
 
-Five variants, each with a distinct role. Corners `rounded-btn` (18px), weight 700, comfortable tap height (~48px).
+**The rule (DECISIONS #69): every button is a flat fill + a thick navy border + a hard shadow.**
+
+- **Fill**: one flat color. No gradient, ever.
+- **Border**: 2px, navy (`border-2 border-surface-dark`).
+- **Shadow**: `HARD_SHADOW`, navy, shifted down and to the right, no blur.
+- **Label**: DM Sans 700 (`font-body-bold`), navy on lime/white, white on blue/red.
+- Corners `rounded-btn` (18px), tap height ~48px. Disabled: grey fill (`line`), muted label, border kept, no shadow (DECISIONS #86); the transparent variants fade to 50% opacity instead.
 
 | Variant | Style | Example | Role |
 | --- | --- | --- | --- |
-| `grad` | `bg-gradient-cta` (blue→lime), white text, `shadow-cta` | "Jogar" | Main CTA of the screen |
-| `primary` | `bg-gradient-primary` (navy→blue), white text, `shadow-primary` | "Confirmar presença" | Affirmative action when the brand gradient doesn't fit |
-| `outline` | transparent, `primary` border (2px) + text | "Procurar partidas" | Secondary action on light bg |
-| `outlineW` | transparent, white border (2px) + text | "Voltar ao início" | Same as outline, but on navy/dark bg |
-| `ghost` | transparent, `primary` text, 600 weight, no border | "Ver tudo" | Tertiary / low-emphasis links |
+| `grad` | lime (`accent`) fill, navy label | "Jogar" | Main CTA of the screen (the name is historical: it was the gradient) |
+| `primary` | blue (`primary`) fill, white label | "Confirmar presença" | Affirmative action next to a lime CTA |
+| `outline` | white fill, navy label | "Buscar jogo", "Entrar com Google" | Secondary action on light bg |
+| `outlineW` | transparent, white 2px border + label, no shadow | "Voltar ao início" | Secondary action on navy bg |
+| `outlineLime` | transparent, lime 2px border + label, no shadow | — | Same, lime emphasis on navy bg |
+| `ghost` | transparent, `primary` label, 600 weight, no border | "Ver tudo" | Tertiary text link (not a button shape, so outside the rule) |
+
+The same rule covers everything that is pressed like a button:
+
+- **Round buttons** (map recenter, stepper +/−): flat
+  fill + 2px navy border; the hard shadow from 56px up (below that it only smudges).
+- **Icon buttons in a box** (`IconButton`: the bell, settings and "+" of the tab headers): 40px
+  white square, `rounded-chip`, 2px navy border + `HARD_SHADOW`, 20px icon. The back chevron of
+  `BackHeader` stays a bare icon.
+- **Selection cards** (onboarding level / modality): the **selected** card takes the
+  2px navy border + `HARD_SHADOW` and a pale lime fill (`bg-accent/20`), with a lime check
+  circle; unselected cards stay plain white with `shadow-card`.
+- **Position cards** (onboarding step 1, DECISIONS #85): white, `rounded-btn`, 2px `line`
+  border and a soft 4px hard shadow; the **selected** card takes a blue (`primary`) border and
+  shadow, a pale blue fill (`bg-light-alt`), a blue icon box and a lime check in its radio.
+- **Home hero** (empty Home only): a portrait 4:5 blue (`primary`) card filled by `HomeHeroArt`,
+  a lime eyebrow on top, "BORA PRA QUADRA?" in display type (white + lime) and translucent white
+  chips at the bottom; no buttons (DECISIONS #100, #102).
+- **Cover filter**: a match cover photo always carries its level tint (55%) fading into navy
+  (60%), `COVER_FILTER_ALPHA` in `src/theme/colors.ts` (DECISIONS #103).
+- **Tab bar "+"** and **`CreateSheet`**: the lime round "+" and the sheet's two wide options
+  ("Criar partida" lime, "Criar publicação" white) carry the border and shadow; the sheet card
+  has the 2px navy border and the shadow too (DECISIONS #98).
+- **Dialog** (`Dialog.tsx`): lime for the action, red (`danger`) for `destructive`, both with the
+  border and shadow; `ghost` for `cancel`.
+- **On navy** the navy border and shadow cannot be seen, so `outlineW` / `outlineLime` carry a
+  light border and no shadow.
+- A button written by hand (a `Pressable`) follows the same three parts; prefer `<Button>`.
 
 Icons are used **only** when they add meaning (share, sortear/shuffle). Direct-action CTAs stay icon-free.
 
@@ -207,6 +257,14 @@ Icons are used **only** when they add meaning (share, sortear/shuffle). Direct-a
 - Radius: `rounded-pill` (20px+)
 - Examples: "VOCÊ ORGANIZA", "CONFIRMADO", "4X4"
 
+### Selectable chips
+
+A chip that is pressed to select (`FilterChip`, the weekday chips, the feedback tiles) is white
+with dark text and turns **blue (`primary`) with a white label** when selected (about 8:1). The
+selected colors are **inline styles from `src/theme/colors.ts`, never a className switched on
+state**: a className changed after the first render is not applied reliably, and the dark label
+stayed on the blue fill (DECISIONS #87).
+
 ---
 
 ## Iconography
@@ -214,7 +272,7 @@ Icons are used **only** when they add meaning (share, sortear/shuffle). Direct-a
 Hybrid approach:
 
 - **General UI icons** (bell, search, chevrons, settings, etc.): `lucide-react-native`, default size 24, stroke 1.75, color via NativeWind token.
-- **Brand-specific icons** (logo mark, bottom-nav icons, FAB "jogar" icon): custom SVGs from the prototype's `uploads/` folder (e.g. `Icone-quadra-logo.svg`, `Home.svg`, `Rede.svg`, `Perfil.svg`, `Explorar.svg`, `jogar.svg` + their `-selecionado`/`-active` states). Port these as SVG components into `src/components/icons/`.
+- **Brand-specific icons** (logo mark, bottom-nav icons): SVG components in `src/components/icons/` (ported from the prototype's SVGs, which are no longer in the repo).
 
 Forbidden: importing PNG icons inline.
 
@@ -234,10 +292,20 @@ For agents producing screen specs, the Quadra identity has these traits:
 
 - **Organic shapes in backgrounds** — blue blobs and lime waves on splash/login screens. Treat them as decorative SVG/blur layers, not photographic.
 - **Dark hero areas** with light copy — used for stats, ranking, and key data moments (navy gradient `linear-gradient(165deg, #0c0c52 0%, #0A0A3C 55%, #08083a 100%)`).
-- **Pill-shaped badges** with strong color contrast for positions (PON, OPO, LEV, LIB, etc.) and tags (Pistache, Casual, Confirmado).
-- **Strong CTAs** — gradient or solid lime — never subtle. Buttons in Quadra are confident.
+- **Pill-shaped badges** with strong color contrast for positions (PON, OPO, LEV, LIB, etc.) and tags (Iniciante, 4X4, Confirmado).
+- **Strong CTAs** — solid lime with a thick navy border and a hard shadow — never subtle. Buttons in Quadra are confident.
 - **Image-forward match cards** — every match card shows the venue photo with overlaid metadata.
 - **Display type is always uppercase** — Climate Crisis never renders in mixed/lower case.
+
+---
+
+## Chrome, states and touch
+
+- **No glass.** Header and tab bar are solid surfaces with a hairline (`border-line`); no backdrop blur (DECISIONS #46). The only blur is the backdrop behind `CreateSheet` (DECISIONS #98).
+- **Loading**: `SkeletonBlock`, sized to the content it replaces, slow opacity pulse.
+- **Empty / error**: `StateMessage` — one body-size line and at most one action.
+- **Press feedback**: `PressableScale` (a slight shrink to 0.97 and fade to 0.85, 120 ms), never Android's ripple. Underline tabs take no press feedback: the sliding underline is the feedback. Bare 24px icons take `hitSlop={ICON_HIT_SLOP}`.
+- **Motion**: every duration and curve comes from `MOTION` in `src/theme/motion.ts` (ease-out cubic; press 120 ms, tab underline and label color 220 ms, content fade-in 180 ms). Stack screens slide in from the right (`ios_from_right`, `STACK_OPTIONS`); the splash / login / tabs swap and the navbar tabs fade. Reanimated animations follow the system "remove animations" setting (DECISIONS #109).
 
 ---
 
@@ -246,7 +314,5 @@ For agents producing screen specs, the Quadra identity has these traits:
 These will be added when relevant. Until then, agents must ask:
 
 - Dark mode tokens (the app currently designs light-first)
-- Animation timing curves
-- Skeleton/loading shapes
 - Empty-state illustrations
 - Pull-to-refresh styling

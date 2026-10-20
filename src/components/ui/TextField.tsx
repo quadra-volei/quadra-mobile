@@ -20,7 +20,7 @@ export type TextFieldProps = {
   testID?: string;
 };
 
-const TEXT_MUTED = '#7A7A9A'; // text-muted token — placeholder color
+const TEXT_MUTED = '#62628A'; // text-muted token — placeholder color
 
 /**
  * Generic labeled text field for RHF-controlled forms (eyebrow label, optional
@@ -50,7 +50,7 @@ export function TextField({
       <View className="flex-row items-center justify-between gap-2">
         <Text
           numberOfLines={1}
-          className="shrink font-body text-eyebrow text-text-primary uppercase"
+          className="shrink font-body-bold text-eyebrow text-text-primary uppercase"
         >
           {label}
         </Text>

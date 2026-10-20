@@ -1,6 +1,8 @@
-import { LinearGradient } from "expo-linear-gradient";
 import type { ReactNode } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import { ActivityIndicator, Text, View } from "react-native";
+
+import { PressableScale } from "@/components/ui/PressableScale";
+import { HARD_SHADOW, colors } from "@/theme/colors";
 
 export type ButtonVariant =
   | "grad"
@@ -20,80 +22,58 @@ export type ButtonProps = {
   testID?: string;
 };
 
-// Brand gradient stops (DESIGN_SYSTEM "Gradients"). Kept as token-equivalent
-// constants because expo-linear-gradient needs raw color arrays, not className.
-const GRADIENT_CTA = ["#1A1AFF", "#AADD00"] as const; // bg-gradient-cta (blue → lime)
-const GRADIENT_PRIMARY = ["#0A0A3C", "#1A1AFF"] as const; // bg-gradient-primary (navy → blue)
-const GRADIENT_DISABLED = ["#E8EEF8", "#E8EEF8"] as const; // bg-light-alt token — muted disabled fill
-const TEXT_DISABLED = "#7A7A9A"; // text-muted token — disabled label color
-
-// boxShadow tokens (DESIGN_SYSTEM "Gradients"). Applied via inline style — NOT a
-// toggled className — so enabling the button never mutates NativeWind styles
-// after the initial render (which makes css-interop remount/warn and crash).
-const SHADOW_CTA = "0 4px 16px rgba(170,221,0,0.30)"; // shadow-cta
-const SHADOW_PRIMARY = "0 4px 16px rgba(26,26,255,0.28)"; // shadow-primary
-
 const BASE = "h-12 rounded-btn flex-row items-center justify-center px-6";
 
-// Per-variant text classes (font weight/family + enabled color).
-const TEXT_CLASS: Record<ButtonVariant, string> = {
-  grad: "font-body text-body-bold text-text-on-dark",
-  primary: "font-body text-body-bold text-text-on-dark",
-  outline: "font-body text-body-bold text-primary",
-  outlineW: "font-body text-body-bold text-text-on-dark",
-  outlineLime: "font-body text-body-bold text-accent-light",
-  ghost: "font-body text-body-bold text-primary",
+// Fill + border per variant (DESIGN_SYSTEM "Buttons"): flat fills, never a
+// gradient. `grad` keeps its name from when it was the gradient CTA.
+const VARIANT_CLASS: Record<ButtonVariant, string> = {
+  grad: "border-2 border-surface-dark bg-accent",
+  primary: "border-2 border-surface-dark bg-primary",
+  outline: "border-2 border-surface-dark bg-white",
+  outlineW: "border-2 border-white bg-transparent",
+  outlineLime: "border-2 border-accent-light bg-transparent",
+  ghost: "bg-transparent",
 };
 
-function isGradient(variant: ButtonVariant): boolean {
-  return variant === "grad" || variant === "primary";
-}
+const TEXT_CLASS: Record<ButtonVariant, string> = {
+  grad: "font-body-bold text-body-bold text-surface-dark",
+  primary: "font-body-bold text-body-bold text-text-on-dark",
+  outline: "font-body-bold text-body-bold text-surface-dark",
+  outlineW: "font-body-bold text-body-bold text-text-on-dark",
+  outlineLime: "font-body-bold text-body-bold text-accent-light",
+  ghost: "font-body-semibold text-body-bold text-primary",
+};
 
-function Content({
-  variant,
-  children,
-  loading,
-  leftIcon,
-  isDisabled,
-}: Pick<ButtonProps, "variant" | "children" | "loading" | "leftIcon"> & {
-  isDisabled: boolean;
-}) {
-  if (loading) {
-    const indicatorColor =
-      variant === "outline" || variant === "ghost"
-        ? "#1A1AFF"
-        : variant === "outlineLime"
-          ? "#C6F135" // accent-light
-          : "#FFFFFF";
-    return <ActivityIndicator color={indicatorColor} />;
-  }
-  return (
-    <>
-      {leftIcon ? <View className="mr-2">{leftIcon}</View> : null}
-      {/* Disabled gradient buttons sit on a light fill, so override the white
-          label with the muted token (inline style, not a toggled className). */}
-      <Text
-        className={TEXT_CLASS[variant]}
-        style={isDisabled && isGradient(variant) ? { color: TEXT_DISABLED } : undefined}
-      >
-        {children}
-      </Text>
-    </>
-  );
-}
+const INDICATOR_COLOR: Record<ButtonVariant, string> = {
+  grad: colors.surfaceDark,
+  primary: colors.textOnDark,
+  outline: colors.surfaceDark,
+  outlineW: colors.textOnDark,
+  outlineLime: colors.accentLight,
+  ghost: colors.primary,
+};
+
+// The hard shadow is navy, so only the filled variants (light surfaces) carry
+// it: it would not show on navy, where outlineW / outlineLime live.
+const HAS_SHADOW: Record<ButtonVariant, boolean> = {
+  grad: true,
+  primary: true,
+  outline: true,
+  outlineW: false,
+  outlineLime: false,
+  ghost: false,
+};
 
 /**
- * Shared CTA button covering all DESIGN_SYSTEM variants.
- * - `grad` / `primary` render an `expo-linear-gradient` fill behind the content.
- * - `outline` / `outlineW` / `ghost` are transparent with border/text treatments.
- * Disabled (or loading) applies a muted fill for gradient variants and 50%
- * opacity for the rest, per `login-acesse-sua-conta.png`.
+ * Shared button covering all DESIGN_SYSTEM variants: flat fill, 2px border and,
+ * on the filled variants, the hard offset shadow. `ghost` is a bare text link.
+ * Disabled is a grey fill with muted label and no shadow on the filled variants,
+ * 50% opacity on the others and while loading.
  *
- * The gradient variant keeps a fully stable render tree across enabled/disabled
- * (the gradient stays mounted and only its `colors` change; shadow and disabled
- * text are inline styles). Mutating NativeWind classNames after the initial
- * render makes react-native-css-interop remount the node and emit an upgrade
- * warning that crashes while reading navigation context.
+ * The shadow and the disabled state are inline styles, not toggled classNames:
+ * mutating NativeWind classNames after the initial render makes
+ * react-native-css-interop remount the node and emit an upgrade warning that
+ * crashes while reading navigation context.
  */
 export function Button({
   variant,
@@ -105,80 +85,41 @@ export function Button({
   testID,
 }: ButtonProps) {
   const isDisabled = Boolean(disabled || loading);
-
-  if (isGradient(variant)) {
-    const enabledColors = variant === "grad" ? GRADIENT_CTA : GRADIENT_PRIMARY;
-    const colors = isDisabled ? GRADIENT_DISABLED : enabledColors;
-    const shadow = variant === "grad" ? SHADOW_CTA : SHADOW_PRIMARY;
-    return (
-      <Pressable
-        onPress={onPress}
-        disabled={isDisabled}
-        testID={testID}
-        accessibilityRole="button"
-        accessibilityState={{ disabled: isDisabled, busy: loading }}
-        className="rounded-btn overflow-hidden"
-        style={isDisabled ? undefined : { boxShadow: shadow }}
-      >
-        {/* Layout lives on this View (NativeWind-aware). The gradient is an
-            absolute fill behind the content and stays mounted in every state —
-            `className` is never placed on LinearGradient. */}
-        <View className={BASE}>
-          <LinearGradient
-            colors={colors}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }}
-          />
-          <Content
-            variant={variant}
-            loading={loading}
-            leftIcon={leftIcon}
-            isDisabled={isDisabled}
-          >
-            {children}
-          </Content>
-        </View>
-      </Pressable>
-    );
-  }
-
-  // Non-gradient variants only (gradient variants returned above).
-  const outlineVariant = variant as
-    | "outline"
-    | "outlineW"
-    | "outlineLime"
-    | "ghost";
-  const variantClass: Record<
-    "outline" | "outlineW" | "outlineLime" | "ghost",
-    string
-  > = {
-    outline: "border-2 border-primary bg-transparent",
-    outlineW: "border-2 border-white bg-transparent",
-    outlineLime: "border-2 border-accent-light bg-transparent",
-    ghost: "bg-transparent",
-  };
+  // A disabled filled button goes grey and keeps its border; the transparent
+  // variants (and a loading button) only fade, since grey would vanish on navy.
+  const greyed = Boolean(disabled) && !loading && HAS_SHADOW[variant];
 
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       disabled={isDisabled}
       testID={testID}
       accessibilityRole="button"
       accessibilityState={{ disabled: isDisabled, busy: loading }}
-      className={`${BASE} ${variantClass[outlineVariant]}`}
-      // Opacity via inline style (not a toggled className) to keep NativeWind
-      // styles stable across the disabled flip.
-      style={isDisabled ? { opacity: 0.5 } : undefined}
+      className={`${BASE} ${VARIANT_CLASS[variant]}`}
+      style={
+        greyed
+          ? { backgroundColor: colors.line }
+          : isDisabled
+            ? { opacity: 0.5 }
+            : HAS_SHADOW[variant]
+              ? HARD_SHADOW
+              : undefined
+      }
     >
-      <Content
-        variant={variant}
-        loading={loading}
-        leftIcon={leftIcon}
-        isDisabled={isDisabled}
-      >
-        {children}
-      </Content>
-    </Pressable>
+      {loading ? (
+        <ActivityIndicator color={INDICATOR_COLOR[variant]} />
+      ) : (
+        <>
+          {leftIcon ? <View className="mr-2">{leftIcon}</View> : null}
+          <Text
+            className={TEXT_CLASS[variant]}
+            style={greyed ? { color: colors.textMuted } : undefined}
+          >
+            {children}
+          </Text>
+        </>
+      )}
+    </PressableScale>
   );
 }

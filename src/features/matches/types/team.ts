@@ -1,5 +1,4 @@
-// Team assignment types for S13 In-Game Teams. These are final payload shapes
-// consumed by the draw/assign hooks. Only the transport is mocked.
+// Team types for S13 In-Game Teams, filled by the draw hook from the backend.
 
 import type { PresencePlayer } from '@/features/matches/types/matchDetail';
 

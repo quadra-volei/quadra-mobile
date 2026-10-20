@@ -7,9 +7,11 @@
  *  - hero header: back chevron (accessibilityLabel "Voltar" -> router.back), share
  *    icon, format mono pill, level lime pill, match name (font-display/uppercase),
  *    "venue · distance" line.
- *  - white info card: QUANDO / MODO / VAGAS / NÍVEL grid + "Organizado por {name}"
- *    row with the organizer avatar and the position pill (primary token).
- *  - PresenceGrid: avatars + names + dashed "vaga" slots + "CONFIRMADOS · N/M".
+ *  - essentials rows (when + countdown, where + "Como chegar", price) and the
+ *    "Organizado por {name}" row with the organizer avatar and the position pill
+ *    (primary token).
+ *  - two tabs: "Detalhes" (default) and "Confirmados · N/M", which holds the
+ *    PresenceGrid (avatars + names + dashed "vaga" slots) and "Convidar".
  *  - NO per-player OVR rendered (participant + organizer).
  *  - countdown: BOTH branches via the pure formatCountdown (window open ->
  *    "Confirmações fecham em …"; window closed -> "Começa em …").
@@ -22,12 +24,11 @@
  *    "Confirmar presença" (the prototype's full-width gradient CTA); the
  *    remaining affirmative CTAs ("Iniciar partida" / "Entrar na partida") use
  *    variant="primary".
- *  - organizer view: "VOCÊ ORGANIZA" badge, "Convidar", team-config block; footer
- *    CTA replaced by "Montar os times".
- *  - team-count chips single-select (default 2); stepper min; draw-mode radio rows
- *    single-select (default Manual) with accessibilityRole="radio" + checked state.
- *  - "Montar os times" -> /matches/[id]/teams carrying { id, teamCount, perTeam,
- *    drawMode }.
+ *  - organizer view: "VOCÊ ORGANIZA" badge, "Convidar"; footer CTA replaced by
+ *    "Montar os times" -> /matches/[id]/teams. The team configuration and the
+ *    draw live on that screen, not here (DECISIONS #53).
+ *  - before the confirmation window opens, nobody is offered a confirm button
+ *    (DECISIONS #54).
  *  - "Convidar" + hero share icon call Share.share (no navigation).
  *  - confirmed avatars are display-only (no navigation on tap).
  *  - no tab bar; no chat UI.
@@ -77,21 +78,24 @@ jest.mock('lucide-react-native', () => {
   const stub = (name: string) => (props: any) =>
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
   return {
+    Banknote: stub('banknote'),
     Calendar: stub('calendar'),
     Check: stub('check'),
     ChevronLeft: stub('chevron-left'),
-    Hand: stub('hand'),
     MapPin: stub('map-pin'),
+    Megaphone: stub('megaphone'),
+    Navigation: stub('navigation'),
+    Pencil: stub('pencil'),
     Play: stub('play'),
     Share2: stub('share2'),
     UserPlus: stub('user-plus'),
     Users: stub('users'),
     Volleyball: stub('volleyball'),
-    WandSparkles: stub('wand-sparkles'),
     Zap: stub('zap'),
     Minus: stub('minus'),
     Plus: stub('plus'),
     X: stub('x'),
+    XCircle: stub('x-circle'),
   };
 });
 
@@ -153,7 +157,8 @@ function participantFixture(over: Partial<MatchDetail> = {}): MatchDetail {
     format: '6X6',
     level: 'INTERMEDIARIO',
     venue: 'Arena Quadra',
-    distanceKm: 1.2,
+    lat: -23.5614,
+    lon: -46.6559,
     tint: '#1A1AFF',
     priceLabel: 'R$ 25',
     pricePlan: 'RECORRENTE',
@@ -210,6 +215,11 @@ const mockDetail: QueryState = {
   refetch: jest.fn(),
 };
 
+// Device ~1,2 km north of the fixture match (0.0108° of latitude).
+jest.mock('@/features/matches/lib/useDeviceCoords', () => ({
+  useDeviceCoords: () => ({ latitude: -23.5506, longitude: -46.6559 }),
+}));
+
 jest.mock('@/features/matches/api/getMatchDetail', () => ({
   useMatchDetail: () => ({
     data: mockDetail.data,
@@ -239,6 +249,22 @@ jest.mock('@/features/matches/api/presence', () => ({
   }),
 }));
 
+const mockShareMatch = { mutate: jest.fn(), isPending: false };
+jest.mock('@/features/network/api/postsApi', () => ({
+  useShareMatch: () => ({
+    mutate: mockShareMatch.mutate,
+    isPending: mockShareMatch.isPending,
+  }),
+}));
+
+const mockCancelMatch = { mutate: jest.fn(), isPending: false };
+jest.mock('@/features/matches/api/editMatch', () => ({
+  useCancelMatch: () => ({
+    mutate: mockCancelMatch.mutate,
+    isPending: mockCancelMatch.isPending,
+  }),
+}));
+
 jest.mock('@/features/matches/api/addGuest', () => ({
   useAddGuest: () => ({
     mutate: mockAddGuest.mutate,
@@ -253,7 +279,7 @@ import {
   render,
   screen,
 } from '@testing-library/react-native';
-import { Share } from 'react-native';
+import { Linking, Share } from 'react-native';
 
 import { useAuthStore } from '@/stores/auth';
 
@@ -289,6 +315,13 @@ afterEach(() => {
 async function renderScreen() {
   await act(async () => {
     render(<MatchDetailScreen />);
+  });
+}
+
+/** Who is going sits on the second tab. */
+async function openPlayersTab() {
+  await act(async () => {
+    fireEvent.press(screen.getByTestId('tab-players'));
   });
 }
 
@@ -348,9 +381,9 @@ describe('S12 — Match Detail screen', () => {
     // share icon present
     expect(screen.getByLabelText('Compartilhar partida')).toBeTruthy();
 
-    // format mono pill + level lime pill (format also appears in MODO cell)
-    expect(screen.getAllByText('6X6').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Intermediário').length).toBeGreaterThan(0);
+    // format mono pill + level lime pill: said once, on the cover
+    expect(screen.getAllByText('6X6')).toHaveLength(1);
+    expect(screen.getAllByText('Intermediário')).toHaveLength(1);
 
     // match name in font-display + uppercase
     const name = screen
@@ -366,20 +399,18 @@ describe('S12 — Match Detail screen', () => {
   // -------------------------------------------------------------- info card
   /**
    * Covers: S12 — Match Detail
-   * Criterion: "The white info card shows the QUANDO / MODO / VAGAS / NÍVEL grid
-   *  and the 'Organizado por {name}' row with the organizer's avatar and (when
-   *  present) a position pill — colored primary on the light card."
+   * Criterion: "The essentials block lists when, where, the price and the
+   *  'Organizado por {name}' row with the organizer's avatar and (when present)
+   *  a position pill; nothing the cover or the CONFIRMADOS header already says
+   *  (mode, level, slots) is repeated."
    */
-  it('renders the 2x2 metadata grid and the organizer row with a primary position pill', async () => {
+  it('renders the essentials rows and the organizer row with a primary position pill', async () => {
     await renderScreen();
 
-    // grid labels (uppercased via the `uppercase` class, not in the copy)
-    expect(screen.getByText('Quando')).toBeTruthy();
-    expect(screen.getByText('Modo')).toBeTruthy();
-    expect(screen.getByText('Vagas')).toBeTruthy();
-    expect(screen.getByText('Nível')).toBeTruthy();
-    // VAGAS value = confirmedCount/capacity = 3/12
-    expect(screen.getAllByText('3/12').length).toBeGreaterThan(0);
+    // the old 2×2 grid repeated the cover pills and the confirmed count
+    expect(screen.queryByText('Modo')).toBeNull();
+    expect(screen.queryByText('Nível')).toBeNull();
+    expect(screen.queryByText('Vagas')).toBeNull();
 
     // organizer row
     expect(screen.getByText('Organizado por')).toBeTruthy();
@@ -396,41 +427,50 @@ describe('S12 — Match Detail screen', () => {
    * Covers: S12 — Match Detail
    * Criterion: "The confirmed-players grid (PresenceGrid) shows one Avatar + name
    *  per confirmed player and dashed 'vaga' placeholders for the remaining slots
-   *  (capped at 3); the section header reads 'CONFIRMADOS' + the N/M count."
+   *  (one per open slot), on the 'Confirmados · N/M' tab; the screen opens on
+   *  'Detalhes', without the list."
    */
-  it('renders the CONFIRMADOS section header and the presence grid with vaga slots', async () => {
+  it('keeps the players on the Confirmados tab, with the count in the tab label', async () => {
     await renderScreen();
 
-    expect(screen.getByText('Confirmados')).toBeTruthy();
+    // opens on Detalhes: the count is one glance away, the list one tap away
+    expect(screen.getByTestId('tab-details').props.accessibilityState?.selected).toBe(true);
     expect(screen.getByTestId('confirmed-count').props.children).toEqual([
       3,
       '/',
       12,
     ]);
+    expect(screen.queryByTestId('presence-grid')).toBeNull();
+    expect(screen.queryByText('Renan')).toBeNull();
+
+    await openPlayersTab();
+    expect(screen.getByTestId('tab-players').props.accessibilityState?.selected).toBe(true);
+    // the details leave the screen
+    expect(screen.queryByText('Organizado por')).toBeNull();
     // confirmed players
     expect(screen.getByText('Renan')).toBeTruthy();
     expect(screen.getByText('Bia')).toBeTruthy();
     expect(screen.getByText('Caio')).toBeTruthy();
-    // 12 - 3 = 9 open slots, but only MAX_VAGA_SLOTS (3) placeholders render
-    expect(screen.getAllByTestId('presence-grid-empty')).toHaveLength(3);
+    // 12 - 3 = 9 open slots, one placeholder each: avatars + vagas = capacity
+    expect(screen.getAllByTestId('presence-grid-empty')).toHaveLength(9);
+    expect(screen.getByText('9 vagas abertas')).toBeTruthy();
   });
 
   /**
    * Covers: S12 — Match Detail
-   * Criterion: "each confirmed player's avatar carries the tier-colored level
-   *  badge, and a legend under the grid explains the tiers."
+   * Criterion: "a confirmed player's avatar carries the level badge when the
+   *  level is known; there is no legend of level brackets."
    */
-  it('renders the level badges and the tier legend under the grid', async () => {
+  it('renders the level badges and no tier legend', async () => {
     await renderScreen();
+    await openPlayersTab();
 
     // one badge per confirmed player in the fixture (Renan + Caio are both 15)
     expect(screen.getAllByTestId('avatar-level-badge').length).toBeGreaterThanOrEqual(3);
     expect(screen.getAllByLabelText('Nível 15')).toHaveLength(2);
     expect(screen.getByLabelText('Nível 9')).toBeTruthy();
-    // the legend explains what the bolinha means
-    expect(screen.getByTestId('level-legend')).toBeTruthy();
-    expect(screen.getByText('Nv 15–30')).toBeTruthy();
-    expect(screen.getByText('Nv 75+')).toBeTruthy();
+    expect(screen.queryByTestId('level-legend')).toBeNull();
+    expect(screen.queryByText(/^Nv \d/)).toBeNull();
   });
 
   /**
@@ -449,6 +489,7 @@ describe('S12 — Match Detail screen', () => {
    */
   it('does not navigate when a confirmed-player avatar is tapped', async () => {
     await renderScreen();
+    await openPlayersTab();
 
     fireEvent.press(screen.getByLabelText('Avatar de Renan'));
     expect(mockPush).not.toHaveBeenCalled();
@@ -565,7 +606,7 @@ describe('S12 — Match Detail screen', () => {
    *  prototype's post-confirm state) with the decline still available below;
    *  tapping decline calls useDeclinePresence.
    */
-  it('flips the CTA to Iniciar partida for a Regular CONFIRMADO participant', async () => {
+  it('shows a confirmed participant that the game has not started yet', async () => {
     mockDetail.data = participantFixture({
       myParticipationType: 'REGULAR',
       myStatus: 'CONFIRMADO',
@@ -574,7 +615,8 @@ describe('S12 — Match Detail screen', () => {
 
     const start = screen.getByTestId('start-match');
     expect(variantOf(start)).toBe('primary');
-    expect(screen.getByText('Iniciar partida')).toBeTruthy();
+    expect(start.props.accessibilityState?.disabled).toBe(true);
+    expect(screen.getByText('Aguardando o início da partida')).toBeTruthy();
     expect(screen.queryByTestId('confirm-presence')).toBeNull();
 
     await act(async () => {
@@ -588,19 +630,24 @@ describe('S12 — Match Detail screen', () => {
    * Criterion: "Iniciar partida" continues the SCOPE flow into S13 (teams)
    *  rather than jumping straight to the scoreboard.
    */
-  it('navigates to S13 teams from Iniciar partida', async () => {
+  it.each([
+    ['LIVE', 'Ver placar ao vivo', '/matches/[id]/scoreboard'],
+    ['VOTING', 'Votar no MVP', '/matches/[id]/mvp-vote'],
+    ['SUMMARY', 'Ver resumo', '/matches/[id]/summary'],
+  ] as const)('a game at %s takes over the CTA (%s)', async (game, label, pathname) => {
     mockDetail.data = participantFixture({
       myParticipationType: 'REGULAR',
       myStatus: 'CONFIRMADO',
+      game,
     });
     await renderScreen();
 
+    expect(screen.getByText(label)).toBeTruthy();
+    expect(screen.queryByTestId('start-match')).toBeNull();
     await act(async () => {
-      fireEvent.press(screen.getByTestId('start-match'));
+      fireEvent.press(screen.getByTestId('game-cta'));
     });
-    expect(mockPush).toHaveBeenCalledWith(
-      expect.objectContaining({ pathname: '/matches/[id]/teams' }),
-    );
+    expect(mockPush).toHaveBeenCalledWith({ pathname, params: { id: 'near-1' } });
   });
 
   /**
@@ -708,18 +755,17 @@ describe('S12 — Match Detail screen', () => {
   // ----------------------------------------------------------------- valores
   /**
    * Covers: S12 — Match Detail
-   * Criterion: "the VALORES section shows the avulso price; for a RECORRENTE
-   *  match it also shows the monthly price, tagged 'Recorrente'."
+   * Criterion: "the price row shows the avulso price; for a RECORRENTE match it
+   *  also shows the regulars' price, each named in the same line."
    */
-  it('renders both price tiles and the Recorrente tag for a recurring match', async () => {
+  it('renders both prices in one line for a recurring match', async () => {
     await renderScreen();
 
-    expect(screen.getByText('Valores')).toBeTruthy();
-    expect(screen.getByText('Recorrente')).toBeTruthy();
     expect(screen.getByTestId('price-single')).toBeTruthy();
     expect(screen.getByText('R$ 25')).toBeTruthy();
     expect(screen.getByTestId('price-monthly')).toBeTruthy();
     expect(screen.getByText('R$ 80')).toBeTruthy();
+    expect(screen.getByText('R$ 25 avulso · R$ 80 recorrente')).toBeTruthy();
     expect(
       screen.getByText('Valor combinado direto com o organizador da partida.'),
     ).toBeTruthy();
@@ -727,19 +773,18 @@ describe('S12 — Match Detail screen', () => {
 
   /**
    * Covers: S12 — Match Detail
-   * Criterion: an AVULSO match shows only the single price tile + "Avulso" tag.
+   * Criterion: an AVULSO match shows only the single price.
    */
-  it('renders only the avulso tile for a single-price match', async () => {
+  it('renders only the avulso price for a single-price match', async () => {
     mockDetail.data = participantFixture({
       pricePlan: 'AVULSO',
       priceMonthlyLabel: undefined,
     });
     await renderScreen();
 
-    expect(screen.getByText('Avulso')).toBeTruthy();
-    expect(screen.getByTestId('price-single')).toBeTruthy();
+    expect(screen.getByText('R$ 25 avulso')).toBeTruthy();
     expect(screen.queryByTestId('price-monthly')).toBeNull();
-    expect(screen.queryByText('Recorrente')).toBeNull();
+    expect(screen.queryByText(/recorrente/)).toBeNull();
   });
 
   /**
@@ -812,22 +857,22 @@ describe('S12 — Match Detail screen', () => {
 
   /**
    * Covers: S12 — Match Detail
-   * Criterion: "Organizer view: the 'VOCÊ ORGANIZA' badge, the 'Convidar' button,
-   *  and the team-config block are shown; the participant footer CTA is replaced by
-   *  'Montar os times' (variant='grad')."
+   * Criterion: "Organizer view: the 'VOCÊ ORGANIZA' badge and the 'Convidar'
+   *  button are shown; the participant footer CTA is replaced by 'Montar os
+   *  times' (variant='grad'). No team configuration on this screen."
    */
-  it('renders the organizer view (badge, Convidar, team-config) with the grad footer CTA', async () => {
+  it('renders the organizer view (badge, Convidar) with the grad footer CTA and no team config', async () => {
     await renderOrganizer();
 
     expect(screen.getByText('Você organiza')).toBeTruthy();
+    await openPlayersTab();
     expect(screen.getByTestId('invite')).toBeTruthy();
-    expect(screen.getByText('Configuração dos times')).toBeTruthy();
-    expect(screen.getByText('Como sortear os times')).toBeTruthy();
-
-    // team-count chips, stepper, draw-mode rows present
-    expect(screen.getByTestId('team-count-2')).toBeTruthy();
-    expect(screen.getByTestId('per-team-stepper')).toBeTruthy();
-    expect(screen.getByTestId('draw-mode-manual')).toBeTruthy();
+    // teams are configured and drawn on the next screen
+    expect(screen.queryByText('Configuração dos times')).toBeNull();
+    expect(screen.queryByText('Como sortear os times')).toBeNull();
+    expect(screen.queryByTestId('team-count-2')).toBeNull();
+    expect(screen.queryByTestId('per-team-stepper')).toBeNull();
+    expect(screen.queryByTestId('draw-mode-manual')).toBeNull();
 
     // footer CTA is the organizer forward CTA, variant="grad"
     const build = screen.getByTestId('build-teams');
@@ -846,9 +891,25 @@ describe('S12 — Match Detail screen', () => {
    */
   it('renders only the grad forward CTA in the organizer footer', async () => {
     await renderOrganizer();
+    await openPlayersTab();
     // the only grad button on screen is build-teams; participant primaries absent
     expect(variantOf(screen.getByTestId('build-teams'))).toBe('grad');
     expect(screen.queryByTestId('no-action')).toBeNull();
+  });
+
+  /**
+   * "Montar os times" works off the confirmed list, so it only shows on the
+   * Confirmados tab; the organizer's "Vou jogar" toggle shows on every tab.
+   */
+  it('shows Montar os times only on the Confirmados tab', async () => {
+    await renderOrganizer({ myParticipationType: 'REGULAR', myStatus: 'PENDENTE' });
+
+    expect(screen.queryByTestId('build-teams')).toBeNull();
+    expect(screen.getByTestId('organizer-presence')).toBeTruthy();
+
+    await openPlayersTab();
+    expect(screen.getByTestId('build-teams')).toBeTruthy();
+    expect(screen.getByTestId('organizer-presence')).toBeTruthy();
   });
 
   // ------------------------------------------- organizer presence (owner rule)
@@ -859,6 +920,7 @@ describe('S12 — Match Detail screen', () => {
    */
   it('offers the organizer a Vou jogar toggle while keeping Montar os times', async () => {
     await renderOrganizer({ myParticipationType: 'REGULAR', myStatus: 'PENDENTE' });
+    await openPlayersTab();
 
     const toggle = screen.getByTestId('organizer-presence');
     expect(variantOf(toggle)).toBe('ghost');
@@ -894,104 +956,12 @@ describe('S12 — Match Detail screen', () => {
 
   /**
    * Covers: S12 — Match Detail
-   * Criterion: "the 'N confirmados no total' caption" shows in the team-config block.
-   */
-  it('renders the "N confirmados no total" caption', async () => {
-    await renderOrganizer();
-    // organizer fixture has 3 confirmed players
-    expect(screen.getByText('3 confirmados no total')).toBeTruthy();
-  });
-
-  /**
-   * Covers: S12 — Match Detail
    * Criterion: "No per-player OVR number is rendered anywhere ... in the organizer
    *  view."
    */
   it('renders no OVR label in the organizer view', async () => {
     await renderOrganizer();
     expect(screen.queryByText(/OVR/i)).toBeNull();
-  });
-
-  // -------------------------------------------- team-count chips (single-select)
-  /**
-   * Covers: S12 — Match Detail
-   * Criterion: "Team-count chips are single-select (default 2)."
-   */
-  it('defaults the team-count to 2 and single-selects among 2/3/4', async () => {
-    await renderOrganizer();
-
-    expect(
-      screen.getByTestId('team-count-2').props.accessibilityState?.selected,
-    ).toBe(true);
-    expect(
-      screen.getByTestId('team-count-3').props.accessibilityState?.selected,
-    ).toBe(false);
-    expect(
-      screen.getByTestId('team-count-4').props.accessibilityState?.selected,
-    ).toBe(false);
-
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('team-count-3'));
-    });
-    expect(
-      screen.getByTestId('team-count-3').props.accessibilityState?.selected,
-    ).toBe(true);
-    expect(
-      screen.getByTestId('team-count-2').props.accessibilityState?.selected,
-    ).toBe(false);
-  });
-
-  // ------------------------------------------------ players-per-team stepper min
-  /**
-   * Covers: S12 — Match Detail
-   * Criterion: "the players-per-team stepper enforces its min."
-   */
-  it('enforces the players-per-team stepper minimum of 1', async () => {
-    await renderOrganizer({
-      teamConfig: { teamCount: 2, perTeam: 1, drawMode: 'MANUAL' },
-    });
-
-    // already at min=1 -> decrement is disabled
-    expect(
-      screen.getByTestId('per-team-stepper-decrement').props.accessibilityState
-        ?.disabled,
-    ).toBe(true);
-    // value stays at 1 after attempting to decrement
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('per-team-stepper-decrement'));
-    });
-    expect(screen.getByTestId('per-team-stepper').props.children).toEqual([
-      '',
-      1,
-    ]);
-  });
-
-  // ------------------------------------------------ draw-mode rows (single-select)
-  /**
-   * Covers: S12 — Match Detail
-   * Criterion: "the draw-mode rows are single-select (default Manual) and expose
-   *  accessibilityRole='radio' + accessibilityState={{ checked }}."
-   */
-  it('defaults the draw mode to Manual and single-selects the radio rows', async () => {
-    await renderOrganizer();
-
-    const manual = screen.getByTestId('draw-mode-manual');
-    const auto = screen.getByTestId('draw-mode-auto');
-
-    expect(manual.props.accessibilityRole).toBe('radio');
-    expect(auto.props.accessibilityRole).toBe('radio');
-    expect(manual.props.accessibilityState?.checked).toBe(true);
-    expect(auto.props.accessibilityState?.checked).toBe(false);
-
-    await act(async () => {
-      fireEvent.press(auto);
-    });
-    expect(
-      screen.getByTestId('draw-mode-auto').props.accessibilityState?.checked,
-    ).toBe(true);
-    expect(
-      screen.getByTestId('draw-mode-manual').props.accessibilityState?.checked,
-    ).toBe(false);
   });
 
   // ----------------------------------------------------------- Convidar -> Share
@@ -1002,6 +972,7 @@ describe('S12 — Match Detail screen', () => {
    */
   it('invokes Share.share from the organizer Convidar button (no navigation)', async () => {
     await renderOrganizer();
+    await openPlayersTab();
 
     await act(async () => {
       fireEvent.press(screen.getByTestId('invite'));
@@ -1015,22 +986,64 @@ describe('S12 — Match Detail screen', () => {
     expect(mockPush).not.toHaveBeenCalled();
   });
 
-  // ------------------------------------------------------- S13 navigation params
+  // ------------------------------------------------- Compartilhar na Rede
+  /**
+   * The match only reaches the Rede feed when its organizer says so (mobile
+   * DECISIONS: nothing is posted automatically).
+   */
+  it('shares the match to the Rede only when the organizer taps Compartilhar na Rede', async () => {
+    mockShareMatch.mutate.mockClear();
+    await renderOrganizer();
+    expect(mockShareMatch.mutate).not.toHaveBeenCalled();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('share-to-feed'));
+    });
+
+    expect(mockShareMatch.mutate).toHaveBeenCalledTimes(1);
+    expect(typeof mockShareMatch.mutate.mock.calls[0][0]).toBe('string');
+  });
+
+  it('offers Editar and Cancelar while the match is editable', async () => {
+    await renderOrganizer({ editable: true });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('edit-match'));
+    });
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/matches/[id]/edit',
+      params: { id: 'mine-1' },
+    });
+    expect(screen.getByTestId('cancel-match')).toBeTruthy();
+  });
+
+  it('hides Editar and Cancelar once the match is no longer editable', async () => {
+    await renderOrganizer({ editable: false });
+    expect(screen.queryByTestId('edit-match')).toBeNull();
+    expect(screen.queryByTestId('cancel-match')).toBeNull();
+  });
+
+  it('shows a cancelled match as cancelled', async () => {
+    await renderOrganizer({ cancelled: true });
+    expect(screen.getByTestId('match-cancelled')).toBeTruthy();
+  });
+
+  it('does not offer Compartilhar na Rede to a participant', async () => {
+    await render(<MatchDetailScreen />);
+
+    expect(screen.queryByTestId('share-to-feed')).toBeNull();
+    await openPlayersTab();
+    expect(screen.queryByTestId('share-to-feed')).toBeNull();
+  });
+
+  // ------------------------------------------------------------ S13 navigation
   /**
    * Covers: S12 — Match Detail
-   * Criterion: "'Montar os times' navigates to S13 (/matches/[id]/teams) carrying
-   *  { id, teamCount, perTeam, drawMode }."
+   * Criterion: "'Montar os times' navigates to S13 (/matches/[id]/teams), where
+   *  the teams are configured and drawn."
    */
-  it('navigates to /matches/[id]/teams with { id, teamCount, perTeam, drawMode }', async () => {
+  it('navigates to /matches/[id]/teams from Montar os times', async () => {
     await renderOrganizer();
-
-    // change config so the params reflect the live selection
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('team-count-4'));
-    });
-    await act(async () => {
-      fireEvent.press(screen.getByTestId('draw-mode-auto'));
-    });
+    await openPlayersTab();
 
     await act(async () => {
       fireEvent.press(screen.getByTestId('build-teams'));
@@ -1039,12 +1052,119 @@ describe('S12 — Match Detail screen', () => {
     expect(mockPush).toHaveBeenCalledTimes(1);
     expect(mockPush).toHaveBeenCalledWith({
       pathname: '/matches/[id]/teams',
-      params: {
-        id: 'mine-1',
-        teamCount: '4',
-        perTeam: '4',
-        drawMode: 'AUTO',
-      },
+      params: { id: 'mine-1' },
     });
   });
 });
+
+describe('S12 — joining against the real backend', () => {
+  const visitor = { myParticipationType: null, myStatus: null } as const;
+
+  it('offers joining while the window is still open when the backend allows it', async () => {
+    mockDetail.data = participantFixture({
+      ...visitor,
+      confirmationWindowClosed: false,
+      canJoin: true,
+    });
+    await renderScreen();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('join-match'));
+    });
+
+    expect(mockJoin.mutate).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks for the invite code of a private match and joins with it', async () => {
+    mockDetail.data = participantFixture({
+      ...visitor,
+      canJoin: false,
+      requiresInviteCode: true,
+    });
+    await renderScreen();
+
+    expect(screen.queryByTestId('join-match')).toBeNull();
+    await act(async () => {
+      fireEvent.changeText(screen.getByTestId('invite-code'), 'ab12cd34');
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('join-with-code'));
+    });
+
+    expect(mockJoin.mutate).toHaveBeenCalledWith({ inviteCode: 'ab12cd34' });
+  });
+
+  it('shows the place in the waiting list instead of a join button', async () => {
+    mockDetail.data = participantFixture({
+      ...visitor,
+      canJoin: false,
+      myWaitingListPosition: 2,
+    });
+    await renderScreen();
+
+    expect(screen.getByText('Na fila de espera · 2º')).toBeTruthy();
+    expect(screen.queryByTestId('join-match')).toBeNull();
+  });
+
+  /**
+   * Before the window opens the backend refuses every confirmation: the screen
+   * says when it opens and offers no button that would fail.
+   */
+  it('tells an invited player when confirmations open instead of offering to confirm', async () => {
+    mockDetail.data = participantFixture({
+      myParticipationType: 'REGULAR',
+      myStatus: 'PENDENTE',
+      confirmationOpensAt: '2026-06-23T16:00:00.000Z',
+    });
+    await renderScreen();
+
+    expect(screen.queryByTestId('confirm-presence')).toBeNull();
+    const notOpen = screen.getByTestId('not-open-yet');
+    expect(notOpen.props.accessibilityState?.disabled).toBe(true);
+    expect(screen.getByText(/^Confirmações abrem \d\d\/\d\d às \d\dh\d\d$/)).toBeTruthy();
+  });
+
+  it('disables the organizer Vou jogar toggle until confirmations open', async () => {
+    mockDetail.data = organizerFixture({
+      myParticipationType: 'REGULAR',
+      myStatus: 'PENDENTE',
+      confirmationWindowClosed: false,
+      confirmationOpensAt: '2026-06-23T16:00:00.000Z',
+    });
+    useAuthStore.setState({ userId: ORGANIZER_USER_ID });
+    await renderScreen();
+    await openPlayersTab();
+
+    const toggle = screen.getByTestId('organizer-presence');
+    expect(toggle.props.accessibilityState?.disabled).toBe(true);
+    expect(screen.queryByText('Vou jogar')).toBeNull();
+    // organizing does not depend on the window
+    expect(screen.getByTestId('build-teams')).toBeTruthy();
+  });
+
+  it('formatCountdown counts down to the opening while confirmations are not open', () => {
+    const match = participantFixture({
+      confirmationOpensAt: '2026-06-23T16:00:00.000Z',
+    });
+    expect(formatCountdown(match, new Date('2026-06-23T14:15:00.000Z'))).toBe(
+      'Confirmações abrem em 1h 45min',
+    );
+  });
+
+  /**
+   * "Como chegar" opens the route to the match's coordinates in the Maps app.
+   * Kept last: spying on Linking must not leak into the tests above.
+   */
+  it('opens the route to the match from "Como chegar"', async () => {
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    await renderScreen();
+
+    fireEvent.press(screen.getByTestId('match-directions'));
+
+    expect(openURL).toHaveBeenCalledWith(
+      'https://www.google.com/maps/dir/?api=1&destination=-23.5614,-46.6559',
+    );
+    openURL.mockRestore();
+  });
+});
+

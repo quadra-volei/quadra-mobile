@@ -1,9 +1,11 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { MapPin, Users } from 'lucide-react-native';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { CourtImage } from '@/components/ui/CourtImage';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { Tag } from '@/components/ui/Tag';
+import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
 import type { NearbyMatch } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
 
@@ -27,14 +29,14 @@ function formatDistance(km: number): string {
  */
 export function MatchCard({ match, onPress, testID }: MatchCardProps) {
   return (
-    <Pressable
+    <PressableScale
       onPress={() => onPress(match.id)}
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={`${match.name}, ${formatDistance(match.distanceKm)}`}
       className="rounded-card overflow-hidden"
     >
-      <CourtImage tint={match.tint} height={172} radius={16}>
+      <CourtImage tint={match.tint} imageUri={match.coverUrl} height={172} radius={16}>
         {/* dark bottom scrim so the overlaid copy stays legible */}
         <LinearGradient
           colors={['rgba(10,10,60,0.05)', 'rgba(10,10,60,0.82)']}
@@ -49,8 +51,8 @@ export function MatchCard({ match, onPress, testID }: MatchCardProps) {
           <Tag bg="rgba(255,255,255,0.92)" color={colors.surfaceDark}>
             {match.format}
           </Tag>
-          <Tag bg={colors.accent} color={colors.surfaceDark}>
-            {match.level}
+          <Tag bg={LEVEL_BADGE[match.level].bg} color={LEVEL_BADGE[match.level].color} outlined>
+            {LEVEL_BADGE[match.level].label}
           </Tag>
         </View>
 
@@ -91,6 +93,6 @@ export function MatchCard({ match, onPress, testID }: MatchCardProps) {
           </View>
         </View>
       </CourtImage>
-    </Pressable>
+    </PressableScale>
   );
 }

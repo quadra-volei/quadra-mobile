@@ -1,50 +1,42 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { matchDetailQueryKey } from '@/features/matches/api/getMatchDetail';
+import { postGuest, toMatchError } from '@/features/matches/api/matchesApi';
 import type { AddGuestInput } from '@/features/matches/schema/addGuest';
 import type { PresencePlayer } from '@/features/matches/types/matchDetail';
-import { useGuestsStore } from '@/stores/guestsStore';
-
-// MOCK: deterministic fake latency so RNTL can assert the sheet's submit loading
-// state and the post-mutation grid refresh without flakiness. No network, no
-// backend path. Mirrors presence.ts / createMatch.ts.
-const MOCK_LATENCY_MS = 500;
 
 export type AddGuestResult = {
   match: { id: string };
   guest: PresencePlayer;
 };
 
-/** Session-unique guest id (no backend id source yet). */
-function makeGuestId(): string {
-  return `guest-${Date.now()}-${Math.floor(Math.random() * 1_000_000)}`;
-}
-
 /**
- * Adds an organizer-created guest player to an open slot on a match.
- *
- * MOCK: simulates latency, appends the guest to the session `guestsStore`, and
- * resolves a stub. `getMatchDetail` merges the store's guests into the match's
- * `players` at fetch time, so invalidating the detail query refreshes the grid.
- *
- * TODO(real-api): replace the mock body with the real F1.4 add-guest call behind
- * this unchanged hook signature, once the backend match module lands.
+ * Adds an organizer-created guest (a player with no account) to an open slot
+ * (`POST /api/v1/matches/{id}/guests`). The guest shows up in the match detail,
+ * which is refreshed on success.
  */
 export function useAddGuest(matchId: string) {
   const queryClient = useQueryClient();
   return useMutation<AddGuestResult, Error, AddGuestInput>({
     mutationFn: async (input) => {
-      // MOCK: fixed-latency resolve, no network.
-      await new Promise((resolve) => setTimeout(resolve, MOCK_LATENCY_MS));
-      const guest: PresencePlayer = {
-        id: makeGuestId(),
-        name: input.name,
-        status: 'CONFIRMADO',
-        position: input.position,
-        isGuest: true,
-      };
-      useGuestsStore.getState().addGuest(matchId, guest);
-      return { match: { id: matchId }, guest };
+      try {
+        const created = await postGuest(matchId, input);
+        return {
+          match: { id: matchId },
+          guest: {
+            id: created.id,
+            name: created.name,
+            status: 'CONFIRMADO',
+            position: input.position,
+            isGuest: true,
+          },
+        };
+      } catch (error) {
+        throw toMatchError(error, {
+          403: 'Só quem organiza pode adicionar convidados.',
+          409: 'A partida já está cheia.',
+        });
+      }
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({

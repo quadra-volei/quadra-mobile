@@ -1,32 +1,14 @@
+jest.mock('@/components/domain/BellWithBadge', () => ({
+  BellWithBadge: () => require('react').createElement(require('react-native').View, { testID: 'icon-bell' }),
+}));
 /**
- * S7 — Network (placeholder) screen tests.
+ * S7 — Rede: the feed of posts.
  *
- * Covers every acceptance criterion in docs/specs/S7-network.md:
- *  - The "Rede" tab opens app/(tabs)/network.tsx and renders without errors.
- *  - Header shows "REDE" (uppercase, font-display/text-h1) + a notification bell
- *    (theme selection lives only in Settings).
- *  - The body shows the verbatim primary message "Em breve: rede social de
- *    jogadores".
- *  - No feed/posts, like/comment/share controls, friend-suggestion carousel, or
- *    CTAs/buttons are present.
- *  - The screen makes zero network requests (backend deps: none).
- *  - The placeholder message is announced to screen readers
- *    (accessibilityLiveRegion / accessible text).
- *
- * The bottom tab bar + "Rede" active tab are owned by app/(tabs)/_layout.tsx,
- * NOT this screen body — that interaction is covered by the TabsLayout tests
- * (tests/features/matches/screens/TabsLayout.test.tsx + ExploreTabActive.test.tsx),
- * so this file focuses purely on the screen's content.
- *
- * The screen is a pure static render — no query hooks, no router, no async work.
- * Native modules (safe-area, lucide) are stubbed inline, matching S5/S6 — the
- * repo's tests/__mocks__ are NOT auto-applied.
+ * The screen reads the feed through `usePostFeed` and deletes through
+ * `useDeletePost`; both hooks are stubbed, so nothing touches the network.
  */
 import React from 'react';
 
-// --- Native / module mocks ------------------------------------------------
-
-// safe-area -> plain View (no insets provider needed under test).
 jest.mock('react-native-safe-area-context', () => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
@@ -37,215 +19,266 @@ jest.mock('react-native-safe-area-context', () => {
   };
 });
 
-// lucide icons -> inert nodes (header bell/settings + placeholder Users icon).
 jest.mock('lucide-react-native', () => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
   const stub = (name: string) => (props: any) =>
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
   return {
+    Clock: stub('clock'),
+    Heart: stub('heart'),
+    MessageCircle: stub('message'),
+    MoreHorizontal: stub('more'),
+    Search: stub('search'),
     Bell: stub('bell'),
     Settings: stub('settings'),
-    Sun: stub('sun'),
-    Users: stub('users'),
+    Trash2: stub('trash'),
+    Trophy: stub('trophy'),
   };
 });
 
-// expo-router: spyable router.push (header settings affordance -> /profile/settings)
-// + useFocusEffect (used by useRegisterNavBlurTarget) delegated to a plain effect.
 const mockPush = jest.fn();
-jest.mock('expo-router', () => {
-  const ReactLocal = require('react');
-  return {
-    router: {
-      push: (...args: any[]) => mockPush(...args),
-    },
-    useFocusEffect: (cb: () => void | (() => void)) =>
-      ReactLocal.useEffect(() => cb(), [cb]),
-  };
+jest.mock('expo-linear-gradient', () => {
+  const { View } = require('react-native');
+  return { LinearGradient: View };
 });
+
+jest.mock('expo-router', () => ({
+  router: { push: (...args: any[]) => mockPush(...args) },
+}));
+
+const mockFeed = jest.fn();
+const mockDelete = jest.fn();
+const mockSetLike = jest.fn();
+const mockReport = jest.fn();
+const mockSetBlock = jest.fn();
+jest.mock('@/features/network/api/postsApi', () => ({
+  ...jest.requireActual('@/features/network/api/postsApi'),
+  usePostFeed: (scope: string) => mockFeed(scope),
+  useDeletePost: () => ({ mutate: mockDelete }),
+  useSetPostLike: () => ({ mutate: mockSetLike }),
+  useReportPost: () => ({ mutate: mockReport }),
+  useSetBlock: () => ({ mutate: mockSetBlock }),
+}));
 
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
+import { dialog } from '@/components/ui/Dialog';
+import { type Post, timeAgo } from '@/features/network/api/postsApi';
+
 import NetworkScreen from '../../../../app/(tabs)/network';
+
+const post = (over: Partial<Post>): Post => ({
+  id: 'p1',
+  author: { userId: 'u1', displayName: 'Ana Lima', handle: 'ana', photoUrl: null },
+  text: 'Que jogo!',
+  photoUrl: null,
+  match: null,
+  createdAt: new Date().toISOString(),
+  mine: false,
+  likeCount: 0,
+  likedByMe: false,
+  commentCount: 0,
+  kind: 'Post',
+  ...over,
+});
+
+const feedWith = (items: Post[], over: object = {}) => ({
+  data: { pages: [{ items, nextBefore: null }] },
+  isPending: false,
+  isError: false,
+  isRefetching: false,
+  isFetchingNextPage: false,
+  hasNextPage: false,
+  refetch: jest.fn(),
+  fetchNextPage: jest.fn(),
+  ...over,
+});
 
 beforeEach(() => {
   mockPush.mockClear();
+  mockDelete.mockClear();
+  mockSetLike.mockClear();
 });
 
-describe('S7 — Network (placeholder) screen', () => {
-  // --------------------------------------------------------------- renders ok
-  /**
-   * Covers: S7 — Network
-   * Criterion: "The 'Rede' tab opens app/(tabs)/network.tsx and renders without
-   *  errors."
-   */
-  it('renders without throwing and shows its core chrome', async () => {
+describe('S7 — Rede (feed)', () => {
+  it('shows each post with its author, text and match', async () => {
+    mockFeed.mockReturnValue(
+      feedWith([
+        post({ match: { id: 'm1', name: 'Vôlei de quinta', startsAt: '2026-01-01T22:00:00Z' } }),
+        post({ id: 'p2', text: 'Outro', author: { userId: 'u2', displayName: 'Beto', handle: null, photoUrl: null } }),
+      ]),
+    );
+
     await render(<NetworkScreen />);
 
-    // Mounting produced the title + placeholder without errors.
     expect(screen.getByText('REDE')).toBeTruthy();
-    expect(
-      screen.getByText('Em breve: rede social de jogadores'),
-    ).toBeTruthy();
+    expect(screen.getByText('Ana Lima')).toBeTruthy();
+    expect(screen.getByText('@ana · agora')).toBeTruthy();
+    expect(screen.getByText('Que jogo!')).toBeTruthy();
+    expect(screen.getByText('Vôlei de quinta')).toBeTruthy();
+    expect(screen.getByText('Beto')).toBeTruthy();
+    expect(screen.getAllByTestId('post')).toHaveLength(2);
+    // A match already played is a label, not an invite.
+    expect(screen.queryByText('Participar')).toBeNull();
   });
 
-  // -------------------------------------------------------------------- header
-  /**
-   * Covers: S7 — Network
-   * Criterion: "Header shows the title 'REDE' (uppercase, font-display/text-h1)
-   *  plus a notification bell — theme selection lives only in Settings."
-   */
-  it('renders the REDE header with the bell and no theme toggle', async () => {
+  it('turns a post tied to a match still to come into an invite that opens the match', async () => {
+    const startsAt = new Date(Date.now() + 3 * 3_600_000).toISOString();
+    mockFeed.mockReturnValue(
+      feedWith([post({ match: { id: 'm9', name: 'Racha da Galera', startsAt } })]),
+    );
+
+    await render(<NetworkScreen />);
+    expect(screen.getByTestId('post-invite')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Participar de Racha da Galera'));
+
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/matches/[id]', params: { id: 'm9' } });
+  });
+
+  it('offers to delete only my own post, after a confirmation', async () => {
+    mockFeed.mockReturnValue(feedWith([post({ mine: true }), post({ id: 'p2' })]));
+    const alert = jest.spyOn(dialog, 'alert').mockImplementation(() => {});
+
     await render(<NetworkScreen />);
 
-    // Title is the verbatim uppercase brand display title.
-    const title = screen.getByText('REDE');
-    expect(title).toBeTruthy();
-    // font-display + text-h1 + uppercase tokens applied via NativeWind className.
-    expect(title.props.className).toContain('font-display');
-    expect(title.props.className).toContain('text-h1');
-    expect(title.props.className).toContain('uppercase');
+    const deleteButtons = screen.getAllByLabelText('Apagar post');
+    expect(deleteButtons).toHaveLength(1);
+    await fireEvent.press(deleteButtons[0]!);
 
-    // bell is an accessible button (mirrors S5/S6).
-    expect(screen.getByLabelText('Notificações')).toBeTruthy();
-    // the bell icon renders
-    expect(screen.getByTestId('icon-bell')).toBeTruthy();
-    // theme toggle moved to Settings — not in the header.
-    expect(screen.queryByLabelText('Alternar tema')).toBeNull();
-    expect(screen.queryByTestId('icon-sun')).toBeNull();
-    // settings affordance is present in every screen header.
-    expect(screen.getByLabelText('Configurações')).toBeTruthy();
-    expect(screen.getByTestId('icon-settings')).toBeTruthy();
+    expect(mockDelete).not.toHaveBeenCalled();
+    const buttons = alert.mock.calls[0]![2]!;
+    buttons.find((b) => b.text === 'Apagar')!.onPress!();
+    expect(mockDelete).toHaveBeenCalledWith('p1');
   });
 
-  // ------------------------------------------------------- placeholder message
-  /**
-   * Covers: S7 — Network
-   * Criterion: "The body shows the message 'Em breve: rede social de jogadores'
-   *  (verbatim) as the primary text."
-   */
-  it('shows the verbatim primary placeholder message', async () => {
+  it("reports someone else's post with a reason", async () => {
+    mockFeed.mockReturnValue(feedWith([post({ mine: true }), post({ id: 'p2' })]));
+    const alert = jest.spyOn(dialog, 'alert').mockImplementation(() => {});
+
     await render(<NetworkScreen />);
 
-    expect(
-      screen.getByText('Em breve: rede social de jogadores'),
-    ).toBeTruthy();
+    const more = screen.getAllByLabelText(/Mais opções do post/);
+    expect(more).toHaveLength(1);
+    await fireEvent.press(more[0]!);
+    alert.mock.calls[0]![2]!.find((b) => b.text === 'Denunciar post')!.onPress!();
+    alert.mock.calls[1]![2]!.find((b) => b.text === 'Ofensivo')!.onPress!();
+
+    expect(mockReport).toHaveBeenCalledWith({ postId: 'p2', reason: 'Offensive' }, expect.anything());
   });
 
-  // ---------------------------------------------------------------- a11y
-  /**
-   * Covers: S7 — Network
-   * Criterion: "The placeholder message is announced to screen readers
-   *  (accessibilityLiveRegion / accessible text)."
-   *
-   * The placeholder text is plain accessible Text, and its container declares
-   * accessibilityLiveRegion="polite" so the message is announced.
-   */
-  it('announces the placeholder via an accessibilityLiveRegion container', async () => {
+  it("blocks a post's author only after a confirmation", async () => {
+    const other = post({ id: 'p2' });
+    mockFeed.mockReturnValue(feedWith([other]));
+    const alert = jest.spyOn(dialog, 'alert').mockImplementation(() => {});
+
     await render(<NetworkScreen />);
 
-    const message = screen.getByText('Em breve: rede social de jogadores');
+    await fireEvent.press(screen.getByLabelText(/Mais opções do post/));
+    alert.mock.calls[0]![2]!.find((b) => b.text.startsWith('Bloquear'))!.onPress!();
+    expect(mockSetBlock).not.toHaveBeenCalled();
+    alert.mock.calls[1]![2]!.find((b) => b.text === 'Bloquear')!.onPress!();
 
-    // Walk up to find an ancestor declaring a polite live region.
-    let node: any = message;
-    let liveRegion: string | undefined;
-    while (node) {
-      if (node.props?.accessibilityLiveRegion) {
-        liveRegion = node.props.accessibilityLiveRegion;
-        break;
-      }
-      node = node.parent;
-    }
-    expect(liveRegion).toBe('polite');
-
-    // The message itself is reachable by a screen reader (Text is accessible by
-    // default; it is not hidden from assistive tech).
-    expect(message.props.accessibilityElementsHidden).toBeFalsy();
-    expect(message.props.importantForAccessibility).not.toBe('no');
+    expect(mockSetBlock).toHaveBeenCalledWith({ userId: other.author.userId, blocked: true }, expect.anything());
   });
 
-  // ----------------------------------------------- exclusions (SCOPE S7 OUT)
-  /**
-   * Covers: S7 — Network
-   * Criterion: "No feed, posts, like/comment/share controls, friend-suggestion
-   *  carousel, or CTAs/buttons are present."
-   *
-   * The only buttons allowed are the header bell + settings affordance (both
-   * header chrome). There is NO content button/CTA in the body.
-   */
-  it('renders no feed, posts, social actions, friend carousel, or content CTAs', async () => {
+  it('shows the likes and toggles mine at the tap', async () => {
+    const liked = post({ likeCount: 8, likedByMe: true });
+    const fresh = post({ id: 'p2', likeCount: 3 });
+    mockFeed.mockReturnValue(feedWith([liked, fresh]));
+
+    await render(<NetworkScreen />);
+    expect(screen.getByText('8')).toBeTruthy();
+    expect(screen.getByText('3')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Descurtir'));
+    await fireEvent.press(screen.getByLabelText('Curtir'));
+
+    expect(mockSetLike).toHaveBeenNthCalledWith(1, { post: liked, liked: false });
+    expect(mockSetLike).toHaveBeenNthCalledWith(2, { post: fresh, liked: true });
+  });
+
+  it('opens the comments and the author from the card', async () => {
+    mockFeed.mockReturnValue(feedWith([post({ commentCount: 5 })]));
+
+    await render(<NetworkScreen />);
+    expect(screen.getByText('5')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText('Comentários'));
+    await fireEvent.press(screen.getByLabelText('Ver perfil de Ana Lima'));
+
+    expect(mockPush).toHaveBeenNthCalledWith(1, { pathname: '/network/[id]', params: { id: 'p1' } });
+    expect(mockPush).toHaveBeenNthCalledWith(2, { pathname: '/players/[id]', params: { id: 'u1' } });
+  });
+
+  it('reads an automatic card as a sentence about the match', async () => {
+    const startsAt = new Date(Date.now() + 3 * 3_600_000).toISOString();
+    mockFeed.mockReturnValue(
+      feedWith([
+        post({ kind: 'MatchCreated', text: null, match: { id: 'm9', name: 'Racha da Galera', startsAt } }),
+      ]),
+    );
+
     await render(<NetworkScreen />);
 
-    // No social-feed copy or controls.
-    expect(screen.queryByText(/curtir/i)).toBeNull();
-    expect(screen.queryByText(/coment/i)).toBeNull();
-    expect(screen.queryByText(/compartilh/i)).toBeNull();
-    expect(screen.queryByText(/participar/i)).toBeNull();
-    expect(screen.queryByText(/sugest[ãa]o de amigos/i)).toBeNull();
-    expect(screen.queryByText(/ver tudo/i)).toBeNull();
-    expect(screen.queryByText(/explorar/i)).toBeNull();
-
-    // No feed/post/carousel scaffolding test IDs.
-    expect(screen.queryByTestId('feed')).toBeNull();
-    expect(screen.queryByTestId('posts')).toBeNull();
-    expect(screen.queryByTestId('friend-suggestions')).toBeNull();
-
-    // The only accessible buttons are the header chrome (bell + settings) —
-    // nothing in the body.
-    const buttons = screen.queryAllByRole('button');
-    expect(buttons).toHaveLength(2);
-    const labels = buttons.map((b) => b.props.accessibilityLabel).sort();
-    expect(labels).toEqual(['Configurações', 'Notificações']);
+    expect(screen.getByText(/criou a partida/)).toBeTruthy();
+    // Still to come: the card carries the way into the match.
+    expect(screen.getByLabelText('Participar de Racha da Galera')).toBeTruthy();
   });
 
-  /**
-   * Covers: S7 — Network
-   * Criterion: the bell is a no-op on this placeholder (consistent with S5/S6) —
-   *  tapping it does nothing observable / throws nothing.
-   */
-  it('keeps the bell as a no-op (tapping is harmless)', async () => {
+  it('switches between "Para você" and "Seguindo"', async () => {
+    mockFeed.mockImplementation((scope: string) =>
+      feedWith(scope === 'following' ? [] : [post({})]),
+    );
+
     await render(<NetworkScreen />);
+    expect(mockFeed).toHaveBeenLastCalledWith('all');
+    expect(screen.getByText('Que jogo!')).toBeTruthy();
 
-    expect(() => {
-      fireEvent.press(screen.getByLabelText('Notificações'));
-    }).not.toThrow();
-
-    // Still on the placeholder afterwards — nothing changed.
-    expect(
-      screen.getByText('Em breve: rede social de jogadores'),
-    ).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('feed-scope-following'));
+    expect(mockFeed).toHaveBeenLastCalledWith('following');
+    expect(screen.queryByText('Que jogo!')).toBeNull();
+    // With nobody followed, the tab explains itself and leads back.
+    await fireEvent.press(screen.getByText('Ver Para você'));
+    expect(mockFeed).toHaveBeenLastCalledWith('all');
   });
 
-  /**
-   * Covers: S7 — Network
-   * Criterion: the settings affordance is present on every screen header and
-   *  navigates to S10 (/profile/settings).
-   */
-  it('navigates to /profile/settings when the settings icon is tapped', async () => {
+  it('invites to write the first post when the feed is empty', async () => {
+    mockFeed.mockReturnValue(feedWith([]));
+
     await render(<NetworkScreen />);
+    await fireEvent.press(screen.getByText('Criar o primeiro post'));
 
-    fireEvent.press(screen.getByLabelText('Configurações'));
-
-    expect(mockPush).toHaveBeenCalledWith('/profile/settings');
+    expect(mockPush).toHaveBeenCalledWith('/network/new');
   });
 
-  // ------------------------------------------------------- zero network calls
-  /**
-   * Covers: S7 — Network
-   * Criterion: "The screen makes zero network requests (backend deps: none)."
-   *
-   * Spy on global.fetch (the transport TanStack Query / the API client use) and
-   * assert it is never called while the screen mounts and re-renders.
-   */
-  it('makes zero network requests on mount', async () => {
-    const fetchSpy = jest.spyOn(globalThis, 'fetch' as never);
+  it('opens the notifications from the header bell (new posts come from the tab bar +)', async () => {
+    mockFeed.mockReturnValue(feedWith([post({})]));
 
-    const { rerender } = await render(<NetworkScreen />);
-    rerender(<NetworkScreen />);
+    await render(<NetworkScreen />);
+    await fireEvent.press(screen.getByLabelText('Notificações'));
 
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith('/notifications');
+  });
 
-    fetchSpy.mockRestore();
+  it('offers a retry when the feed fails to load', async () => {
+    const refetch = jest.fn();
+    mockFeed.mockReturnValue(feedWith([], { data: undefined, isError: true, refetch }));
+
+    await render(<NetworkScreen />);
+    await fireEvent.press(screen.getByText('Tentar novamente'));
+
+    expect(refetch).toHaveBeenCalled();
+  });
+});
+
+describe('timeAgo', () => {
+  const now = new Date('2026-10-09T12:00:00Z').getTime();
+  const ago = (ms: number) => timeAgo(new Date(now - ms).toISOString(), now);
+
+  it('goes from "agora" to minutes, hours, days and then the date', () => {
+    expect(ago(20_000)).toBe('agora');
+    expect(ago(5 * 60_000)).toBe('há 5 min');
+    expect(ago(3 * 3_600_000)).toBe('há 3 h');
+    expect(ago(2 * 86_400_000)).toBe('há 2 d');
+    expect(ago(30 * 86_400_000)).toMatch(/^\d{2}\/09$/);
   });
 });

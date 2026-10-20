@@ -21,14 +21,6 @@ const ELITE: Tier = {
   label: 'Nv 75+',
 };
 
-/**
- * The tier scale as a readable legend (dot color + bracket label), in ascending
- * order. Rendered under S12's confirmed-players grid to explain what the level
- * "bolinha" on each avatar means. Mirrors the prototype's LEVEL_TIERS legend.
- */
-export const LEVEL_LEGEND: readonly { color: string; label: string }[] =
-  TIERS.map(({ color, label }) => ({ color, label }));
-
 const NAVY = '#0A0A3C'; // surface-dark token
 const WHITE = '#FFFFFF';
 

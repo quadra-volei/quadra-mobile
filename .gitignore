@@ -10,8 +10,13 @@ expo-env.d.ts
 *.mobileprovision
 *.orig.*
 *.hprof
-.env.local
-.env.*.local
+# Any env file (keys, URLs): only an example may be versioned.
+.env*
+!.env.example
 android/
 ios/
 *:Zone.Identifier
+
+# Firebase: google-services.json comes from EAS (GOOGLE_SERVICES_JSON); service account keys never enter git.
+google-services.json
+*firebase-adminsdk*.json

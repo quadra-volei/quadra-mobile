@@ -45,7 +45,7 @@ export function StepperField({
     <View className="flex-1 rounded-chip border border-line bg-white px-4 py-3">
       <Text
         numberOfLines={1}
-        className="font-body text-eyebrow text-text-muted uppercase"
+        className="font-body-bold text-eyebrow text-text-muted uppercase"
       >
         {label}
       </Text>
@@ -57,7 +57,7 @@ export function StepperField({
           accessibilityLabel={`Diminuir ${label}`}
           accessibilityState={{ disabled: atMin }}
           testID={testID ? `${testID}-decrement` : undefined}
-          className="h-8 w-8 items-center justify-center rounded-full bg-bg-light-alt"
+          className="h-8 w-8 items-center justify-center rounded-full border-2 border-surface-dark bg-white"
           style={atMin ? { opacity: 0.5 } : undefined}
         >
           <Minus size={16} color={colors.surfaceDark} />
@@ -79,10 +79,10 @@ export function StepperField({
           accessibilityLabel={`Aumentar ${label}`}
           accessibilityState={{ disabled: atMax }}
           testID={testID ? `${testID}-increment` : undefined}
-          className="h-8 w-8 items-center justify-center rounded-full bg-primary"
+          className="h-8 w-8 items-center justify-center rounded-full border-2 border-surface-dark bg-accent"
           style={atMax ? { opacity: 0.5 } : undefined}
         >
-          <Plus size={16} color={colors.textOnDark} />
+          <Plus size={16} color={colors.surfaceDark} />
         </Pressable>
       </View>
     </View>

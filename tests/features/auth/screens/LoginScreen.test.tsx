@@ -10,6 +10,8 @@
  *  - Valid phone submit -> mocked useRequestOtp resolves -> push /sms-otp w/ phone.
  *  - "Entrar com Google" -> mocked useGoogleSignIn resolves -> replace
  *    /onboarding (hasProfile false) or /(tabs) (hasProfile true).
+ *  - A failed Google sign-in surfaces an inline message (no toast); backing out
+ *    of the Google account picker surfaces nothing.
  *  - Invalid phone surfaces via PhoneInput error prop only -- NO toast.
  *  - No "Esqueceu a senha?", no Apple button, no email/password fields.
  *  - "ou" divider, Google button, Terms/Privacy disclaimer present.
@@ -36,6 +38,8 @@ jest.mock('react-native-svg', () => {
 // Every `with*` helper resolves to its end value, so assertions see the settled
 // frame (the intro rise is finished, the sheet is at its target offset).
 jest.mock('react-native-reanimated', () => {
+  // Shared mock first (motion pieces: PressableScale, UnderlineTab, FadeIn).
+  const base = jest.requireActual('../../../__mocks__/react-native-reanimated');
   const ReactLocal = require('react');
   const { Text, View } = require('react-native');
   const AnimatedView = ({ children, style, ...props }: any) =>
@@ -45,8 +49,9 @@ jest.mock('react-native-reanimated', () => {
   const easing = (fn?: unknown) => fn ?? 0;
   const createAnimatedComponent = (Component: any) => Component;
   return {
+    ...base,
     __esModule: true,
-    default: { View: AnimatedView, Text: AnimatedText, createAnimatedComponent },
+    default: { ...base.default, View: AnimatedView, Text: AnimatedText, createAnimatedComponent },
     createAnimatedComponent,
     useSharedValue: (initial: number) => ({ value: initial }),
     withTiming: (to: number, _config?: object, cb?: (finished: boolean) => void) => {
@@ -120,6 +125,9 @@ type GoogleResult = {
   user: { id: string; name: string; hasProfile: boolean };
 };
 
+// Stand-in for the real cancellation error class (the screen checks `instanceof`).
+class MockGoogleSignInCancelledError extends Error {}
+
 // `mock`-prefixed holder so jest.mock factories may reference it (hoisting rule).
 const mockAuth = {
   requestOtpBehavior: 'resolve' as 'resolve' | 'reject',
@@ -127,6 +135,7 @@ const mockAuth = {
   requestOtpIsPending: false,
   googleHasProfile: false,
   googleIsPending: false,
+  googleBehavior: 'resolve' as 'resolve' | 'reject' | 'cancel',
   requestOtpMutate: jest.fn(
     (_input: { phone: string }, opts?: MutateOpts<{ ok: true }>) => {
       if (mockAuth.requestOtpBehavior === 'reject') {
@@ -137,6 +146,14 @@ const mockAuth = {
     },
   ),
   googleSignInMutate: jest.fn((_input: void, opts?: MutateOpts<GoogleResult>) => {
+    if (mockAuth.googleBehavior === 'cancel') {
+      opts?.onError?.(new MockGoogleSignInCancelledError());
+      return;
+    }
+    if (mockAuth.googleBehavior === 'reject') {
+      opts?.onError?.(new Error('Não foi possível entrar com o Google.'));
+      return;
+    }
     opts?.onSuccess?.({
       session: { token: 'mock-google-session' },
       user: { id: 'mock', name: 'Jogador', hasProfile: mockAuth.googleHasProfile },
@@ -151,6 +168,10 @@ jest.mock('@/features/auth/api/requestOtp', () => ({
   }),
 }));
 jest.mock('@/features/auth/api/googleSignIn', () => ({
+  // Getter: resolved lazily, after the class below the hoisted mocks exists.
+  get GoogleSignInCancelledError() {
+    return MockGoogleSignInCancelledError;
+  },
   useGoogleSignIn: () => ({
     mutate: mockAuth.googleSignInMutate,
     isPending: mockAuth.googleIsPending,
@@ -158,6 +179,7 @@ jest.mock('@/features/auth/api/googleSignIn', () => ({
 }));
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { Linking } from 'react-native';
 
 import { useAuthStore } from '@/stores/auth';
 
@@ -173,6 +195,7 @@ beforeEach(() => {
   mockAuth.requestOtpIsPending = false;
   mockAuth.googleIsPending = false;
   mockAuth.googleHasProfile = false;
+  mockAuth.googleBehavior = 'resolve';
   useAuthStore.getState().clearAuth();
 });
 
@@ -345,6 +368,44 @@ describe('S2 — Login screen', () => {
     expect(state.hasProfile).toBe(true);
   });
 
+  // ------------------------------------------------------ Google: failure
+  /**
+   * Covers: S2 — Login
+   * Criterion: "A failed Google sign-in shows an inline message under the Google
+   *  button — no toast — and keeps the user on the sheet."
+   */
+  it('Google sign-in failure -> inline message, no navigation, not authenticated', async () => {
+    mockAuth.googleBehavior = 'reject';
+    await render(<LoginScreen />);
+    await openSheet();
+
+    fireEvent.press(screen.getByTestId('google-signin'));
+
+    const errorNode = await screen.findByTestId('google-error');
+    expect(errorNode.props.accessibilityLiveRegion).toBe('polite');
+    expect(screen.getByText('Não foi possível entrar com o Google.')).toBeTruthy();
+    expect(screen.queryByRole('alert')).toBeNull();
+    expect(mockReplace).not.toHaveBeenCalled();
+    expect(useAuthStore.getState().isAuthenticated).toBe(false);
+  });
+
+  /**
+   * Covers: S2 — Login
+   * Criterion: "Dismissing the Google account picker is not an error: nothing is
+   *  shown and the user stays on the sheet."
+   */
+  it('Google sign-in cancelled -> no message and no navigation', async () => {
+    mockAuth.googleBehavior = 'cancel';
+    await render(<LoginScreen />);
+    await openSheet();
+
+    fireEvent.press(screen.getByTestId('google-signin'));
+
+    await waitFor(() => expect(mockAuth.googleSignInMutate).toHaveBeenCalledTimes(1));
+    expect(screen.queryByTestId('google-error')).toBeNull();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
   // ------------------------------------------------------ invalid phone / no toast
   /**
    * Covers: S2 — Login
@@ -416,7 +477,10 @@ describe('S2 — Login screen', () => {
     expect(screen.getByText('Entrar com Google')).toBeTruthy();
     expect(screen.getByTestId('google-signin')).toBeTruthy();
     expect(screen.getByText(/Ao continuar, você aceita os/i)).toBeTruthy();
-    expect(screen.getByText('Termos')).toBeTruthy();
-    expect(screen.getByText('Política de Privacidade')).toBeTruthy();
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    await fireEvent.press(screen.getByText('Termos de Uso'));
+    expect(openURL).toHaveBeenCalledWith('https://quadra-volei.app/termos');
+    await fireEvent.press(screen.getByText('Política de Privacidade'));
+    expect(openURL).toHaveBeenCalledWith('https://quadra-volei.app/privacidade');
   });
 });

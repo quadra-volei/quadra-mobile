@@ -58,7 +58,12 @@ jest.mock('lucide-react-native', () => {
   const stub = (name: string) => (props: any) =>
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
   return {
+    ArrowUp: stub('arrow-up'),
     BarChart3: stub('bar-chart'),
+    Share2: stub('share'),
+    ShieldCheck: stub('shield-check'),
+    Shuffle: stub('shuffle'),
+    Zap: stub('zap'),
     Check: stub('check'),
     ChevronLeft: stub('chevron-left'),
     ChevronRight: stub('chevron-right'),
@@ -96,6 +101,13 @@ const mockCreate = {
   }),
 };
 
+// Live @ check: staged per test (the real hook is covered in profileApi.test.tsx).
+const mockHandleTaken = { value: false };
+jest.mock('@/features/profile/api/handleAvailability', () => ({
+  HANDLE_TAKEN_MESSAGE: 'Esse @ já está em uso. Escolha outro.',
+  useHandleTaken: () => mockHandleTaken.value,
+}));
+
 jest.mock('@/features/profile/api/createProfile', () => ({
   useCreateProfile: () => ({
     mutate: mockCreate.mutate,
@@ -104,6 +116,7 @@ jest.mock('@/features/profile/api/createProfile', () => ({
   }),
 }));
 
+import { BackHandler } from 'react-native';
 import {
   act,
   cleanup,
@@ -392,22 +405,40 @@ describe('S4 — Onboarding wizard', () => {
 
   // ------------------------------------------------------------ back navigation
   /**
-   * Covers: S4 — Onboarding (Navigation triggers)
-   * Step 0 back chevron -> router.back(); wizard back -> internal setStep(step-1).
+   * Step 0 back chevron -> router.back(). The wizard steps have no chevron
+   * (DECISIONS #85): the Android back gesture walks one step back instead.
    */
-  it('navigates back within the wizard and out of step 0 via the back chevron', async () => {
+  it('walks back within the wizard on Android back and leaves step 0 via the chevron', async () => {
+    const onHardwareBack = jest.spyOn(BackHandler, 'addEventListener');
     await renderScreen();
     await fillStep0();
     await press('onboarding-continue'); // step 1
 
-    // wizard back returns to step 0 (no route change)
-    await press('onboarding-back');
+    expect(screen.queryByTestId('onboarding-back')).toBeNull();
+    let handled: boolean | null | undefined;
+    await act(async () => {
+      handled = onHardwareBack.mock.calls.at(-1)?.[1]();
+    });
+    expect(handled).toBe(true); // consumed: the app does not leave the wizard
     expect(mockBack).not.toHaveBeenCalled();
     expect(screen.getByTestId('onboarding-first-name')).toBeTruthy();
 
     // step-0 back chevron leaves the route
     await press('onboarding-back');
     expect(mockBack).toHaveBeenCalledTimes(1);
+  });
+
+  /** The chosen position's role shows under the grid (the cards carry only the name). */
+  it('shows what the chosen position does once one is picked', async () => {
+    await renderScreen();
+    await fillStep0();
+    await press('onboarding-continue');
+
+    expect(screen.queryByTestId('position-hint')).toBeNull();
+    await press('position-LIB');
+    expect(screen.getByTestId('position-hint')).toHaveTextContent(
+      'Líbero · Especialista em defesa',
+    );
   });
 
   // ---------------------------------------------------------- completion summary

@@ -1,15 +1,14 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { BlurTargetView } from 'expo-blur';
 import { router } from 'expo-router';
 import { Flame, Heart, Share2, Zap } from 'lucide-react-native';
-import { type ComponentType, useRef, useState } from 'react';
+import { type ComponentType, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { DEFAULT_AVATAR } from '@/theme/defaultAvatars';
 import { Button } from '@/components/ui/Button';
-import { GlassBackHeader } from '@/components/ui/GlassBackHeader';
+import { BackHeader } from '@/components/ui/BackHeader';
 import { useSendFeedback } from '@/features/profile/api/sendFeedback';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import {
@@ -20,7 +19,7 @@ import {
 } from '@/features/profile/schema/feedback';
 import { colors } from '@/theme/colors';
 
-const TEXT_MUTED = '#7A7A9A'; // text-muted token — textarea placeholder color
+const TEXT_MUTED = '#62628A'; // text-muted token — textarea placeholder color
 
 // shadow-card token (DESIGN_SYSTEM). Applied via inline style — NOT a toggled
 // className — so flipping a tile's selected state never adds/removes a boxShadow
@@ -31,7 +30,7 @@ const SHADOW_CARD = '0 2px 12px rgba(10,10,60,0.06)';
 // ── Eyebrow section label (TIPO / SUA MENSAGEM) ──
 function SectionLabel({ children }: { children: string }) {
   return (
-    <Text className="font-body text-eyebrow text-text-muted uppercase px-4 mt-6 mb-2">
+    <Text className="font-body-bold text-eyebrow text-text-muted uppercase px-4 mt-6 mb-2">
       {children}
     </Text>
   );
@@ -69,18 +68,15 @@ function TypeTile({
       accessibilityState={{ selected }}
       onPress={onPress}
       testID={testID}
-      className={`flex-1 h-24 items-center justify-center rounded-card ${
-        selected ? 'bg-primary' : 'bg-white'
-      }`}
-      // Card shadow via inline style (stable across the selected flip) — see
-      // SHADOW_CARD note above.
-      style={selected ? undefined : { boxShadow: SHADOW_CARD }}
+      className="flex-1 h-24 items-center justify-center rounded-card bg-white"
+      // Card shadow and selected colors via inline style, never a toggled
+      // className (DECISIONS #87) — see SHADOW_CARD note above.
+      style={selected ? { backgroundColor: colors.primary } : { boxShadow: SHADOW_CARD }}
     >
       <Icon size={24} color={selected ? colors.textOnDark : colors.primary} />
       <Text
-        className={`mt-2 font-body text-caption ${
-          selected ? 'text-text-on-dark' : 'text-text-primary'
-        }`}
+        className="mt-2 font-body text-caption text-text-primary"
+        style={selected ? { color: colors.textOnDark } : undefined}
       >
         {label}
       </Text>
@@ -122,7 +118,7 @@ function SendingAsCard() {
         <Text className="font-body text-caption text-text-muted">
           Enviando como
         </Text>
-        <Text className="font-body text-body-bold text-text-primary">
+        <Text className="font-body-semibold text-body-bold text-text-primary">
           {identity}
         </Text>
       </View>
@@ -153,11 +149,10 @@ export default function FeedbackScreen() {
   };
 
   const [headerHeight, setHeaderHeight] = useState(0);
-  const blurTarget = useRef<View>(null);
 
   return (
     <View className="flex-1 bg-bg-light">
-      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         <ScrollView
           contentContainerClassName="pb-10"
           contentContainerStyle={{ paddingTop: headerHeight }}
@@ -232,7 +227,8 @@ export default function FeedbackScreen() {
                 className="mb-3 text-center font-body text-caption text-danger"
                 accessibilityLiveRegion="polite"
               >
-                Não foi possível enviar. Tente novamente.
+                {sendFeedback.error?.message ??
+                  'Não foi possível enviar. Tente novamente.'}
               </Text>
             ) : null}
             <Button
@@ -243,7 +239,7 @@ export default function FeedbackScreen() {
               leftIcon={
                 <Share2
                   size={18}
-                  color={canSubmit ? colors.textOnDark : colors.textMuted}
+                  color={colors.surfaceDark}
                 />
               }
               testID="feedback-submit"
@@ -252,11 +248,10 @@ export default function FeedbackScreen() {
             </Button>
           </View>
         </ScrollView>
-      </BlurTargetView>
+      </View>
 
-      <GlassBackHeader
+      <BackHeader
         title="Feedback"
-        blurTarget={blurTarget}
         onHeight={setHeaderHeight}
       />
     </View>

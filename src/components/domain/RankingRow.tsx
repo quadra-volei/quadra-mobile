@@ -58,17 +58,17 @@ export function RankingRow({ row, isMe, testID }: RankingRowProps) {
   return (
     <View
       testID={testID}
-      accessibilityLabel={`${row.position}º, ${row.name}${
+      accessibilityLabel={`${row.position == null ? 'sem posição' : `${row.position}º`}, ${row.name}${
         isMe ? ', você' : ''
       }, ${row.score} pontos, ${trendLabel(row.trend)}`}
       className={`flex-row items-center px-4 py-3 ${
         isMe ? 'bg-primary/10 rounded-card' : ''
       }`}
     >
-      <Text className="font-num text-primary text-body w-8">{row.position}</Text>
-      <Avatar name={row.name} size="sm" level={row.level} />
+      <Text className="font-num text-primary text-body w-8">{row.position ?? '–'}</Text>
+      <Avatar uri={row.photoUrl} name={row.name} size="sm" level={row.level} />
       <View className="flex-1 ml-3">
-        <Text className="font-body text-body-bold text-text-primary">
+        <Text className="font-body-semibold text-body-bold text-text-primary">
           {row.name}
           {isMe ? <Text className="text-primary"> · você</Text> : null}
         </Text>

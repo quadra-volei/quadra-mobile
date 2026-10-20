@@ -1,16 +1,18 @@
 // Profile domain types consumed by the S8 Profile header + "Seu progresso" card
 // and the "MINHAS PARTIDAS" history rows. These mirror the field shapes the S8
-// mockup shows so the real F2.1/F2.2 (profile + progress) and F1.6 (match
-// history) payloads can slot in unchanged behind the mocked hook signatures.
+// mockup shows; the profile hooks (src/features/profile/api/*) map the backend
+// payloads into them.
 // No `any`.
 
 import type { MatchFormat } from '@/features/matches/types/match';
+import type { CardTitleCode } from '@/features/profile/card/cardTitles';
 import type { Position } from '@/features/profile/schema/onboarding';
+import type { CardFinish } from '@/theme/cardFinish';
 
 /**
  * The authenticated user's identity + progress snapshot.
  * Feeds the S8 header (avatar + greeting) and the "Seu progresso" card
- * (GERAL number + Level/XP bar). MOCK now; real F2.1/F2.2 later.
+ * (GERAL number + Level/XP bar).
  */
 export type MyProfile = {
   id: string;
@@ -23,7 +25,7 @@ export type MyProfile = {
   /**
    * Per-skill ratings shown in the "Seu progresso" 2×2 grid (ace/blk/ata/def)
    * and the full 6-stat grid on the player card (adds srv/rec). Russo One
-   * numbers. MOCK now; real F2.2 progress payload supplies these later.
+   * numbers.
    */
   ace: number;
   blk: number;
@@ -31,15 +33,28 @@ export type MyProfile = {
   def: number;
   srv: number;
   rec: number;
-  /** Player level ("Level 15"). */
+  /** Level number from accumulated points ("Level 15"). */
   level: number;
-  /** Current XP toward the next level. */
+  /** Points earned since the current level started. */
   xp: number;
-  /** XP needed to reach the next level ("XP 2.450 / 5.000"). */
+  /** Points between the current level and the next one ("XP 40 / 100"). */
   xpToNext: number;
+  /** "Mostrar minhas atividades para quem me segue". */
+  shareActivity?: boolean;
+  /** Finished matches the player was recorded in, and their outcomes (back of the card). */
+  record: { matches: number; wins: number; losses: number; draws: number; mvps: number };
+  /** Ranking points: attendance +10, win +15, MVP +25. */
+  points: number;
+  /** The card's finish, title and own photo, saved on the account. */
+  cardStyle: {
+    finish: CardFinish;
+    title: CardTitleCode | null;
+    photoUrl?: string;
+    photoObjectKey: string | null;
+  };
 
   // ── Edit-profile fields (S10) — additive; S8 reads only the fields above.
-  // Optional so existing S8 consumers stay unaffected; the mock populates them.
+  // Optional so existing S8 consumers stay unaffected.
   /** Family name, shown in S10's summary ("Renan Dias") + edit SOBRENOME. */
   lastName?: string;
   /** @handle without the leading '@' (e.g. "renan"). */
@@ -52,12 +67,12 @@ export type MyProfile = {
   position?: Position;
 };
 
-/** Win/loss outcome of a played match. */
-export type MatchResult = 'VITORIA' | 'DERROTA';
+/** Outcome of a played match (EMPATE: the game was ended level, with no winner). */
+export type MatchResult = 'VITORIA' | 'DERROTA' | 'EMPATE';
 
 /**
  * One read-only row of the user's recent match history.
- * Feeds the "MINHAS PARTIDAS" list via `MatchHistoryRow`. MOCK now; F1.6 later.
+ * Feeds the "MINHAS PARTIDAS" list via `MatchHistoryRow`.
  */
 export type RecentMatch = {
   id: string;

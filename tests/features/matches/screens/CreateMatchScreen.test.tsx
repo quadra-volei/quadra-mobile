@@ -31,6 +31,8 @@ import React from 'react';
 // --- Native / module mocks ------------------------------------------------
 
 jest.mock('react-native-reanimated', () => {
+  // Shared mock first (motion pieces: PressableScale, UnderlineTab, FadeIn).
+  const base = jest.requireActual('../../../__mocks__/react-native-reanimated');
   const ReactLocal = require('react');
   const { ScrollView, View } = require('react-native');
   // Strip animation-only props so RN host components don't receive them.
@@ -44,8 +46,9 @@ jest.mock('react-native-reanimated', () => {
     springify: () => chain,
   };
   return {
+    ...base,
     __esModule: true,
-    default: { View: AnimatedView, ScrollView: AnimatedScrollView },
+    default: { ...base.default, View: AnimatedView, ScrollView: AnimatedScrollView },
     FadeInDown: chain,
     useAnimatedStyle: (cb: () => object) => cb(),
   };
@@ -186,6 +189,36 @@ const mockCreate = {
   }),
 };
 
+// Address search (S11 LOCAL field): suggestions are staged per test; picking one
+// resolves to the staged coordinates.
+const mockPlaces: { data: unknown[]; coords: { latitude: number; longitude: number } | null } = {
+  data: [],
+  coords: null,
+};
+
+jest.mock('@/features/matches/api/searchPlaces', () => ({
+  newPlaceSessionToken: () => 'session-test',
+  placeLabel: (place: { title: string; subtitle: string }) =>
+    place.subtitle ? `${place.title} · ${place.subtitle}` : place.title,
+  usePlaceSuggestions: (_text: string, options: { enabled?: boolean }) => ({
+    data: options.enabled === false ? undefined : mockPlaces.data,
+  }),
+  resolvePlace: async () => mockPlaces.coords,
+}));
+
+// react-native-maps -> View stubs (the picked-address pin preview).
+jest.mock('react-native-maps', () => {
+  const ReactLocal = require('react');
+  const { View } = require('react-native');
+  const stub = ({ children, ...props }: any) =>
+    ReactLocal.createElement(View, props, children);
+  return { __esModule: true, default: stub, Marker: stub };
+});
+
+jest.mock('@/features/matches/lib/useDeviceCoords', () => ({
+  useDeviceCoords: () => null,
+}));
+
 jest.mock('@/features/matches/api/createMatch', () => ({
   useCreateMatch: () => ({
     mutate: mockCreate.mutate,
@@ -200,6 +233,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   within,
 } from '@testing-library/react-native';
 
@@ -217,6 +251,8 @@ beforeEach(() => {
   mockCreate.mutate.mockClear();
   mockCreate.isPending = false;
   mockCreate.isError = false;
+  mockPlaces.data = [];
+  mockPlaces.coords = null;
   mockCreate.behavior = 'resolve';
   mockCreate.resultId = 'mine-mock-1';
 });
@@ -263,8 +299,7 @@ async function completeOneOffFlow() {
   await press('when-today'); // date ready → reveals horário
   await press('time-19h00'); // → reveals duração (default 1h30) → FORMATO
   await press('format-6X6'); // sets players 12 → reveals NÍVEL
-  await press('level-INTERMEDIARIO'); // → reveals VALOR (price default 25)
-  await press('confirm-24'); // → reveals PRIVACIDADE
+  await press('level-INTERMEDIARIO'); // → reveals VALOR (price default 25) + PRIVACIDADE
   await press('privacy-open'); // → complete
 }
 
@@ -409,7 +444,6 @@ describe('S11 — Create-match (formulário vivo)', () => {
       level: 'INTERMEDIARIO',
       players: 12,
       price: 25,
-      confirmationOpensHoursBefore: 24,
       privacy: 'open',
     });
 
@@ -427,7 +461,6 @@ describe('S11 — Create-match (formulário vivo)', () => {
     await press('format-2X2'); // 2x2 suggests 4 players (no manual stepper)
 
     await press('level-INTERMEDIARIO');
-    await press('confirm-24');
     await press('privacy-open');
     await press('create-submit');
     expect(mockCreate.mutate.mock.calls[0]?.[0]).toMatchObject({
@@ -466,7 +499,6 @@ describe('S11 — Create-match (formulário vivo)', () => {
     await press('time-20h00');
     await press('format-6X6');
     await press('level-AVANCADO');
-    await press('confirm-12');
     await press('privacy-private');
     // Private requires an invite mode before the flow is complete.
     expect(screen.getByTestId('create-submit').props.accessibilityState?.disabled).toBe(
@@ -482,7 +514,6 @@ describe('S11 — Create-match (formulário vivo)', () => {
       time: '20h00',
       format: '6X6',
       level: 'AVANCADO',
-      confirmationOpensHoursBefore: 12,
       privacy: 'private',
       inviteMode: 'guests',
     });
@@ -530,5 +561,65 @@ describe('S11 — Create-match (formulário vivo)', () => {
     expect(
       screen.getByTestId('create-submit').props.accessibilityState?.disabled,
     ).toBe(false);
+  });
+});
+
+describe('S11 — LOCAL address search', () => {
+  /** The payload the screen handed to the create mutation. */
+  function submitted(): Record<string, unknown> {
+    return (mockCreate.mutate.mock.calls as [Record<string, unknown>][])[0]![0];
+  }
+
+  const arena = {
+    id: 'osm:W123',
+    title: 'Arena Sky Beach',
+    subtitle: 'Pinheiros · São Paulo',
+    latitude: -23.56,
+    longitude: -46.69,
+  };
+
+  it('picking a suggestion fills the field and sends the venue coordinates', async () => {
+    mockPlaces.data = [arena];
+    mockPlaces.coords = { latitude: -23.56, longitude: -46.69 };
+    await renderScreen();
+    await completeOneOffFlow();
+
+    await type('match-location', 'arena sky');
+    expect(screen.queryByTestId('place-pin-preview')).toBeNull();
+    await press('place-osm:W123');
+
+    // The picked spot is shown on a map so a wrong pin is caught before publishing.
+    await waitFor(() =>
+      expect(screen.getByTestId('place-pin-preview')).toBeTruthy(),
+    );
+    expect(screen.getByTestId('match-location').props.value).toBe(
+      'Arena Sky Beach · Pinheiros · São Paulo',
+    );
+    expect(screen.queryByTestId('place-suggestions')).toBeNull();
+
+    await press('create-submit');
+    expect(submitted()).toMatchObject({
+      location: 'Arena Sky Beach · Pinheiros · São Paulo',
+      latitude: -23.56,
+      longitude: -46.69,
+    });
+  });
+
+  it('editing the text after picking drops the coordinates (free text again)', async () => {
+    mockPlaces.data = [arena];
+    mockPlaces.coords = { latitude: -23.56, longitude: -46.69 };
+    await renderScreen();
+    await completeOneOffFlow();
+    await type('match-location', 'arena sky');
+    await press('place-osm:W123');
+
+    mockPlaces.data = [];
+    await type('match-location', 'Quadra do meu prédio');
+    await press('create-submit');
+
+    const sent = submitted();
+    expect(sent.location).toBe('Quadra do meu prédio');
+    expect(sent.latitude).toBeUndefined();
+    expect(sent.longitude).toBeUndefined();
   });
 });

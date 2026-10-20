@@ -1,34 +1,39 @@
 /**
- * S5 — Bottom tab bar + central "Jogar" FAB tests (app/(tabs)/_layout.tsx).
+ * S5 — Bottom tab bar tests (app/(tabs)/_layout.tsx).
  *
- * Covers the two S5 acceptance criteria owned by the tab layout (not the Home
- * screen body):
- *  - "The bottom tab bar (4 tabs + central FAB) persists across navigation and
- *    Home is the active tab."
- *  - "Tapping 'Criar partida' navigates to S11; the central 'Jogar' FAB does the
- *    same." (the FAB half — the card-CTA half is in HomeScreen.test.tsx.)
+ * Covers what the tab layout owns (not the Home screen body): the four tabs
+ * persist across navigation with Home active, and the central "+" opens the
+ * create sheet (DECISIONS #98).
  *
  * The `Tabs` navigator is mocked so its `tabBar` render prop is invoked with a
  * synthetic navigation state (Home = index 0, active), without a real navigation
- * container. Navigation is mocked via expo-router; the brand SVG icons + gradient
- * are stubbed inline.
+ * container. Navigation is mocked via expo-router; the brand SVG icons are
+ * stubbed inline.
  */
 import React from 'react';
 
 // --- Native / module mocks ------------------------------------------------
 
-// LinearGradient -> View (the FAB fill).
-jest.mock('expo-linear-gradient', () => {
+// The location gate (own test: LocationGate.test.tsx) -> passthrough.
+jest.mock('@/components/domain/LocationGate',() => ({
+  LocationGate: ({ children }: any) => children,
+}));
+
+// Blur (native) -> plain Views.
+jest.mock('expo-blur', () => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
-  return {
-    LinearGradient: ({ children, ...props }: any) =>
-      ReactLocal.createElement(
-        View,
-        { ...props, testID: props.testID ?? 'linear-gradient' },
-        children,
-      ),
-  };
+  const Plain = ReactLocal.forwardRef((props: any, ref: any) =>
+    ReactLocal.createElement(View, { ...props, ref }),
+  );
+  return { BlurView: Plain, BlurTargetView: Plain };
+});
+
+// lucide "+" -> inert node.
+jest.mock('lucide-react-native', () => {
+  const { View } = require('react-native');
+  const ReactLocal = require('react');
+  return { Plus: (props: any) => ReactLocal.createElement(View, props) };
 });
 
 // safe-area insets -> zero (no provider under test).
@@ -36,12 +41,7 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
-// Brand tab + FAB icons -> inert nodes carrying their focused state for assertion.
-jest.mock('@/components/icons/JogarIcon', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  return { JogarIcon: (props: any) => ReactLocal.createElement(View, { ...props, testID: 'icon-jogar' }) };
-});
+// Brand tab icons -> inert nodes carrying their focused state for assertion.
 const tabIconStub = (id: string) => (props: any) => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
@@ -55,25 +55,11 @@ jest.mock('@/components/icons/TabExploreIcon', () => ({ TabExploreIcon: tabIconS
 jest.mock('@/components/icons/TabNetworkIcon', () => ({ TabNetworkIcon: tabIconStub('network') }));
 jest.mock('@/components/icons/TabProfileIcon', () => ({ TabProfileIcon: tabIconStub('profile') }));
 
-// RN Modal wraps children in an AppContainer that needs a native root tag the
-// test renderer can't supply -> passthrough that renders children when visible.
-jest.mock('react-native/Libraries/Modal/Modal', () => {
-  const ReactLocal = require('react');
-  return {
-    __esModule: true,
-    default: ({ visible, children }: any) =>
-      visible ? ReactLocal.createElement(ReactLocal.Fragment, null, children) : null,
-  };
-});
-
-// lucide icons in the "BORA JOGAR?" menu -> inert nodes.
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return { Plus: stub('plus'), Search: stub('search'), X: stub('x') };
-});
+// Signed-in profile for the "Perfil" tab avatar; no photo by default.
+let mockProfile: { avatarUrl?: string; firstName: string } | undefined;
+jest.mock('@/features/profile/api/getMyProfile', () => ({
+  useMyProfile: () => ({ data: mockProfile }),
+}));
 
 // expo-router: spyable router.push + a `Tabs` that renders only the `tabBar` prop
 // against a synthetic navigation state (Home active).
@@ -106,23 +92,25 @@ jest.mock('expo-router', () => {
   };
 });
 
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { Keyboard } from 'react-native';
 
 import TabsLayout from '../../../../app/(tabs)/_layout';
 
 beforeEach(() => {
+  mockProfile = undefined;
   mockPush.mockClear();
   mockNavigate.mockClear();
   mockEmit.mockClear();
 });
 
-describe('S5 — Bottom tab bar + Jogar FAB', () => {
+describe('S5 — Bottom tab bar', () => {
   /**
    * Covers: S5 — Home
-   * Criterion: "The bottom tab bar (4 tabs + central FAB) persists ... and Home is
-   *  the active tab." — all four labeled tabs plus the central FAB render.
+   * Criterion: "The bottom tab bar persists ... and Home is the active tab." —
+   *  the four tabs render and there is no central button (DECISIONS #88).
    */
-  it('renders the four labeled tabs and the central Jogar FAB', async () => {
+  it('renders the four tabs and the central create button', async () => {
     await render(<TabsLayout />);
 
     // The bar is icon-only (compact redesign) — tabs are identified by their
@@ -132,9 +120,43 @@ describe('S5 — Bottom tab bar + Jogar FAB', () => {
     expect(screen.getByLabelText('Rede')).toBeTruthy();
     expect(screen.getByLabelText('Perfil')).toBeTruthy();
 
-    // central FAB present (accessible "Jogar" button + its icon)
-    expect(screen.getByLabelText('Jogar')).toBeTruthy();
-    expect(screen.getByTestId('icon-jogar')).toBeTruthy();
+    expect(screen.getByLabelText('Criar')).toBeTruthy();
+    expect(screen.getAllByRole('button')).toHaveLength(5);
+  });
+
+  /** The "+" opens the sheet; each option navigates and closes it. */
+  it('opens the create sheet from the central button', async () => {
+    await render(<TabsLayout />);
+    expect(screen.queryByTestId('create-sheet')).toBeNull();
+
+    await fireEvent.press(screen.getByLabelText('Criar'));
+    expect(screen.getByTestId('create-sheet')).toBeTruthy();
+    expect(screen.getByText('O que você quer criar?')).toBeTruthy();
+    // Blur and veil cover the whole screen, not only the strip above the card.
+    const fill = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 };
+    expect(screen.getByTestId('create-sheet-blur').props.style).toEqual(fill);
+    expect(screen.getByTestId('create-sheet-veil').props.style).toEqual(
+      expect.objectContaining(fill),
+    );
+
+    await fireEvent.press(screen.getByLabelText('Criar partida'));
+    expect(mockPush).toHaveBeenCalledWith('/matches/create');
+    expect(screen.queryByTestId('create-sheet')).toBeNull();
+
+    await fireEvent.press(screen.getByLabelText('Criar'));
+    await fireEvent.press(screen.getByLabelText('Criar publicação'));
+    expect(mockPush).toHaveBeenCalledWith('/network/new');
+    expect(screen.queryByTestId('create-sheet')).toBeNull();
+  });
+
+  it('closes the create sheet on Cancelar without navigating', async () => {
+    await render(<TabsLayout />);
+
+    await fireEvent.press(screen.getByLabelText('Criar'));
+    await fireEvent.press(screen.getByLabelText('Cancelar'));
+
+    expect(screen.queryByTestId('create-sheet')).toBeNull();
+    expect(mockPush).not.toHaveBeenCalled();
   });
 
   /**
@@ -158,47 +180,33 @@ describe('S5 — Bottom tab bar + Jogar FAB', () => {
   });
 
   /**
-   * Covers: S5 — Home
-   * Criterion: "... the central 'Jogar' FAB does the same [reaches S11
-   *  /matches/create]." — the FAB now opens the "BORA JOGAR?" menu, and
-   *  "Criar partida" within it pushes create-match.
+   * The floating bar hides while the keyboard is open (it would otherwise ride
+   * on top of the keyboard on Android) and comes back when it closes.
    */
-  it('opens the Jogar menu and pushes /matches/create via "Criar partida"', async () => {
+  it('hides the bar while the keyboard is open', async () => {
+    const listeners: Record<string, () => void> = {};
+    const spy = jest
+      .spyOn(Keyboard, 'addListener')
+      .mockImplementation(((event: string, cb: () => void) => {
+        listeners[event] = cb;
+        return { remove: jest.fn() };
+      }) as never);
+
     await render(<TabsLayout />);
+    expect(screen.getByLabelText('Início')).toBeTruthy();
 
-    // Menu is closed initially — its options are not mounted.
-    expect(screen.queryByLabelText('Criar partida')).toBeNull();
+    await act(async () => listeners.keyboardDidShow?.());
+    expect(screen.queryByLabelText('Início')).toBeNull();
 
-    // Tapping the FAB opens the menu instead of navigating directly.
-    fireEvent.press(screen.getByLabelText('Jogar'));
-    const createOption = await screen.findByLabelText('Criar partida');
-    expect(screen.getByText('Bora jogar?')).toBeTruthy();
-    expect(mockPush).not.toHaveBeenCalled();
+    await act(async () => listeners.keyboardDidHide?.());
+    expect(screen.getByLabelText('Início')).toBeTruthy();
 
-    fireEvent.press(createOption);
-
-    expect(mockPush).toHaveBeenCalledTimes(1);
-    expect(mockPush).toHaveBeenCalledWith('/matches/create');
-  });
-
-  /**
-   * Covers: S5 — Home (Jogar menu)
-   * "Buscar partida" within the menu pushes the explore/search flow.
-   */
-  it('pushes /explore via "Buscar partida" in the Jogar menu', async () => {
-    await render(<TabsLayout />);
-
-    fireEvent.press(screen.getByLabelText('Jogar'));
-    fireEvent.press(await screen.findByLabelText('Buscar partida'));
-
-    expect(mockPush).toHaveBeenCalledTimes(1);
-    expect(mockPush).toHaveBeenCalledWith('/explore');
+    spy.mockRestore();
   });
 
   /**
    * Covers: S5 — Home (tab-bar behavior)
-   * Tapping a non-active tab navigates to that route (the bar drives navigation);
-   * the FAB is NOT a tab route (it pushes, it doesn't navigate).
+   * Tapping a non-active tab navigates to that route (the bar drives navigation).
    */
   it('navigates to a tab route when a non-active tab is tapped', async () => {
     await render(<TabsLayout />);
@@ -207,5 +215,21 @@ describe('S5 — Bottom tab bar + Jogar FAB', () => {
 
     expect(mockNavigate).toHaveBeenCalledWith('explore');
     expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  /**
+   * "Perfil" shows the user's photo in a small circle (Instagram-style); with
+   * no photo it falls back to the regular profile icon.
+   */
+  it('shows the profile photo on the Perfil tab, or the icon without one', async () => {
+    await render(<TabsLayout />);
+    expect(screen.getByTestId('tab-icon-profile')).toBeTruthy();
+    expect(screen.queryByTestId('tab-profile-avatar')).toBeNull();
+
+    mockProfile = { avatarUrl: 'https://cdn.example/me.jpg', firstName: 'Ana' };
+    await render(<TabsLayout />);
+    expect(screen.getByTestId('tab-profile-avatar')).toBeTruthy();
+    expect(screen.getByLabelText('Avatar de Ana')).toBeTruthy();
+    expect(screen.queryByTestId('tab-icon-profile')).toBeNull();
   });
 });

@@ -25,13 +25,19 @@ import { useEffect } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { UpdateGate } from '@/components/domain/UpdateGate';
+import { DialogHost } from '@/components/ui/Dialog';
+import { prefetchProfileTab } from '@/features/profile/api/prefetchProfileTab';
 import { getAccessToken } from '@/lib/auth/getAccessToken';
 import { verifySession } from '@/lib/auth/verifySession';
 import { useAuthStore } from '@/stores/auth';
+import { STACK_OPTIONS } from '@/theme/motion';
 
 SplashScreen.preventAutoHideAsync();
 
-const AUTH_BOOTSTRAP_TIMEOUT_MS = 2000;
+// The hosted test API sleeps when idle and takes up to a minute to answer the
+// first request; a shorter cap sent a valid session to Login while it woke up.
+const AUTH_BOOTSTRAP_TIMEOUT_MS = 60_000;
 
 function timeout(ms: number): Promise<never> {
   return new Promise((_, reject) => {
@@ -42,7 +48,7 @@ function timeout(ms: number): Promise<never> {
 /**
  * Runs the one-shot auth bootstrap: read the stored token, validate it against
  * the backend, and resolve the auth store. Any failure (no token, invalid token,
- * network error, or a >2s stall) falls through to the unauthenticated state so
+ * network error, or a stall past the cap) falls through to the unauthenticated state so
  * the splash can redirect to Login. Reports `ready` once the flow settles.
  */
 async function runAuthBootstrap(): Promise<void> {
@@ -59,7 +65,8 @@ async function runAuthBootstrap(): Promise<void> {
     ]);
     setAuth({
       userId: session.userId,
-      accessToken,
+      // verifySession hands back a new token when the stored one had expired.
+      accessToken: session.accessToken ?? accessToken,
       hasProfile: session.hasProfile,
     });
   } catch {
@@ -110,17 +117,17 @@ export default function RootLayout() {
       // Kick off the one-shot auth bootstrap; the splash route awaits the
       // shared promise to drive its redirect.
       void getAuthBootstrap();
-
-      // DEVELOPMENT: set a mock user if none exists (for testing without real auth)
-      if (!useAuthStore.getState().userId) {
-        useAuthStore.getState().setAuth({
-          userId: 'user-organizer',
-          accessToken: 'mock-dev-token',
-          hasProfile: true,
-        });
-      }
     }
   }, [fontsLoaded]);
+
+  // Signed in with a finished profile (app open or right after login): load the
+  // profile tab's data now, so opening the tab does not start from empty.
+  const signedIn = useAuthStore((s) => s.isAuthenticated && s.hasProfile);
+  useEffect(() => {
+    if (signedIn) {
+      prefetchProfileTab(queryClient);
+    }
+  }, [signedIn]);
 
   if (!fontsLoaded) {
     return null;
@@ -131,7 +138,14 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <StatusBar style="auto" />
-          <Stack screenOptions={{ headerShown: false }} />
+          <Stack screenOptions={STACK_OPTIONS}>
+            {/* Splash → login / tabs swaps the whole app: a fade, not a push. */}
+            <Stack.Screen name="index" options={{ animation: 'fade' }} />
+            <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
+            <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+          </Stack>
+          <UpdateGate />
+          <DialogHost />
         </QueryClientProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

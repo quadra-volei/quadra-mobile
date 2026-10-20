@@ -13,11 +13,9 @@ import { LEVELS } from '@/features/profile/schema/onboarding';
  * `whenType` (+ `customDate` when "Outra data"), Recurring needs `recDays` +
  * `recStart`, and a private match needs an `inviteMode`.
  *
- * ⚠️ Backend alignment gate unchanged from the previous iteration: the real F1.1
- * create-match call is BLOCKED only by the unresolved structured-venue/geo
- * question (the free-text LOCAL field cannot supply it). Everything else ships in
- * the final payload shape. This schema defines the *frontend* shape so the form
- * is buildable/testable now; it asserts no real endpoint. See the S11 spec.
+ * The LOCAL field is free text with address suggestions: picking one also sets
+ * `latitude`/`longitude`; typed text alone is still accepted. The API body is
+ * built from this input by `toApiCreateMatch` (`api/matchesApi.ts`).
  *
  * Enums are reused, not redeclared: `format` mirrors `MatchFormat`
  * (`@/features/matches/types/match`) and `level` mirrors the shared `LEVELS`
@@ -51,13 +49,9 @@ export const MATCH_DURATIONS = [
 ] as const;
 export type MatchDuration = (typeof MATCH_DURATIONS)[number];
 
-/**
- * CONFIRMAÇÕES ABREM preset (hours before match start the confirmation window
- * opens; it closes at match start — implicit, no datetime picker token exists).
- */
-export const CONFIRMATION_OPENS_OPTIONS = [48, 24, 12, 6] as const;
-export type ConfirmationOpensHoursBefore =
-  (typeof CONFIRMATION_OPENS_OPTIONS)[number];
+/** "O jogo vai até quantos pontos?" — one game to these points, win by 2 (API DECISIONS #72). */
+export const GAME_POINTS = [12, 15, 21, 25] as const;
+export const DEFAULT_GAME_POINTS = 25;
 
 /** PRIVACIDADE — Aberta (open) / Privada (private). */
 export const PRIVACY_MODES = ['open', 'private'] as const;
@@ -101,6 +95,9 @@ export const createMatchSchema = z
     name: z.string().trim().min(1, 'Dê um nome à partida'),
     // ── Bloco 2 · local ──
     location: z.string().trim().min(1, 'Informe o local'),
+    // Set when the location was picked from the address search; absent for free text.
+    latitude: z.number().optional(),
+    longitude: z.number().optional(),
     // ── Bloco 3 · tipo + agenda ──
     type: z.enum(MATCH_TYPES),
     // OneOff scheduling
@@ -115,20 +112,14 @@ export const createMatchSchema = z
     duration: z.enum(MATCH_DURATIONS),
     // ── Bloco 4 · formato ──
     format: z.enum(MATCH_FORMATS),
+    gamePoints: z.number().int().min(5).max(50),
     players: z.number().int().min(2, 'Mínimo de 2 jogadores'),
     // ── Bloco 5 · nível ──
     level: z.enum(LEVELS),
     // ── Bloco 6 · valor ──
     price: z.number().min(0), // avulso; 0 ⇒ "Grátis"
     priceMonthly: z.number().min(0), // recorrente (only used when type === 'Recurring')
-    // ── Bloco 7 · confirmações ──
-    confirmationOpensHoursBefore: z.union([
-      z.literal(48),
-      z.literal(24),
-      z.literal(12),
-      z.literal(6),
-    ]),
-    // ── Bloco 8 · privacidade ──
+    // ── Bloco 7 · privacidade ──
     privacy: z.enum(PRIVACY_MODES),
     inviteMode: z.enum(INVITE_MODES).optional(),
   })

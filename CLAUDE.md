@@ -1,147 +1,115 @@
 # CLAUDE.md — Quadra Mobile
 
-> Inviolable rules for every agent working in this repo.
-> Read this before writing a single line of code.
+React Native app of **Quadra**, a volleyball app (match organization, live game, ranking).
+Every screen reads the real API (sibling repo `quadra-api`); there is no mock mode.
 
----
+## Where things are
 
-## Locked stack
+| Need | Read |
+| --- | --- |
+| Which screens are done, pending, out of the MVP | `docs/SCOPE.md` |
+| Why something is the way it is | `docs/DECISIONS.md` (source of truth; backend side in `quadra-api/docs/DECISIONS.md`) |
+| Routing, state, auth, real-time | `docs/ARCHITECTURE.md` |
+| Colors, spacing, typography | `docs/DESIGN_SYSTEM.md` |
+| Existing components (reuse before creating) | `docs/COMPONENTS.md` |
+| Play Store listing and data safety form (draft) | `docs/PLAY_STORE.md` |
 
-| Category | Package | Version |
-|---|---|---|
-| Runtime | expo | ~56.0.9 |
-| Runtime | react | 19.2.3 |
-| Runtime | react-native | 0.85.3 |
-| Routing | expo-router | ~56.2.9 |
-| Styling | nativewind | ^4.2.5 |
-| Styling | tailwindcss | ^3.4.19 |
-| Server state | @tanstack/react-query | ^5.101.0 |
-| Client state | zustand | ^5.0.14 |
-| Auth storage | expo-secure-store | ~56.0.4 |
-| Local prefs storage | @react-native-async-storage/async-storage | 2.2.0 |
-| Image picker | expo-image-picker | ~56.0.18 |
-| Location | expo-location | ~56.0.19 |
-| Date/time picker | @react-native-community/datetimepicker | 9.1.0 |
-| Realtime | @microsoft/signalr | ^8.0.17 |
-| Gestures | react-native-gesture-handler | ~2.31.1 |
-| Animation | react-native-reanimated | 4.3.1 |
-| Worklets | react-native-worklets | ~0.9.2 |
-| Safe area | react-native-safe-area-context | ~5.7.0 |
-| Screens | react-native-screens | 4.25.2 |
-| Maps | react-native-maps | 1.27.2 |
-| SVG | react-native-svg | 15.15.4 |
-| Images | expo-image | ~56.0.10 |
-| Gradients | expo-linear-gradient | ~56.0.4 |
-| Blur (glass chrome) | expo-blur | ~56.0.3 |
-| Icons | lucide-react-native | ^0.475.0 |
-| Forms | react-hook-form | ^7.78.0 |
-| Validation | zod | ^3.25.76 |
-| Form resolvers | @hookform/resolvers | ^3.10.0 |
-| Fonts (local) | expo-font | ~56.0.x |
-| Fonts (Google — UI/body) | @expo-google-fonts/dm-sans | latest |
-| Fonts (Google — mono/labels) | @expo-google-fonts/dm-mono | latest |
-| Fonts (Google — numbers) | @expo-google-fonts/russo-one | latest |
-| Fonts (Google — wordmark only) | @expo-google-fonts/baloo-2 | latest |
+`docs/archive/` is history only (old screen specs from the mocked phase, the four-agent
+workflow) — never treat it as current and do not read it by default.
 
-**Do not add packages not in this list without updating CLAUDE.md first.**
+## Stack (do not change without asking)
 
-> Added per `docs/DESIGN_SYSTEM.md` — Quadra's brand typography (Climate Crisis, Russo One, DM Sans, Baloo 2, DM Mono) replaces the previous system-font default. See "Custom fonts" below.
+`package.json` is the source of truth for versions. Do not add a package without asking.
 
-> `@react-native-async-storage/async-storage` is for **non-secret UI preferences only** (e.g. appearance theme). Auth tokens stay in `expo-secure-store` — rule #3 below is unchanged. `expo-image-picker` was added for S10's "Trocar foto" (avatar selection). `@react-native-community/datetimepicker` was added for S11's create-match date/time selection — the `DateTimePickerField` (`src/components/ui/DateTimePickerField.tsx`) opens the native OS picker widget on tap (Android dialog via `DateTimePickerAndroid.open`; iOS spinner in a bottom-sheet Modal). It is bundled in Expo Go but needs a Dev Client rebuild for standalone/dev-client builds; install via `npx expo install @react-native-community/datetimepicker`. Birth-date fields (S4/S10) keep the typed `DateField` — a picker suits future dates the user selects, not a far-past DOB. `expo-location` was added for S17's map (foreground device location to center the map and supply `lat`/`lon` to F1.7); install via `npx expo install expo-location` to pin the SDK-56-compatible version. `expo-blur` was added for the translucent glass app header (`src/components/ui/GlassHeader.tsx`), matching the prototype's `backdrop-filter` chrome — RN has no `backdrop-filter`, so real backdrop blur needs the native `BlurView`. It requires a Dev Client rebuild. On Android the blur uses `blurMethod="dimezisBlurView"`, which needs an explicit backdrop: each nav screen wraps its scroll content in `<BlurTargetView ref={blurTarget}>` and passes that ref to `GlassHeader` (→ `BlurView`'s `blurTarget`). Without it Android silently falls back to no blur. iOS blurs natively and ignores both props.
+- Expo SDK 56, React Native 0.85, React 19, TypeScript strict
+- Expo Router (file-based, `app/`), NativeWind 4 + Tailwind 3
+- TanStack Query for server state, Zustand for client state
+- React Hook Form + Zod for forms
+- `expo-secure-store` for tokens; AsyncStorage only for non-secret preferences (theme)
+- `@microsoft/signalr` for the live scoreboard, `react-native-maps` + `expo-location` for maps
+- Native Google Sign-In (`@react-native-google-signin/google-signin`); the app only gets a
+  Google ID token and sends it to the backend
+- `expo-file-system/legacy` `uploadAsync` for the profile photo (React Native `fetch` cannot
+  send a local file as a raw body on Android)
+- Tests: Jest (`jest-expo`) + React Native Testing Library, in `tests/`
 
----
-## Package management rules
+Native modules (Google Sign-In, date picker, blur, file system, maps key) need a Dev Client or
+APK build; Expo Go is not enough. Install native deps with `npx expo install <package>`.
+Keep `.npmrc` (`legacy-peer-deps=true`): EAS Build breaks without it.
 
-- The project root has `.npmrc` with `legacy-peer-deps=true`. This is intentional and required for EAS Build compatibility with React 19 + Expo SDK 56+.
-- For native deps, always use `npx expo install <package>` (resolves Expo-compatible version).
-- For pure JS deps (Zod, date-fns, etc.), `npm install <package>` is fine.
-- Do NOT delete `.npmrc` or change `legacy-peer-deps` — it WILL break EAS Build.
-
---- 
-
-## Custom fonts (brand typography)
-
-Quadra's identity uses 5 font families — **not** the system default. See `docs/DESIGN_SYSTEM.md` for the role of each.
-
-| Family | Source | Loaded via |
-| --- | --- | --- |
-| Climate Crisis | Local TTF asset | `expo-font` (`useFonts` with local `require()`) |
-| Russo One | Google Font | `@expo-google-fonts/russo-one` |
-| DM Sans | Google Font | `@expo-google-fonts/dm-sans` |
-| Baloo 2 | Google Font | `@expo-google-fonts/baloo-2` |
-| DM Mono | Google Font | `@expo-google-fonts/dm-mono` |
-
-### Asset location
-
-- Climate Crisis TTF: `assets/fonts/ClimateCrisis-Regular-VariableFont_YEAR.ttf` (copy from the Claude Design prototype's `uploads/` folder)
-
-### Loading pattern
-
-All fonts are loaded once in `app/_layout.tsx`, before rendering any screen (alongside the existing providers):
-
-```tsx
-import { useFonts } from 'expo-font';
-import { DMSans_400Regular, DMSans_600SemiBold, DMSans_700Bold, DMSans_800ExtraBold } from '@expo-google-fonts/dm-sans';
-import { DMMono_400Regular, DMMono_500Medium } from '@expo-google-fonts/dm-mono';
-import { RussoOne_400Regular } from '@expo-google-fonts/russo-one';
-import { Baloo2_600SemiBold } from '@expo-google-fonts/baloo-2';
-
-const [fontsLoaded] = useFonts({
-  'ClimateCrisis-Regular': require('@/assets/fonts/ClimateCrisis-Regular-VariableFont_YEAR.ttf'),
-  DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold, DMSans_800ExtraBold,
-  DMMono_400Regular, DMMono_500Medium,
-  RussoOne_400Regular,
-  Baloo2_600SemiBold,
-});
-```
-
-### Tailwind mapping
-
-Font families are exposed as NativeWind font tokens in `tailwind.config.js` (`font-display`, `font-num`, `font-body`, `font-word`, `font-mono`) per `docs/DESIGN_SYSTEM.md`. Screens reference these tokens — never inline `fontFamily` strings.
-
-> `Climate Crisis` is **display-only and always uppercase** — apply the `uppercase` className wherever `font-display` is used. `Baloo 2` is reserved for the "quadra" wordmark only — never for general UI text.
-
----
-
-## Architecture references
-
-- **Routing**: `docs/ARCHITECTURE.md` — file-based Expo Router
-- **State**: `docs/ARCHITECTURE.md` — TanStack Query (server) + Zustand (client)
-- **Design tokens**: `docs/DESIGN_SYSTEM.md` — all colors, spacing, typography
-- **Components catalog**: `docs/COMPONENTS.md` — reuse before recreating
-- **Screen catalog**: `docs/SCOPE.md` — MVP screens only
-
----
-
-## Non-negotiable rules
-
-1. **All styles via NativeWind** — no `StyleSheet.create` for anything achievable with className
-2. **All design tokens from DESIGN_SYSTEM.md** — no hardcoded hex colors
-3. **Tokens stored in expo-secure-store** — never AsyncStorage
-4. **Server state via TanStack Query** — no raw `useState` for API data
-5. **Forms via React Hook Form + Zod** — no uncontrolled inputs
-6. **API calls in `src/features/<area>/api/`** — screens never call the API directly
-7. **TypeScript strict** — no `any`, no `// @ts-ignore`
-8. **Path alias `@/*`** maps to `src/*`
-
----
-
-## Key scripts
+## Commands
 
 ```bash
-npm run typecheck   # tsc --noEmit — must pass before any PR
-npm run start       # expo start (requires Dev Client)
+npm run typecheck      # must pass before merging
+npm test
+npm run start          # Metro, for a Dev Client
+npx expo start -c      # after changing .env.local
 ```
 
----
+Test APK: see `docs/DECISIONS.md` #36 to #38 (EAS `preview` profile, project owner account;
+never run `eas init`).
 
-## Environment variables (`.env.local`, gitignored)
+## Environment (`.env.local`, gitignored)
 
 ```
-EXPO_PUBLIC_API_URL=https://api.quadra.dev
-EXPO_PUBLIC_COGNITO_REGION=us-east-1
-EXPO_PUBLIC_COGNITO_USER_POOL_ID=
-EXPO_PUBLIC_COGNITO_APP_CLIENT_ID=
+EXPO_PUBLIC_API_URL=https://quadra-api-xj6e.onrender.com
 EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=
 EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=
+EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY=
+EXPO_PUBLIC_PHONE_AUTH=          # "firebase" = phone login through Firebase (DECISIONS #133); empty = API test code
 ```
+
+The URL above is the hosted test API (it sleeps when idle; the first request can take up to a
+minute). For a local backend use an address the device reaches (`http://10.0.2.2:5075` on the
+Android emulator, the machine's LAN IP on a phone). Log in with the test environment's SMS code.
+
+## Branches
+
+- Start every change from `dev` and merge it back into `dev`. Never commit straight to `dev`
+  or `main`.
+- Typecheck and tests must pass before merging.
+- Commit messages in Portuguese, `tipo(area): resumo` (as in `git log`).
+
+## Conventions
+
+1. Styles through NativeWind `className`; no `StyleSheet.create` for what a class can do.
+2. Colors, spacing and fonts only from the tokens in `docs/DESIGN_SYSTEM.md` and
+   `tailwind.config.js`; no hardcoded hex, no inline `fontFamily`.
+3. Fonts are loaded once in `app/_layout.tsx`. `font-display` (Climate Crisis) is always
+   `uppercase`; `font-word` (Baloo 2) is only for the "quadra" wordmark.
+4. API data through TanStack Query hooks in `src/features/<area>/api/`; screens never call the
+   API directly and never keep API data in `useState`.
+5. Forms through React Hook Form + Zod.
+6. No `any`, no `// @ts-ignore`. Path alias `@/*` → `src/*`.
+7. A new reusable component gets an entry in `docs/COMPONENTS.md`.
+8. A behavior change gets a line in `docs/DECISIONS.md` and, if it changes what is done or
+   pending, in `docs/SCOPE.md`.
+
+## Security (every change)
+
+The API is the only authority on who may see or change what; this app never enforces access by
+hiding a button. Shared knowledge (threat model, endpoint matrix, findings) lives outside git in
+the workspace folder `../security/`; the `security-audit` skill and the `security-auditor` agent
+are in the workspace root `.claude/`, outside git (start Claude from the workspace root to use them).
+
+- Tokens only in `expo-secure-store`; never in AsyncStorage, logs, URLs (except the SignalR
+  `access_token` the library needs) or error reports.
+- No `console.log` of tokens, phone numbers, codes or API responses with personal data.
+- Everything shipped in the bundle is public: only `EXPO_PUBLIC_*` values that are safe to expose
+  (the Maps key stays restricted to the package and SHA-1 in Google Cloud).
+- Deep links (`quadra://`) only navigate; any action needs a tap and goes through the API.
+- Only HTTPS API URLs outside local development.
+- A new Android permission or native module is a security change: justify it in `docs/DECISIONS.md`.
+- Never disable a check or test to make something pass; report which checks ran and what was not
+  verified.
+
+## Do NOT
+
+- Do not write secrets or keys in any file. The Maps key comes from the
+  `EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY` build variable; `.env.local` stays out of git.
+- Do not store tokens in AsyncStorage.
+- Do not bring back mocked data, a mock auth shortcut, MSW or any Cognito variable.
+- Do not show invented numbers: where the backend has no data, show the neutral placeholder
+  listed in `docs/SCOPE.md`.
+- Do not build screens or behaviors listed as out of the MVP without asking.
+- When unsure about scope or stack, stop and ask instead of inventing a decision.

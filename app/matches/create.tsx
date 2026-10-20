@@ -36,7 +36,18 @@ import { StepperField } from '@/components/ui/StepperField';
 import { TextField } from '@/components/ui/TextField';
 import { useCreateMatch } from '@/features/matches/api/createMatch';
 import {
-  formatPriceLabel,
+  newPlaceSessionToken,
+  placeLabel,
+  resolvePlace,
+  usePlaceSuggestions,
+  type PlaceSuggestion,
+} from '@/features/matches/api/searchPlaces';
+import MapView, { Marker } from 'react-native-maps';
+
+import { isMapAvailable } from '@/features/matches/lib/isMapAvailable';
+import { useDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
+import { formatPriceLabel } from '@/features/matches/api/matchesApi';
+import {
   resolveMatchStartsAt,
   type CreatedMatch,
 } from '@/features/matches/lib/buildMatchDetail';
@@ -44,6 +55,8 @@ import {
   createMatchSchema,
   isCreateMatchComplete,
   isValidBrDate,
+  DEFAULT_GAME_POINTS,
+  GAME_POINTS,
   MATCH_DURATIONS,
   SUGGESTED_PLAYERS,
   TIME_PRESETS,
@@ -52,7 +65,6 @@ import {
 import type { MatchFormat, MatchLevel } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
 import { useAuthStore } from '@/stores/auth';
-import { useCreatedMatchesStore } from '@/stores/createdMatchesStore';
 
 // ════════════════════════════════════════════════════════════
 // Conversational primitives (inlined — single-use to this flow, mirroring the
@@ -137,9 +149,10 @@ function OptionCard({
     >
       {icon ? (
         <View
-          className={`mb-2 h-10 w-10 items-center justify-center rounded-chip ${
-            selected ? 'bg-primary' : 'bg-primary/10'
-          }`}
+          // The icon turns white when selected, so the blue fill is an inline
+          // style, never a toggled className (DECISIONS #87).
+          className="mb-2 h-10 w-10 items-center justify-center rounded-chip bg-primary/10"
+          style={selected ? { backgroundColor: colors.primary } : undefined}
         >
           {icon}
         </View>
@@ -247,7 +260,7 @@ function CreatedView({ match }: { match: CreatedMatch }) {
         testID="created-recap"
       >
         <Text
-          className="font-body text-h3 text-text-on-dark"
+          className="font-body-extrabold text-h3 text-text-on-dark"
           testID="created-recap-name"
         >
           {input.name}
@@ -270,26 +283,26 @@ function CreatedView({ match }: { match: CreatedMatch }) {
 
         <View className="mt-3 flex-row justify-between">
           <View>
-            <Text className="font-body text-eyebrow text-text-on-dark/60 uppercase">
+            <Text className="font-body-bold text-eyebrow text-text-on-dark/60 uppercase">
               Quando
             </Text>
             <Text
-              className="mt-1 font-body text-body-bold text-text-on-dark"
+              className="mt-1 font-body-semibold text-body-bold text-text-on-dark"
               testID="created-recap-when"
             >
               {formatCreatedWhen(startsAt)}
             </Text>
           </View>
           <View>
-            <Text className="font-body text-eyebrow text-text-on-dark/60 uppercase">
+            <Text className="font-body-bold text-eyebrow text-text-on-dark/60 uppercase">
               Vagas
             </Text>
-            <Text className="mt-1 font-body text-body-bold text-text-on-dark">
+            <Text className="mt-1 font-body-semibold text-body-bold text-text-on-dark">
               {input.players} jogadores
             </Text>
           </View>
           <View>
-            <Text className="font-body text-eyebrow text-text-on-dark/60 uppercase">
+            <Text className="font-body-bold text-eyebrow text-text-on-dark/60 uppercase">
               Valor
             </Text>
             <Text
@@ -336,7 +349,6 @@ function CreatedView({ match }: { match: CreatedMatch }) {
 // CRIAR PARTIDA — formulário vivo (progressive disclosure)
 // ════════════════════════════════════════════════════════════
 export default function CreateMatchScreen() {
-  const addCreatedMatch = useCreatedMatchesStore((s) => s.addCreatedMatch);
   const organizerId = useAuthStore((s) => s.userId);
 
   const createMatch = useCreateMatch();
@@ -352,6 +364,15 @@ export default function CreateMatchScreen() {
   const [created, setCreated] = useState<CreatedMatch | null>(null);
   // LOCAL free-text mirror (bridged into RHF); SearchField is not RHF-native.
   const [location, setLocation] = useState('');
+  // Address search: suggestions follow the typed text until one is picked.
+  const [placePicked, setPlacePicked] = useState(false);
+  const [placeSession] = useState(newPlaceSessionToken);
+  const deviceCoords = useDeviceCoords();
+  const places = usePlaceSuggestions(location, {
+    near: deviceCoords,
+    sessionToken: placeSession,
+    enabled: !placePicked,
+  });
   const [coverUri, setCoverUri] = useState<string | undefined>(undefined);
   const [permissionDenied, setPermissionDenied] = useState(false);
   // "Outro horário" toggles a masked time input inside the schedule block.
@@ -370,6 +391,7 @@ export default function CreateMatchScreen() {
       recStart: '',
       time: '',
       duration: '1h30',
+      gamePoints: DEFAULT_GAME_POINTS,
       players: 0,
       price: 25,
       priceMonthly: 80,
@@ -377,6 +399,8 @@ export default function CreateMatchScreen() {
   });
 
   const values = watch();
+  // Free only when nobody pays: a recurring match also has the regulars' price.
+  const isFree = values.price === 0 && (values.type !== 'Recurring' || !values.priceMonthly);
   const {
     name = '',
     type,
@@ -387,8 +411,8 @@ export default function CreateMatchScreen() {
     time,
     duration,
     format,
+    gamePoints,
     level,
-    confirmationOpensHoursBefore: confirmWin,
     privacy,
     inviteMode,
   } = values;
@@ -408,13 +432,13 @@ export default function CreateMatchScreen() {
   const showFormato = showDuration && !!duration;
   const showNivel = showFormato && !!format;
   const showValor = showNivel && !!level;
-  const showConfirm = showValor;
-  const showPrivacidade = showConfirm && !!confirmWin;
+  // The price has a default, so privacy shows together with it.
+  const showPrivacidade = showValor;
   const showInvite = showPrivacidade && privacy === 'private';
 
   const complete = isCreateMatchComplete(values);
 
-  // Top progress bar — fraction of the 8 conversational steps answered.
+  // Top progress bar — fraction of the 7 conversational steps answered.
   const steps = [
     !!name.trim(),
     locationReady,
@@ -422,7 +446,6 @@ export default function CreateMatchScreen() {
     !!time,
     !!format,
     !!level,
-    !!confirmWin,
     !!privacy,
   ];
   const progress = steps.filter(Boolean).length / steps.length;
@@ -432,9 +455,7 @@ export default function CreateMatchScreen() {
   const blockY = useRef<Record<string, number>>({});
   const focusKey = showPrivacidade
     ? 'privacidade'
-    : showConfirm
-      ? 'confirm'
-      : showValor
+    : showValor
         ? 'valor'
         : showNivel
           ? 'nivel'
@@ -494,6 +515,16 @@ export default function CreateMatchScreen() {
     }
   };
 
+  const pickPlace = async (place: PlaceSuggestion) => {
+    const label = placeLabel(place);
+    setPlacePicked(true);
+    setLocation(label);
+    setValue('location', label, { shouldValidate: true });
+    const coords = await resolvePlace(place, placeSession);
+    setValue('latitude', coords?.latitude);
+    setValue('longitude', coords?.longitude);
+  };
+
   const onSubmit = (formValues: CreateMatchInput) => {
     createMatch.mutate(
       { ...formValues, coverUri },
@@ -507,7 +538,6 @@ export default function CreateMatchScreen() {
             coverUri,
             input: formValues,
           };
-          addCreatedMatch(record);
           setCreated(record);
         },
       },
@@ -600,9 +630,87 @@ export default function CreateMatchScreen() {
                 onChangeText={(t) => {
                   setLocation(t);
                   setValue('location', t, { shouldValidate: true });
+                  // Edited text no longer is the picked venue.
+                  setPlacePicked(false);
+                  setValue('latitude', undefined);
+                  setValue('longitude', undefined);
                 }}
                 testID="match-location"
               />
+              {!placePicked && location.trim().length >= 3 ? (
+                <Text
+                  className="mt-2 font-body text-caption text-text-muted"
+                  testID="place-hint"
+                >
+                  {places.isFetching
+                    ? 'Buscando endereços…'
+                    : places.data && places.data.length > 0
+                      ? 'Escolha um endereço da lista para a partida aparecer no lugar certo do mapa.'
+                      : 'Nenhum endereço encontrado. Tente o nome da rua com o bairro ou a cidade.'}
+                </Text>
+              ) : null}
+              {!placePicked && places.data && places.data.length > 0 ? (
+                <View
+                  className="mt-2 rounded-card bg-white shadow-card"
+                  testID="place-suggestions"
+                >
+                  {places.data.map((place) => (
+                    <Pressable
+                      key={place.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={placeLabel(place)}
+                      onPress={() => void pickPlace(place)}
+                      className="border-b border-line px-4 py-3"
+                      testID={`place-${place.id}`}
+                    >
+                      <Text className="font-body text-body text-text-primary">
+                        {place.title}
+                      </Text>
+                      {place.subtitle ? (
+                        <Text className="font-body text-caption text-text-muted">
+                          {place.subtitle}
+                        </Text>
+                      ) : null}
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+              {/* Picked address: show where the pin landed so a wrong spot is
+                  caught before the match is published. Static map (liteMode). */}
+              {placePicked &&
+              values.latitude != null &&
+              values.longitude != null &&
+              isMapAvailable() ? (
+                <View className="mt-3" testID="place-pin-preview">
+                  <View
+                    pointerEvents="none"
+                    className="h-40 overflow-hidden rounded-card"
+                  >
+                    <MapView
+                      key={`${values.latitude},${values.longitude}`}
+                      liteMode
+                      style={{ flex: 1 }}
+                      initialRegion={{
+                        latitude: values.latitude,
+                        longitude: values.longitude,
+                        latitudeDelta: 0.005,
+                        longitudeDelta: 0.005,
+                      }}
+                    >
+                      <Marker
+                        coordinate={{
+                          latitude: values.latitude,
+                          longitude: values.longitude,
+                        }}
+                      />
+                    </MapView>
+                  </View>
+                  <Text className="mt-2 font-body text-caption text-text-muted">
+                    Confira se o pino está no lugar certo. Se não estiver, busque
+                    de novo com o número ou o nome da quadra.
+                  </Text>
+                </View>
+              ) : null}
             </Reveal>
           </View>
 
@@ -704,14 +812,14 @@ export default function CreateMatchScreen() {
                           accessibilityState={{ selected: on }}
                           accessibilityLabel={`Dia ${i}`}
                           testID={`rec-day-${i}`}
-                          className={`h-10 flex-1 items-center justify-center rounded-chip ${
-                            on ? 'bg-primary' : 'bg-primary/5'
-                          }`}
+                          // Selected colors inline, never a toggled className
+                          // (DECISIONS #87).
+                          className="h-10 flex-1 items-center justify-center rounded-chip bg-primary/5"
+                          style={on ? { backgroundColor: colors.primary } : undefined}
                         >
                           <Text
-                            className={`font-body-bold text-body-bold ${
-                              on ? 'text-text-on-dark' : 'text-text-muted'
-                            }`}
+                            className="font-body-bold text-body-bold text-text-muted"
+                            style={on ? { color: colors.textOnDark } : undefined}
                           >
                             {d}
                           </Text>
@@ -839,6 +947,20 @@ export default function CreateMatchScreen() {
                   />
                 ))}
               </View>
+              <Reveal show={!!format}>
+                <MiniLabel>O jogo vai até quantos pontos?</MiniLabel>
+                <View className="flex-row flex-wrap gap-2">
+                  {GAME_POINTS.map((p) => (
+                    <FilterChip
+                      key={p}
+                      label={`${p} pontos`}
+                      selected={gamePoints === p}
+                      onPress={() => setValue('gamePoints', p, { shouldValidate: true })}
+                      testID={`game-points-${p}`}
+                    />
+                  ))}
+                </View>
+              </Reveal>
             </Reveal>
           </View>
 
@@ -932,57 +1054,29 @@ export default function CreateMatchScreen() {
               </View>
               <View
                 className={`mt-3 flex-row items-start gap-2 rounded-chip p-3 ${
-                  values.price === 0 ? 'bg-accent/20' : 'bg-primary/5'
+                  isFree ? 'bg-accent/20' : 'bg-primary/5'
                 }`}
               >
-                {values.price === 0 ? (
+                {isFree ? (
                   <Heart size={16} color={colors.primary} />
                 ) : (
                   <Users size={16} color={colors.primary} />
                 )}
                 <Text className="flex-1 font-body-bold text-caption text-text-primary">
-                  {values.price === 0
+                  {isFree
                     ? 'Partida gratuita — todo mundo joga de graça!'
-                    : `Cada jogador paga R$ ${values.price}`}
+                    : values.price === 0
+                      ? `Avulso de graça, fixos pagam R$ ${values.priceMonthly}`
+                      : `Cada jogador paga R$ ${values.price}`}
                 </Text>
               </View>
             </Reveal>
           </View>
 
-          {/* ─────────── BLOCO 7 · Confirmações ─────────── */}
-          <View onLayout={onBlockLayout('confirm')}>
-            <Reveal show={showConfirm}>
-              <Question step={7} sub="Quando as vagas abrem pra confirmação.">
-                Abrir confirmações quando?
-              </Question>
-              <View className="flex-row flex-wrap gap-2">
-                {([48, 24, 12, 6] as const).map((h) => (
-                  <FilterChip
-                    key={h}
-                    label={`${h}h`}
-                    selected={confirmWin === h}
-                    onPress={() =>
-                      setValue('confirmationOpensHoursBefore', h, {
-                        shouldValidate: true,
-                      })
-                    }
-                    testID={`confirm-${h}`}
-                  />
-                ))}
-              </View>
-              <Reveal show={!!confirmWin}>
-                <Text className="font-body text-caption text-text-muted">
-                  A galera confirma presença a partir de {confirmWin}h antes do
-                  jogo.
-                </Text>
-              </Reveal>
-            </Reveal>
-          </View>
-
-          {/* ─────────── BLOCO 8 · Privacidade ─────────── */}
+          {/* ─────────── BLOCO 7 · Privacidade ─────────── */}
           <View onLayout={onBlockLayout('privacidade')}>
             <Reveal show={showPrivacidade}>
-              <Question step={8} sub="Quem pode entrar nessa partida?">
+              <Question step={7} sub="Quem pode entrar nessa partida?">
                 Quem pode participar?
               </Question>
               <View className="flex-row gap-3">
@@ -1056,7 +1150,8 @@ export default function CreateMatchScreen() {
               className="mt-4 font-body text-caption text-danger"
               accessibilityLiveRegion="polite"
             >
-              Não foi possível criar a partida. Tente novamente.
+              {createMatch.error?.message ??
+                'Não foi possível criar a partida. Tente novamente.'}
             </Text>
           ) : null}
         </ScrollView>

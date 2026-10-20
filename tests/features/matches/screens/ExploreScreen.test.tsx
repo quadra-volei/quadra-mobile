@@ -9,7 +9,7 @@
  *    Todos selected by default; selecting a functional chip (Perto/Iniciante/6x6)
  *    updates the highlight + filtered results; "Hoje" toggles highlight but is a
  *    documented no-op (result set unchanged).
- *  - Inline map preview with "N jogos ao vivo" badge + STATIC venue card with
+ *  - Inline map preview with "N jogos por perto" badge + STATIC venue card with
  *    "Ver" CTA; tapping preview / badge / "Ver" navigates to /explore/map (S17).
  *  - "N partidas encontradas" count reflects current filtered length + updates.
  *  - Grade/Lista toggle switches 2-col grid <-> 1-col list of the same MatchCards.
@@ -85,7 +85,17 @@ jest.mock('lucide-react-native', () => {
     LayoutGrid: stub('layout-grid'),
     List: stub('list'),
     Users: stub('users'),
+    SlidersHorizontal: stub('sliders'),
   };
+});
+
+// react-native-maps -> View stubs (the Explore mini map).
+jest.mock('react-native-maps', () => {
+  const ReactLocal = require('react');
+  const { View } = require('react-native');
+  const stub = ({ children, ...props }: any) =>
+    ReactLocal.createElement(View, props, children);
+  return { __esModule: true, default: stub, Marker: stub };
 });
 
 // expo-router: spyable router.push + useFocusEffect (used by
@@ -117,6 +127,7 @@ const NEARBY_FIXTURE: NearbyMatch[] = [
     confirmed: 6,
     capacity: 8,
     priceLabel: 'R$ 25',
+    price: 25,
     tint: '#1A1AFF',
     lat: -23.5605,
     lon: -46.6433,
@@ -130,6 +141,7 @@ const NEARBY_FIXTURE: NearbyMatch[] = [
     confirmed: 9,
     capacity: 12,
     priceLabel: 'Grátis',
+    price: null,
     tint: '#00B4D8',
     lat: -23.5731,
     lon: -46.6289,
@@ -143,6 +155,7 @@ const NEARBY_FIXTURE: NearbyMatch[] = [
     confirmed: 2,
     capacity: 12,
     priceLabel: 'R$ 18',
+    price: 18,
     tint: '#AADD00',
     lat: -23.5489,
     lon: -46.6588,
@@ -326,115 +339,88 @@ describe('S6 — Explore screen', () => {
   });
 
   // --------------------------------------------------------------- filter chips
-  /**
-   * Covers: S6 — Explore
-   * Criterion: "A horizontal selectable filter-chip row renders exactly
-   *  'Todos / Perto / Hoje / Iniciante / 6x6'; 'Todos' is selected by default."
-   */
-  it('renders exactly the five filter chips with Todos selected by default', async () => {
+  it('renders the Filtros button and the quick chips, none selected by default', async () => {
     await render(<ExploreScreen />);
 
-    for (const label of ['Todos', 'Perto', 'Hoje', 'Iniciante', '6x6']) {
-      expect(screen.getByText(label)).toBeTruthy();
+    expect(screen.getByLabelText('Filtros')).toBeTruthy();
+    for (const label of ['Hoje', 'Fim de semana', 'Com vaga', 'Grátis', 'Iniciante', '6x6']) {
+      expect(selectedOfChip(label)).toBe(false);
     }
-
-    // "Todos" is the active chip; the others are not.
-    expect(selectedOfChip('Todos')).toBe(true);
-    expect(selectedOfChip('Perto')).toBe(false);
-    expect(selectedOfChip('Hoje')).toBe(false);
-    expect(selectedOfChip('Iniciante')).toBe(false);
-    expect(selectedOfChip('6x6')).toBe(false);
   });
 
-  /**
-   * Covers: S6 — Explore
-   * Criterion: "selecting a chip always updates the highlighted chip. Selecting a
-   *  functional chip (Iniciante) updates the filtered results."
-   */
   it('filters to INICIANTE matches and highlights the chip when "Iniciante" is selected', async () => {
     await render(<ExploreScreen />);
 
-    await press(screen.getByText('Iniciante'));
+    // [0] is the chip; the level badge of a card carries the same text
+    await press(screen.getAllByText('Iniciante')[0]!);
 
-    // highlight moved
     expect(selectedOfChip('Iniciante')).toBe(true);
-    expect(selectedOfChip('Todos')).toBe(false);
-
-    // only the INICIANTE-level match remains
     expect(screen.getByText('Quadra do Parque')).toBeTruthy();
     expect(screen.queryByText('Arena Sky Beach')).toBeNull();
     expect(screen.queryByText('Centro Olímpico')).toBeNull();
     expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
+    // the quick chip counts as an active filter on the Filtros button
+    expect(screen.getByLabelText('Filtros, 1 ativos')).toBeTruthy();
   });
 
-  /**
-   * Covers: S6 — Explore
-   * Criterion: "Selecting a functional chip (6x6) updates the filtered results."
-   */
-  it('filters to 6X6 matches when "6x6" is selected', async () => {
+  it('combines quick chips: 6x6 + Grátis leaves only the free 6X6 match', async () => {
     await render(<ExploreScreen />);
 
     await press(screen.getByText('6x6'));
+    expect(screen.getByText('2 partidas encontradas')).toBeTruthy();
 
-    expect(selectedOfChip('6x6')).toBe(true);
-    // both 6X6 fixtures remain; the 4X4 one drops out
+    await press(screen.getAllByText('Grátis')[0]!);
+    expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
     expect(screen.getByText('Quadra do Parque')).toBeTruthy();
-    expect(screen.getByText('Centro Olímpico')).toBeTruthy();
-    expect(screen.queryByText('Arena Sky Beach')).toBeNull();
+
+    // tapping again turns it off
+    await press(screen.getAllByText('Grátis')[0]!);
     expect(screen.getByText('2 partidas encontradas')).toBeTruthy();
   });
 
-  /**
-   * Covers: S6 — Explore
-   * Criterion: "Selecting a functional chip (Perto) updates the filtered
-   *  results." — "Perto" sorts by proximity (nearest first) keeping all matches.
-   */
-  it('keeps all matches but reorders nearest-first when "Perto" is selected', async () => {
+  it('lists nearest first by default', async () => {
     await render(<ExploreScreen />);
 
-    await press(screen.getByText('Perto'));
-
-    expect(selectedOfChip('Perto')).toBe(true);
-    // count unchanged (sort, not filter)
-    expect(screen.getByText('3 partidas encontradas')).toBeTruthy();
-
-    // nearest-first order: Quadra do Parque (1,2) < Centro Olímpico (2,6) < Arena (3,4)
-    const cards = screen.getAllByText(
-      /Arena Sky Beach|Quadra do Parque|Centro Olímpico/,
-    );
-    const order = cards.map((c) => c.props.children);
-    expect(order).toEqual([
-      'Quadra do Parque',
-      'Centro Olímpico',
-      'Arena Sky Beach',
-    ]);
+    const order = screen
+      .getAllByText(/^(Arena Sky Beach|Quadra do Parque|Centro Olímpico)$/)
+      .map((c) => c.props.children);
+    expect(order).toEqual(['Quadra do Parque', 'Centro Olímpico', 'Arena Sky Beach']);
   });
 
-  /**
-   * Covers: S6 — Explore
-   * Criterion: "'Hoje' is a documented no-op this iteration ... and does not
-   *  change the result set." — highlight toggles, result set is unchanged.
-   */
-  it('toggles the "Hoje" highlight but does not change the result set (no-op)', async () => {
+  it('applies the filter sheet only on "Ver", counting results live', async () => {
     await render(<ExploreScreen />);
 
-    await press(screen.getByText('Hoje'));
+    await press(screen.getByLabelText('Filtros'));
+    expect(screen.getByTestId('explore-filter-sheet')).toBeTruthy();
+    expect(screen.getByText('Ver 3 partidas')).toBeTruthy();
 
-    // highlight moved
-    expect(selectedOfChip('Hoje')).toBe(true);
-    expect(selectedOfChip('Todos')).toBe(false);
-
-    // result set identical to the default (all three matches)
-    expect(screen.getByText('Arena Sky Beach')).toBeTruthy();
-    expect(screen.getByText('Quadra do Parque')).toBeTruthy();
-    expect(screen.getByText('Centro Olímpico')).toBeTruthy();
+    // the sheet's chips render last (after the cards' level badges)
+    await press(screen.getAllByText('Avançado').at(-1)!);
+    expect(screen.getByText('Ver 1 partida')).toBeTruthy();
+    // nothing applied on screen yet
     expect(screen.getByText('3 partidas encontradas')).toBeTruthy();
+
+    await press(screen.getByText('Ver 1 partida'));
+    expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
+    expect(screen.getByText('Centro Olímpico')).toBeTruthy();
+    expect(screen.getByLabelText('Filtros, 1 ativos')).toBeTruthy();
+  });
+
+  it('filters by distance from the sheet', async () => {
+    await render(<ExploreScreen />);
+
+    await press(screen.getByLabelText('Filtros'));
+    await press(screen.getByText('Até 2 km'));
+    await press(screen.getByText('Ver 1 partida'));
+
+    expect(screen.getByText('Quadra do Parque')).toBeTruthy();
+    expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
   });
 
   // --------------------------------------------------------------- map preview
   /**
    * Covers: S6 — Explore
-   * Criterion: "An inline map preview renders with a 'N jogos ao vivo' badge and a
+   * Criterion: "An inline map preview renders with a 'N jogos por perto' badge and a
    *  floating selected-venue card with a 'Ver' CTA."
    */
   it('renders the map preview with a live-games badge and a static venue card + Ver CTA', async () => {
@@ -443,10 +429,10 @@ describe('S6 — Explore screen', () => {
     // preview surface is an accessible button
     expect(screen.getByLabelText('Abrir mapa de partidas')).toBeTruthy();
     // live-games badge (count reflects loaded list = 3)
-    expect(screen.getByText('3 jogos ao vivo')).toBeTruthy();
+    expect(screen.getByText('3 jogos por perto')).toBeTruthy();
     // static venue card copy + Ver CTA
-    expect(screen.getByText('Beach Vôlei SP')).toBeTruthy();
-    expect(screen.getByText('★ 4.9 (341) · 3,4 km · R$ 40')).toBeTruthy();
+    // The card features the closest match of the list (Quadra do Parque, 1,2 km).
+    expect(screen.getByText('1,2 km · Grátis')).toBeTruthy();
     expect(screen.getByText('Ver')).toBeTruthy();
   });
 
@@ -485,7 +471,8 @@ describe('S6 — Explore screen', () => {
 
     expect(screen.getByText('3 partidas encontradas')).toBeTruthy();
 
-    await press(screen.getByText('Iniciante'));
+    // [0] is the chip; the level badge of a card carries the same text
+    await press(screen.getAllByText('Iniciante')[0]!);
     expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
   });
 
@@ -528,7 +515,7 @@ describe('S6 — Explore screen', () => {
     expect(screen.getByText('Arena Sky Beach')).toBeTruthy();
     // dark-card meta (format/level pills + distance) confirms it's the MatchCard
     expect(screen.getByText('4X4')).toBeTruthy();
-    expect(screen.getByText('INTERMEDIARIO')).toBeTruthy();
+    expect(screen.getByText('Intermediário')).toBeTruthy();
     // distance rendered with pt-BR comma (also present in the card meta)
     expect(screen.getAllByText('3,4 km').length).toBeGreaterThan(0);
   });
@@ -635,7 +622,7 @@ describe('S6 — Explore screen', () => {
     expect(input.props.value).toBe('');
     expect(screen.getByText('Arena Sky Beach')).toBeTruthy();
     expect(screen.getByText('3 partidas encontradas')).toBeTruthy();
-    expect(selectedOfChip('Todos')).toBe(true);
+    expect(selectedOfChip('Hoje')).toBe(false);
   });
 
   /**
@@ -665,7 +652,7 @@ describe('S6 — Explore screen', () => {
     expect(mockNearby.lastParams).toEqual({
       lat: -23.55,
       lon: -46.63,
-      radiusKm: 5,
+      radiusKm: 50,
     });
     expect(screen.queryByText(/permiss[ãa]o/i)).toBeNull();
     expect(screen.queryByText(/localiza[çc][ãa]o/i)).toBeNull();
@@ -692,7 +679,8 @@ describe('S6 — Explore screen', () => {
  * descendant, so we walk up to the nearest node exposing accessibilityState.
  */
 function selectedOfChip(label: string): boolean | undefined {
-  let node: any = screen.getByText(label);
+  // [0]: the chips render above the cards, whose level badge can repeat a label.
+  let node: any = screen.getAllByText(label)[0];
   while (node) {
     const state = node.props?.accessibilityState;
     if (state && 'selected' in state) return state.selected;

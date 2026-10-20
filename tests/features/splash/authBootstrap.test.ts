@@ -8,7 +8,8 @@
  *  - valid token + no profile        -> store authenticated, hasProfile false
  *  - no token                        -> store cleared (login path), no auth/me call
  *  - failed GET /api/v1/auth/me       -> store cleared (login path)
- *  - >2s stall                       -> resolves via the 2s timeout, store cleared
+ *  - stall past the 60s cap          -> resolves via the timeout, store cleared
+ *  - slow answer (server waking up)  -> still authenticates
  */
 
 // Keep app/_layout's module init free of native side-effects. Only getAuthBootstrap
@@ -22,11 +23,9 @@ jest.mock('react-native-gesture-handler', () => {
   const { View } = require('react-native');
   return { GestureHandlerRootView: ({ children }: any) => ReactLocal.createElement(View, null, children) };
 });
-jest.mock('react-native-reanimated', () => ({
-  __esModule: true,
-  default: { createAnimatedComponent: (c: unknown) => c },
-  createAnimatedComponent: (c: unknown) => c,
-}));
+jest.mock('react-native-reanimated', () =>
+  jest.requireActual('../../__mocks__/react-native-reanimated'),
+);
 jest.mock('expo-font', () => ({ useFonts: () => [true] }));
 
 const mockGetAccessToken = jest.fn();
@@ -128,11 +127,10 @@ describe('getAuthBootstrap', () => {
 
   /**
    * Covers: S1 — Splash
-   * Criterion: "The splash never stays visible longer than 2 seconds before
-   *  redirecting." A stalled verifySession must lose the 2s Promise.race and
+   * A session check that never answers must lose the 60s Promise.race and
    *  the bootstrap must still settle into the unauthenticated (login) state.
    */
-  it('resolves via the 2s timeout (cleared auth) when auth/me stalls', async () => {
+  it('resolves via the 60s timeout (cleared auth) when the session check stalls', async () => {
     jest.useFakeTimers();
     mockGetAccessToken.mockResolvedValue('valid-token');
     mockVerifySession.mockReturnValue(new Promise(() => {})); // never settles
@@ -141,10 +139,32 @@ describe('getAuthBootstrap', () => {
 
     // Let getAccessToken's microtask resolve, then trip the 2s timeout.
     await Promise.resolve();
-    await jest.advanceTimersByTimeAsync(2000);
+    await jest.advanceTimersByTimeAsync(60_000);
     await promise;
 
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
+    jest.useRealTimers();
+  });
+
+  /**
+   * DECISIONS #44: a server that takes long to wake up (well past the old 2s
+   * cap) must not send a valid session to Login.
+   */
+  it('still authenticates when the session check answers after 30s', async () => {
+    jest.useFakeTimers();
+    mockGetAccessToken.mockResolvedValue('valid-token');
+    mockVerifySession.mockReturnValue(
+      new Promise((resolve) => {
+        setTimeout(() => resolve({ userId: 'u1', hasProfile: true }), 30_000);
+      }),
+    );
+
+    const promise = loadGetAuthBootstrap()();
+    await Promise.resolve();
+    await jest.advanceTimersByTimeAsync(30_000);
+    await promise;
+
+    expect(useAuthStore.getState().isAuthenticated).toBe(true);
     jest.useRealTimers();
   });
 

@@ -8,9 +8,6 @@ import type { PlayerPosition } from '@/features/matches/types/matchDetail';
  * The organizer taps an open "vaga" slot on the match detail grid and adds a
  * guest player (someone with no app account) to fill it. A guest needs only a
  * name; the court position is optional so the team draw (S13) can place them.
- *
- * TODO(real-api): once F1.4 presence lands, the backend owns guest id
- * generation and roster placement behind the unchanged `useAddGuest` signature.
  */
 
 // Compile-time guard: keep this list in lockstep with the PlayerPosition union

@@ -1,6 +1,7 @@
 import { ChevronRight, Volleyball } from 'lucide-react-native';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
+import { PressableScale } from '@/components/ui/PressableScale';
 import type { RecentMatch } from '@/features/profile/types/profile';
 import { colors } from '@/theme/colors';
 
@@ -13,12 +14,14 @@ export type MatchHistoryRowProps = {
 const RESULT_LABEL: Record<RecentMatch['result'], string> = {
   VITORIA: 'VITÓRIA',
   DERROTA: 'DERROTA',
+  EMPATE: 'EMPATE',
 };
 
 // Win → success (green), Loss → danger (red). NativeWind tokens, no inline hex.
 const RESULT_CLASS: Record<RecentMatch['result'], string> = {
   VITORIA: 'text-success',
   DERROTA: 'text-danger',
+  EMPATE: 'text-text-muted',
 };
 
 /**
@@ -58,7 +61,7 @@ export function MatchHistoryRow({ match, onPress, testID }: MatchHistoryRowProps
   const subtitle = `${formatPlayedAt(match.playedAt)} · ${match.format}`;
 
   return (
-    <Pressable
+    <PressableScale
       onPress={() => onPress(match.id)}
       testID={testID}
       accessibilityRole="button"
@@ -70,7 +73,7 @@ export function MatchHistoryRow({ match, onPress, testID }: MatchHistoryRowProps
       </View>
 
       <View className="flex-1 ml-3">
-        <Text className="font-body text-body-bold text-text-primary" numberOfLines={1}>
+        <Text className="font-body-semibold text-body-bold text-text-primary" numberOfLines={1}>
           {match.name}
         </Text>
         <Text className="font-body text-caption text-text-muted">{subtitle}</Text>
@@ -84,6 +87,6 @@ export function MatchHistoryRow({ match, onPress, testID }: MatchHistoryRowProps
       </View>
 
       <ChevronRight size={20} color={colors.textMuted} />
-    </Pressable>
+    </PressableScale>
   );
 }

@@ -1,8 +1,6 @@
 // Match-detail domain types consumed by the S12 Match Detail screen and the
-// mocked read/write hooks (src/features/matches/api/getMatchDetail.ts,
-// presence.ts, updateTeamConfig.ts). These payload/type shapes are FINAL — only
-// the transport is mocked this iteration — so the real F1.2 / F1.3 / F1.4
-// payloads can slot in unchanged behind the hook signatures. No `any`.
+// matches hooks (src/features/matches/api/*), which map the backend payloads
+// into them. No `any`.
 
 import type { MatchFormat, MatchLevel } from '@/features/matches/types/match';
 
@@ -62,7 +60,7 @@ export type MatchOrganizer = {
   level?: number;
 };
 
-/** Organizer team-configuration defaults (read for S12, carried into S13). */
+/** Team-configuration defaults the organizer starts from on S13. */
 export type TeamConfig = {
   teamCount: 2 | 3 | 4;
   perTeam: number;
@@ -80,14 +78,19 @@ export type MatchDetail = {
   format: MatchFormat;
   level: MatchLevel;
   venue: string;
-  /** "1,2 km" rendered with a comma decimal. */
-  distanceKm: number;
+  /** Where the match is; the screen works out the distance from the device. */
+  lat: number;
+  lon: number;
   /** Hex tint the hero cover gradient runs from (tint → navy). */
   tint: string;
+  /** The cover the organizer uploaded; without one the hero is the tinted court. */
+  coverUrl?: string;
   /** "R$ 25" | "Grátis" — the per-session (avulso) price. */
   priceLabel: string;
   /** Whether the match charges per session only, or also on a monthly plan. */
   pricePlan: PricePlan;
+  /** A recurring game (scores in its group ranking), whatever its prices. */
+  recurring?: boolean;
   /** "R$ 50" — the monthly price; present only when pricePlan is RECORRENTE. */
   priceMonthlyLabel?: string;
   /** Total slots; PresenceGrid renders empties beyond confirmed as "vaga". */
@@ -95,6 +98,11 @@ export type MatchDetail = {
 
   /** ISO timestamp the match starts at (drives the "Começa em …" countdown). */
   startsAt: string;
+  /**
+   * ISO timestamp confirmations open at — present only while they have not
+   * opened yet (drives "Confirmações abrem em …" and disables confirming).
+   */
+  confirmationOpensAt?: string;
   /** ISO timestamp confirmations close at (drives "Confirmações fecham em …"). */
   confirmationClosesAt: string;
   /** Whether the confirmation window has already closed. */
@@ -115,4 +123,27 @@ export type MatchDetail = {
 
   /** Organizer team-config defaults (carried into S13). */
   teamConfig: TeamConfig;
+
+  /** A non-participant may take a slot now (a full match queues them). */
+  canJoin?: boolean;
+  /** Private match joined by code: the join CTA asks for the code first. */
+  requiresInviteCode?: boolean;
+  /** The invite code of a private match — only the organizer receives it. */
+  inviteCode?: string;
+  /** The current user's place in the waiting list, when queued. */
+  myWaitingListPosition?: number | null;
+  /** Where the game is; null/absent until the organizer starts it. */
+  game?: MatchGameStage | null;
+  /** The organizer cancelled the match. */
+  cancelled?: boolean;
+  /** The caller organizes it and it can still be edited or cancelled (before the game). */
+  editable?: boolean;
 };
+
+/**
+ * The step of the game a match is at, which decides where its CTA leads:
+ * - LIVE — being played (live scoreboard);
+ * - VOTING — over, MVP voting open;
+ * - SUMMARY — the organizer generated the summary.
+ */
+export type MatchGameStage = 'LIVE' | 'VOTING' | 'SUMMARY';

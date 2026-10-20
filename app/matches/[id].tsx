@@ -1,22 +1,24 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
 import {
+  Banknote,
   Calendar,
   Check,
   ChevronLeft,
-  Hand,
   MapPin,
+  Megaphone,
+  Navigation,
+  Pencil,
   Play,
   Share2,
+  Trophy,
+  XCircle,
   UserPlus,
-  Users,
-  Volleyball,
-  WandSparkles,
-  Zap,
 } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Linking, Pressable, ScrollView, Share, Text, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AddGuestSheet } from '@/components/domain/AddGuestSheet';
@@ -24,60 +26,73 @@ import { PresenceGrid } from '@/components/domain/PresenceGrid';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { CourtImage } from '@/components/ui/CourtImage';
-import { FilterChip } from '@/components/ui/FilterChip';
-import { StepperField } from '@/components/ui/StepperField';
+import { dialog } from '@/components/ui/Dialog';
+import { PressableScale } from '@/components/ui/PressableScale';
+import { TextField } from '@/components/ui/TextField';
+import { TabIndicator, TabLabel } from '@/components/ui/UnderlineTab';
 import { useAddGuest } from '@/features/matches/api/addGuest';
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
+import { useShareMatch } from '@/features/network/api/postsApi';
+import { useCancelMatch } from '@/features/matches/api/editMatch';
+import { distanceKm } from '@/features/matches/lib/distanceKm';
+import { formatWhen } from '@/features/matches/lib/formatWhen';
+import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
+import { useDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
 import {
   useConfirmPresence,
   useDeclinePresence,
   useJoinMatch,
 } from '@/features/matches/api/presence';
 import type { AddGuestInput } from '@/features/matches/schema/addGuest';
-import type { MatchLevel } from '@/features/matches/types/match';
 import type {
-  DrawMode,
   MatchDetail,
   PlayerPosition,
 } from '@/features/matches/types/matchDetail';
+import { inviteLink } from '@/lib/inviteLink';
 import { useAuthStore } from '@/stores/auth';
 import { colors, COVER_SCRIM, COVER_SCRIM_LOCATIONS } from '@/theme/colors';
-import { LEVEL_LEGEND } from '@/theme/levelTier';
+import { ICON_HIT_SLOP } from '@/theme/layout';
+import { MOTION } from '@/theme/motion';
 
 // ── Pure label maps (token-free; presentational copy) ──
-const LEVEL_LABEL: Record<MatchLevel, string> = {
-  INICIANTE: 'Iniciante',
-  INTERMEDIARIO: 'Intermediário',
-  AVANCADO: 'Avançado',
-};
-
 const POSITION_LABEL: Record<PlayerPosition, string> = {
   LEV: 'Levantador',
   PON: 'Ponteiro',
   OPO: 'Oposto',
   CEN: 'Central',
   LIB: 'Líbero',
-  COR: 'Corredor',
+  COR: 'Coringa',
 };
 
 /** Cover height; the hero bleeds under the status bar, as in the prototype. */
-const HERO_HEIGHT = 270;
-
-/** Only a hint of the open slots is shown, however empty the match is. */
-const MAX_VAGA_SLOTS = 3;
+const HERO_HEIGHT = 210;
 
 /** "1,2 km" — comma decimal, mirroring MatchCard. */
 function formatDistance(distanceKm: number): string {
   return `${distanceKm.toFixed(1).replace('.', ',')} km`;
 }
 
+/** "1h 30min" / "45min". */
+function formatDuration(diffMs: number): string {
+  const totalMinutes = Math.floor(diffMs / 60_000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return hours > 0 ? `${hours}h ${minutes}min` : `${minutes}min`;
+}
+
 /**
  * Pure countdown formatter over the match timestamps. Injecting `now` keeps the
- * output deterministic under test. When the confirmation window is still open it
- * counts down to the window close ("Confirmações fecham em …"); once closed it
- * counts down to game start ("Começa em …").
+ * output deterministic under test. Before the confirmation window opens it
+ * counts down to the opening ("Confirmações abrem em …"); while it is open, to
+ * the close ("Confirmações fecham em …"); once closed, to game start ("Começa
+ * em …").
  */
 export function formatCountdown(match: MatchDetail, now: Date): string {
+  if (match.confirmationOpensAt) {
+    const opensIn = new Date(match.confirmationOpensAt).getTime() - now.getTime();
+    if (opensIn > 0) return `Confirmações abrem em ${formatDuration(opensIn)}`;
+  }
+
   const target = match.confirmationWindowClosed
     ? new Date(match.startsAt)
     : new Date(match.confirmationClosesAt);
@@ -91,119 +106,64 @@ export function formatCountdown(match: MatchDetail, now: Date): string {
       ? 'A partida já começou'
       : 'Confirmações encerradas';
   }
-
-  const totalMinutes = Math.floor(diffMs / 60_000);
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  const time = hours > 0 ? `${hours}h ${minutes}min` : `${minutes}min`;
-  return `${prefix} ${time}`;
-}
-
-/** "Hoje · 19h30" style label for the QUANDO cell. */
-function formatWhen(startsAt: string): string {
-  const date = new Date(startsAt);
-  const hh = date.getHours().toString().padStart(2, '0');
-  const mm = date.getMinutes().toString().padStart(2, '0');
-  const today = new Date();
-  const sameDay =
-    date.getFullYear() === today.getFullYear() &&
-    date.getMonth() === today.getMonth() &&
-    date.getDate() === today.getDate();
-  const dayLabel = sameDay
-    ? 'Hoje'
-    : `${date.getDate().toString().padStart(2, '0')}/${(date.getMonth() + 1)
-        .toString()
-        .padStart(2, '0')}`;
-  return `${dayLabel} · ${hh}h${mm}`;
+  return `${prefix} ${formatDuration(diffMs)}`;
 }
 
 // ── Inline single-use pieces (not extracted, per the catalog's one-off rule) ──
 
-/** One icon + label + value cell of the 2×2 metadata grid. */
-function InfoCell({
+/**
+ * One line of the essentials block under the cover (when / where / price /
+ * organizer): leading icon, the content, and an optional trailing action.
+ */
+function InfoRow({
   icon,
-  label,
-  value,
+  children,
+  trailing,
 }: {
   icon: ReactNode;
-  label: string;
-  value: string;
+  children: ReactNode;
+  trailing?: ReactNode;
 }) {
   return (
-    <View className="mb-4 w-1/2 flex-row items-center gap-3 pr-2">
-      <View className="w-6 items-center">{icon}</View>
-      <View className="flex-1">
-        <Text className="font-body-semibold text-eyebrow text-text-muted uppercase">
-          {label}
-        </Text>
-        <Text className="font-body-semibold text-body-bold text-text-primary">
-          {value}
-        </Text>
-      </View>
+    <View className="flex-row items-center gap-3 border-b border-line py-3">
+      <View className="w-8 items-center">{icon}</View>
+      <View className="flex-1">{children}</View>
+      {trailing}
     </View>
   );
 }
 
 /**
- * One price of the VALORES section. `accent` marks the plan the match is billed
- * on (the recurring one), which the prototype highlights in primary. "Grátis"
- * reads in `success` rather than the neutral price color.
+ * One of the two tabs under the cover ("Detalhes" / "Confirmados"). No press
+ * background: the underline sliding under it (TabIndicator) is the feedback.
  */
-function PriceTile({
-  label,
-  value,
-  accent,
+function TabButton({
+  selected,
+  onPress,
+  children,
   testID,
 }: {
-  label: string;
-  value: string;
-  accent?: boolean;
-  testID?: string;
+  selected: boolean;
+  onPress: () => void;
+  children: ReactNode;
+  testID: string;
 }) {
-  const isFree = value === 'Grátis';
-  const valueColor = isFree
-    ? 'text-success'
-    : accent
-      ? 'text-primary'
-      : 'text-surface-dark';
   return (
-    <View
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected }}
+      onPress={onPress}
       testID={testID}
-      className={`flex-1 rounded-chip border p-3 ${
-        accent ? 'border-primary bg-primary/5' : 'border-line bg-white'
-      }`}
+      className="flex-1 items-center pt-3 pb-[14px]"
     >
-      <Text
-        className={`font-body-bold text-eyebrow uppercase ${
-          accent ? 'text-primary' : 'text-text-muted'
-        }`}
+      <TabLabel
+        selected={selected}
+        activeColor={colors.primary}
+        className="font-body-semibold text-body-bold text-text-muted"
       >
-        {label}
-      </Text>
-      <Text className={`mt-1 font-num text-h1 ${valueColor}`}>{value}</Text>
-    </View>
-  );
-}
-
-/** Explains the tier-colored level "bolinha" carried by each grid avatar. */
-function LevelLegend() {
-  return (
-    <View
-      testID="level-legend"
-      className="mt-2 flex-row flex-wrap gap-x-3 gap-y-2 border-t border-line pt-3"
-    >
-      {LEVEL_LEGEND.map((tier) => (
-        <View key={tier.label} className="flex-row items-center gap-2">
-          <View
-            className="h-2 w-2 rounded-full"
-            style={{ backgroundColor: tier.color }}
-          />
-          <Text className="font-body text-caption text-text-muted">
-            {tier.label}
-          </Text>
-        </View>
-      ))}
-    </View>
+        {children}
+      </TabLabel>
+    </Pressable>
   );
 }
 
@@ -237,7 +197,7 @@ function MatchDetailSkeleton() {
   return (
     <View className="flex-1 bg-white" testID="match-detail-skeleton">
       <View className="bg-bg-light-alt" style={{ height: HERO_HEIGHT }} />
-      <View className="mx-5 mt-6 h-24 rounded-card bg-bg-light-alt" />
+      <View className="mx-5 mt-6 h-40 rounded-card bg-bg-light-alt" />
       <View className="mx-5 mt-6 h-40 rounded-card bg-bg-light-alt" />
     </View>
   );
@@ -262,36 +222,30 @@ function MatchDetailError({ onRetry }: { onRetry: () => void }) {
 }
 
 export default function MatchDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, c } = useLocalSearchParams<{ id: string; c?: string }>();
   const matchId = id ?? '';
   const userId = useAuthStore((s) => s.userId);
   const insets = useSafeAreaInsets();
 
-  const matchQuery = useMatchDetail(matchId);
+  // An invite link brings the code of a private match (app/p/[id].tsx).
+  const linkCode = c?.trim().toUpperCase() || undefined;
+  const matchQuery = useMatchDetail(matchId, linkCode);
+  const deviceCoords = useDeviceCoords();
   const confirmPresence = useConfirmPresence(matchId);
   const declinePresence = useDeclinePresence(matchId);
   const joinMatch = useJoinMatch(matchId);
   const addGuest = useAddGuest(matchId);
+  const shareMatch = useShareMatch();
+  const cancelMatch = useCancelMatch(matchId);
+
+  // Invite code typed by someone joining a private match.
+  const [inviteCode, setInviteCode] = useState(linkCode ?? '');
 
   // Organizer "add guest to fill a vaga" sheet (S12).
   const [guestSheetOpen, setGuestSheetOpen] = useState(false);
 
-  // Organizer team-config — ephemeral local UI state (not API data; not RHF).
-  // Defaults come from the payload once it resolves; seeded lazily on first read.
-  const [teamCount, setTeamCount] = useState<2 | 3 | 4>(2);
-  const [perTeam, setPerTeam] = useState<number>(4);
-  const [drawMode, setDrawMode] = useState<DrawMode>('MANUAL');
-  const [configSeeded, setConfigSeeded] = useState(false);
-
-  // Seed the team-config from the payload once (organizer view defaults).
-  useEffect(() => {
-    if (!configSeeded && matchQuery.data) {
-      setTeamCount(matchQuery.data.teamConfig.teamCount);
-      setPerTeam(matchQuery.data.teamConfig.perTeam);
-      setDrawMode(matchQuery.data.teamConfig.drawMode);
-      setConfigSeeded(true);
-    }
-  }, [matchQuery.data, configSeeded]);
+  // The screen opens on the match itself; who is going sits one tap away.
+  const [tab, setTab] = useState<'details' | 'players'>('details');
 
   if (matchQuery.isPending) {
     return <MatchDetailSkeleton />;
@@ -306,7 +260,9 @@ export default function MatchDetailScreen() {
   const confirmedCount = match.players.filter(
     (p) => p.status === 'CONFIRMADO',
   ).length;
-  const levelLabel = LEVEL_LABEL[match.level];
+  // Same arithmetic as PresenceGrid, so the line above the grid matches it.
+  const openSlots = Math.max(0, match.capacity - match.players.length);
+  const levelBadge = LEVEL_BADGE[match.level];
   const positionLabel = match.organizer.position
     ? POSITION_LABEL[match.organizer.position]
     : undefined;
@@ -316,8 +272,36 @@ export default function MatchDetailScreen() {
 
   const onShare = () => {
     void Share.share({
-      message: `Bora jogar? "${match.name}" na Quadra. (match:${match.id})`,
+      message:
+        `Bora jogar? "${match.name}" no Quadra: ${inviteLink(match.id, match.inviteCode)}` +
+        (match.inviteCode ? ` (código de convite: ${match.inviteCode})` : ''),
     });
+  };
+
+  const onShareToFeed = () => {
+    shareMatch.mutate(match.id, {
+      onSuccess: () =>
+        dialog.alert('Partida compartilhada', 'Ela já aparece na Rede com o botão Participar.'),
+      onError: (error) => dialog.alert('Não deu para compartilhar', error.message),
+    });
+  };
+
+  const onCancelMatch = () => {
+    dialog.alert(
+      'Cancelar a partida?',
+      'Ela sai do mapa e das listas. Quem confirmou vai ver que foi cancelada.',
+      [
+        { text: 'Voltar', style: 'cancel' },
+        {
+          text: 'Cancelar partida',
+          style: 'destructive',
+          onPress: () =>
+            cancelMatch.mutate(undefined, {
+              onError: (error) => dialog.alert('Não deu para cancelar', error.message),
+            }),
+        },
+      ],
+    );
   };
 
   const handleAddGuest = (values: AddGuestInput) => {
@@ -327,15 +311,20 @@ export default function MatchDetailScreen() {
   };
 
   const goToTeams = () => {
-    router.push({
-      pathname: '/matches/[id]/teams',
-      params: {
-        id: match.id,
-        teamCount: String(teamCount),
-        perTeam: String(perTeam),
-        drawMode,
-      },
-    });
+    router.push({ pathname: '/matches/[id]/teams', params: { id: match.id } });
+  };
+
+  // ── A game under way (or over) takes over the forward CTA ──
+  const GAME_CTA = {
+    LIVE: { label: 'Ver placar ao vivo', pathname: '/matches/[id]/scoreboard' },
+    VOTING: { label: 'Votar no MVP', pathname: '/matches/[id]/mvp-vote' },
+    SUMMARY: { label: 'Ver resumo', pathname: '/matches/[id]/summary' },
+  } as const;
+  const gameCta = match.game ? GAME_CTA[match.game] : null;
+  const goToGame = () => {
+    if (gameCta) {
+      router.push({ pathname: gameCta.pathname, params: { id: match.id } });
+    }
   };
 
   // ── Participant footer CTA logic (SCOPE-driven; explicit booleans) ──
@@ -347,11 +336,28 @@ export default function MatchDetailScreen() {
   // Regular — either way the user is in the match and past the join step.
   const isConfirmed =
     match.myParticipationType != null && match.myStatus === 'CONFIRMADO';
+  // Before the window opens the backend refuses every confirmation, so the
+  // footer says when it opens instead of offering a button that fails.
+  const opensLabel =
+    match.confirmationOpensAt && !isConfirmed
+      ? `Confirmações abrem ${formatWhen(match.confirmationOpensAt)
+          .replace('Hoje', 'hoje')
+          .replace(' · ', ' às ')}`
+      : null;
   const showJoin =
     !isRegular &&
     !isConfirmed &&
-    match.openDropInSlots > 0 &&
-    match.confirmationWindowClosed;
+    (match.canJoin ??
+      (match.openDropInSlots > 0 && match.confirmationWindowClosed));
+  const showJoinByCode = !isRegular && !isConfirmed && match.requiresInviteCode;
+  const waitingPosition = isConfirmed ? null : match.myWaitingListPosition;
+  // The last thing the user tried that the backend refused.
+  const actionError = (
+    confirmPresence.error ??
+    declinePresence.error ??
+    joinMatch.error ??
+    addGuest.error
+  )?.message;
   const mutationBusy =
     confirmPresence.isPending || declinePresence.isPending || joinMatch.isPending;
 
@@ -364,6 +370,7 @@ export default function MatchDetailScreen() {
         {/* ── Court-image hero (bleeds under the status bar) ── */}
         <CourtImage
           tint={match.tint}
+          imageUri={match.coverUrl}
           height={HERO_HEIGHT}
           radius={0}
           label="FOTO DA QUADRA"
@@ -407,9 +414,15 @@ export default function MatchDetailScreen() {
                   {match.format}
                 </Text>
               </View>
-              <View className="rounded-pill bg-accent px-3 py-1">
-                <Text className="font-mono text-mono text-text-primary uppercase">
-                  {levelLabel}
+              <View
+                className="rounded-pill border-[1.5px] border-white px-3 py-1"
+                style={{ backgroundColor: levelBadge.bg }}
+              >
+                <Text
+                  className="font-mono text-mono uppercase"
+                  style={{ color: levelBadge.color }}
+                >
+                  {levelBadge.label}
                 </Text>
               </View>
             </View>
@@ -417,247 +430,247 @@ export default function MatchDetailScreen() {
             <Text className="mt-2 font-display text-h1 text-text-on-dark uppercase">
               {match.name}
             </Text>
-            <View className="mt-1 flex-row items-center gap-1">
-              <MapPin size={15} color={colors.textOnDark} />
-              <Text className="font-body text-body text-text-on-dark/85">
-                {match.venue} · {formatDistance(match.distanceKm)}
-              </Text>
-            </View>
           </View>
         </CourtImage>
 
-        {/* ── Body sheet ── */}
-        <View className="px-5 pb-5 pt-6">
-          {/* 2×2 metadata grid */}
-          <View className="flex-row flex-wrap">
-            <InfoCell
-              icon={<Calendar size={22} color={colors.primary} />}
-              label="Quando"
-              value={formatWhen(match.startsAt)}
-            />
-            <InfoCell
-              icon={<Volleyball size={22} color={colors.primary} />}
-              label="Modo"
-              value={match.format}
-            />
-            <InfoCell
-              icon={<Users size={22} color={colors.primary} />}
-              label="Vagas"
-              value={`${confirmedCount}/${match.capacity}`}
-            />
-            <InfoCell
-              icon={<Zap size={22} color={colors.primary} />}
-              label="Nível"
-              value={levelLabel}
-            />
-          </View>
-
-          {/* Countdown strip */}
-          <Text
-            className="mt-1 text-center font-body text-caption text-text-muted"
-            testID="countdown"
+        {/* ── Tabs ── */}
+        <View className="border-b border-line px-5">
+        <View className="flex-row" accessibilityRole="tablist">
+          <TabButton
+            selected={tab === 'details'}
+            onPress={() => setTab('details')}
+            testID="tab-details"
           >
-            {countdownLabel}
-          </Text>
-
-          {/* ── VALORES ── */}
-          <View className="mt-6">
-            <View className="mb-3 flex-row items-center justify-between">
-              <Text className="font-display text-h2 text-surface-dark uppercase">
-                Valores
-              </Text>
-              <View
-                className={`rounded-pill px-3 py-1 ${
-                  isRecurring ? 'bg-primary' : 'bg-bg-light'
-                }`}
-              >
-                <Text
-                  className={`font-mono text-mono uppercase ${
-                    isRecurring ? 'text-text-on-dark' : 'text-primary'
-                  }`}
-                >
-                  {isRecurring ? 'Recorrente' : 'Avulso'}
-                </Text>
-              </View>
-            </View>
-
-            <View className="flex-row gap-3">
-              <PriceTile
-                label="Jogador avulso"
-                value={match.priceLabel}
-                testID="price-single"
-              />
-              {isRecurring && match.priceMonthlyLabel ? (
-                <PriceTile
-                  label="Jogador recorrente"
-                  value={match.priceMonthlyLabel}
-                  accent
-                  testID="price-monthly"
-                />
-              ) : null}
-            </View>
-
-            <View className="mt-3 flex-row items-start gap-2">
-              <MapPin size={13} color={colors.textMuted} />
-              <Text className="flex-1 font-body text-caption text-text-muted">
-                Valor combinado direto com o organizador da partida.
-              </Text>
-            </View>
-          </View>
-
-          {/* ── Organizer row ── */}
-          <View className="mt-6 flex-row items-center gap-3 rounded-card bg-white p-4 shadow-card">
-            <Avatar
-              uri={match.organizer.avatarUrl}
-              name={match.organizer.name}
-              size="md"
-              level={match.organizer.level}
-            />
-            <View className="flex-1">
-              <Text className="font-body-medium text-caption text-text-muted">
-                Organizado por
-              </Text>
-              <Text className="font-body-bold text-body-bold text-text-primary">
-                {match.organizer.name}
-              </Text>
-            </View>
-            {positionLabel ? (
-              <View className="rounded-pill bg-bg-light px-3 py-1">
-                <Text className="font-mono text-mono text-primary uppercase">
-                  {positionLabel}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-
-          {/* ── CONFIRMADOS ── */}
-          <View className="mt-6 flex-row items-center justify-between">
-            <Text className="font-display text-h2 text-surface-dark uppercase">
-              Confirmados
+            Detalhes
+          </TabButton>
+          <TabButton
+            selected={tab === 'players'}
+            onPress={() => setTab('players')}
+            testID="tab-players"
+          >
+            Confirmados ·{' '}
+            <Text testID="confirmed-count">
+              {confirmedCount}/{match.capacity}
             </Text>
-            <View className="flex-row items-center gap-3">
-              <Text
-                className="font-body-bold text-body-bold text-primary"
-                testID="confirmed-count"
+          </TabButton>
+          <TabIndicator index={tab === 'details' ? 0 : 1} count={2} thickness={2} />
+        </View>
+        </View>
+
+        {/* The tab's content fades in on a switch instead of cutting. */}
+        {tab === 'details' ? (
+        <Animated.View
+          key="details"
+          entering={FadeIn.duration(MOTION.fadeIn)}
+          className="px-5 pb-5 pt-3"
+        >
+          {/* ── Essentials: when, where, price, who organizes ── */}
+          <InfoRow icon={<Calendar size={22} color={colors.primary} />}>
+            <Text className="font-body-semibold text-body-bold text-text-primary">
+              {formatWhen(match.startsAt)}
+            </Text>
+            <Text
+              className="font-body text-caption text-text-muted"
+              testID="countdown"
+            >
+              {countdownLabel}
+            </Text>
+          </InfoRow>
+
+          <InfoRow
+            icon={<MapPin size={22} color={colors.primary} />}
+            trailing={
+              <PressableScale
+                onPress={() =>
+                  // Universal Maps link: opens the Google Maps app (or the browser)
+                  // with the route from where the user is.
+                  void Linking.openURL(
+                    `https://www.google.com/maps/dir/?api=1&destination=${match.lat},${match.lon}`,
+                  )
+                }
+                accessibilityRole="button"
+                accessibilityLabel="Como chegar"
+                hitSlop={ICON_HIT_SLOP}
+                testID="match-directions"
+                className="flex-row items-center gap-2 overflow-hidden rounded-pill bg-bg-light px-3 py-2"
               >
-                {confirmedCount}/{match.capacity}
+                <Navigation size={15} color={colors.primary} />
+                <Text className="font-body-semibold text-body-bold text-primary">
+                  Como chegar
+                </Text>
+              </PressableScale>
+            }
+          >
+            <Text className="font-body-semibold text-body-bold text-text-primary">
+              {match.venue}
+              {deviceCoords
+                ? ` · ${formatDistance(
+                    distanceKm(deviceCoords, {
+                      latitude: match.lat,
+                      longitude: match.lon,
+                    }),
+                  )}`
+                : ''}
+            </Text>
+          </InfoRow>
+
+          <InfoRow icon={<Banknote size={22} color={colors.primary} />}>
+            {/* Drop-in price first; a recurring match adds the regulars' price. */}
+            <Text className="font-body-semibold text-body-bold text-text-primary">
+              <Text
+                testID="price-single"
+                className={match.priceLabel === 'Grátis' ? 'text-success' : ''}
+              >
+                {match.priceLabel}
               </Text>
-              {isOrganizer ? (
+              {match.priceLabel === 'Grátis' ? '' : ' avulso'}
+              {isRecurring ? ' · ' : ''}
+              {isRecurring ? (
+                <Text testID="price-monthly" className="text-primary">
+                  {match.priceMonthlyLabel}
+                </Text>
+              ) : null}
+              {isRecurring ? ' recorrente' : ''}
+            </Text>
+            <Text className="font-body text-caption text-text-muted">
+              Valor combinado direto com o organizador da partida.
+            </Text>
+          </InfoRow>
+
+          <InfoRow
+            icon={
+              <Avatar
+                uri={match.organizer.avatarUrl}
+                name={match.organizer.name}
+                size="sm"
+                level={match.organizer.level}
+              />
+            }
+            trailing={
+              positionLabel ? (
+                <View className="rounded-pill bg-bg-light px-3 py-1">
+                  <Text className="font-mono text-mono text-primary uppercase">
+                    {positionLabel}
+                  </Text>
+                </View>
+              ) : null
+            }
+          >
+            <Text className="font-body text-caption text-text-muted">
+              Organizado por
+            </Text>
+            <Text className="font-body-semibold text-body-bold text-text-primary">
+              {match.organizer.name}
+            </Text>
+          </InfoRow>
+
+          {/* The match only reaches the Rede feed when its organizer says so. */}
+          {isOrganizer ? (
+            <View className="mt-5">
+              <Button
+                variant="outline"
+                onPress={onShareToFeed}
+                loading={shareMatch.isPending}
+                leftIcon={<Megaphone size={18} color={colors.surfaceDark} />}
+                testID="share-to-feed"
+              >
+                Compartilhar na Rede
+              </Button>
+            </View>
+          ) : null}
+
+          {/* Points of a recurring game add up in its group ranking (API DECISIONS #63). */}
+          {match.recurring ? (
+            <View className="mt-3">
+              <Button
+                variant="outline"
+                onPress={() =>
+                  router.push({
+                    pathname: '/profile/ranking',
+                    params: { scope: 'group', groupId: match.id },
+                  })
+                }
+                leftIcon={<Trophy size={18} color={colors.surfaceDark} />}
+                testID="group-ranking"
+              >
+                Ranking do grupo
+              </Button>
+            </View>
+          ) : null}
+
+          {/* Editing and cancelling stop once the game starts (API DECISIONS #62). */}
+          {match.editable ? (
+            <View className="mt-3 flex-row gap-3">
+              <View className="flex-1">
                 <Button
                   variant="outline"
-                  onPress={onShare}
-                  leftIcon={<UserPlus size={18} color={colors.primary} />}
-                  testID="invite"
+                  onPress={() =>
+                    router.push({ pathname: '/matches/[id]/edit', params: { id: match.id } })
+                  }
+                  leftIcon={<Pencil size={18} color={colors.surfaceDark} />}
+                  testID="edit-match"
                 >
-                  Convidar
+                  Editar
                 </Button>
+              </View>
+              <View className="flex-1">
+                <Button
+                  variant="outline"
+                  onPress={onCancelMatch}
+                  loading={cancelMatch.isPending}
+                  leftIcon={<XCircle size={18} color={colors.surfaceDark} />}
+                  testID="cancel-match"
+                >
+                  Cancelar
+                </Button>
+              </View>
+            </View>
+          ) : null}
+        </Animated.View>
+        ) : (
+        <Animated.View
+          key="players"
+          entering={FadeIn.duration(MOTION.fadeIn)}
+          className="px-5 pb-5 pt-4"
+        >
+          {/* ── Who is going; the organizer invites and fills open slots ── */}
+          <View className="mb-5 flex-row items-center gap-3">
+            <View className="flex-1">
+              <Text
+                className="font-body-semibold text-body-bold text-text-primary"
+                testID="open-slots"
+              >
+                {openSlots === 0
+                  ? 'Sem vagas abertas'
+                  : openSlots === 1
+                    ? '1 vaga aberta'
+                    : `${openSlots} vagas abertas`}
+              </Text>
+              {isOrganizer && openSlots > 0 ? (
+                <Text className="font-body text-caption text-text-muted">
+                  Toque em uma vaga para adicionar um convidado.
+                </Text>
               ) : null}
             </View>
+            {isOrganizer ? (
+              <Button
+                variant="outline"
+                onPress={onShare}
+                leftIcon={<UserPlus size={18} color={colors.surfaceDark} />}
+                testID="invite"
+              >
+                Convidar
+              </Button>
+            ) : null}
           </View>
           <PresenceGrid
             players={match.players}
             capacity={match.capacity}
-            maxEmptySlots={MAX_VAGA_SLOTS}
             onPressEmpty={isOrganizer ? () => setGuestSheetOpen(true) : undefined}
             testID="presence-grid"
           />
-          <LevelLegend />
-
-          {/* ── Organizer-only: team configuration (→ S13) ── */}
-          {isOrganizer ? (
-            <View className="mt-8">
-              <Text className="font-display text-h2 text-surface-dark uppercase">
-                Configuração dos times
-              </Text>
-              <View className="mt-2 flex-row gap-2">
-                <FilterChip
-                  label="2 times"
-                  selected={teamCount === 2}
-                  onPress={() => setTeamCount(2)}
-                  testID="team-count-2"
-                />
-                <FilterChip
-                  label="3 times"
-                  selected={teamCount === 3}
-                  onPress={() => setTeamCount(3)}
-                  testID="team-count-3"
-                />
-                <FilterChip
-                  label="4 times"
-                  selected={teamCount === 4}
-                  onPress={() => setTeamCount(4)}
-                  testID="team-count-4"
-                />
-              </View>
-
-              <View className="mt-4 flex-row">
-                <StepperField
-                  label="Jogadores por time"
-                  value={perTeam}
-                  onChange={setPerTeam}
-                  min={1}
-                  testID="per-team-stepper"
-                />
-              </View>
-              <Text className="mt-1 font-body text-caption text-text-muted">
-                {confirmedCount} confirmados no total
-              </Text>
-
-              <Text className="mt-6 font-display text-h2 text-surface-dark uppercase">
-                Como sortear os times
-              </Text>
-              {/* Inlined radio rows mirroring ToggleField's chrome (icon + title +
-                  caption on a bg-white rounded-card border row), trailing Check
-                  when selected. Single-use → no catalog entry. */}
-              <Pressable
-                accessibilityRole="radio"
-                accessibilityState={{ checked: drawMode === 'MANUAL' }}
-                onPress={() => setDrawMode('MANUAL')}
-                testID="draw-mode-manual"
-                className={`mt-2 flex-row items-center gap-3 rounded-card border p-4 ${
-                  drawMode === 'MANUAL'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-line bg-white'
-                }`}
-              >
-                <Hand size={20} color={colors.primary} />
-                <View className="flex-1">
-                  <Text className="font-body text-h3 text-text-primary">Manual</Text>
-                  <Text className="font-body text-caption text-text-muted">
-                    Você escolhe quem joga em cada time, na mão
-                  </Text>
-                </View>
-                {drawMode === 'MANUAL' ? (
-                  <Check size={20} color={colors.primary} />
-                ) : null}
-              </Pressable>
-              <Pressable
-                accessibilityRole="radio"
-                accessibilityState={{ checked: drawMode === 'AUTO' }}
-                onPress={() => setDrawMode('AUTO')}
-                testID="draw-mode-auto"
-                className={`mt-2 flex-row items-center gap-3 rounded-card border p-4 ${
-                  drawMode === 'AUTO'
-                    ? 'border-primary bg-primary/5'
-                    : 'border-line bg-white'
-                }`}
-              >
-                <WandSparkles size={20} color={colors.primary} />
-                <View className="flex-1">
-                  <Text className="font-body text-h3 text-text-primary">
-                    Automático
-                  </Text>
-                  <Text className="font-body text-caption text-text-muted">
-                    Times equilibrados automaticamente por nível e overall
-                  </Text>
-                </View>
-                {drawMode === 'AUTO' ? (
-                  <Check size={20} color={colors.primary} />
-                ) : null}
-              </Pressable>
-            </View>
-          ) : null}
-        </View>
+        </Animated.View>
+        )}
       </ScrollView>
 
       {/* ── Sticky action bar ── */}
@@ -665,11 +678,32 @@ export default function MatchDetailScreen() {
         className="absolute bottom-0 left-0 right-0 border-t border-line bg-white px-5 pt-4"
         style={{ paddingBottom: Math.max(insets.bottom, 10) + 10 }}
       >
-        {isOrganizer ? (
+        {actionError ? (
+          <Text
+            className="mb-2 font-body text-caption text-danger"
+            accessibilityLiveRegion="polite"
+            testID="action-error"
+          >
+            {actionError}
+          </Text>
+        ) : null}
+        {match.cancelled ? (
+          <Button variant="primary" onPress={() => {}} disabled testID="match-cancelled">
+            Partida cancelada
+          </Button>
+        ) : gameCta ? (
+          <Button variant="grad" onPress={goToGame} testID="game-cta">
+            {gameCta.label}
+          </Button>
+        ) : isOrganizer ? (
           <>
-            <Button variant="grad" onPress={goToTeams} testID="build-teams">
-              Montar os times
-            </Button>
+            {/* Building teams works off the confirmed list, so it only shows on
+                that tab; the presence toggle below stays on every tab. */}
+            {tab === 'players' ? (
+              <Button variant="grad" onPress={goToTeams} testID="build-teams">
+                Montar os times
+              </Button>
+            ) : null}
             {/* Organizing is not playing: the organizer opts into the confirmed
                 grid (and back out of it) here, without losing the forward CTA
                 they need whether or not they play. */}
@@ -682,12 +716,17 @@ export default function MatchDetailScreen() {
                     : confirmPresence.mutate()
                 }
                 loading={confirmPresence.isPending || declinePresence.isPending}
+                disabled={opensLabel != null}
                 testID="organizer-presence"
               >
-                {isConfirmed ? 'Não vou jogar' : 'Vou jogar'}
+                {opensLabel ?? (isConfirmed ? 'Não vou jogar' : 'Vou jogar')}
               </Button>
             </View>
           </>
+        ) : opensLabel ? (
+          <Button variant="primary" onPress={() => {}} disabled testID="not-open-yet">
+            {opensLabel}
+          </Button>
         ) : showConfirm ? (
           <>
             <Button
@@ -695,7 +734,7 @@ export default function MatchDetailScreen() {
               onPress={() => confirmPresence.mutate()}
               loading={confirmPresence.isPending}
               disabled={mutationBusy && !confirmPresence.isPending}
-              leftIcon={<Check size={18} color={colors.textOnDark} />}
+              leftIcon={<Check size={18} color={colors.surfaceDark} />}
               testID="confirm-presence"
             >
               Confirmar presença
@@ -714,13 +753,16 @@ export default function MatchDetailScreen() {
           </>
         ) : isConfirmed ? (
           <>
+            {/* Only the organizer starts the game; once it starts this becomes
+                the live-scoreboard CTA above. */}
             <Button
               variant="primary"
-              onPress={goToTeams}
+              onPress={() => {}}
+              disabled
               leftIcon={<Play size={18} color={colors.textOnDark} />}
               testID="start-match"
             >
-              Iniciar partida
+              Aguardando o início da partida
             </Button>
             <View className="mt-1">
               <Button
@@ -730,6 +772,45 @@ export default function MatchDetailScreen() {
                 testID="decline-presence"
               >
                 Não vou poder ir
+              </Button>
+            </View>
+          </>
+        ) : waitingPosition != null ? (
+          <>
+            <Button variant="primary" onPress={() => {}} disabled testID="waiting-list">
+              {`Na fila de espera · ${waitingPosition}º`}
+            </Button>
+            <View className="mt-1">
+              <Button
+                variant="ghost"
+                onPress={() => declinePresence.mutate()}
+                loading={declinePresence.isPending}
+                testID="leave-waiting-list"
+              >
+                Sair da fila
+              </Button>
+            </View>
+          </>
+        ) : showJoinByCode ? (
+          <>
+            <TextField
+              label="Código de convite"
+              value={inviteCode}
+              onChangeText={setInviteCode}
+              placeholder="Peça o código a quem organiza"
+              autoCapitalize="none"
+              maxLength={16}
+              testID="invite-code"
+            />
+            <View className="mt-2">
+              <Button
+                variant="primary"
+                onPress={() => joinMatch.mutate({ inviteCode })}
+                loading={joinMatch.isPending}
+                disabled={inviteCode.trim().length === 0}
+                testID="join-with-code"
+              >
+                Entrar com o código
               </Button>
             </View>
           </>

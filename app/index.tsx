@@ -1,122 +1,71 @@
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
+import { useWindowDimensions, View } from "react-native";
 import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
-  withDelay,
-  withRepeat,
+  withSequence,
   withTiming,
 } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle, Line } from "react-native-svg";
 
 import { getAuthBootstrap } from "./_layout";
 import { QuadraLogo } from "@/components/icons/QuadraLogo";
 import { useRiseIn } from "@/hooks/useRiseIn";
 import { useAuthStore } from "@/stores/auth";
-
-// Navy → blue brand gradient (surface-dark → primary), per DESIGN_SYSTEM "Gradients".
-const PAGE_GRADIENT = ["#0A0A3C", "#1A1AFF"] as const;
-// Blue → lime progress fill (primary → accent), matching the lime-tipped bar in splash.png.
-const BAR_GRADIENT = ["#1A1AFF", "#AADD00"] as const;
-
-const BAR_TRACK_WIDTH = 160;
+import { colors } from "@/theme/colors";
 
 /**
- * The splash is held this long even when the auth bootstrap resolves instantly,
- * so the brand animation and the bar fill are actually seen. The bootstrap is
- * itself capped at 2s (app/_layout.tsx), so the worst case stays under the 2s
- * ceiling SCOPE S1 puts on the splash.
+ * The native splash (app.json, `expo-splash-screen`) is the mark alone on blue, at the size
+ * Android draws `assets/splash-icon.png`. This screen starts from that same picture, so the
+ * hand-off is not seen, and then adds what only JS can draw: the straight court seen from
+ * above, the mark's settle and the progress bar (DECISIONS #84, #106). It stays until the auth
+ * bootstrap settles, which is capped at 60s (app/_layout.tsx, DECISIONS #44).
  */
-const MIN_SPLASH_MS = 1800;
-
-// Entrance timeline (ms), mirroring the prototype's .q-splash-* CSS animations.
-const MARK_DURATION = 700;
-const RISE_DURATION = 500;
-const RISE_DISTANCE = 14;
-const WORD_DELAY = 350;
-const TAG_DELAY = 520;
-const LOAD_DELAY = 700;
-const BAR_DELAY = 350;
-const BAR_DURATION = 1400;
-const PULSE_HALF_CYCLE = 700;
-
-// Back-out overshoot (CSS cubic-bezier(.34,1.56,.64,1)): the mark pops past its
-// final size and rotation, then settles.
-const POP_EASING = Easing.bezier(0.34, 1.56, 0.64, 1);
-// Fast start, slow settle (CSS cubic-bezier(.5,0,.2,1)) for the progress fill.
-const BAR_EASING = Easing.bezier(0.5, 0, 0.2, 1);
-
-/** The splash's `qSplashUp` entrance — softer and slower than the default `.q-rise`. */
-const SPLASH_RISE = {
-  distance: RISE_DISTANCE,
-  duration: RISE_DURATION,
-  easing: Easing.out(Easing.ease),
+const MARK_SIZE = 124;
+// Shortest time the splash stays up, so its animation is seen even when the session
+// check answers at once. A slower check is not delayed further (DECISIONS #90).
+export const MIN_HOLD_MS = 1800;
+const EASE = Easing.inOut(Easing.ease);
+// Court lines across the screen, as fractions of its height; the center line joins the
+// first and the last.
+const COURT_LINES = [0.23, 0.32, 0.41, 0.59, 0.68, 0.77];
+const COURT_TOP = 0.23;
+const COURT_BOTTOM = 0.77;
+const COURT_STROKE = { stroke: colors.textOnDark, strokeOpacity: 0.18, strokeWidth: 1.5 };
+// Soft navy shadow under the mark (Android only: iOS ignores `filter`).
+const MARK_SHADOW = {
+  filter: [
+    {
+      dropShadow: {
+        offsetX: 0,
+        offsetY: 8,
+        standardDeviation: 6,
+        color: `${colors.surfaceDark}66`,
+      },
+    },
+  ],
 } as const;
 
 export default function Index() {
   const [ready, setReady] = useState(false);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasProfile = useAuthStore((s) => s.hasProfile);
+  const { width, height } = useWindowDimensions();
 
-  const wordStyle = useRiseIn({ ...SPLASH_RISE, delay: WORD_DELAY });
-  const tagStyle = useRiseIn({ ...SPLASH_RISE, delay: TAG_DELAY });
-  const loadStyle = useRiseIn({ ...SPLASH_RISE, delay: LOAD_DELAY });
-
-  const mark = useSharedValue(0);
-  const bar = useSharedValue(0);
-  const pulse = useSharedValue(0.5);
-
-  useEffect(() => {
-    mark.value = withTiming(1, { duration: MARK_DURATION, easing: POP_EASING });
-    bar.value = withDelay(
-      BAR_DELAY,
-      withTiming(1, { duration: BAR_DURATION, easing: BAR_EASING }),
-    );
-    // "CARREGANDO" breathes between 50% and 100% opacity until the redirect.
-    pulse.value = withRepeat(
-      withTiming(1, {
-        duration: PULSE_HALF_CYCLE,
-        easing: Easing.inOut(Easing.ease),
-      }),
-      -1,
-      true,
-    );
-  }, [mark, bar, pulse]);
-
-  const markStyle = useAnimatedStyle(() => ({
-    // Fade finishes early in the pop, as in the prototype's 0/60/100 keyframes.
-    opacity: Math.min(mark.value / 0.4, 1),
-    transform: [
-      { scale: 0.55 + mark.value * 0.45 },
-      { rotate: `${-12 + mark.value * 12}deg` },
-    ],
-  }));
-  const pulseStyle = useAnimatedStyle(() => ({ opacity: pulse.value }));
-  // scaleX from the left edge grows the fill the way the prototype animates
-  // `width: 0% -> 100%`, but stays on the UI thread instead of relaying out.
-  const fillStyle = useAnimatedStyle(() => ({
-    transform: [{ scaleX: bar.value }],
-  }));
-
-  // Await the shared one-shot auth bootstrap (started in the root layout) and the
-  // minimum hold, then redirect.
+  // Await the shared one-shot auth bootstrap (started in the root layout) and the minimum
+  // hold, whichever ends last, then redirect.
   useEffect(() => {
     let active = true;
-    let timer: ReturnType<typeof setTimeout> | undefined;
-    const minimumHold = new Promise<void>((resolve) => {
-      timer = setTimeout(resolve, MIN_SPLASH_MS);
-    });
-    void Promise.all([getAuthBootstrap(), minimumHold]).then(() => {
+    const hold = new Promise<void>((resolve) => setTimeout(resolve, MIN_HOLD_MS));
+    void Promise.all([getAuthBootstrap(), hold]).then(() => {
       if (active) {
         setReady(true);
       }
     });
     return () => {
       active = false;
-      clearTimeout(timer);
     };
   }, []);
 
@@ -133,69 +82,72 @@ export default function Index() {
     }
   }, [ready, isAuthenticated, hasProfile]);
 
-  return (
-    <View className="flex-1 bg-surface-dark">
-      <LinearGradient
-        colors={PAGE_GRADIENT}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ flex: 1 }}
-        accessible={false}
-        importantForAccessibility="no"
-      >
-        <SafeAreaView className="flex-1 items-center justify-center px-6">
-          <View className="items-center">
-            <Animated.View style={markStyle}>
-              <QuadraLogo size={120} />
-            </Animated.View>
-            <Animated.Text
-              className="font-word text-5xl text-text-on-dark mt-4 lowercase"
-              style={wordStyle}
-            >
-              quadra
-            </Animated.Text>
-            <Animated.Text
-              className="font-body  text-accent uppercase mt-3 tracking-[1.2px]"
-              style={tagStyle}
-            >
-              O JOGO COMEÇA AQUI
-            </Animated.Text>
-          </View>
-        </SafeAreaView>
+  // The tail of the prototype's `qSplashMark`: the native splash already shows the mark at
+  // rest, so it only overshoots and settles instead of popping in from nothing.
+  const settle = useSharedValue(0);
+  // The bar fills to 90% over the minimum hold and waits there for a slower bootstrap.
+  const progress = useSharedValue(0);
+  useEffect(() => {
+    settle.value = withSequence(
+      withTiming(1, { duration: 220, easing: Easing.out(Easing.ease) }),
+      withTiming(0, { duration: 280, easing: EASE }),
+    );
+    progress.value = withTiming(0.9, { duration: MIN_HOLD_MS, easing: EASE });
+  }, [settle, progress]);
+  const markStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: 1 + 0.08 * settle.value },
+      { rotate: `${3 * settle.value}deg` },
+    ],
+  }));
+  const fillStyle = useAnimatedStyle(() => ({ width: `${progress.value * 100}%` }));
 
-        <Animated.View
-          className="absolute bottom-16 inset-x-0 items-center"
-          style={loadStyle}
-        >
-          <View
-            className="h-1 rounded-pill overflow-hidden bg-white/15"
-            style={{ width: BAR_TRACK_WIDTH }}
-          >
-            <Animated.View
-              style={[
-                { width: "100%", height: "100%", transformOrigin: "left" },
-                fillStyle,
-              ]}
-            >
-              <LinearGradient
-                colors={BAR_GRADIENT}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
-                style={{ flex: 1, borderRadius: 9999 }}
-              />
-            </Animated.View>
-          </View>
-          <Animated.Text
-            className="font-mono  text-text-muted uppercase mt-4"
-            style={pulseStyle}
-            accessibilityRole="text"
-            accessibilityLiveRegion="polite"
-            accessibilityLabel="Carregando"
-          >
-            CARREGANDO
-          </Animated.Text>
-        </Animated.View>
-      </LinearGradient>
+  const courtStyle = useRiseIn({ distance: 0, duration: 400 });
+  const loaderStyle = useRiseIn({ delay: 250, distance: 14, duration: 500 });
+
+  const top = height * COURT_TOP;
+  const bottom = height * COURT_BOTTOM;
+
+  return (
+    <View
+      className="flex-1 items-center justify-center bg-primary"
+      accessible
+      accessibilityLabel="Carregando"
+    >
+      {/* Straight court seen from above, with the center circle around the mark. */}
+      <Animated.View className="absolute inset-0" style={courtStyle}>
+        <Svg width={width} height={height}>
+          {COURT_LINES.map((y) => (
+            <Line key={y} x1={0} y1={height * y} x2={width} y2={height * y} {...COURT_STROKE} />
+          ))}
+          <Line x1={width / 2} y1={top} x2={width / 2} y2={bottom} {...COURT_STROKE} />
+          <Circle
+            cx={width / 2}
+            cy={height / 2}
+            r={width * 0.215}
+            fill="none"
+            {...COURT_STROKE}
+          />
+        </Svg>
+      </Animated.View>
+
+      <Animated.View style={markStyle}>
+        <View style={MARK_SHADOW}>
+          <QuadraLogo
+            size={MARK_SIZE}
+            blockColor={colors.textOnDark}
+            testID="splash-mark"
+          />
+        </View>
+      </Animated.View>
+
+      <Animated.View
+        className="absolute h-[5px] w-[38%] overflow-hidden rounded-full bg-white/25"
+        style={[{ bottom: height * 0.1 }, loaderStyle]}
+        testID="splash-progress"
+      >
+        <Animated.View className="h-full rounded-full bg-accent" style={fillStyle} />
+      </Animated.View>
     </View>
   );
 }

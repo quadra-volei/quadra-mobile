@@ -27,6 +27,8 @@ import React from 'react';
 // --- Native / module mocks ------------------------------------------------
 
 jest.mock('react-native-reanimated', () => {
+  // Shared mock first (motion pieces: PressableScale, UnderlineTab, FadeIn).
+  const base = jest.requireActual('../../../__mocks__/react-native-reanimated');
   const ReactLocal = require('react');
   const { ScrollView, View } = require('react-native');
   const AnimatedScrollView = ({ children, style, ...props }: any) =>
@@ -34,8 +36,9 @@ jest.mock('react-native-reanimated', () => {
   const AnimatedView = ({ children, style, ...props }: any) =>
     ReactLocal.createElement(View, { ...props, style }, children);
   return {
+    ...base,
     __esModule: true,
-    default: { ScrollView: AnimatedScrollView, View: AnimatedView },
+    default: { ...base.default, ScrollView: AnimatedScrollView, View: AnimatedView },
     useAnimatedKeyboard: () => ({ height: { value: 0 } }),
     useAnimatedStyle: (cb: () => object) => cb(),
   };
@@ -68,6 +71,12 @@ jest.mock('lucide-react-native', () => {
     ChevronLeft: stub('chevron-left'),
     Pencil: stub('pencil'),
     Calendar: stub('calendar'),
+    Check: stub('check'),
+    Share2: stub('share'),
+    ArrowUp: stub('arrow-up'),
+    Zap: stub('zap'),
+    ShieldCheck: stub('shield'),
+    Shuffle: stub('shuffle'),
   };
 });
 
@@ -126,6 +135,9 @@ const PROFILE_FIXTURE: MyProfile = {
   level: 15,
   xp: 2450,
   xpToNext: 5000,
+  record: { matches: 0, wins: 0, losses: 0, draws: 0, mvps: 0 },
+  points: 0,
+  cardStyle: { finish: 'Prisma', title: null, photoObjectKey: null },
   lastName: 'Dias',
   handle: 'renan',
   birthDate: '14/03/1998',
@@ -167,6 +179,13 @@ const mockUpdate = {
     }
   }),
 };
+
+// Live @ check: staged per test (the real hook is covered in profileApi.test.tsx).
+const mockHandleTaken = { value: false };
+jest.mock('@/features/profile/api/handleAvailability', () => ({
+  HANDLE_TAKEN_MESSAGE: 'Esse @ já está em uso. Escolha outro.',
+  useHandleTaken: () => mockHandleTaken.value,
+}));
 
 jest.mock('@/features/profile/api/updateProfile', () => ({
   useUpdateProfile: () => ({
@@ -229,7 +248,7 @@ describe('S10 — Edit-profile screen', () => {
     expect(screen.getByText('SOBRENOME')).toBeTruthy();
     expect(screen.getByText('APELIDO')).toBeTruthy();
     expect(screen.getByText('DATA DE NASCIMENTO')).toBeTruthy();
-    expect(screen.getByText('Número de telefone')).toBeTruthy();
+    expect(screen.getByText('NÚMERO DE TELEFONE')).toBeTruthy();
     expect(screen.getByText('Posição em quadra')).toBeTruthy();
 
     // pre-filled values
@@ -239,6 +258,8 @@ describe('S10 — Edit-profile screen', () => {
     expect(screen.getByTestId('edit-birth-date').props.value).toBe('14/03/1998');
     // phone renders the BR mask of the national digits
     expect(screen.getByTestId('edit-phone').props.value).toBe('(11) 98472-1130');
+    // the phone is the login identity: shown, never editable
+    expect(screen.getByTestId('edit-phone').props.editable).toBe(false);
 
     // exactly the 6 position chips, with LEV pre-selected (single-select)
     for (const code of ['LEV', 'PON', 'OPO', 'CEN', 'LIB', 'COR']) {
@@ -331,7 +352,6 @@ describe('S10 — Edit-profile screen', () => {
       lastName: 'Dias',
       handle: 'renan',
       birthDate: '14/03/1998',
-      phone: '11984721130',
       position: 'LEV',
     });
     expect(mockBack).toHaveBeenCalledTimes(1);

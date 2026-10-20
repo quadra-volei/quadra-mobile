@@ -387,7 +387,7 @@ describe('S16 — Match Summary', () => {
     expect(screen.getAllByText('Avatar-Manu Castro').length).toBeGreaterThan(0);
 
     // position numbers (muted, w-4) — 1 / 2 / 3 render as their own nodes
-    const positions = allByClassName('text-text-muted w-4').map(textOf);
+    const positions = allByClassName('text-white/70 w-4').map(textOf);
     expect(positions).toEqual(['1', '2', '3']);
 
     // vote counts render (numbers can repeat across positions/counts, so assert presence)

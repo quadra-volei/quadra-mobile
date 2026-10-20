@@ -1,90 +1,181 @@
-import { BlurTargetView } from 'expo-blur';
-import { router } from 'expo-router';
-import { Bell, LayoutGrid, List, MapPin, Settings } from 'lucide-react-native';
-import { useMemo, useRef, useState } from 'react';
-import { FlatList, Pressable, ScrollView, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from "expo-router";
+import {
+  Bell,
+  LayoutGrid,
+  List,
+  MapPin,
+  Settings,
+  SlidersHorizontal,
+} from "lucide-react-native";
+import { useMemo, useState } from "react";
+import { ScrollView, Text, View } from "react-native";
+import MapView, { Marker } from "react-native-maps";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { MatchCard } from '@/components/domain/MatchCard';
-import { Button } from '@/components/ui/Button';
-import { GlassHeader } from '@/components/ui/GlassHeader';
-import { FilterChip } from '@/components/ui/FilterChip';
-import { SearchField } from '@/components/ui/SearchField';
-import { useNearbyMatches } from '@/features/matches/api/getNearby';
-import { useRegisterNavBlurTarget } from '@/stores/navBlurTarget';
-import type { NearbyMatch } from '@/features/matches/types/match';
-import { colors } from '@/theme/colors';
-import { TAB_BAR_CLEARANCE } from '@/theme/layout';
+import { ExploreFilterSheet } from "@/components/domain/ExploreFilterSheet";
+import { MatchCard } from "@/components/domain/MatchCard";
+import { Button } from "@/components/ui/Button";
+import { PressableScale } from "@/components/ui/PressableScale";
+import { SkeletonBlock } from "@/components/ui/Skeleton";
+import { StateMessage } from "@/components/ui/StateMessage";
+import { IconButton } from "@/components/ui/IconButton";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { FilterChip } from "@/components/ui/FilterChip";
+import { SearchField } from "@/components/ui/SearchField";
+import {
+  DEFAULT_FILTERS,
+  applyFilters,
+  countActive,
+  toggle,
+  type ExploreFilters,
+} from "@/features/explore/lib/filters";
+import { useNearbyMatches } from "@/features/matches/api/getNearby";
+import { isMapAvailable } from "@/features/matches/lib/isMapAvailable";
+import { useDeviceCoords } from "@/features/matches/lib/useDeviceCoords";
+import type { NearbyMatch } from "@/features/matches/types/match";
+import { colors } from "@/theme/colors";
+import { TAB_BAR_CLEARANCE } from "@/theme/layout";
 
-// Placeholder geo while nearby is mocked — no device location read on Explore
-// (S6 spec "Permissions"; the real lat/lon arrive with S17's permission flow).
-const PLACEHOLDER_GEO = { lat: -23.55, lon: -46.63, radiusKm: 5 };
+// Where Explore searches when the device location is not available: São Paulo
+// centre. Explore never prompts for location (S6 spec "Permissions"). The
+// radius is the API's 50 km cap: one fetch, then every filter (distance
+// included) runs on the device (DECISIONS #114).
+const DEFAULT_GEO = { lat: -23.55, lon: -46.63, radiusKm: 50 };
 
-type FilterId = 'todos' | 'perto' | 'hoje' | 'iniciante' | '6x6';
-type ViewMode = 'grid' | 'list';
+type ViewMode = "grid" | "list";
 
-const FILTERS: { id: FilterId; label: string }[] = [
-  { id: 'todos', label: 'Todos' },
-  { id: 'perto', label: 'Perto' },
-  { id: 'hoje', label: 'Hoje' },
-  { id: 'iniciante', label: 'Iniciante' },
-  { id: '6x6', label: '6x6' },
+/** One-tap shortcuts into the same filters the sheet edits. */
+const QUICK: {
+  label: string;
+  on: (f: ExploreFilters) => boolean;
+  flip: (f: ExploreFilters) => Partial<ExploreFilters>;
+}[] = [
+  {
+    label: "Hoje",
+    on: (f) => f.when === "today",
+    flip: (f) => ({ when: f.when === "today" ? "any" : "today" }),
+  },
+  {
+    label: "Fim de semana",
+    on: (f) => f.when === "weekend",
+    flip: (f) => ({ when: f.when === "weekend" ? "any" : "weekend" }),
+  },
+  {
+    label: "Com vaga",
+    on: (f) => f.withSpots,
+    flip: (f) => ({ withSpots: !f.withSpots }),
+  },
+  {
+    label: "Grátis",
+    on: (f) => f.maxPrice === 0,
+    flip: (f) => ({ maxPrice: f.maxPrice === 0 ? null : 0 }),
+  },
+  {
+    label: "Iniciante",
+    on: (f) => f.levels.includes("INICIANTE"),
+    flip: (f) => ({ levels: toggle(f.levels, "INICIANTE") }),
+  },
+  {
+    label: "6x6",
+    on: (f) => f.formats.includes("6X6"),
+    flip: (f) => ({ formats: toggle(f.formats, "6X6") }),
+  },
 ];
 
 function goMap() {
-  router.push('/explore/map');
+  router.push("/explore/map");
 }
 function goMatch(id: string) {
-  router.push({ pathname: '/matches/[id]', params: { id } });
+  router.push({ pathname: "/matches/[id]", params: { id } });
 }
 function goSettings() {
-  router.push('/profile/settings');
+  router.push("/profile/settings");
+}
+
+/** "Filtros" pill: opens the sheet; filled with a count badge when filters are on. */
+function FiltersButton({
+  active,
+  onPress,
+}: {
+  active: number;
+  onPress: () => void;
+}) {
+  const on = active > 0;
+  return (
+    <PressableScale
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={on ? `Filtros, ${active} ativos` : "Filtros"}
+      className="h-9 px-3 rounded-pill flex-row items-center gap-1.5 bg-white border border-line"
+      style={
+        on
+          ? { backgroundColor: colors.surfaceDark, borderColor: colors.surfaceDark }
+          : undefined
+      }
+    >
+      <SlidersHorizontal
+        size={16}
+        color={on ? colors.textOnDark : colors.surfaceDark}
+      />
+      <Text
+        className="font-mono text-mono uppercase text-text-primary"
+        style={on ? { color: colors.textOnDark } : undefined}
+      >
+        Filtros
+      </Text>
+      {on ? (
+        <View className="h-5 min-w-[20px] px-1 rounded-pill bg-accent items-center justify-center">
+          <Text className="font-body-bold text-caption text-text-primary">
+            {active}
+          </Text>
+        </View>
+      ) : null}
+    </PressableScale>
+  );
 }
 
 /**
- * Pure, deterministic client-side derivation of the visible results from the
- * mocked list + search text + active chip. Server-side search/filter/bbox
- * params land with F1.7 (see S6 spec "Out of scope").
+ * Static mini map (Android lite mode: a bitmap, cheap inside a scroll list)
+ * with a pin per visible match, framed around the search centre and the
+ * nearest results. Taps go to the card around it, never into the map.
  */
-function deriveResults(
-  source: NearbyMatch[],
-  query: string,
-  activeFilter: FilterId,
-): NearbyMatch[] {
-  const q = query.trim().toLowerCase();
-  let list = q
-    ? source.filter((m) => m.name.toLowerCase().includes(q))
-    : source.slice();
-
-  switch (activeFilter) {
-    case 'perto':
-      // "Perto" sorts by proximity (nearest first).
-      list = list.slice().sort((a, b) => a.distanceKm - b.distanceKm);
-      break;
-    case 'iniciante':
-      list = list.filter((m) => m.level === 'INICIANTE');
-      break;
-    case '6x6':
-      list = list.filter((m) => m.format === '6X6');
-      break;
-    case 'hoje':
-      // TODO(real-api): "Hoje" is a documented no-op this iteration — NearbyMatch
-      // has no date/time field and this screen must NOT extend the type or the S5
-      // mock (S5's contract). The chip renders and toggles its selected state but
-      // its predicate is the identity. Adding the date field is part of F1.7
-      // alignment in quadra-api; only then does "Hoje" become a real filter.
-      break;
-    case 'todos':
-    default:
-      break;
-  }
-
-  return list;
-}
-
-/** Neutral rounded skeleton block (DESIGN_SYSTEM skeleton shapes TBD — flag). */
-function SkeletonBlock({ className }: { className: string }) {
-  return <View className={`bg-bg-light-alt rounded-card ${className}`} />;
+function MiniMap({
+  center,
+  matches,
+}: {
+  center: { lat: number; lon: number };
+  matches: NearbyMatch[];
+}) {
+  const pins = matches.slice(0, 20);
+  const span = pins.reduce(
+    (max, m) =>
+      Math.max(max, Math.abs(m.lat - center.lat), Math.abs(m.lon - center.lon)),
+    0,
+  );
+  const delta = Math.max(span * 2.4, 0.03);
+  return (
+    <View pointerEvents="none" className="h-36" testID="explore-mini-map">
+      <MapView
+        key={`${center.lat},${center.lon},${delta},${pins.length}`}
+        liteMode
+        style={{ flex: 1 }}
+        initialRegion={{
+          latitude: center.lat,
+          longitude: center.lon,
+          latitudeDelta: delta,
+          longitudeDelta: delta,
+        }}
+      >
+        {pins.map((m) => (
+          <Marker
+            key={m.id}
+            coordinate={{ latitude: m.lat, longitude: m.lon }}
+            pinColor={colors.primary}
+          />
+        ))}
+      </MapView>
+    </View>
+  );
 }
 
 function ResultsArea({
@@ -94,109 +185,121 @@ function ResultsArea({
   view: ViewMode;
   setView: (next: ViewMode) => void;
 }) {
-  const [query, setQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<FilterId>('todos');
+  const [filters, setFilters] = useState<ExploreFilters>(DEFAULT_FILTERS);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
-  const { data, isPending, isError, refetch } = useNearbyMatches(PLACEHOLDER_GEO);
+  const coords = useDeviceCoords();
+  const geo = coords
+    ? { ...DEFAULT_GEO, lat: coords.latitude, lon: coords.longitude }
+    : DEFAULT_GEO;
+  const { data, isPending, isError, refetch } = useNearbyMatches(geo);
 
   const results = useMemo(
-    () => deriveResults(data ?? [], query, activeFilter),
-    [data, query, activeFilter],
+    () => applyFilters(data ?? [], filters),
+    [data, filters],
   );
-
-  function clearFilters() {
-    setQuery('');
-    setActiveFilter('todos');
-  }
+  // The match featured on the map card: the closest one found.
+  const nearest = useMemo(
+    () => results.reduce<NearbyMatch | undefined>(
+      (best, m) => (!best || m.distanceKm < best.distanceKm ? m : best),
+      undefined,
+    ),
+    [results],
+  );
+  const active = countActive(filters);
+  const patch = (p: Partial<ExploreFilters>) =>
+    setFilters((f) => ({ ...f, ...p }));
 
   return (
     <>
       {/* ── Search bar ── */}
       <View className="px-4">
         <SearchField
-          value={query}
-          onChangeText={setQuery}
+          value={filters.query}
+          onChangeText={(query) => patch({ query })}
           placeholder="Buscar quadra, bairro ou horário..."
-          onClear={() => setQuery('')}
+          onClear={() => patch({ query: "" })}
         />
       </View>
 
-      {/* ── Filter chips (horizontal, selectable) ── */}
-      <FlatList
+      {/* ── Filtros button + quick chips ── */}
+      <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerClassName="px-4 gap-2 mt-3"
-        data={FILTERS}
-        keyExtractor={(f) => f.id}
-        renderItem={({ item }) => (
+      >
+        <FiltersButton active={active} onPress={() => setSheetOpen(true)} />
+        {QUICK.map((q) => (
           <FilterChip
-            label={item.label}
-            selected={activeFilter === item.id}
-            onPress={() => setActiveFilter(item.id)}
+            key={q.label}
+            label={q.label}
+            selected={q.on(filters)}
+            onPress={() => patch(q.flip(filters))}
           />
-        )}
-      />
+        ))}
+      </ScrollView>
 
-      {/* ── Map preview (inline; full map is S17) ── */}
-      <Pressable
-        className="mx-4 mt-4 h-44 rounded-card overflow-hidden shadow-card bg-bg-light-alt"
+      {/* ── Map card: mini map of the filtered results + the nearest one.
+          The whole card opens the full map (S17). ── */}
+      <PressableScale
+        className="mx-4 mt-4 bg-white rounded-card shadow-card overflow-hidden"
         onPress={goMap}
         accessibilityRole="button"
         accessibilityLabel="Abrir mapa de partidas"
       >
-        {/* lime "N jogos ao vivo" badge (top-left). Display-only; no SignalR on
-            this screen (live score is S14).
-            TODO(real-api): live status is derived from the F1.7 payload — while
-            mocked, NearbyMatch has no `live` flag and must NOT be extended, so the
-            count tracks the loaded list length as a visual placeholder. */}
-        <View className="absolute top-3 left-3 bg-accent rounded-pill px-3 py-1">
-          <Text className="font-mono text-mono text-text-primary uppercase">
-            {results.length} jogos ao vivo
-          </Text>
-        </View>
-
-        {/* Floating selected-venue card (bottom) — STATIC visual placeholder, NOT
-            data-bound. Venue name/rating/reviews are Layer-3 venue data absent
-            from NearbyMatch; literal sample copy until S17 owns real venue data.
-            The ★ is a plain text glyph (text-text-muted), not a lucide Star. */}
-        <View className="absolute bottom-3 left-3 right-3 bg-white rounded-card shadow-card p-3 flex-row items-center gap-3">
-          <View className="h-10 w-10 rounded-card bg-primary items-center justify-center">
+        {isMapAvailable() ? <MiniMap center={geo} matches={results} /> : null}
+        <View className="p-3 flex-row items-center gap-3">
+          <View className="h-10 w-10 rounded-chip bg-primary items-center justify-center">
             <MapPin size={20} color={colors.textOnDark} />
           </View>
           <View className="flex-1">
-            <Text className="font-body text-h3 text-text-primary" numberOfLines={1}>
-              Beach Vôlei SP
+            <Text
+              className="font-body-bold text-body text-text-primary"
+              numberOfLines={1}
+            >
+              {results.length} jogos por perto
             </Text>
-            <Text className="font-body text-caption text-text-muted">
-              ★ 4.9 (341) · 3,4 km · R$ 40
-            </Text>
+            {nearest ? (
+              <View className="flex-row gap-1">
+                <Text className="font-body text-caption text-text-muted">
+                  Mais perto:
+                </Text>
+                <Text
+                  className="shrink font-body-semibold text-caption text-text-primary"
+                  numberOfLines={1}
+                >
+                  {nearest.distanceKm.toFixed(1).replace(".", ",")} km ·{" "}
+                  {nearest.priceLabel}
+                </Text>
+              </View>
+            ) : null}
           </View>
           <Button variant="primary" onPress={goMap}>
             Ver
           </Button>
         </View>
-      </Pressable>
+      </PressableScale>
 
       {/* ── Results count + Grade/Lista toggle ── */}
       <View className="flex-row items-center justify-between px-4 mt-6">
         <Text
-          className="font-body text-body-bold text-text-primary"
+          className="font-body-semibold text-body-bold text-text-primary"
           accessibilityLiveRegion="polite"
         >
           {results.length} partidas encontradas
         </Text>
         <Button
           variant="ghost"
-          onPress={() => setView(view === 'grid' ? 'list' : 'grid')}
+          onPress={() => setView(view === "grid" ? "list" : "grid")}
           leftIcon={
-            view === 'grid' ? (
+            view === "grid" ? (
               <LayoutGrid size={18} color={colors.primary} />
             ) : (
               <List size={18} color={colors.primary} />
             )
           }
         >
-          {view === 'grid' ? 'Grade' : 'Lista'}
+          {view === "grid" ? "Grade" : "Lista"}
         </Button>
       </View>
 
@@ -208,7 +311,18 @@ function ResultsArea({
         view={view}
         sourceEmpty={(data ?? []).length === 0}
         onRetry={() => refetch()}
-        onClearFilters={clearFilters}
+        onClearFilters={() => setFilters(DEFAULT_FILTERS)}
+      />
+
+      <ExploreFilterSheet
+        visible={sheetOpen}
+        value={filters}
+        source={data ?? []}
+        onApply={(next) => {
+          setFilters(next);
+          setSheetOpen(false);
+        }}
+        onClose={() => setSheetOpen(false)}
       />
     </>
   );
@@ -233,18 +347,18 @@ function ResultsBody({
 }) {
   if (isPending) {
     return (
-      <View className="flex-row flex-wrap px-4 gap-3 mt-2">
+      <View className="flex-row flex-wrap justify-between px-4 gap-y-3 mt-2">
         <View className="w-[48%]">
-          <SkeletonBlock className="h-36" />
+          <SkeletonBlock className="h-[172px]" />
         </View>
         <View className="w-[48%]">
-          <SkeletonBlock className="h-36" />
+          <SkeletonBlock className="h-[172px]" />
         </View>
         <View className="w-[48%]">
-          <SkeletonBlock className="h-36" />
+          <SkeletonBlock className="h-[172px]" />
         </View>
         <View className="w-[48%]">
-          <SkeletonBlock className="h-36" />
+          <SkeletonBlock className="h-[172px]" />
         </View>
       </View>
     );
@@ -252,14 +366,11 @@ function ResultsBody({
 
   if (isError) {
     return (
-      <View className="px-4 py-6 items-center" accessibilityLiveRegion="polite">
-        <Text className="font-body text-body text-text-muted text-center">
-          Não foi possível carregar
-        </Text>
-        <Button variant="ghost" onPress={onRetry}>
-          Tentar novamente
-        </Button>
-      </View>
+      <StateMessage
+        message="Não foi possível carregar"
+        actionLabel="Tentar novamente"
+        onAction={onRetry}
+      />
     );
   }
 
@@ -267,35 +378,28 @@ function ResultsBody({
     // Distinguish "no data at all" from "filtered out by search/chip".
     if (sourceEmpty) {
       return (
-        <View className="px-4 py-6 items-center" accessibilityLiveRegion="polite">
-          <Text className="font-body text-caption text-text-muted text-center">
-            Nenhuma partida perto de você ainda
-          </Text>
-        </View>
+        <StateMessage message="Nenhuma partida perto de você ainda" />
       );
     }
     return (
-      <View className="px-4 py-6 items-center" accessibilityLiveRegion="polite">
-        <Text className="font-body text-caption text-text-muted text-center">
-          Nenhuma partida encontrada para esta busca
-        </Text>
-        <Button variant="ghost" onPress={onClearFilters}>
-          Limpar filtros
-        </Button>
-      </View>
+      <StateMessage
+        message="Nenhuma partida encontrada para esta busca"
+        actionLabel="Limpar filtros"
+        onAction={onClearFilters}
+      />
     );
   }
 
   return (
     <View
       className={
-        view === 'grid'
-          ? 'flex-row flex-wrap px-4 gap-3 mt-2'
-          : 'px-4 gap-3 mt-2'
+        view === "grid"
+          ? "flex-row flex-wrap justify-between px-4 gap-y-3 mt-2"
+          : "px-4 gap-3 mt-2"
       }
     >
       {results.map((m) => (
-        <View key={m.id} className={view === 'grid' ? 'w-[48%]' : 'w-full'}>
+        <View key={m.id} className={view === "grid" ? "w-[48%]" : "w-full"}>
           <MatchCard match={m} onPress={goMatch} />
         </View>
       ))}
@@ -304,15 +408,13 @@ function ResultsBody({
 }
 
 export default function ExploreScreen() {
-  const [view, setView] = useState<ViewMode>('grid');
+  const [view, setView] = useState<ViewMode>("grid");
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
-  const blurTarget = useRef<View>(null);
-  useRegisterNavBlurTarget(blurTarget);
 
   return (
     <View className="flex-1 bg-bg-light">
-      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+      <View className="flex-1 bg-bg-light">
         <ScrollView
           contentContainerStyle={{
             paddingTop: headerHeight,
@@ -321,33 +423,25 @@ export default function ExploreScreen() {
         >
           <ResultsArea view={view} setView={setView} />
         </ScrollView>
-      </BlurTargetView>
+      </View>
 
-      {/* Glass header — no avatar/greeting. Bell is a no-op this iteration
+      {/* Screen header — no avatar/greeting. Bell is a no-op this iteration
           (no notifications screen). */}
-      <GlassHeader blurTarget={blurTarget} onHeight={setHeaderHeight}>
-        <View className="flex-row items-center justify-between px-4 pt-2 pb-3">
+      <ScreenHeader onHeight={setHeaderHeight}>
+        <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
           <Text className="font-display text-h1 text-text-primary uppercase">
             EXPLORAR
           </Text>
           <View className="flex-row items-center gap-3">
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Notificações"
-              onPress={() => {}}
-            >
-              <Bell size={24} color={colors.surfaceDark} />
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Configurações"
-              onPress={goSettings}
-            >
-              <Settings size={24} color={colors.surfaceDark} />
-            </Pressable>
+            <IconButton label="Notificações" onPress={() => {}}>
+              <Bell size={20} color={colors.surfaceDark} />
+            </IconButton>
+            <IconButton label="Configurações" onPress={goSettings}>
+              <Settings size={20} color={colors.surfaceDark} />
+            </IconButton>
           </View>
         </View>
-      </GlassHeader>
+      </ScreenHeader>
     </View>
   );
 }

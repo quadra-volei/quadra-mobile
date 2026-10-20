@@ -1,6 +1,6 @@
 # PRODUCT.md — Quadra
 
-> Product vision summary. For full detail, see the product document v1.0.
+> Product vision summary.
 
 ## What it is
 
@@ -25,20 +25,20 @@ Mobile app for volleyball players that centralizes:
 
 ## Level system
 
-| Level | Criteria |
-| --- | --- |
-| Beginner | < 10 matches |
-| Intermediate | 10+ matches and ≥ 1 MVP received |
-| Advanced | 30+ matches and > 60% vote average |
-| Elite | 50+ matches, 10+ MVPs, top 10% of global ranking |
+| Level | Criteria | MVP status |
+| --- | --- | --- |
+| Beginner | < 10 matches | Active |
+| Intermediate | 10+ matches and ≥ 1 MVP received | Active |
+| Advanced | 30+ matches and > 60% vote average | Only by declaring it at onboarding; earning it is deferred |
+| Elite | 50+ matches, 10+ MVPs, top 10% of global ranking | Deferred (needs a global ranking, out of the MVP) |
 
 ## Point system
 
 - Confirmed attendance + showed up: +10
 - Win: +15
 - Voted MVP: +25
-- 3 consecutive matches streak: bonus +20
-- First match as DropIn in a new group: +5
+- 3 consecutive matches streak: bonus +20 — **not in the MVP** (see `SCOPE.md`)
+- First match as DropIn in a new group: +5 — **not in the MVP**
 
 ## Monetization (validation only, no implementation in MVP)
 

@@ -6,7 +6,8 @@
  *    (uppercase, font-display).
  *  - Summary card shows the authenticated user's avatar, full name, and
  *    "@handle · position".
- *  - The "CONTA" section shows ONLY "Editar perfil" (no "Pagamentos e Premium").
+ *  - The "CONTA" section shows "Editar perfil", "Exportar meus dados" and "Excluir conta"
+ *    (no "Pagamentos e Premium"); deleting asks for confirmation first.
  *  - "Editar perfil" navigates to /profile/edit.
  *  - "Aparência" offers Claro / Escuro / Automático, the selected option is
  *    visually marked, the choice persists via useThemeStore, and dark/system show
@@ -88,10 +89,16 @@ jest.mock('lucide-react-native', () => {
     Check: stub('check'),
     ChevronLeft: stub('chevron-left'),
     ChevronRight: stub('chevron-right'),
+    Download: stub('download'),
+    FileText: stub('file-text'),
     Globe: stub('globe'),
     MapPin: stub('map-pin'),
     MessageSquare: stub('message-square'),
+    Shield: stub('shield'),
+    Trash2: stub('trash'),
     User: stub('user'),
+    UserX: stub('user-x'),
+    Users: stub('users'),
   };
 });
 
@@ -151,6 +158,9 @@ const PROFILE_FIXTURE: MyProfile = {
   level: 15,
   xp: 2450,
   xpToNext: 5000,
+  record: { matches: 0, wins: 0, losses: 0, draws: 0, mvps: 0 },
+  points: 0,
+  cardStyle: { finish: 'Prisma', title: null, photoObjectKey: null },
   lastName: 'Dias',
   handle: 'renan',
   birthDate: '14/03/1998',
@@ -170,6 +180,20 @@ const mockProfile: {
   refetch: jest.fn(),
 };
 
+// "Mostrar minhas atividades" switch: the mutation is mocked at the hook boundary.
+const mockSetSharing = jest.fn();
+jest.mock('@/features/activity/api/activityApi', () => ({
+  useSetActivitySharing: () => ({ mutate: mockSetSharing, isPending: false, variables: undefined }),
+}));
+
+// Account export / deletion: the mutations are mocked at the hook boundary.
+const mockExport = jest.fn();
+const mockDelete = jest.fn();
+jest.mock('@/features/auth/api/account', () => ({
+  useExportAccount: () => ({ mutate: mockExport, isPending: false }),
+  useDeleteAccount: () => ({ mutate: mockDelete, isPending: false }),
+}));
+
 jest.mock('@/features/profile/api/getMyProfile', () => ({
   useMyProfile: () => ({
     data: mockProfile.data,
@@ -180,6 +204,8 @@ jest.mock('@/features/profile/api/getMyProfile', () => ({
 }));
 
 import { Linking } from 'react-native';
+
+import { dialog } from '@/components/ui/Dialog';
 
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 
@@ -203,6 +229,8 @@ beforeEach(() => {
   jest.spyOn(Linking, 'openSettings').mockImplementation(mockOpenSettings);
   jest.spyOn(Linking, 'openURL').mockImplementation(mockOpenURL);
   mockLogout.mockClear();
+  mockExport.mockClear();
+  mockDelete.mockClear();
   mockSetTheme.mockClear();
   mockProfile.data = PROFILE_FIXTURE;
   mockProfile.isPending = false;
@@ -263,6 +291,8 @@ describe('S10 — Settings list screen', () => {
     expect(screen.queryByText('Renan Dias')).toBeNull();
     // static rows still render
     expect(screen.getByText('Editar perfil')).toBeTruthy();
+    expect(screen.getByText('Exportar meus dados')).toBeTruthy();
+    expect(screen.getByText('Excluir conta')).toBeTruthy();
   });
 
   /**
@@ -286,10 +316,12 @@ describe('S10 — Settings list screen', () => {
    * Criterion: "The 'CONTA' section shows only 'Editar perfil' (no 'Pagamentos e
    *  Premium' row)."
    */
-  it('shows only "Editar perfil" under CONTA — no "Pagamentos e Premium"', async () => {
+  it('shows the account rows under CONTA — no "Pagamentos e Premium"', async () => {
     await renderScreen();
 
     expect(screen.getByText('Editar perfil')).toBeTruthy();
+    expect(screen.getByText('Exportar meus dados')).toBeTruthy();
+    expect(screen.getByText('Excluir conta')).toBeTruthy();
     expect(screen.queryByText(/pagamentos/i)).toBeNull();
     expect(screen.queryByText(/premium/i)).toBeNull();
     expect(screen.queryByText('PRO')).toBeNull();
@@ -345,10 +377,18 @@ describe('S10 — Settings list screen', () => {
   it('writes the chosen appearance to the theme store when a tile is tapped', async () => {
     await renderScreen();
 
+    fireEvent.press(screen.getByLabelText('Claro'));
+
+    expect(mockSetTheme).toHaveBeenCalledWith('light');
+    expect(useThemeStore.getState().theme).toBe('light');
+  });
+
+  it('does not let an "Em breve" appearance be picked', async () => {
+    await renderScreen();
+
     fireEvent.press(screen.getByLabelText('Escuro'));
 
-    expect(mockSetTheme).toHaveBeenCalledWith('dark');
-    expect(useThemeStore.getState().theme).toBe('dark');
+    expect(mockSetTheme).not.toHaveBeenCalled();
   });
 
   /**
@@ -451,5 +491,53 @@ describe('S10 — Settings list screen', () => {
     expect(screen.queryByText('Explorar')).toBeNull();
     expect(screen.queryByText('Rede')).toBeNull();
     expect(screen.queryByText('Perfil')).toBeNull();
+  });
+
+  it('shows the activity-sharing switch from the profile and saves a change', async () => {
+    mockProfile.data = { ...PROFILE_FIXTURE, shareActivity: true };
+    await renderScreen();
+
+    const toggle = screen.getByTestId('activity-sharing-switch');
+    expect(screen.getByText('Mostrar minhas atividades')).toBeTruthy();
+    expect(toggle.props.value).toBe(true);
+
+    fireEvent(toggle, 'valueChange', false);
+    expect(mockSetSharing).toHaveBeenCalledWith(false);
+  });
+
+  it('exports the account data when "Exportar meus dados" is tapped', async () => {
+    await renderScreen();
+
+    fireEvent.press(screen.getByText('Exportar meus dados'));
+    expect(mockExport).toHaveBeenCalledTimes(1);
+  });
+
+  it('asks for confirmation before deleting the account', async () => {
+    const alert = jest.spyOn(dialog, 'alert').mockImplementation(() => {});
+    await renderScreen();
+
+    fireEvent.press(screen.getByText('Excluir conta'));
+    expect(mockDelete).not.toHaveBeenCalled();
+    expect(alert).toHaveBeenCalledTimes(1);
+
+    const buttons = alert.mock.calls[0]?.[2] ?? [];
+    buttons.find((b) => b.style === 'destructive')?.onPress?.();
+    expect(mockDelete).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the blocked players list from Privacidade', async () => {
+    await renderScreen();
+
+    fireEvent.press(screen.getByText('Jogadores bloqueados'));
+    expect(mockPush).toHaveBeenCalledWith('/profile/blocked');
+  });
+
+  it('opens the Terms and the Privacy Policy pages', async () => {
+    await renderScreen();
+
+    fireEvent.press(screen.getByText('Termos de Uso'));
+    expect(mockOpenURL).toHaveBeenCalledWith('https://quadra-volei.app/termos');
+    fireEvent.press(screen.getByText('Política de Privacidade'));
+    expect(mockOpenURL).toHaveBeenCalledWith('https://quadra-volei.app/privacidade');
   });
 });

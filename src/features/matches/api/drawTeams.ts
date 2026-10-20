@@ -1,86 +1,83 @@
 import { useMutation } from '@tanstack/react-query';
 
+import { postDraft, putTeamMember, toTeams } from '@/features/matches/api/gameApi';
+import { toMatchError } from '@/features/matches/api/matchesApi';
+import { ApiError } from '@/lib/api/client';
+import type { PresencePlayer } from '@/features/matches/types/matchDetail';
 import type {
   DrawTeamsRequest,
   DrawTeamsResponse,
-  Team,
 } from '@/features/matches/types/team';
-import type { PresencePlayer } from '@/features/matches/types/matchDetail';
 
-// MOCK: deterministic fake latency so RNTL can assert loading states without
-// flakiness. Tests may zero this via the options param. No randomness, no
-// network, no EXPO_PUBLIC_API_URL.
-const MOCK_LATENCY_MS = 600;
-
-/**
- * Mock draw-teams implementation. Seeded with confirmed players from the match,
- * randomly distributes them into N teams of perTeam size.
- *
- * MOCK: this iteration ships fully mocked. The queryFn simulates ~600ms latency
- * and resolves a generated fixture with no network call or backend path. The
- * payload shape (DrawTeamsResponse) is final.
- *
- * TODO(real-api): replace the mock body below with the real F1.3 draw-teams call
- * behind this unchanged hook signature, once the backend match module lands.
- */
-async function drawTeams(
-  id: string,
-  players: PresencePlayer[],
-  request: DrawTeamsRequest,
-  latencyMs: number,
-): Promise<DrawTeamsResponse> {
-  // MOCK: fixed-latency resolve, no network.
-  await new Promise((resolve) => setTimeout(resolve, latencyMs));
-
-  // MOCK: simple shuffle of players into teams
-  const shuffled = [...players].sort(() => Math.random() - 0.5);
-  const teams: Team[] = [];
-
-  for (let teamIndex = 0; teamIndex < request.teamCount; teamIndex++) {
-    const teamPlayers: PresencePlayer[] = [];
-    for (let i = 0; i < request.perTeam; i++) {
-      const playerIndex = teamIndex * request.perTeam + i;
-      const player = shuffled[playerIndex];
-      if (player) {
-        teamPlayers.push(player);
-      }
-    }
-    teams.push({
-      id: `team-${teamIndex + 1}`,
-      number: teamIndex + 1,
-      name: `Time ${teamIndex + 1}`,
-      players: teamPlayers,
-    });
-  }
-
-  return { teams };
-}
-
-export type UseDrawTeamsOptions = {
-  /** Override the mock latency (tests pass 0 to remove the fake delay). */
-  latencyMs?: number;
+/** Why the backend refused to draw or change the teams (the problem title), in pt-BR. */
+const TEAMS_REFUSAL: Record<string, string> = {
+  ConfirmationsNotOpen:
+    'As confirmações ainda não abriram. Os times só podem ser montados depois que elas abrirem.',
+  GameStarted: 'A partida já começou. Os times não podem mais mudar.',
+  MatchOver: 'Esta partida já terminou ou foi cancelada.',
+  NoConfirmedPlayers: 'Ninguém confirmou presença ainda. Sem confirmados não há times.',
+  NotEnoughPlayers: 'Faltam jogadores: cada time precisa de pelo menos 1 confirmado.',
+  InvalidOptions: 'Escolha de 2 a 4 times, com pelo menos 1 jogador por time.',
 };
 
-/** Variables passed to `mutate` each time a draw is triggered. */
+function toTeamsError(error: unknown, byStatus: Partial<Record<number, string>>): Error {
+  if (error instanceof ApiError && error.detail && TEAMS_REFUSAL[error.detail]) {
+    return new Error(TEAMS_REFUSAL[error.detail]);
+  }
+  return toMatchError(error, byStatus);
+}
+
 export type DrawTeamsVariables = {
+  /** The match roster (guests included), used to name the drawn players. */
   players: PresencePlayer[];
   request: DrawTeamsRequest;
 };
 
 /**
- * Draws teams from the match's confirmed players, distributing them into the
- * configured team count and per-team size.
- *
- * Modeled as a mutation (not a query) because a draw is an imperative action:
- * AUTO mode fires it once on mount, MANUAL mode fires it on each "Sortear" tap.
- * A disabled `useQuery` (the previous shape) is skipped by `refetchQueries` and
- * stays permanently `isPending`, which froze the MANUAL "Sortear" button.
+ * Draws the teams of a match on the backend (`POST /matches/{id}/teams/draft`)
+ * and replaces any previous draw. "Automático" asks for teams balanced by
+ * level; "Manual" (the organizer taps Sortear) asks for a random draw. Players
+ * beyond `teamCount × perTeam` sit out.
  */
-export function useDrawTeams(id: string, options: UseDrawTeamsOptions = {}) {
-  const latencyMs = options.latencyMs ?? MOCK_LATENCY_MS;
-
+export function useDrawTeams(id: string) {
   return useMutation<DrawTeamsResponse, Error, DrawTeamsVariables>({
-    mutationFn: ({ players, request }) =>
-      drawTeams(id, players, request, latencyMs),
+    mutationFn: async ({ players, request }) => {
+      try {
+        const teams = await postDraft(id, {
+          teamCount: request.teamCount,
+          perTeam: request.perTeam,
+          mode: request.drawMode === 'AUTO' ? 'Balanced' : 'Random',
+        });
+        return { teams: toTeams(teams, players) };
+      } catch (error) {
+        throw toTeamsError(error, { 403: 'Só quem organiza a partida pode sortear os times.' });
+      }
+    },
+  });
+}
+
+export type MovePlayerVariables = {
+  players: PresencePlayer[];
+  playerId: string;
+  teamId: string;
+};
+
+/**
+ * Moves one drawn player to another team after the draw
+ * (`PUT /matches/{id}/teams/{teamId}/members/{playerId}`) and answers with
+ * every team as it is now.
+ */
+export function useMovePlayer(id: string) {
+  return useMutation<DrawTeamsResponse, Error, MovePlayerVariables>({
+    mutationFn: async ({ players, playerId, teamId }) => {
+      try {
+        return { teams: toTeams(await putTeamMember(id, teamId, playerId), players) };
+      } catch (error) {
+        throw toTeamsError(error, {
+          403: 'Só quem organiza a partida pode mexer nos times.',
+          404: 'Os times mudaram. Refaça o sorteio.',
+        });
+      }
+    },
   });
 }

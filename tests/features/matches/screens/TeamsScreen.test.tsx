@@ -6,9 +6,9 @@
  *  - Each column shows its players as a vertical stack of avatars with position badges.
  *  - Column header displays a team name/number.
  *  - Header reads "MONTAR OS TIMES" and back button returns to S12.
- *  - Subtitle displays team count, players-per-team, and draw mode (Manual/Automático).
- *  - If drawMode=AUTO: teams are auto-drawn on mount; loading skeleton displays while draw is in flight.
- *  - If drawMode=MANUAL: "Sortear" button is shown and visible; tapping it calls useDrawTeams.
+ *  - Before a draw the screen shows the configuration (team count, players per
+ *    team, draw mode) seeded from the match, and "Sortear times" draws with it.
+ *  - After a draw: a summary line, the rosters and "Refazer sorteio".
  *  - Tapping "Começar partida" shows confirmation dialog: "Pronto para começar esta partida?".
  *  - After confirming: navigates to `/matches/[id]/scoreboard`.
  *  - Button shows loading spinner while confirmation is in flight.
@@ -17,7 +17,7 @@
  * useMatchDetail and useDrawTeams are mocked at the boundary
  * so each mode and navigation path is deterministic (no network). The Button component
  * is stubbed to expose loading/disabled state. expo-router and native modules are
- * mocked inline. Route params are injectable. Alert is spied to verify confirmation
+ * mocked inline. Route params are injectable. The dialog is spied to verify confirmation
  * dialog text and button labels.
  */
 import React from 'react';
@@ -58,6 +58,10 @@ jest.mock('lucide-react-native', () => {
   return {
     ChevronLeft: stub('chevron-left'),
     Check: stub('check'),
+    Minus: stub('minus'),
+    Plus: stub('plus'),
+    Scale: stub('scale'),
+    Shuffle: stub('shuffle'),
   };
 });
 
@@ -119,7 +123,7 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: () => mockParams,
 }));
 
-// Alert will be spied on at runtime (after importing in the test)
+// The dialog will be spied on at runtime (after importing in the test)
 
 // --- Hook mocks (mocked at the boundary) ---
 
@@ -134,7 +138,8 @@ function matchDetailFixture(over: Partial<MatchDetail> = {}): MatchDetail {
     format: '6X6',
     level: 'INTERMEDIARIO',
     venue: 'Arena Teste',
-    distanceKm: 1.5,
+    lat: -23.5614,
+    lon: -46.6559,
     tint: '#1A1AFF',
     priceLabel: 'R$ 25',
     pricePlan: 'AVULSO',
@@ -227,8 +232,18 @@ const mockDrawTeams = {
   mutate: jest.fn(),
 };
 
+// Starting the game (two teams: straight from this screen).
+const mockStartSet = { mutateAsync: jest.fn(async (_pair: [string, string]) => ({})) };
+
+jest.mock('@/features/matches/api/liveGame', () => ({
+  useStartSet: () => mockStartSet,
+}));
+
+const mockMovePlayer = { isPending: false, mutate: jest.fn() };
+
 jest.mock('@/features/matches/api/drawTeams', () => ({
   useDrawTeams: jest.fn(() => mockDrawTeams),
+  useMovePlayer: jest.fn(() => mockMovePlayer),
 }));
 
 // --- Test imports ---------
@@ -244,7 +259,7 @@ import {
 
 import TeamsScreen from '../../../../app/matches/[id]/teams';
 
-// Spy on Alert to verify confirmation dialog
+// Spy on the dialog to verify confirmation dialog
 const mockAlert = jest.fn();
 
 beforeEach(() => {
@@ -258,6 +273,7 @@ beforeEach(() => {
   mockDrawTeams.isPending = false;
   mockDrawTeams.isError = false;
   mockDrawTeams.mutate.mockClear();
+  mockMovePlayer.mutate.mockClear();
   mockParams = {
     id: 'match-1',
     teamCount: '2',
@@ -265,9 +281,9 @@ beforeEach(() => {
     drawMode: 'MANUAL',
   };
 
-  // Spy on Alert.alert
-  const { Alert } = require('react-native');
-  jest.spyOn(Alert, 'alert').mockImplementation(mockAlert);
+  // Spy on dialog.alert
+  const { dialog } = require('@/components/ui/Dialog');
+  jest.spyOn(dialog, 'alert').mockImplementation(mockAlert);
 });
 
 afterEach(() => {
@@ -298,72 +314,188 @@ describe('S13 — In-Game Teams screen', () => {
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
-  // -------------------------------------------------- criterion 5: Subtitle
-
+  // -------------------------------------------------- configuration
   /**
-   * Covers: S13 — In-Game Teams
-   * Criterion: "Subtitle displays team count, players-per-team, and draw mode."
+   * The configuration lives on this screen: it starts from the match's defaults
+   * and "Sortear times" sends what the organizer picked.
    */
-  it('displays the subtitle with team count, per-team size, and draw mode (Manual)', async () => {
-    mockParams = {
-      id: 'match-1',
-      teamCount: '2',
-      perTeam: '4',
-      drawMode: 'MANUAL',
-    };
-
+  it('shows the configuration seeded from the match and draws with what was picked', async () => {
     await act(async () => {
       render(<TeamsScreen />);
     });
 
-    expect(screen.getByText(/2 times de 4 jogadores cada • Modo Manual/)).toBeTruthy();
+    // defaults from the fixture's teamConfig: 2 teams of 4, random draw
+    expect(screen.getByTestId('team-count-2').props.accessibilityState?.selected).toBe(true);
+    expect(screen.getByTestId('draw-mode-manual').props.accessibilityState?.checked).toBe(true);
+    expect(screen.getByText('6 confirmados no total')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('team-count-3'));
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('per-team-stepper-decrement'));
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('draw-mode-auto'));
+    });
+    expect(screen.getByTestId('draw-mode-auto').props.accessibilityRole).toBe('radio');
+    expect(screen.getByTestId('draw-mode-auto').props.accessibilityState?.checked).toBe(true);
+    expect(screen.getByTestId('draw-mode-manual').props.accessibilityState?.checked).toBe(false);
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('draw-teams'));
+    });
+    expect(mockDrawTeams.mutate).toHaveBeenCalledTimes(1);
+    expect(mockDrawTeams.mutate.mock.calls[0][0].request).toEqual({
+      teamCount: 3,
+      perTeam: 3,
+      drawMode: 'AUTO',
+    });
   });
 
-  it('displays the subtitle with Automático when drawMode is AUTO', async () => {
-    mockParams = {
-      id: 'match-1',
-      teamCount: '3',
-      perTeam: '5',
-      drawMode: 'AUTO',
-    };
+  it('does not draw by itself, whatever the default mode', async () => {
+    mockMatchDetail.data = matchDetailFixture({
+      teamConfig: { teamCount: 2, perTeam: 4, drawMode: 'AUTO' },
+    });
+    await act(async () => {
+      render(<TeamsScreen />);
+    });
 
+    expect(mockDrawTeams.mutate).not.toHaveBeenCalled();
+    expect(screen.getByTestId('draw-teams')).toBeTruthy();
+  });
+
+  it('after a draw shows the summary and lets the organizer redo it', async () => {
+    mockDrawTeams.data = {
+      teams: [
+        { id: 'team-1', number: 1, name: 'Time 1', players: [] },
+        { id: 'team-2', number: 2, name: 'Time 2', players: [] },
+      ],
+    };
     await act(async () => {
       render(<TeamsScreen />);
     });
 
     expect(
-      screen.getByText(/3 times de 5 jogadores cada • Modo Automático/),
+      screen.getByText(/2 times de 4 jogadores cada • Sorteio aleatório/),
     ).toBeTruthy();
+    expect(screen.queryByTestId('team-count-2')).toBeNull();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('redraw-teams'));
+    });
+    expect(screen.getByTestId('team-count-2')).toBeTruthy();
+    expect(screen.getByTestId('draw-teams')).toBeTruthy();
+    // Before a draw the footer's one action is the draw itself.
+    expect(screen.queryByTestId('start-match')).toBeNull();
   });
 
-  // -------------------------------------------------- criterion 6: AUTO mode
-
-  /**
-   * Covers: S13 — In-Game Teams
-   * Criterion: "If drawMode=AUTO: teams are auto-drawn on mount; loading skeleton
-   *  displays while draw is in flight."
-   */
-  it('auto-draws teams on mount in AUTO mode and displays loading skeleton while pending', async () => {
-    mockParams = {
-      id: 'match-1',
-      teamCount: '2',
-      perTeam: '4',
-      drawMode: 'AUTO',
-    };
-
-    // Start with pending state
-    mockDrawTeams.isPending = true;
+  it('only offers Começar partida once teams are drawn', async () => {
     mockDrawTeams.data = undefined;
 
     await act(async () => {
       render(<TeamsScreen />);
     });
 
-    // "Sortear" button should NOT be shown in AUTO mode
-    expect(screen.queryByTestId('draw-teams')).toBeNull();
+    expect(screen.getByTestId('draw-teams')).toBeTruthy();
+    expect(screen.queryByTestId('start-match')).toBeNull();
   });
 
-  it('displays teams after AUTO mode draw completes', async () => {
+  it('says how the confirmed players fit the teams', async () => {
+    mockDrawTeams.data = undefined;
+    await act(async () => {
+      render(<TeamsScreen />);
+    });
+    // 6 confirmed, 2 teams of 4.
+    expect(screen.getByTestId('capacity-hint').props.children).toBe(
+      'Faltam 2 para completar os times.',
+    );
+  });
+
+  it('moves a tapped player to the team the organizer picks', async () => {
+    const [p1, p2] = matchDetailFixture().players;
+    mockDrawTeams.data = {
+      teams: [
+        { id: 'team-1', number: 1, name: 'Time 1', players: [p1!] },
+        { id: 'team-2', number: 2, name: 'Time 2', players: [p2!] },
+      ],
+    };
+    await act(async () => {
+      render(<TeamsScreen />);
+    });
+
+    await fireEvent.press(screen.getByTestId('roster-player-p1'));
+    const [title, , buttons] = mockAlert.mock.calls[0];
+    expect(title).toBe('Mover João para');
+    // Only the other team, plus the way out.
+    expect(buttons.map((b: { text: string }) => b.text)).toEqual(['Time 2', 'Cancelar']);
+
+    // The backend answer replaces the teams on screen.
+    mockMovePlayer.mutate.mockImplementationOnce((_vars, options) =>
+      options.onSuccess({
+        teams: [
+          { id: 'team-1', number: 1, name: 'Time 1', players: [] },
+          { id: 'team-2', number: 2, name: 'Time 2', players: [p2!, p1!] },
+        ],
+      }),
+    );
+    await act(async () => {
+      buttons[0].onPress();
+    });
+    expect(mockMovePlayer.mutate.mock.calls[0][0]).toMatchObject({
+      playerId: 'p1',
+      teamId: 'team-2',
+    });
+    expect(screen.getByText('2 jogadores')).toBeTruthy();
+  });
+
+  it('does not offer a draw with fewer confirmed than teams', async () => {
+    mockMatchDetail.data = matchDetailFixture({
+      players: matchDetailFixture().players.slice(0, 3),
+      teamConfig: { teamCount: 4, perTeam: 1, drawMode: 'MANUAL' },
+    });
+    await act(async () => {
+      render(<TeamsScreen />);
+    });
+
+    expect(screen.getByTestId('too-few-hint').props.children).toBe(
+      'Com 3 confirmados dá para montar no máximo 3 times.',
+    );
+    expect(screen.getByTestId('draw-teams').props.accessibilityState.disabled).toBe(true);
+  });
+
+  it('will not start with an empty team', async () => {
+    const [p1] = matchDetailFixture().players;
+    mockDrawTeams.data = {
+      teams: [
+        { id: 'team-1', number: 1, name: 'Time 1', players: [p1!] },
+        { id: 'team-2', number: 2, name: 'Time 2', players: [] },
+      ],
+    };
+    await act(async () => {
+      render(<TeamsScreen />);
+    });
+
+    await fireEvent.press(screen.getByTestId('start-match'));
+    expect(mockAlert.mock.calls[0][0]).toBe('Tem time sem jogador');
+    expect(mockStartSet.mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('lists who sat out of the draw', async () => {
+    const [p1, p2] = matchDetailFixture().players;
+    mockDrawTeams.data = {
+      teams: [
+        { id: 'team-1', number: 1, name: 'Time 1', players: [p1!] },
+        { id: 'team-2', number: 2, name: 'Time 2', players: [p2!] },
+      ],
+    };
+    await act(async () => {
+      render(<TeamsScreen />);
+    });
+    expect(screen.getByText('De fora neste sorteio: Pedro, Ana, Carlos, Luna')).toBeTruthy();
+  });
+
+  it('displays teams after the draw completes', async () => {
     mockParams = {
       id: 'match-1',
       teamCount: '2',
@@ -634,10 +766,10 @@ describe('S13 — In-Game Teams screen', () => {
 
   /**
    * Covers: S13 — In-Game Teams
-   * Criterion: "If drawMode=MANUAL: 'Sortear' button is shown and visible; tapping it
-   *  calls useDrawTeams and updates the team display."
+   * Criterion: "'Sortear times' is shown before a draw; tapping it calls
+   *  useDrawTeams and updates the team display."
    */
-  it('shows the Sortear button in MANUAL mode before teams are drawn', async () => {
+  it('shows the Sortear button before teams are drawn', async () => {
     mockParams = {
       id: 'match-1',
       teamCount: '2',
@@ -653,8 +785,8 @@ describe('S13 — In-Game Teams screen', () => {
 
     const drawButton = screen.getByTestId('draw-teams');
     expect(drawButton).toBeTruthy();
-    // The button text "Sortear" should be visible
-    const sortearText = screen.queryByText('Sortear');
+    // The button text should be visible
+    const sortearText = screen.queryByText('Sortear times');
     expect(sortearText).toBeTruthy();
   });
 
@@ -921,7 +1053,8 @@ describe('S13 — In-Game Teams screen', () => {
     const pushCall = mockPush.mock.calls[0][0];
     expect(pushCall.pathname).toBe('/matches/[id]/scoreboard');
     expect(pushCall.params.id).toBe('match-1');
-    expect(pushCall.params.teamCount).toBe('2');
+    // Two teams: the game was started on the backend with that pair.
+    expect(mockStartSet.mutateAsync).toHaveBeenCalledWith(['team-1', 'team-2']);
   });
 
   // -------------------------------------------------- criterion 12: Loading state
@@ -1098,18 +1231,6 @@ describe('S13 — In-Game Teams screen', () => {
   /**
    * Additional coverage: CTA button state management.
    */
-  it('disables Começar partida button when no teams are available', async () => {
-    mockDrawTeams.data = undefined;
-
-    await act(async () => {
-      render(<TeamsScreen />);
-    });
-
-    const startButton = screen.getByTestId('start-match');
-    expect(startButton).toBeTruthy();
-    // Button should be disabled when no teams are available
-    expect(startButton.props.accessibilityState?.disabled).toBe(true);
-  });
 
   it('enables Começar partida button when teams are available', async () => {
     mockDrawTeams.data = {

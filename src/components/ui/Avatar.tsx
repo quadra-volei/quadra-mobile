@@ -7,14 +7,14 @@ import {
   defaultAvatarFor,
 } from '@/theme/defaultAvatars';
 
-export type AvatarSize = 'sm' | 'md' | 'lg' | 'xl';
+export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
 export type AvatarProps = {
   /** expo-image source; falls back to a brand default illustration when absent. */
   uri?: string;
   /** Used to seed the default illustration + the accessibility label. */
   name?: string;
-  /** sm = ranking/header rows, md = header, lg = podium (S9), xl = player card. */
+  /** xs = tab bar, sm = ranking/header rows, md = header, lg = podium (S9), xl = player card. */
   size?: AvatarSize;
   /**
    * When set, renders a small tier-colored level badge ("bolinha") at the
@@ -34,6 +34,7 @@ export type AvatarProps = {
 // Pixel diameters per size token. Kept as a class map so NativeWind sizing stays
 // stable (no inline style). `rounded-full` makes it circular.
 const SIZE_CLASS: Record<AvatarSize, string> = {
+  xs: 'h-6 w-6',
   sm: 'h-10 w-10',
   md: 'h-12 w-12',
   lg: 'h-16 w-16',
@@ -42,6 +43,7 @@ const SIZE_CLASS: Record<AvatarSize, string> = {
 
 // Badge diameter (via defined spacing tokens) + number font size per avatar size.
 const BADGE_CLASS: Record<AvatarSize, { box: string; font: number }> = {
+  xs: { box: 'h-2 w-2', font: 0 },
   sm: { box: 'h-4 w-4', font: 9 },
   md: { box: 'h-4 w-4', font: 9 },
   lg: { box: 'h-6 w-6', font: 12 },

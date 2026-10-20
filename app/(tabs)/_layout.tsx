@@ -1,24 +1,45 @@
-import { BlurView } from 'expo-blur';
-import { LinearGradient } from 'expo-linear-gradient';
+import { BlurTargetView } from 'expo-blur';
 import { router, Tabs } from 'expo-router';
+import { Plus } from 'lucide-react-native';
 import type { ComponentType } from 'react';
-import { useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Keyboard, View } from 'react-native';
+import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { JogarMenu } from '@/components/domain/JogarMenu';
-import { JogarIcon } from '@/components/icons/JogarIcon';
+import { CreateSheet } from '@/components/domain/CreateSheet';
+import { LocationGate } from '@/components/domain/LocationGate';
 import { TabExploreIcon } from '@/components/icons/TabExploreIcon';
 import { TabHomeIcon } from '@/components/icons/TabHomeIcon';
 import { TabNetworkIcon } from '@/components/icons/TabNetworkIcon';
 import { TabProfileIcon } from '@/components/icons/TabProfileIcon';
 import type { TabIconProps } from '@/components/icons/tabIcon';
-import { useNavBlurTargetStore } from '@/stores/navBlurTarget';
-import { CTA_GRADIENT } from '@/theme/colors';
+import { Avatar } from '@/components/ui/Avatar';
+import { PressableScale } from '@/components/ui/PressableScale';
+import { useMyProfile } from '@/features/profile/api/getMyProfile';
+import { takePendingLink } from '@/lib/pendingLink';
+import { listenToPushTaps, registerForPush } from '@/lib/push/pushNotifications';
+import { HARD_SHADOW, colors } from '@/theme/colors';
+import { MOTION } from '@/theme/motion';
 
-// Routes shown as labeled tabs, in bar order: two to the left of the FAB, two to
-// the right. The central "Jogar" FAB sits between them (it is not a tab route —
-// it opens the "BORA JOGAR?" action menu with the Criar/Buscar entry points).
+// "Perfil" shows the signed-in user's photo, Instagram-style: a small circle
+// that gets a primary ring when the tab is active. No photo (or still loading)
+// → the regular profile icon.
+function ProfileTabIcon({ focused, size }: TabIconProps) {
+  const { data } = useMyProfile();
+  if (!data?.avatarUrl) return <TabProfileIcon focused={focused} size={size} />;
+  return (
+    <View
+      testID={focused ? 'tab-profile-avatar-active' : 'tab-profile-avatar'}
+      className={`h-8 w-8 items-center justify-center rounded-full border-2 ${focused ? 'border-primary' : 'border-transparent'}`}
+    >
+      <Avatar uri={data.avatarUrl} name={data.firstName} size="xs" />
+    </View>
+  );
+}
+
+// Routes shown as tabs, in bar order. The central "+" sits between the second
+// and third tab and opens the create sheet (DECISIONS #98).
 const TABS: {
   name: string;
   label: string;
@@ -27,7 +48,7 @@ const TABS: {
   { name: 'index', label: 'Início', Icon: TabHomeIcon },
   { name: 'explore', label: 'Explorar', Icon: TabExploreIcon },
   { name: 'network', label: 'Rede', Icon: TabNetworkIcon },
-  { name: 'profile', label: 'Perfil', Icon: TabProfileIcon },
+  { name: 'profile', label: 'Perfil', Icon: ProfileTabIcon },
 ];
 
 function TabBarButton({
@@ -42,34 +63,86 @@ function TabBarButton({
   onPress: () => void;
 }) {
   return (
-    <Pressable
+    <PressableScale
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected: focused }}
       accessibilityLabel={label}
-      className="w-12 items-center justify-center py-3"
+      className="flex-1 h-full items-center justify-center"
     >
-      <Icon focused={focused} size={24} />
-    </Pressable>
+      {/* Active / inactive icon swap fades in instead of cutting. */}
+      <Animated.View key={String(focused)} entering={FadeIn.duration(MOTION.fadeIn)}>
+        <Icon focused={focused} size={28} />
+      </Animated.View>
+    </PressableScale>
+  );
+}
+
+const PILL_RADIUS = 32;
+const CENTER_SIZE = 64;
+
+// The lime "+" raised above the pill. It is drawn outside the pill (which clips
+// its children); the row keeps an empty slot where it sits.
+function CenterButton({ onPress }: { onPress: () => void }) {
+  return (
+    <PressableScale
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Criar"
+      className="items-center justify-center rounded-full border-2 border-surface-dark bg-accent overflow-hidden"
+      style={{ width: CENTER_SIZE, height: CENTER_SIZE, ...HARD_SHADOW }}
+    >
+      <Plus size={30} color={colors.surfaceDark} strokeWidth={2.6} />
+    </PressableScale>
   );
 }
 
 export default function TabsLayout() {
   const insets = useSafeAreaInsets();
-  // The focused tab screen publishes its `BlurTargetView` ref here so Android's
-  // `dimezisBlurView` has a backdrop to sample (iOS blurs natively regardless).
-  const navBlurTarget = useNavBlurTargetStore((s) => s.target);
-  // The central FAB opens the "BORA JOGAR?" action menu instead of jumping
-  // straight to create-match.
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const closeSheet = useCallback(() => setSheetOpen(false), []);
+  // What the sheet's backdrop blurs on Android.
+  const blurTarget = useRef<View>(null);
+
+  // Signed in: ask for push once and open the match of a tapped push (API DECISIONS #77).
+  useEffect(() => {
+    void registerForPush();
+    return listenToPushTaps();
+  }, []);
+
+  // A link opened while signed out (an invite) goes on once the user is in.
+  useEffect(() => {
+    const link = takePendingLink();
+    if (link) {
+      router.push(link);
+    }
+  }, []);
+  // Android resizes the window for the keyboard, which would lift the floating
+  // bar on top of it (Explore's search) — hide the bar while typing instead.
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardOpen(true));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardOpen(false));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
 
   return (
-    <>
+    // Asks for the location before any tab mounts (DECISIONS #72).
+    <LocationGate>
+    <View className="flex-1">
+    <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
     <Tabs
-      screenOptions={{ headerShown: false }}
+      // Switching tabs cross-fades the screens over the app background.
+      screenOptions={{
+        headerShown: false,
+        animation: 'fade',
+        sceneStyle: { backgroundColor: colors.bgLight },
+      }}
       tabBar={({ state, navigation }) => {
-        const leftTabs = TABS.slice(0, 2);
-        const rightTabs = TABS.slice(2);
+        if (keyboardOpen) return null;
 
         const renderTab = (tab: (typeof TABS)[number]) => {
           const routeIndex = state.routes.findIndex((r) => r.name === tab.name);
@@ -101,75 +174,37 @@ export default function TabsLayout() {
             pointerEvents="box-none"
             style={{
               position: 'absolute',
-              left: 0,
-              right: 0,
+              left: 16,
+              right: 16,
               bottom: 0,
-              alignItems: 'center',
             }}
           >
-          {/* Auto-width, centered pill — deliberately narrower than the content
-              (no `mx-4` full-bleed), Instagram-style. Width is the sum of the
-              fixed-width tabs + the FAB's center reserve. */}
+          {/* Pill spanning the screen minus a 16 side margin, Instagram-style. */}
           <View
             style={{
-              borderRadius: 28,
+              borderRadius: PILL_RADIUS,
               marginBottom: insets.bottom + 12,
-              boxShadow: '0 8px 24px rgba(10,10,60,0.16)',
+              boxShadow: '0 6px 20px rgba(10,10,60,0.12)',
             }}
           >
-            {/* Glass pill — iOS blurs natively. On Android the real backdrop
-                blur (`dimezisBlurView`) samples the focused screen's
-                `BlurTargetView`, published via the nav-blur-target store; until
-                a screen registers one we omit the method so it renders the
-                frosted `bg-white/40` tint instead of warning + falling back to
-                "none". Clipped to the rounded shape; the FAB is a sibling
-                overlay so the clip doesn't cut off its poke. */}
-            <BlurView
-              intensity={80}
-              tint="light"
-              {...(navBlurTarget
-                ? { blurMethod: 'dimezisBlurView' as const, blurTarget: navBlurTarget }
-                : {})}
-              style={{ borderRadius: 28, overflow: 'hidden' }}
+            {/* Solid white pill with a hairline border — no backdrop blur, which
+                rendered grey or white on Android depending on the content
+                behind it (DECISIONS #46). The four tabs share the width left
+                by the central slot. */}
+            <View
+              className="flex-row items-center h-16 px-2 bg-white border border-line overflow-hidden"
+              style={{ borderRadius: PILL_RADIUS }}
             >
-              <View className="flex-row items-center px-2 bg-white/40 border border-white/40">
-                {leftTabs.map(renderTab)}
-
-                {/* Center column reserves the FAB's horizontal footprint. */}
-                <View className="w-20" style={{ height: 44 }} />
-
-                {rightTabs.map(renderTab)}
-              </View>
-            </BlurView>
-
-            {/* Central "Jogar" FAB — poking overlay, outside the clipped pill. */}
+              {TABS.slice(0, 2).map(renderTab)}
+              <View style={{ width: CENTER_SIZE + 16 }} />
+              {TABS.slice(2).map(renderTab)}
+            </View>
             <View
               pointerEvents="box-none"
-              className="absolute inset-x-0 items-center"
-              style={{ top: -20 }}
+              className="absolute left-0 right-0 items-center"
+              style={{ top: -CENTER_SIZE / 2 + 8 }}
             >
-              <Pressable
-                onPress={() => setMenuOpen(true)}
-                accessibilityRole="button"
-                accessibilityLabel="Jogar"
-                className="rounded-full overflow-hidden"
-                style={{ boxShadow: '0 4px 16px rgba(26,26,255,0.28)' }}
-              >
-                <LinearGradient
-                  colors={CTA_GRADIENT}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{
-                    width: 64,
-                    height: 64,
-                    borderRadius: 9999,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <JogarIcon size={30} />
-                </LinearGradient>
-              </Pressable>
+              <CenterButton onPress={() => setSheetOpen(true)} />
             </View>
           </View>
           </View>
@@ -181,19 +216,22 @@ export default function TabsLayout() {
       <Tabs.Screen name="network" options={{ title: 'Rede' }} />
       <Tabs.Screen name="profile" options={{ title: 'Perfil' }} />
     </Tabs>
-
-    <JogarMenu
-      visible={menuOpen}
-      onClose={() => setMenuOpen(false)}
-      onCreate={() => {
-        setMenuOpen(false);
-        router.push('/matches/create');
-      }}
-      onSearch={() => {
-        setMenuOpen(false);
-        router.push('/explore');
-      }}
-    />
-    </>
+    </BlurTargetView>
+    {sheetOpen ? (
+      <CreateSheet
+        blurTarget={blurTarget}
+        onClose={closeSheet}
+        onCreateMatch={() => {
+          closeSheet();
+          router.push('/matches/create');
+        }}
+        onCreatePost={() => {
+          closeSheet();
+          router.push('/network/new');
+        }}
+      />
+    ) : null}
+    </View>
+    </LocationGate>
   );
 }

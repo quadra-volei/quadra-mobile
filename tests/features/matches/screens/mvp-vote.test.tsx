@@ -72,9 +72,19 @@ const mockVoteMutationState = {
   mutate: jest.fn(),
 };
 
+// Wrap-up (after the vote): who organizes closes the voting and opens the summary.
+const mockIsOrganizer = { value: false };
+const mockFinishMatch = {
+  mutate: jest.fn((_input: unknown, options?: { onSuccess?: () => void }) => options?.onSuccess?.()),
+  isPending: false,
+  error: null,
+};
+
 jest.mock('@/features/matches/api/useMVPVote', () => ({
   useMatchPlayers: () => mockMatchPlayersState,
   useVoteMVPMutation: () => mockVoteMutationState,
+  useIsOrganizer: () => mockIsOrganizer.value,
+  useFinishMatch: () => mockFinishMatch,
 }));
 
 // --- Test Setup -----------------------------------------------------------
@@ -277,5 +287,27 @@ describe('S15 — Post-Match MVP Vote', () => {
     // Verify multiple buttons exist (back + player cards)
     const buttons = screen.getAllByRole('button');
     expect(buttons.length).toBeGreaterThan(1);
+  });
+
+  it('tells someone who did not play that they have no vote', async () => {
+    mockMatchPlayersState.data = mockMatchPlayersState.data.filter((p: any) => p.id !== 'o1');
+    await render(<MvpVoteScreen />, { wrapper });
+
+    expect(screen.getByText('Só quem jogou vota no MVP.')).toBeTruthy();
+    expect(screen.queryByTestId('mvp-submit-button')).toBeNull();
+    expect(screen.getByTestId('mvp-summary-button')).toBeTruthy();
+  });
+
+  it('lets the organizer vote even without having played', async () => {
+    mockMatchPlayersState.data = mockMatchPlayersState.data.filter((p: any) => p.id !== 'o1');
+    mockIsOrganizer.value = true;
+    try {
+      await render(<MvpVoteScreen />, { wrapper });
+
+      expect(screen.getByTestId('mvp-submit-button')).toBeTruthy();
+      expect(screen.getByText('Érica')).toBeTruthy();
+    } finally {
+      mockIsOrganizer.value = false;
+    }
   });
 });

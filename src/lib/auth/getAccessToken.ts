@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 
-const ACCESS_TOKEN_KEY = 'quadra.accessToken';
+import { ACCESS_TOKEN_KEY } from '@/lib/auth/tokenStorage';
 
 /**
  * Reads the stored Quadra access token from expo-secure-store.

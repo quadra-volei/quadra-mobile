@@ -1,26 +1,12 @@
 /**
- * Create-match → domain mapping helpers.
- *
- * The S11 create flow ships mocked (no F1.1 backend yet), but the data the
- * organizer types must be **persisted in memory** so the success screen and the
- * subsequent screens/flows (S12 detail, home lists) show the *real* entered
- * values instead of a static fixture. These pure helpers turn the raw
- * `CreateMatchInput` (kept as the session source of truth) into the shapes the
- * read layers consume: `MatchDetail` (S12) and `UpcomingMatch` (S5 home).
- *
- * TODO(real-api): once F1.1 lands, the backend owns id generation, the resolved
- * start timestamp, and the organizer/player payload; these mappers become the
- * response adapter (or are dropped) behind the unchanged read-hook signatures.
+ * Create-match helpers: the record the "partida criada" screen shows, and the
+ * resolution of the entered schedule to a concrete start timestamp.
  */
-import type { UpcomingMatch } from '@/features/matches/types/match';
-import type { MatchDetail } from '@/features/matches/types/matchDetail';
 import type { CreateMatchInput } from '@/features/matches/schema/createMatch';
 
 /**
- * A match created by the current user this session. Stores the raw entered
- * input verbatim (the source of truth) plus the fields resolved once at create
- * time — the generated id, the organizer, and the concrete start timestamp
- * derived from the QUANDO quick-date chip.
+ * A match the current user just created: the id the backend gave it plus the
+ * form input, for the confirmation screen.
  */
 export type CreatedMatch = {
   id: string;
@@ -86,73 +72,3 @@ export function resolveMatchStartsAt(
   return d.toISOString();
 }
 
-/** "Grátis" for 0, "R$ N" otherwise — shared by both mappers. */
-export function formatPriceLabel(price: number): string {
-  return price === 0 ? 'Grátis' : `R$ ${price}`;
-}
-
-/** Court-image cover tint per level, mirroring the prototype's level scale. */
-function tintForLevel(level: CreateMatchInput['level']): string {
-  if (level === 'INICIANTE') return '#00B4D8';
-  if (level === 'AVANCADO') return '#6B1AFF';
-  return '#1A1AFF'; // INTERMEDIARIO
-}
-
-/**
- * Builds the full S12 `MatchDetail` from a created-match record. The current
- * user is the organizer (so the S12 organizer view renders) and the only
- * confirmed player at creation time; open drop-in slots exist only when the
- * match is public.
- */
-export function buildMatchDetail(match: CreatedMatch): MatchDetail {
-  const { input } = match;
-  const teamCount = 2 as const;
-  const perTeam = Math.max(1, Math.floor(input.players / teamCount));
-
-  return {
-    id: match.id,
-    name: input.name,
-    format: input.format,
-    level: input.level,
-    venue: input.location,
-    // Own match — no distance-from-me concept until F1.7 geo lands.
-    distanceKm: 0,
-    tint: tintForLevel(input.level),
-    priceLabel: formatPriceLabel(input.price),
-    // The create form collects a single price, so a created match is always
-    // charged per session — there is no monthly figure to show.
-    pricePlan: 'AVULSO',
-    capacity: input.players,
-    startsAt: match.startsAt,
-    // No datetime picker this iteration: the window closes at match start.
-    confirmationClosesAt: match.startsAt,
-    confirmationWindowClosed: false,
-    organizerId: match.organizerId,
-    organizer: { id: match.organizerId, name: 'Você' },
-    // Organizing a match is not the same as playing it — the organizer may only
-    // be running it. So a new match starts with nobody confirmed and every slot
-    // open; the organizer enters the grid only by confirming, like anyone else.
-    players: [],
-    openDropInSlots: input.privacy === 'open' ? input.players : 0,
-    myParticipationType: 'REGULAR',
-    myStatus: 'PENDENTE',
-    teamConfig: { teamCount, perTeam, drawMode: 'MANUAL' },
-  };
-}
-
-/** Builds the compact S5 home-card summary from a created-match record. */
-export function buildUpcomingMatch(match: CreatedMatch): UpcomingMatch {
-  const { input } = match;
-  return {
-    id: match.id,
-    name: input.name,
-    startsAt: match.startsAt,
-    category: input.level === 'AVANCADO' ? 'COMPETITIVO' : 'CASUAL',
-    // Nobody is confirmed at creation — not even the organizer, who has to
-    // confirm like anyone else — so every slot is still open.
-    openSlots: input.players,
-    priceLabel: formatPriceLabel(input.price),
-    avatarUrls: [],
-    tint: tintForLevel(input.level),
-  };
-}

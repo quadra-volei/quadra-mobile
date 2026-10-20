@@ -1,3 +1,6 @@
+jest.mock('@/components/domain/BellWithBadge', () => ({
+  BellWithBadge: () => require('react').createElement(require('react-native').View, { testID: 'icon-bell' }),
+}));
 /**
  * S8 — Profile screen tests.
  *
@@ -6,13 +9,13 @@
  *    plus a notification bell and a theme toggle.
  *  - "Seu progresso" shows the GERAL number (font-num) + the ACE/BLK/ATA/DEF
  *    stats grid + a Level/XP bar ("Level N", "XP: a / b").
- *  - The "Ver a sua carta" gradient CTA navigates to the player card
+ *  - The "Ver sua carta" gradient CTA navigates to the player card
  *    (/profile/card).
  *  - "MINHAS PARTIDAS" renders rows from useRecentMatches (name, date·format,
  *    Vitória/Derrota colored success/danger, set score); tapping a row navigates
  *    to the S16 summary (/matches/[id]/summary) with its id. A "Ver tudo" button
  *    is present but inert (no full-history screen in MVP).
- *  - The dark "Ranking semanal" card renders rows from
+ *  - The dark "Ranking da temporada · amigos" card renders rows from
  *    useGroupRanking({ preview: true }) (position, avatar, name, subtitle, score);
  *    the current user's row is highlighted with "· você".
  *  - "Ver tudo" on the ranking section navigates to S9 (/profile/ranking).
@@ -29,7 +32,7 @@
  * the repo's tests/__mocks__ are NOT auto-applied. The auth store is a real
  * zustand store; tests set userId via setState to exercise the `isMe` highlight.
  *
- * The bottom tab bar (4 tabs + central FAB) and the "Perfil" active tab are owned
+ * The bottom tab bar (4 tabs) and the "Perfil" active tab are owned
  * by app/(tabs)/_layout.tsx, NOT this screen body — that criterion is covered by
  * tests/features/matches/screens/TabsLayout.test.tsx, so this file focuses on the
  * screen content (consistent with the S5/S7 screen-body tests).
@@ -38,7 +41,7 @@ import React from 'react';
 
 // --- Native / module mocks ------------------------------------------------
 
-// LinearGradient -> View that forwards props (dark "Ranking semanal" card).
+// LinearGradient -> View that forwards props (dark "Ranking da temporada · amigos" card).
 jest.mock('expo-linear-gradient', () => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
@@ -142,6 +145,9 @@ const PROFILE_FIXTURE: MyProfile = {
   level: 15,
   xp: 2450,
   xpToNext: 5000,
+  record: { matches: 0, wins: 0, losses: 0, draws: 0, mvps: 0 },
+  points: 0,
+  cardStyle: { finish: 'Prisma', title: null, photoObjectKey: null },
 };
 
 const RECENT_FIXTURE: RecentMatch[] = [
@@ -322,7 +328,8 @@ describe('S8 — Profile screen', () => {
   it('renders the GERAL number (font-num) and the Level/XP bar', async () => {
     await render(<ProfileScreen />);
 
-    expect(screen.getByText('Seu progresso')).toBeTruthy();
+    // The card has no title (DECISIONS #76).
+    expect(screen.queryByText('Seu progresso')).toBeNull();
 
     // GERAL label + the overall number rendered with the number font.
     expect(screen.getByText('Geral')).toBeTruthy();
@@ -359,13 +366,13 @@ describe('S8 — Profile screen', () => {
 
   /**
    * Covers: S8 — Profile
-   * Criterion: "The 'Ver a sua carta' gradient CTA navigates to the player card
+   * Criterion: "The 'Ver sua carta' gradient CTA navigates to the player card
    *  (/profile/card)."
    */
-  it('renders the "Ver a sua carta" CTA and navigates to /profile/card', async () => {
+  it('renders the "Ver sua carta" CTA and navigates to /profile/card', async () => {
     await render(<ProfileScreen />);
 
-    const cta = screen.getByText('Ver a sua carta');
+    const cta = screen.getByText('Ver sua carta');
     expect(cta).toBeTruthy();
 
     fireEvent.press(cta);
@@ -438,14 +445,14 @@ describe('S8 — Profile screen', () => {
   // --------------------------------------------------- Ranking semanal section
   /**
    * Covers: S8 — Profile
-   * Criterion: "The dark 'Ranking semanal' card renders ranking rows from
+   * Criterion: "The dark 'Ranking da temporada · amigos' card renders ranking rows from
    *  useGroupRanking({ preview: true }) with position, avatar, name, subtitle,
    *  score; the current user's row is highlighted with '· você'."
    */
   it('renders the ranking preview rows with position, avatar, name, subtitle and score', async () => {
     await render(<ProfileScreen />);
 
-    expect(screen.getByText('Ranking semanal')).toBeTruthy();
+    expect(screen.getByText('Ranking da temporada · amigos')).toBeTruthy();
 
     // the hook was asked for the preview list
     expect(mockRanking.lastParams).toEqual({ preview: true });
@@ -467,7 +474,7 @@ describe('S8 — Profile screen', () => {
 
   /**
    * Covers: S8 — Profile (prototype parity)
-   * Criterion: the section is titled "Meus amigos" over the "Ranking semanal"
+   * Criterion: the section is titled "Meus amigos" over the "Ranking da temporada · amigos"
    *  card, and avatars (header + ranking rows) carry a tier-colored level badge.
    */
   it('renders the "Meus amigos" title and level badges on the avatars', async () => {
@@ -475,7 +482,7 @@ describe('S8 — Profile screen', () => {
 
     // Outer section title + inner card label.
     expect(screen.getByText('Meus amigos')).toBeTruthy();
-    expect(screen.getByText('Ranking semanal')).toBeTruthy();
+    expect(screen.getByText('Ranking da temporada · amigos')).toBeTruthy();
 
     // Header avatar (level 15) + the three ranking rows (20/18/12) each show a badge.
     expect(
@@ -569,6 +576,16 @@ describe('S8 — Profile screen', () => {
    * Only the recent-matches query is pending: its list is replaced by a skeleton
    * while the progress card and ranking still render.
    */
+  it('shows a skeleton header, not a stand-in name, while the profile loads', async () => {
+    mockProfile.data = undefined;
+    mockProfile.isPending = true;
+    await render(<ProfileScreen />);
+
+    expect(screen.getByTestId('profile-header-skeleton')).toBeTruthy();
+    expect(screen.queryByText('Olá,')).toBeNull();
+    expect(screen.queryByText('...')).toBeNull();
+  });
+
   it('shows the MINHAS PARTIDAS loading placeholder independently', async () => {
     mockRecent.isPending = true;
     await render(<ProfileScreen />);

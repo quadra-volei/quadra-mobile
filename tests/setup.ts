@@ -9,3 +9,22 @@ beforeEach(() => {
 afterEach(() => {
   jest.restoreAllMocks();
 });
+
+// expo-notifications is native (push): a quiet stand-in keeps screens that import it testable.
+jest.mock('expo-notifications', () => ({
+  setNotificationHandler: jest.fn(),
+  setNotificationChannelAsync: jest.fn(),
+  getPermissionsAsync: jest.fn(async () => ({ granted: false, canAskAgain: false })),
+  requestPermissionsAsync: jest.fn(async () => ({ granted: false })),
+  getExpoPushTokenAsync: jest.fn(),
+  addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
+  AndroidImportance: { DEFAULT: 3 },
+}));
+
+// React Native Firebase is native (phone login): a stand-in the auth tests can drive.
+jest.mock('@react-native-firebase/auth', () => ({
+  getAuth: jest.fn(() => ({})),
+  signInWithPhoneNumber: jest.fn(),
+  getIdToken: jest.fn(),
+  signOut: jest.fn(async () => undefined),
+}));

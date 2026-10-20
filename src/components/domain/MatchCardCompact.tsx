@@ -1,9 +1,12 @@
 import { Image } from 'expo-image';
 import { Clock } from 'lucide-react-native';
-import { Pressable, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 
 import { CourtImage } from '@/components/ui/CourtImage';
+import { PressableScale } from '@/components/ui/PressableScale';
 import { Tag } from '@/components/ui/Tag';
+import { formatStartsAt } from '@/features/matches/lib/formatWhen';
+import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
 import type { UpcomingMatch } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
 
@@ -19,34 +22,8 @@ const MAX_AVATARS = 3;
 const PRICE_FREE_COLOR = '#1F8A5B';
 
 /**
- * Formats an ISO timestamp as "Hoje · 19h30" / "Amanhã · 20h00" / "20/06 · 19h30",
- * relative to the current day. Pure, no external date lib.
- */
-function formatStartsAt(iso: string): string {
-  const date = new Date(iso);
-  const now = new Date();
-
-  const startOfDay = (d: Date) =>
-    new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  const dayDiff = Math.round(
-    (startOfDay(date) - startOfDay(now)) / (1000 * 60 * 60 * 24),
-  );
-
-  const hh = String(date.getHours()).padStart(2, '0');
-  const mm = String(date.getMinutes()).padStart(2, '0');
-  const time = `${hh}h${mm}`;
-
-  if (dayDiff === 0) return `Hoje · ${time}`;
-  if (dayDiff === 1) return `Amanhã · ${time}`;
-
-  const dd = String(date.getDate()).padStart(2, '0');
-  const mo = String(date.getMonth() + 1).padStart(2, '0');
-  return `${dd}/${mo} · ${time}`;
-}
-
-/**
  * Compact match card for the "PRÓXIMAS PARTIDAS" scroll (S5 Home). A `CourtImage`
- * cover tinted per match with a category tag, then a white content block: name,
+ * cover tinted per match with the level badge, then a white content block: name,
  * datetime, and a footer with the confirmed-avatar stack and vagas/price badges.
  * Reused by S8 (recent matches strip). Receives plain data via props and never
  * fetches. Mirrors the prototype's upcoming card.
@@ -54,11 +31,11 @@ function formatStartsAt(iso: string): string {
 export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactProps) {
   const extra = match.avatarUrls.length - MAX_AVATARS;
   const visibleAvatars = match.avatarUrls.slice(0, MAX_AVATARS);
-  const catBlue = (match.category ?? '').toUpperCase() === 'CASUAL';
+  const badge = LEVEL_BADGE[match.level];
   const isFree = match.priceLabel.toLowerCase() === 'grátis';
 
   return (
-    <Pressable
+    <PressableScale
       onPress={() => onPress(match.id)}
       testID={testID}
       accessibilityRole="button"
@@ -67,18 +44,12 @@ export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactPro
     >
       {/* cover */}
       <View>
-        <CourtImage tint={match.tint} height={124} radius={0} />
-        {match.category ? (
-          <View className="absolute top-[10px] left-[10px]">
-            <Tag
-              bg={catBlue ? colors.primary : colors.accent}
-              color={catBlue ? colors.textOnDark : colors.surfaceDark}
-              dot
-            >
-              {match.category}
-            </Tag>
-          </View>
-        ) : null}
+        <CourtImage tint={match.tint} imageUri={match.coverUrl} height={124} radius={0} />
+        <View className="absolute top-[10px] left-[10px]">
+          <Tag bg={badge.bg} color={badge.color} outlined>
+            {badge.label}
+          </Tag>
+        </View>
       </View>
 
       {/* content */}
@@ -147,6 +118,6 @@ export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactPro
           </View>
         </View>
       </View>
-    </Pressable>
+    </PressableScale>
   );
 }

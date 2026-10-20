@@ -9,22 +9,20 @@ import { getAccessToken } from '@/lib/auth/getAccessToken';
  */
 let connection: signalR.HubConnection | null = null;
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://api.quadra.dev';
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? '';
 const HUB_URL = `${BASE_URL}/hubs/match`;
 
 /**
  * Gets or creates the SignalR connection to the match hub.
  *
- * MOCK: this iteration ships with a placeholder implementation. The connection
- * URL and hub path (HUB_URL) are mocked. In real use, once the backend match
- * SignalR hub lands, swap the BASE_URL / HUB_URL to point to the real endpoint
- * and the connection will work unchanged.
+ * One shared connection to the backend hub at `${EXPO_PUBLIC_API_URL}/hubs/match`,
+ * authenticated with the access token.
  *
  * Usage:
  * ```tsx
  * const conn = await getConnection();
  * await conn.invoke('JoinMatchRoom', matchId);
- * conn.on('ScoreUpdated', handler);
+ * conn.on('ScoreboardUpdated', handler);
  * ```
  */
 export async function getConnection(): Promise<signalR.HubConnection> {

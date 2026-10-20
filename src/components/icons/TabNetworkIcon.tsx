@@ -2,21 +2,17 @@ import Svg, {
   ClipPath,
   Defs,
   G,
-  LinearGradient,
   Path,
   Rect,
-  Stop,
 } from 'react-native-svg';
 
 import {
-  TAB_GRAD_END,
-  TAB_GRAD_START,
+  TAB_ACTIVE,
   TAB_MUTED,
   TAB_MUTED_OPACITY,
   type TabIconProps,
 } from './tabIcon';
 
-const GID = 'tab-network-grad';
 const CID = 'tab-network-clip';
 
 const D1 =
@@ -28,17 +24,11 @@ const D3 =
 
 /** "Rede" bottom-nav icon (ported from docs/uploads/Rede*.svg). */
 export function TabNetworkIcon({ focused, size = 26, testID }: TabIconProps) {
-  const fill = focused ? `url(#${GID})` : TAB_MUTED;
+  const fill = focused ? TAB_ACTIVE : TAB_MUTED;
   const fillOpacity = focused ? 1 : TAB_MUTED_OPACITY;
   return (
     <Svg testID={testID} width={size} height={size} viewBox="0 0 31 31" fill="none">
       <Defs>
-        {focused ? (
-          <LinearGradient id={GID} x1="15.5" y1="0" x2="15.5" y2="31" gradientUnits="userSpaceOnUse">
-            <Stop stopColor={TAB_GRAD_START} />
-            <Stop offset="1" stopColor={TAB_GRAD_END} />
-          </LinearGradient>
-        ) : null}
         <ClipPath id={CID}>
           <Rect width="31" height="31" fill="#fff" />
         </ClipPath>

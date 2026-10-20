@@ -1,25 +1,36 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { BlurTargetView } from 'expo-blur';
 import { router } from 'expo-router';
 import {
   Bell,
   Check,
   ChevronLeft,
   ChevronRight,
+  Download,
+  FileText,
   Globe,
   MapPin,
   MessageSquare,
+  Shield,
+  Trash2,
   User,
+  UserX,
+  Users,
 } from 'lucide-react-native';
-import { type ReactNode, useRef, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
-import { GlassBackHeader } from '@/components/ui/GlassBackHeader';
+import { dialog } from '@/components/ui/Dialog';
+import { SkeletonBlock } from '@/components/ui/Skeleton';
+import { ToggleField } from '@/components/ui/ToggleField';
+import { BackHeader } from '@/components/ui/BackHeader';
+import { useSetActivitySharing } from '@/features/activity/api/activityApi';
+import { useDeleteAccount, useExportAccount } from '@/features/auth/api/account';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import { positionLabel } from '@/features/profile/schema/onboarding';
 import { logout } from '@/lib/auth/logout';
+import { LEGAL_URLS } from '@/lib/legal';
 import { useThemeStore, type ThemePreference } from '@/stores/theme';
 import { colors } from '@/theme/colors';
 
@@ -27,15 +38,10 @@ import { colors } from '@/theme/colors';
 // (expo-constants/expo-application are not in the locked stack); update on bumps.
 const APP_VERSION = '1.0.0';
 
-/** Neutral rounded skeleton block (DESIGN_SYSTEM skeleton shapes TBD — flag). */
-function SkeletonBlock({ className }: { className: string }) {
-  return <View className={`bg-bg-light-alt rounded-card ${className}`} />;
-}
-
 // ── Eyebrow section label (CONTA / PREFERÊNCIAS / SUPORTE) ──
 function SectionLabel({ children }: { children: ReactNode }) {
   return (
-    <Text className="font-body text-eyebrow text-text-muted uppercase px-4 mt-6 mb-2">
+    <Text className="font-body-bold text-eyebrow text-text-muted uppercase px-4 mt-6 mb-2">
       {children}
     </Text>
   );
@@ -75,7 +81,7 @@ function SettingsRow({
     >
       <View className="mr-4">{icon}</View>
       <View className="flex-1">
-        <Text className="font-body text-h3 text-text-primary">{title}</Text>
+        <Text className="font-body-extrabold text-h3 text-text-primary">{title}</Text>
         {subtitle ? (
           <Text className="mt-0.5 font-body text-caption text-text-muted">
             {subtitle}
@@ -111,9 +117,11 @@ function ThemeTile({
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      accessibilityState={{ selected }}
+      // A tile with a badge ("Em breve") is not built yet: it shows but cannot be picked.
+      accessibilityState={{ selected, disabled: badge != null }}
+      disabled={badge != null}
       onPress={() => onPress(value)}
-      className="flex-1 items-center"
+      className={`flex-1 items-center ${badge ? 'opacity-60' : ''}`}
     >
       <View
         className={`w-full h-16 rounded-card overflow-hidden border-2 ${
@@ -183,7 +191,7 @@ function SummaryCard() {
     <View className="mx-4 mt-2 bg-white rounded-card shadow-card p-4 flex-row items-center gap-3">
       <Avatar uri={data.avatarUrl} name={data.firstName} size="md" />
       <View className="flex-1">
-        <Text className="font-body text-h3 text-text-primary">{fullName}</Text>
+        <Text className="font-body-extrabold text-h3 text-text-primary">{fullName}</Text>
         {subtitle ? (
           <Text className="font-body text-caption text-text-muted">
             {subtitle}
@@ -194,27 +202,72 @@ function SummaryCard() {
   );
 }
 
+// "Mostrar minhas atividades para quem me segue" (on by default). Follows the
+// tap while the server answers; the profile in the cache takes the result.
+function ActivitySharingToggle() {
+  const { data } = useMyProfile();
+  const setSharing = useSetActivitySharing();
+  const value = setSharing.isPending ? (setSharing.variables ?? true) : (data?.shareActivity ?? true);
+  return (
+    <ToggleField
+      icon={<Users size={24} color={colors.surfaceDark} />}
+      title="Mostrar minhas atividades"
+      caption="Quem te segue vê quando você joga, é MVP ou sobe de nível"
+      value={value}
+      onValueChange={(enabled) => setSharing.mutate(enabled)}
+      testID="activity-sharing-switch"
+    />
+  );
+}
+
 export default function SettingsScreen() {
   const queryClient = useQueryClient();
   const theme = useThemeStore((s) => s.theme);
   const setTheme = useThemeStore((s) => s.setTheme);
   const [headerHeight, setHeaderHeight] = useState(0);
-  const blurTarget = useRef<View>(null);
+
+  const exportAccount = useExportAccount();
+  const deleteAccount = useDeleteAccount();
 
   const onLogout = () => {
     void logout(queryClient);
   };
 
+  const onExport = () => {
+    exportAccount.mutate(undefined, {
+      onError: (error) => dialog.alert('Exportar meus dados', error.message),
+    });
+  };
+
+  // Irreversible: the API deletes the account and its data (LGPD), then we sign out.
+  const onDelete = () => {
+    dialog.alert(
+      'Excluir conta?',
+      'Seu perfil, posts, seguidores e pontos serão apagados e as partidas que você organiza e ainda não começaram serão canceladas. Não dá para desfazer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Excluir',
+          style: 'destructive',
+          onPress: () =>
+            deleteAccount.mutate(undefined, {
+              onError: (error) => dialog.alert('Excluir conta', error.message),
+            }),
+        },
+      ],
+    );
+  };
+
   return (
     <View className="flex-1 bg-bg-light">
-      <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
         <ScrollView
           contentContainerClassName="pb-24"
           contentContainerStyle={{ paddingTop: headerHeight }}
         >
           <SummaryCard />
 
-          {/* CONTA — only "Editar perfil" (Pagamentos = Layer 3, cut) */}
+          {/* CONTA — editar perfil, exportar e excluir a conta (LGPD); Pagamentos = Layer 3, cut */}
           <SectionLabel>Conta</SectionLabel>
           <View className="mx-4 bg-white rounded-card shadow-card overflow-hidden">
             <SettingsRow
@@ -223,12 +276,28 @@ export default function SettingsScreen() {
               subtitle="Nome, nascimento, telefone"
               onPress={() => router.push('/profile/edit')}
             />
+            <Divider />
+            <SettingsRow
+              icon={<Download size={24} color={colors.surfaceDark} />}
+              title="Exportar meus dados"
+              subtitle="Tudo o que o Quadra guarda sobre você"
+              onPress={onExport}
+              disabled={exportAccount.isPending}
+            />
+            <Divider />
+            <SettingsRow
+              icon={<Trash2 size={24} color={colors.danger} />}
+              title="Excluir conta"
+              subtitle="Apaga sua conta e seus dados"
+              onPress={onDelete}
+              disabled={deleteAccount.isPending}
+            />
           </View>
 
           {/* PREFERÊNCIAS */}
           <SectionLabel>Preferências</SectionLabel>
           <View className="mx-4 bg-white rounded-card shadow-card p-4">
-            <Text className="font-body text-h3 text-text-primary">Aparência</Text>
+            <Text className="font-body-extrabold text-h3 text-text-primary">Aparência</Text>
             <View className="flex-row gap-3 mt-3">
               <ThemeTile
                 value="light"
@@ -280,10 +349,24 @@ export default function SettingsScreen() {
             <SettingsRow
               icon={<MapPin size={24} color={colors.surfaceDark} />}
               title="Permissões do app"
-              subtitle="Localização, câmera, contatos"
+              subtitle="Localização e notificações"
               onPress={() => {
                 void Linking.openSettings();
               }}
+            />
+          </View>
+
+          {/* PRIVACIDADE */}
+          <SectionLabel>Privacidade</SectionLabel>
+          <View className="mx-4">
+            <ActivitySharingToggle />
+          </View>
+          <View className="mx-4 mt-3 bg-white rounded-card shadow-card overflow-hidden">
+            <SettingsRow
+              icon={<UserX size={24} color={colors.surfaceDark} />}
+              title="Jogadores bloqueados"
+              subtitle="Quem você bloqueou na Rede"
+              onPress={() => router.push('/profile/blocked')}
             />
           </View>
 
@@ -295,6 +378,18 @@ export default function SettingsScreen() {
               title="Enviar feedback"
               subtitle="Sugestões, problemas e elogios"
               onPress={() => router.push('/profile/feedback')}
+            />
+            <Divider />
+            <SettingsRow
+              icon={<FileText size={24} color={colors.surfaceDark} />}
+              title="Termos de Uso"
+              onPress={() => void Linking.openURL(LEGAL_URLS.terms)}
+            />
+            <Divider />
+            <SettingsRow
+              icon={<Shield size={24} color={colors.surfaceDark} />}
+              title="Política de Privacidade"
+              onPress={() => void Linking.openURL(LEGAL_URLS.privacy)}
             />
             <Divider />
             <SettingsRow
@@ -313,16 +408,15 @@ export default function SettingsScreen() {
             className="mx-4 mt-6 bg-white rounded-card shadow-card px-4 py-4 flex-row items-center"
           >
             <ChevronLeft size={24} color={colors.danger} />
-            <Text className="font-body text-body-bold text-danger ml-2">
+            <Text className="font-body-semibold text-body-bold text-danger ml-2">
               Sair da conta
             </Text>
           </Pressable>
         </ScrollView>
-      </BlurTargetView>
+      </View>
 
-      <GlassBackHeader
+      <BackHeader
         title="Configurações"
-        blurTarget={blurTarget}
         onHeight={setHeaderHeight}
       />
     </View>

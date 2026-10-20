@@ -1,81 +1,136 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { positionLabel, type Position } from '@/features/profile/schema/onboarding';
 import type { RankingRow } from '@/features/ranking/types/ranking';
+import { authorizedApiClient } from '@/lib/api/authorizedClient';
+import { useAuthStore } from '@/stores/auth';
 
-// MOCK: deterministic fake latency so RNTL can assert the loading placeholder,
-// the populated ranking card, and navigation without flakiness. Tests may zero
-// this via the param. No randomness, no network, no EXPO_PUBLIC_API_URL.
-// Mirrors src/features/matches/api/getUpcoming.ts.
-const MOCK_LATENCY_MS = 400;
+// Season ranking (`GET /api/v1/rankings`, quadra-api DECISIONS #63): points of
+// recurring matches played this month, among friends, in one group, or general.
 
-export type GroupRankingParams = {
-  /** `true` → the S8 short preview (top rows + the user's row); `false` → S9 full list. */
-  preview: boolean;
+export type RankingScope = 'friends' | 'group' | 'general';
+
+export type RankingParams = {
+  scope: RankingScope;
+  /** Required when `scope` is `group`. */
+  groupId?: string;
+  /** Court position code (LEV, PON, OPO, CEN, LIB, COR); undefined = all. */
+  position?: Position;
 };
 
-/** Query key (ARCHITECTURE convention). Shared with S9 (passes `preview: false`). */
-export const groupRankingQueryKey = (params: GroupRankingParams) =>
-  ['ranking', 'group', params] as const;
+export type Ranking = {
+  rows: RankingRow[];
+  /** The signed-in player's line, even when outside the list or not qualified yet. */
+  me: RankingRow | null;
+  groupName: string | null;
+  /** The group ranked (its first game's id), whatever game id was asked for. */
+  groupId: string | null;
+  /** Games needed this season to be ranked (3 in general, 1 elsewhere). */
+  minMatches: number;
+  /** First day of the season (ISO). */
+  seasonStart: string;
+};
 
-// MOCK: fixed stub of the weekly group ranking. `isMe` flags the current user's
-// row for the highlight (the screen prefers the auth userId match in production).
-// Each `subtitle` follows the S9 `@handle · Posição` shape; `trend` carries the
-// movement-since-last-period indicator the S9 list renders (↑/↓/—).
-// `score` is the player's OVR (overall rating) — the same number shown as GERAL
-// on the profile — so the ranking sorts by OVR and the "me" row (68) matches the
-// profile's GERAL. TODO(real-api): the real F2.3 payload (group ranking) replaces
-// this. Keep the shape; swap only the body behind this hook signature.
-const MOCK_RANKING_FULL: RankingRow[] = [
-  { position: 1, playerId: 'p-erica', name: 'Érica', subtitle: '@erica · Oposto', score: 81, level: 18, trend: { direction: 'up', delta: 1 } },
-  { position: 2, playerId: 'p-caio', name: 'Caio', subtitle: '@caio · Central', score: 79, level: 15, trend: { direction: 'flat', delta: 0 } },
-  { position: 3, playerId: 'p-manu', name: 'Manu', subtitle: '@manu · Líbero', score: 74, level: 14, trend: { direction: 'down', delta: 1 } },
-  { position: 4, playerId: 'me', name: 'Renan Dias', subtitle: '@renan · Levantador', score: 68, level: 15, isMe: true, trend: { direction: 'up', delta: 5 } },
-  { position: 5, playerId: 'p-duda', name: 'Duda Reis', subtitle: '@dudareis · Ponteiro', score: 65, level: 11, trend: { direction: 'flat', delta: 0 } },
-  { position: 6, playerId: 'p-bia', name: 'Bia Fontes', subtitle: '@biaf · Líbero', score: 62, level: 9, trend: { direction: 'up', delta: 2 } },
-  { position: 7, playerId: 'p-theo', name: 'Theo Nunes', subtitle: '@theon · Ponteiro', score: 58, level: 7, trend: { direction: 'down', delta: 2 } },
-  { position: 8, playerId: 'p-vini', name: 'Vini Sales', subtitle: '@vsales · Central', score: 54, level: 6, trend: { direction: 'up', delta: 1 } },
-];
+export type RankingGroup = { id: string; name: string };
 
-// MOCK: the S8 short preview — the top rows plus the current user's row
-// (positions 1–4 of the full list).
-const MOCK_RANKING_PREVIEW: RankingRow[] = MOCK_RANKING_FULL.slice(0, 4);
+type ApiRankingEntry = {
+  rank: number | null;
+  userId: string;
+  displayName: string;
+  handle: string | null;
+  position: string | null;
+  photoUrl: string | null;
+  points: number;
+  matches: number;
+};
 
-/**
- * Fetches the weekly group ranking.
- *
- * MOCK: this iteration ships fully mocked. The queryFn simulates ~400ms latency
- * and resolves a fixed stub list with no network call or backend path. The
- * `preview` param is forwarded to the real call later (preview → short list).
- *
- * TODO(real-api): replace the mock body below with the real F2.3 group-ranking
- * call behind this unchanged hook signature, once the backend ranking module
- * lands. See S8 spec "Backend dependencies". Shared with S9 (full list).
- */
-async function getGroupRanking(
-  params: GroupRankingParams,
-  latencyMs: number,
-): Promise<RankingRow[]> {
-  // MOCK: fixed-latency resolve, no network. `params.preview` branches the stub
-  // (preview → S8 short list; full → S9 podium + position-4+ list). The real F2.3
-  // call later requests the short vs full list off the same flag.
-  await new Promise((resolve) => setTimeout(resolve, latencyMs));
-  // MOCK: fixed stub array, branched on preview.
-  return params.preview ? MOCK_RANKING_PREVIEW : MOCK_RANKING_FULL;
+type ApiRanking = {
+  groupId: string | null;
+  groupName: string | null;
+  minMatches: number;
+  seasonStart: string;
+  items: ApiRankingEntry[];
+  callerEntry: ApiRankingEntry | null;
+};
+
+const PREVIEW_SIZE = 4;
+const FULL_SIZE = 50; // the backend's page-size cap
+
+export function toRankingRow(entry: ApiRankingEntry, userId: string | null): RankingRow {
+  const subtitle = [
+    entry.handle ? `@${entry.handle}` : null,
+    positionLabel((entry.position ?? undefined) as Position | undefined),
+    `${entry.matches} ${entry.matches === 1 ? 'jogo' : 'jogos'}`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  return {
+    position: entry.rank,
+    playerId: entry.userId,
+    name: entry.displayName,
+    subtitle,
+    score: entry.points,
+    photoUrl: entry.photoUrl ?? undefined,
+    matches: entry.matches,
+    isMe: entry.userId === userId,
+  };
 }
 
-export type UseGroupRankingOptions = {
-  /** Override the mock latency (tests pass 0 to remove the fake delay). */
-  latencyMs?: number;
-};
+export const rankingQueryKey = (params: RankingParams, pageSize: number) =>
+  ['ranking', params, pageSize] as const;
 
-export function useGroupRanking(
-  params: GroupRankingParams,
-  options: UseGroupRankingOptions = {},
-) {
-  const latencyMs = options.latencyMs ?? MOCK_LATENCY_MS;
+export async function getRanking(params: RankingParams, pageSize = FULL_SIZE): Promise<Ranking> {
+  const query = new URLSearchParams({ scope: params.scope, page: '1', pageSize: String(pageSize) });
+  if (params.groupId) query.set('groupId', params.groupId);
+  if (params.position) query.set('position', params.position);
+  const ranking = await authorizedApiClient<ApiRanking>(`/api/v1/rankings?${query}`);
+  const userId = useAuthStore.getState().userId;
+  return {
+    rows: ranking.items.map((entry) => toRankingRow(entry, userId)),
+    me: ranking.callerEntry ? toRankingRow(ranking.callerEntry, userId) : null,
+    groupName: ranking.groupName,
+    groupId: ranking.groupId,
+    minMatches: ranking.minMatches,
+    seasonStart: ranking.seasonStart,
+  };
+}
+
+export function useRanking(params: RankingParams) {
+  return useQuery({
+    queryKey: rankingQueryKey(params, FULL_SIZE),
+    queryFn: () => getRanking(params),
+    enabled: params.scope !== 'group' || Boolean(params.groupId),
+    staleTime: 60_000,
+  });
+}
+
+/** The recurring games the player scored in (`GET /api/v1/rankings/groups`), most recent first. */
+export function useRankingGroups() {
+  return useQuery({
+    queryKey: ['ranking', 'groups'] as const,
+    queryFn: async () =>
+      (await authorizedApiClient<{ groupId: string; name: string }[]>('/api/v1/rankings/groups')).map(
+        (g): RankingGroup => ({ id: g.groupId, name: g.name }),
+      ),
+    staleTime: 60_000,
+  });
+}
+
+// ── Profile tab preview: the top of the friends ranking ──
+
+export type GroupRankingParams = { preview: boolean };
+
+export const groupRankingQueryKey = (params: GroupRankingParams) =>
+  rankingQueryKey({ scope: 'friends' }, params.preview ? PREVIEW_SIZE : FULL_SIZE);
+
+export async function getGroupRanking(params: GroupRankingParams): Promise<RankingRow[]> {
+  return (await getRanking({ scope: 'friends' }, params.preview ? PREVIEW_SIZE : FULL_SIZE)).rows;
+}
+
+export function useGroupRanking(params: GroupRankingParams) {
   return useQuery({
     queryKey: groupRankingQueryKey(params),
-    queryFn: () => getGroupRanking(params, latencyMs),
+    queryFn: () => getGroupRanking(params),
     staleTime: 60_000,
   });
 }

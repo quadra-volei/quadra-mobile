@@ -9,24 +9,30 @@
  * The `Tabs` navigator is mocked so its `tabBar` render prop is invoked with a
  * synthetic navigation state in which Explore (index 1) is active — mirroring the
  * S5 TabsLayout test but focusing the active tab on Explore. Navigation is mocked
- * via expo-router; the brand SVG icons + gradient are stubbed inline.
+ * via expo-router; the brand SVG icons are stubbed inline.
  */
 import React from 'react';
 
 // --- Native / module mocks ------------------------------------------------
 
-// LinearGradient -> View (the FAB fill).
-jest.mock('expo-linear-gradient', () => {
+// The location gate (own test: LocationGate.test.tsx) -> passthrough.
+jest.mock('@/components/domain/LocationGate',() => ({
+  LocationGate: ({ children }: any) => children,
+}));
+
+// Blur (native) and the "+" icon -> plain Views.
+jest.mock('expo-blur', () => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
-  return {
-    LinearGradient: ({ children, ...props }: any) =>
-      ReactLocal.createElement(
-        View,
-        { ...props, testID: props.testID ?? 'linear-gradient' },
-        children,
-      ),
-  };
+  const Plain = ReactLocal.forwardRef((props: any, ref: any) =>
+    ReactLocal.createElement(View, { ...props, ref }),
+  );
+  return { BlurView: Plain, BlurTargetView: Plain };
+});
+jest.mock('lucide-react-native', () => {
+  const { View } = require('react-native');
+  const ReactLocal = require('react');
+  return { Plus: (props: any) => ReactLocal.createElement(View, props) };
 });
 
 // safe-area insets -> zero (no provider under test).
@@ -34,15 +40,7 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
-// Brand tab + FAB icons -> inert nodes carrying their focused state for assertion.
-jest.mock('@/components/icons/JogarIcon', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  return {
-    JogarIcon: (props: any) =>
-      ReactLocal.createElement(View, { ...props, testID: 'icon-jogar' }),
-  };
-});
+// Brand tab icons -> inert nodes carrying their focused state for assertion.
 const tabIconStub = (id: string) => (props: any) => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
@@ -55,6 +53,11 @@ jest.mock('@/components/icons/TabHomeIcon', () => ({ TabHomeIcon: tabIconStub('h
 jest.mock('@/components/icons/TabExploreIcon', () => ({ TabExploreIcon: tabIconStub('explore') }));
 jest.mock('@/components/icons/TabNetworkIcon', () => ({ TabNetworkIcon: tabIconStub('network') }));
 jest.mock('@/components/icons/TabProfileIcon', () => ({ TabProfileIcon: tabIconStub('profile') }));
+
+// The Perfil tab reads the signed-in profile; no photo -> regular icon.
+jest.mock('@/features/profile/api/getMyProfile', () => ({
+  useMyProfile: () => ({ data: undefined }),
+}));
 
 // expo-router: a `Tabs` that renders only the `tabBar` prop against a synthetic
 // navigation state where Explore (index 1) is active.
@@ -99,10 +102,9 @@ beforeEach(() => {
 describe('S6 — Bottom tab bar with Explorar active', () => {
   /**
    * Covers: S6 — Explore
-   * Criterion: "The bottom tab bar persists ..." — all four labeled tabs plus the
-   *  central FAB render.
+   * Criterion: "The bottom tab bar persists ..." — the four tabs render.
    */
-  it('renders the four labeled tabs and the central Jogar FAB', async () => {
+  it('renders the four tabs', async () => {
     await render(<TabsLayout />);
 
     // Icon-only bar (compact redesign) — tabs are identified by accessibility
@@ -111,7 +113,6 @@ describe('S6 — Bottom tab bar with Explorar active', () => {
     expect(screen.getByLabelText('Explorar')).toBeTruthy();
     expect(screen.getByLabelText('Rede')).toBeTruthy();
     expect(screen.getByLabelText('Perfil')).toBeTruthy();
-    expect(screen.getByLabelText('Jogar')).toBeTruthy();
   });
 
   /**
