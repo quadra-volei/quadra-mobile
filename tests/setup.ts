@@ -20,3 +20,11 @@ jest.mock('expo-notifications', () => ({
   addNotificationResponseReceivedListener: jest.fn(() => ({ remove: jest.fn() })),
   AndroidImportance: { DEFAULT: 3 },
 }));
+
+// React Native Firebase is native (phone login): a stand-in the auth tests can drive.
+jest.mock('@react-native-firebase/auth', () => ({
+  getAuth: jest.fn(() => ({})),
+  signInWithPhoneNumber: jest.fn(),
+  getIdToken: jest.fn(),
+  signOut: jest.fn(async () => undefined),
+}));

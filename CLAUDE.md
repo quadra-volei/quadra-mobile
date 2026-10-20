@@ -55,6 +55,7 @@ EXPO_PUBLIC_API_URL=https://quadra-api-xj6e.onrender.com
 EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=
 EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=
 EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY=
+EXPO_PUBLIC_PHONE_AUTH=          # "firebase" = phone login through Firebase (DECISIONS #133); empty = API test code
 ```
 
 The URL above is the hosted test API (it sleeps when idle; the first request can take up to a

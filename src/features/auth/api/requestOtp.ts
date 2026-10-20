@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 
+import { firebaseAuthMessage, sendFirebaseCode, usesFirebasePhone } from '@/features/auth/api/firebasePhone';
 import { toAuthError } from '@/features/auth/api/session';
 import { apiClient } from '@/lib/api/client';
 
@@ -19,6 +20,15 @@ export type RequestOtpResult = {
  * Calling it again resends the code.
  */
 export async function sendOtp(phone: string): Promise<RequestOtpResult> {
+  if (usesFirebasePhone()) {
+    try {
+      await sendFirebaseCode(phone);
+      return { ok: true };
+    } catch (error) {
+      throw firebaseAuthMessage(error, 'Não foi possível enviar o código.');
+    }
+  }
+
   try {
     await apiClient<unknown>('/api/v1/auth/login/sms-otp', {
       method: 'POST',

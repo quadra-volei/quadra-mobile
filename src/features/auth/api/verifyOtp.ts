@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 
+import { confirmFirebaseCode, firebaseAuthMessage, usesFirebasePhone } from '@/features/auth/api/firebasePhone';
 import {
   type AuthResult,
   type AuthSession,
@@ -27,8 +28,27 @@ export type VerifyOtpResult = AuthResult;
  * returned tokens are persisted to expo-secure-store. A wrong or expired code
  * rejects with `new Error('Código inválido')`.
  */
-async function verifyOtp(input: VerifyOtpInput): Promise<VerifyOtpResult> {
+export async function verifyOtp(input: VerifyOtpInput): Promise<VerifyOtpResult> {
   let tokens: AuthTokensResponse;
+  if (usesFirebasePhone()) {
+    // Firebase checks the code; the API turns its ID token into our session (API DECISIONS #78).
+    let idToken: string;
+    try {
+      idToken = await confirmFirebaseCode(input.phone, input.code);
+    } catch (error) {
+      throw firebaseAuthMessage(error, 'Não foi possível verificar o código.');
+    }
+    try {
+      tokens = await apiClient<AuthTokensResponse>('/api/v1/auth/login/firebase-phone', {
+        method: 'POST',
+        body: JSON.stringify({ idToken }),
+      });
+    } catch (error) {
+      throw toAuthError(error, 'Não foi possível entrar. Tente novamente.');
+    }
+    return completeLogin(tokens);
+  }
+
   try {
     tokens = await apiClient<AuthTokensResponse>('/api/v1/auth/login/sms-otp', {
       method: 'POST',
