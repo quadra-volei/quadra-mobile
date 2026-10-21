@@ -138,18 +138,18 @@ Each entry follows this structure:
   <FilterChip label="Perto" selected={activeFilter === 'perto'} onPress={() => setActiveFilter('perto')} />
   <FilterChip label="Bairro" selected={false} onPress={() => {}} disabled />
   ```
-- **Notes**: Selectable filter pill — controlled and purely presentational (holds no state, never fetches). `h-9 px-4 rounded-pill` with a `font-mono` `text-mono` uppercase label. Selected = `bg-primary` fill + `text-text-on-dark`; unselected = `bg-white border border-line` + `text-text-primary`. `disabled` renders an inert, muted pill (`bg-bg-light-alt` + `text-text-muted`, press is no-op via `Pressable disabled`) — used by S9's "Em breve" Bairro/Geral scope tabs. Single `accessibilityRole="button"` exposing `accessibilityState={{ selected, disabled }}`. Distinct from a static tag/pill (this is interactive single/multi-select chrome). Designed for reuse by S11 (date/format/level chips) and S9/S10 (scope/position chips).
+- **Notes**: Selectable filter pill — controlled and purely presentational (holds no state, never fetches). Drawn like a button (DECISIONS #148): `h-11 px-5 rounded-pill border-2` with a `font-body-bold` `text-h2` label. Selected = `primary` fill, navy border, white label and `HARD_SHADOW`; unselected = `bg-white border-line` + `text-text-primary`. `disabled` renders an inert, muted pill (`bg-bg-light-alt` + `text-text-muted`, press is no-op via `Pressable disabled`) — used by S9's "Em breve" Bairro/Geral scope tabs. Single `accessibilityRole="button"` exposing `accessibilityState={{ selected, disabled }}`. Distinct from a static tag/pill (this is interactive single/multi-select chrome). Designed for reuse by S11 (date/format/level chips) and S9/S10 (scope/position chips).
 
 ### `SearchField`
 - **Path**: `src/components/ui/SearchField.tsx`
 - **Category**: ui
-- **Props**: `{ value: string; onChangeText: (v: string) => void; placeholder?: string; onClear?: () => void; testID?: string }`
-- **Used in**: S6 Explore (match-list search)
+- **Props**: `{ value: string; onChangeText: (v: string) => void; placeholder?: string; onClear?: () => void; accessibilityLabel?: string; autoFocus?: boolean; onPress?: () => void; testID?: string }`
+- **Used in**: S6 Explore (match-list search), Rede header (with `onPress`: a button that opens the @ search), Buscar jogador (focused input)
 - **Example**:
   ```tsx
   <SearchField value={query} onChangeText={setQuery} placeholder="Buscar quadra, bairro ou horário..." onClear={() => setQuery('')} />
   ```
-- **Notes**: Label-less search input — controlled and purely presentational (holds no state, never fetches). `h-12 px-4 rounded-pill bg-white shadow-card` container with a leading lucide `Search` (`text-muted`) and an optional trailing clear (`X`) shown only when `value` is non-empty and `onClear` is provided. Exposes `accessibilityLabel="Buscar partidas"`. Distinct from `TextField` (an RHF-controlled **labeled** form field with error caption/adornments) — `SearchField` is an ephemeral filter control, not a form input (no RHF/Zod). Designed for reuse by S11 ("Buscar quadra ou endereço") and S10. **Deferred catalog note (from S11):** S11's "LOCAL" mockup shows a leading `MapPin`, but the leading icon is currently hardcoded to lucide `Search`. S11 uses it as-is; a future change may add an optional `leftIcon`/`icon` prop so consumers can swap the leading glyph — not done as part of S11 to avoid touching a shared component's API mid-screen.
+- **Notes**: Label-less search input — controlled and purely presentational (holds no state, never fetches). `h-12 px-4 rounded-pill bg-white shadow-card` container with a leading lucide `Search` (`text-muted`) and an optional trailing clear (`X`) shown only when `value` is non-empty and `onClear` is provided. `accessibilityLabel` defaults to "Buscar partidas". Distinct from `TextField` (an RHF-controlled **labeled** form field with error caption/adornments) — `SearchField` is an ephemeral filter control, not a form input (no RHF/Zod). Designed for reuse by S11 ("Buscar quadra ou endereço") and S10. **Deferred catalog note (from S11):** S11's "LOCAL" mockup shows a leading `MapPin`, but the leading icon is currently hardcoded to lucide `Search`. S11 uses it as-is; a future change may add an optional `leftIcon`/`icon` prop so consumers can swap the leading glyph — not done as part of S11 to avoid touching a shared component's API mid-screen.
 
 ### `Avatar`
 - **Path**: `src/components/ui/Avatar.tsx`
@@ -290,10 +290,16 @@ More UI primitives will live here:
 
 ## Icons (`src/components/icons/`)
 
+### `QuadraWordmark`
+- **Path**: `src/components/icons/QuadraWordmark.tsx`
+- **Props**: `{ variant: 'blue' | 'light' | 'navy'; height: number; testID?: string }`
+- **Used in**: S2 Login, S3 SMS code, `PlayerCard`, card finish swatches
+- **Notes**: The full "quadra" lockup (mark + wordmark) as the designer's PNG (`assets/logo/`). `blue`: blue + lime blocks, light text, for dark/blue backgrounds; `light`: light blocks + lime, for dark card finishes; `navy`: for light surfaces. Never recolored; the width follows the image's ratio.
+
 ### `QuadraLogo`
 - **Path**: `src/components/icons/QuadraLogo.tsx`
 - **Props**: `{ size?: number; testID?: string }`
-- **Used in**: S1 Splash, S2 Login
+- **Used in**: S1 Splash
 - **Notes**: Official brand mark (three overlapping blocks, blue + lime). Colors are fixed — never recolor. Only exception: `blockColor` replaces the two blue blocks on a blue background (the splash passes white).
 
 ### `GoogleMark`
@@ -474,7 +480,7 @@ More UI primitives will live here:
 - **Category**: domain
 - **Props**: `{ onClose: () => void; onCreateMatch: () => void; onCreatePost: () => void; blurTarget?: RefObject<View | null> }`
 - **Used in**: `app/(tabs)/_layout.tsx` (opened by the central "+")
-- **Notes**: "O que você quer criar?" overlay (DECISIONS #98): blurred and dimmed backdrop (tap closes), white card with 2px navy border and `HARD_SHADOW`, "Criar partida" (lime) and "Criar publicação" (white) wide options, "Cancelar" link. An overlay rather than a `Modal` so the Android blur can read the `BlurTargetView` passed as `blurTarget`; Android back closes it. Mount it only while open.
+- **Notes**: "O que você quer criar?" overlay (DECISIONS #98): blurred and dimmed backdrop (tap closes), white card with 2px navy border and `HARD_SHADOW`, "Criar partida" (lime) and "Criar publicação" (white) wide options, "Cancelar" link. The card grows out of the "+" (a lime blob springing open) and folds back into it on close (DECISIONS #152). An overlay rather than a `Modal` so the Android blur can read the `BlurTargetView` passed as `blurTarget`; Android back closes it. Mount it only while open.
 
 ### `CoverPicker`
 - **Path**: `src/components/domain/CoverPicker.tsx`
@@ -485,7 +491,7 @@ More UI primitives will live here:
   ```tsx
   <CoverPicker uri={coverUri} onPress={pickCover} testID="cover-picker" />
   ```
-- **Notes**: Rectangular match-cover banner (`h-40 rounded-card`) — distinct from the circular `Avatar`. With no `uri` it renders a navy `HERO_GRADIENT` (`expo-linear-gradient`) placeholder with a "CAPA DA PARTIDA" eyebrow, a dashed frame, and a pencil + "Trocar capa" affordance; once picked it shows the chosen image (`expo-image`, `contentFit="cover"`) with the same affordance overlaid. Presentational: the consuming screen owns the `expo-image-picker` invocation (passed via `onPress`); the component never touches the picker or fetches. Single `accessibilityRole="button"` announcing "Trocar capa da partida". No hardcoded hex — gradient/icon colors from `src/theme/colors.ts`.
+- **Notes**: Rectangular match-cover banner (`h-40 rounded-card`) — distinct from the circular `Avatar`. With no `uri` it renders a navy `HERO_GRADIENT` (`expo-linear-gradient`) placeholder with a "CAPA DA PARTIDA" eyebrow, a dashed frame, and a pencil + "Adicionar capa" affordance; once picked it shows only the chosen image (`expo-image`, `contentFit="cover"`) and a small pencil in the corner. Presentational: the consuming screen owns the `expo-image-picker` invocation (passed via `onPress`); the component never touches the picker or fetches. Single `accessibilityRole="button"` announcing "Trocar capa da partida". No hardcoded hex — gradient/icon colors from `src/theme/colors.ts`.
 
 ### `PositionGrid`
 - **Path**: `src/components/domain/PositionPicker.tsx`

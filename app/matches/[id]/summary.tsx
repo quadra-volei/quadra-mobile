@@ -178,12 +178,12 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
             </View>
           </View>
 
-          {/* ── MVP mais votado ── */}
+          {/* ── Mais votado ── */}
           {hasVoting ? (
             <View className="px-4 mt-8">
               <View className="flex-row items-center gap-2 mb-3">
                 <Trophy size={16} color={colors.accent} />
-                <Text className="font-body-bold text-eyebrow text-accent uppercase">MVP mais votado</Text>
+                <Text className="font-body-bold text-eyebrow text-accent uppercase">Mais votado</Text>
               </View>
 
               {/* Highlighted MVP card */}

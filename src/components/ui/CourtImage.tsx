@@ -3,6 +3,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import type { ReactNode } from 'react';
 import { Text, View } from 'react-native';
 
+import { remoteImage } from '@/lib/remoteImage';
 import { COVER_FILTER_ALPHA, colors, withAlpha } from '@/theme/colors';
 
 export type CourtImageProps = {
@@ -49,7 +50,7 @@ export function CourtImage({
       />
       {imageUri ? (
         <Image
-          source={{ uri: imageUri }}
+          source={remoteImage(imageUri)}
           contentFit="cover"
           style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
           testID="court-image-photo"

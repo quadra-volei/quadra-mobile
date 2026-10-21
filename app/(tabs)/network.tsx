@@ -6,7 +6,6 @@ import {
   Heart,
   MessageCircle,
   MoreHorizontal,
-  Search,
   Settings,
   Trash2,
   Trophy,
@@ -23,6 +22,7 @@ import { dialog } from '@/components/ui/Dialog';
 import { IconButton } from '@/components/ui/IconButton';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { ScreenHeader } from '@/components/ui/ScreenHeader';
+import { SearchField } from '@/components/ui/SearchField';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { TabIndicator, TabLabel } from '@/components/ui/UnderlineTab';
@@ -38,6 +38,7 @@ import {
   useSetPostLike,
 } from '@/features/network/api/postsApi';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
+import { remoteImage } from '@/lib/remoteImage';
 import { colors } from '@/theme/colors';
 import { ICON_HIT_SLOP, TAB_BAR_CLEARANCE } from '@/theme/layout';
 import { MOTION } from '@/theme/motion';
@@ -196,7 +197,7 @@ function PostCard({
 
       {post.photoUrl ? (
         <Image
-          source={{ uri: post.photoUrl }}
+          source={remoteImage(post.photoUrl)}
           contentFit="cover"
           style={{ width: '100%', aspectRatio: 1 }}
           accessibilityLabel={`Foto de ${post.author.displayName}`}
@@ -375,9 +376,6 @@ export default function NetworkScreen() {
             REDE
           </Text>
           <View className="flex-row items-center gap-3">
-            <IconButton label="Buscar jogador" onPress={goSearch}>
-              <Search size={20} color={colors.surfaceDark} />
-            </IconButton>
             <IconButton label="Notificações" onPress={goNotifications}>
               <BellWithBadge />
             </IconButton>
@@ -385,6 +383,17 @@ export default function NetworkScreen() {
               <Settings size={20} color={colors.surfaceDark} />
             </IconButton>
           </View>
+        </View>
+        {/* Same search pill as Explorar; opens the @ search. */}
+        <View className="px-4 pb-1">
+          <SearchField
+            value=""
+            onChangeText={() => {}}
+            onPress={goSearch}
+            placeholder="Buscar jogador pelo @"
+            accessibilityLabel="Buscar jogador"
+            testID="network-search"
+          />
         </View>
         <View className="flex-row">
           <FeedTab

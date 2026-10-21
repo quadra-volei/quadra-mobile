@@ -353,7 +353,7 @@ describe('S16 — Match Summary', () => {
   it('renders the MVP highlight card with avatar, name, handle·position, and N de M votos', async () => {
     await renderScreen();
 
-    expect(screen.getByText('MVP mais votado')).toBeTruthy();
+    expect(screen.getByText('Mais votado')).toBeTruthy();
     expect(screen.getByTestId('icon-trophy')).toBeTruthy();
 
     // lime-bordered highlight card
@@ -411,7 +411,7 @@ describe('S16 — Match Summary', () => {
 
   /**
    * Covers: S16 — Match Summary
-   * Criterion: (Empty edge) "if voteRanking is empty ... hide the 'MVP mais votado'
+   * Criterion: (Empty edge) "if voteRanking is empty ... hide the 'Mais votado'
    *  section and show 'Sem votação de MVP nesta partida'. Header + score always render."
    */
   it('hides the MVP section and shows the empty caption when there is no voting', async () => {
@@ -423,7 +423,7 @@ describe('S16 — Match Summary', () => {
     await renderScreen();
 
     expect(screen.getByText('Sem votação de MVP nesta partida')).toBeTruthy();
-    expect(screen.queryByText('MVP mais votado')).toBeNull();
+    expect(screen.queryByText('Mais votado')).toBeNull();
     // result header + score still render
     expect(screen.getByText('Vôlei de Quinta')).toBeTruthy();
     expect(screen.getByText('3–1')).toBeTruthy();

@@ -78,16 +78,14 @@ export function MatchCard({ match, onPress, testID }: MatchCardProps) {
             <View className="flex-row items-center gap-1">
               <Users size={13} color="rgba(255,255,255,0.8)" />
               <Text
-                className="font-body"
-                style={{ fontSize: 11, color: 'rgba(255,255,255,0.8)' }}
+                className="font-body-bold text-caption"
+                style={{ color: 'rgba(255,255,255,0.8)' }}
               >
                 {match.confirmed}/{match.capacity}
               </Text>
             </View>
-            <Text
-              className="font-num text-accent-light"
-              style={{ fontSize: 16, letterSpacing: 0.5 }}
-            >
+            {/* Same face as the rest of the card (DM Sans), not the score font. */}
+            <Text className="font-body-bold text-caption text-accent-light">
               {match.priceLabel}
             </Text>
           </View>

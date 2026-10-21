@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { ChevronLeft, MessageSquare } from "lucide-react-native";
+import { ChevronLeft } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Dimensions, Pressable, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
@@ -9,6 +9,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+import { QuadraWordmark } from "@/components/icons/QuadraWordmark";
 import { Button } from "@/components/ui/Button";
 import { OtpInput } from "@/components/ui/OtpInput";
 import { useResendOtp } from "@/features/auth/api/resendOtp";
@@ -149,22 +150,22 @@ export default function SmsOtpScreen() {
         style={{ flex: 1 }}
       >
         <SafeAreaView className="flex-1">
-          {/* back chevron over the dark strip */}
-          <Pressable
-            onPress={goBackToLogin}
-            accessibilityRole="button"
-            accessibilityLabel="Voltar"
-            className="ml-4 mt-2 h-10 w-10 rounded-full bg-surface-dark/40 items-center justify-center"
-            testID="otp-back"
-          >
-            <ChevronLeft size={24} color={colors.textOnDark} />
-          </Pressable>
-
-          {/* message glyph centered in the dark strip */}
-          <View className="items-center mt-2">
-            <View className="h-16 w-16 rounded-card bg-white/10 items-center justify-center">
-              <MessageSquare size={28} color={colors.textOnDark} />
+          {/* back chevron and the brand lockup on one row, at the top of the
+              dark strip, so the card below never covers them */}
+          <View className="flex-row items-center px-4 mt-2">
+            <Pressable
+              onPress={goBackToLogin}
+              accessibilityRole="button"
+              accessibilityLabel="Voltar"
+              className="h-10 w-10 rounded-full bg-surface-dark/40 items-center justify-center"
+              testID="otp-back"
+            >
+              <ChevronLeft size={24} color={colors.textOnDark} />
+            </Pressable>
+            <View className="flex-1 items-center">
+              <QuadraWordmark variant="blue" height={32} />
             </View>
+            <View className="w-10" />
           </View>
         </SafeAreaView>
       </LinearGradient>

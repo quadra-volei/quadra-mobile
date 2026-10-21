@@ -50,8 +50,6 @@ module.exports = {
         'body-bold': ['DMSans_700Bold'],
         // font-body-extrabold → DM Sans 800 (matches the text-h3 weight)
         'body-extrabold': ['DMSans_800ExtraBold'],
-        // font-word → Baloo 2 (wordmark only)
-        word: ['Baloo2_600SemiBold'],
         // font-mono → DM Mono
         mono: ['DMMono_500Medium'],
       },

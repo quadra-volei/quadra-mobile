@@ -118,6 +118,13 @@ jest.mock('expo-image-picker', () => ({
   launchImageLibraryAsync: (...args: any[]) => mockLaunchLibrary(...args),
 }));
 
+// expo-asset: a preset avatar resolves to a bundled file on disk.
+jest.mock('expo-asset', () => ({
+  Asset: {
+    loadAsync: async (module: number) => [{ localUri: `file:///bundle/preset-${module}.png` }],
+  },
+}));
+
 // --- Hook mocks (mocked at the boundary) ----------------------------------
 import type { MyProfile } from '@/features/profile/types/profile';
 
@@ -416,7 +423,7 @@ describe('S10 — Edit-profile screen', () => {
     expect(mockLaunchLibrary).toHaveBeenCalledTimes(1);
 
     // the avatar preview now points at the chosen local URI
-    expect(screen.getByLabelText('Avatar de Renan').props.source).toEqual({
+    expect(screen.getByLabelText('Avatar de Renan').props.source).toMatchObject({
       uri: 'file:///tmp/new-avatar.jpg',
     });
 
@@ -427,6 +434,24 @@ describe('S10 — Edit-profile screen', () => {
     expect(mockUpdate.mutate.mock.calls[0]?.[0]).toMatchObject({
       avatarUri: 'file:///tmp/new-avatar.jpg',
     });
+  });
+
+  // A Quadra avatar is picked like a photo: preview + upload of its bundled file.
+  it('uses a picked preset avatar as the new photo', async () => {
+    await renderScreen();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('preset-avatar-2'));
+    });
+
+    const uri = screen.getByLabelText('Avatar de Renan').props.source.uri as string;
+    expect(uri).toMatch(/^file:\/\/\/bundle\/preset-/);
+    expect(screen.getByTestId('preset-avatar-2').props.accessibilityState).toMatchObject({ selected: true });
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('edit-save'));
+    });
+    expect(mockUpdate.mutate.mock.calls[0]?.[0]).toMatchObject({ avatarUri: uri });
   });
 
   /**
@@ -466,7 +491,7 @@ describe('S10 — Edit-profile screen', () => {
     });
 
     // avatar still shows the original profile URL
-    expect(screen.getByLabelText('Avatar de Renan').props.source).toEqual({
+    expect(screen.getByLabelText('Avatar de Renan').props.source).toMatchObject({
       uri: 'https://example.com/me.png',
     });
 

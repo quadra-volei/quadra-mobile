@@ -106,14 +106,13 @@ carries a gradient** (see "Buttons", DECISIONS #69).
 
 ## Typography
 
-Five font families, each with a distinct role. **This replaces the previous "system sans-serif" decision** — the brand identity is built around these specific faces.
+Four font families, each with a distinct role. **This replaces the previous "system sans-serif" decision** — the brand identity is built around these specific faces.
 
 | Family | Role | Notes |
 | --- | --- | --- |
 | **Climate Crisis** | Display — screen titles, hero headlines | **Always uppercase**, letter-spacing 0, weight 400. Loaded from local TTF (`ClimateCrisis-Regular-VariableFont_YEAR.ttf`). |
 | **Russo One** | Numbers — scores, stats, levels, overall | weight 400. Google Font. |
 | **DM Sans** | Interface — body, buttons, labels, all UI text | weights 400/500/600/700/800. Google Font. |
-| **Baloo 2** | Wordmark — exclusive to the "quadra" logo lockup | weight 600. **Do not use for anything else.** Google Font. |
 | **DM Mono** | Micro-labels — tags, captions, technical legends | weights 400/500. Google Font. |
 
 ### Font loading (implementation note)
@@ -121,7 +120,7 @@ Five font families, each with a distinct role. **This replaces the previous "sys
 These are **not** system fonts, so they must be bundled:
 
 - `Climate Crisis`: local asset, load via `expo-font` (`useFonts`)
-- `Russo One`, `DM Sans`, `Baloo 2`, `DM Mono`: via `@expo-google-fonts/*` packages
+- `Russo One`, `DM Sans`, `DM Mono`: via `@expo-google-fonts/*` packages
 
 > ⚠️ This requires adding new dependencies to `CLAUDE.md`'s locked stack (`expo-font` + the relevant `@expo-google-fonts/*` packages + the Climate Crisis `.ttf` asset). Flag this to the human before the first screen spec that needs custom type — it's a stack change per `CLAUDE.md` rules.
 
@@ -280,9 +279,13 @@ Forbidden: importing PNG icons inline.
 
 ## Logo & wordmark
 
-- Symbol: three overlapping rounded blocks in motion, blue + lime.
-- Wordmark: "quadra", always **lowercase**, set in **Baloo 2** (weight 600).
-- Never recolor, never recase the wordmark.
+- Symbol: three overlapping rounded blocks in motion, blue + lime (`QuadraLogo`, SVG, for the
+  splash mark).
+- Lockup (symbol + "quadra"): always the designer's official PNGs in `assets/logo/`, through
+  `QuadraWordmark` (`blue`: blue + lime on dark/blue, login and SMS code; `light`: light blocks
+  + lime on dark card finishes; `navy`: navy + lime on light surfaces). The wordmark is never
+  typed in a font (Baloo 2 was removed, DECISIONS #146).
+- Never recolor, never recase, never redraw the lockup: pick the variant made for the background.
 
 ---
 

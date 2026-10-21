@@ -78,7 +78,7 @@ Android emulator, the machine's LAN IP on a phone). Log in with the test environ
 2. Colors, spacing and fonts only from the tokens in `docs/DESIGN_SYSTEM.md` and
    `tailwind.config.js`; no hardcoded hex, no inline `fontFamily`.
 3. Fonts are loaded once in `app/_layout.tsx`. `font-display` (Climate Crisis) is always
-   `uppercase`; `font-word` (Baloo 2) is only for the "quadra" wordmark.
+   `uppercase`. The "quadra" lockup is an image (`QuadraWordmark`), never typed text.
 4. API data through TanStack Query hooks in `src/features/<area>/api/`; screens never call the
    API directly and never keep API data in `useState`.
 5. Forms through React Hook Form + Zod.

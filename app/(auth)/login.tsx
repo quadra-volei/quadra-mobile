@@ -17,7 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { z } from "zod";
 
 import { GoogleMark } from "@/components/icons/GoogleMark";
-import { QuadraLogo } from "@/components/icons/QuadraLogo";
+import { QuadraWordmark } from "@/components/icons/QuadraWordmark";
 import { Button } from "@/components/ui/Button";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import {
@@ -179,18 +179,13 @@ export default function LoginScreen() {
         <SafeAreaView className="flex-1 px-6">
           <View className="flex-1 justify-center">
             {/* brand lockup */}
-            <Animated.View
-              className="flex-row items-center"
-              style={lockupStyle}
-            >
-              <QuadraLogo size={44} />
-              <Text className="font-word text-text-on-dark text-4xl ml-3 lowercase">
-                quadra
-              </Text>
+            <Animated.View style={lockupStyle}>
+              <QuadraWordmark variant="blue" height={64} testID="login-wordmark" />
             </Animated.View>
 
+            {/* Intro set 1.5× the screen defaults (Johny, 2026-10-21). */}
             <Animated.Text
-              className="font-display text-display text-text-on-dark uppercase mt-8 leading-[38px]"
+              className="font-display text-[54px] text-text-on-dark uppercase mt-12 leading-[57px]"
               style={headlineStyle}
             >
               O JOGO{"\n"}COMEÇA{"\n"}
@@ -198,7 +193,7 @@ export default function LoginScreen() {
             </Animated.Text>
 
             <Animated.Text
-              className="font-body-semibold text-body-bold text-text-on-dark mt-4"
+              className="font-body-semibold text-[22px] leading-[32px] text-text-on-dark mt-6"
               style={subtitleStyle}
             >
               Encontre partidas de vôlei perto de você, monte seu time e suba no

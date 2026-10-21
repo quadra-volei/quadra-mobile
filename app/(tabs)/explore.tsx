@@ -33,7 +33,8 @@ import { useNearbyMatches } from "@/features/matches/api/getNearby";
 import { isMapAvailable } from "@/features/matches/lib/isMapAvailable";
 import { useDeviceCoords } from "@/features/matches/lib/useDeviceCoords";
 import type { NearbyMatch } from "@/features/matches/types/match";
-import { colors } from "@/theme/colors";
+import { HARD_SHADOW, colors } from "@/theme/colors";
+import { MAP_STYLE } from "@/theme/mapStyle";
 import { TAB_BAR_CLEARANCE } from "@/theme/layout";
 
 // Where Explore searches when the device location is not available: São Paulo
@@ -106,19 +107,19 @@ function FiltersButton({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={on ? `Filtros, ${active} ativos` : "Filtros"}
-      className="h-9 px-3 rounded-pill flex-row items-center gap-1.5 bg-white border border-line"
+      className="h-11 px-4 rounded-pill flex-row items-center gap-2 bg-white border-2 border-surface-dark"
       style={
         on
-          ? { backgroundColor: colors.surfaceDark, borderColor: colors.surfaceDark }
-          : undefined
+          ? { backgroundColor: colors.surfaceDark, ...HARD_SHADOW }
+          : HARD_SHADOW
       }
     >
       <SlidersHorizontal
-        size={16}
+        size={18}
         color={on ? colors.textOnDark : colors.surfaceDark}
       />
       <Text
-        className="font-mono text-mono uppercase text-text-primary"
+        className="font-body-bold text-h2 text-text-primary"
         style={on ? { color: colors.textOnDark } : undefined}
       >
         Filtros
@@ -158,6 +159,7 @@ function MiniMap({
       <MapView
         key={`${center.lat},${center.lon},${delta},${pins.length}`}
         liteMode
+        customMapStyle={MAP_STYLE}
         style={{ flex: 1 }}
         initialRegion={{
           latitude: center.lat,
@@ -226,7 +228,8 @@ function ResultsArea({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerClassName="px-4 gap-2 mt-3"
+        // pb-1 leaves room for the selected chips' hard shadow.
+        contentContainerClassName="px-4 gap-2 pt-3 pb-1"
       >
         <FiltersButton active={active} onPress={() => setSheetOpen(true)} />
         {QUICK.map((q) => (
