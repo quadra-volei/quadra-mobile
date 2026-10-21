@@ -19,9 +19,17 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: (...args: any[]) => mockDelete(...args),
 }));
 
+// The history under the current screen (settings over the tabs, as when the
+// user taps "Sair da conta").
 const mockReplace = jest.fn();
+const mockDismissAll = jest.fn();
+const mockCanDismiss = jest.fn(() => true);
 jest.mock('expo-router', () => ({
-  router: { replace: (...args: any[]) => mockReplace(...args) },
+  router: {
+    replace: (...args: any[]) => mockReplace(...args),
+    dismissAll: () => mockDismissAll(),
+    canDismiss: () => mockCanDismiss(),
+  },
 }));
 
 import { QueryClient } from '@tanstack/react-query';
@@ -35,6 +43,7 @@ beforeEach(() => {
   mockGet.mockReset().mockResolvedValue('stored-refresh-token');
   mockDelete.mockClear();
   mockReplace.mockClear();
+  mockDismissAll.mockClear();
   fetchMock.mockReset().mockResolvedValue({ ok: true, status: 204 });
   globalThis.fetch = fetchMock as unknown as typeof fetch;
   useAuthStore.getState().setAuth({
@@ -60,7 +69,9 @@ function expectSignedOutLocally(clearSpy: jest.SpyInstance) {
   // query cache wiped
   expect(clearSpy).toHaveBeenCalledTimes(1);
 
-  // redirected to Login
+  // redirected to Login with nothing behind it: "voltar" cannot reopen the tabs
+  expect(mockDismissAll).toHaveBeenCalledTimes(1);
+  expect(mockDismissAll.mock.invocationCallOrder[0]).toBeLessThan(mockReplace.mock.invocationCallOrder[0]!);
   expect(mockReplace).toHaveBeenCalledWith('/login');
 }
 

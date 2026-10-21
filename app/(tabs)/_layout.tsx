@@ -1,5 +1,5 @@
 import { BlurTargetView } from 'expo-blur';
-import { router, Tabs } from 'expo-router';
+import { Redirect, router, Tabs } from 'expo-router';
 import { Plus } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -18,6 +18,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import { takePendingLink } from '@/lib/pendingLink';
+import { useAuthStore } from '@/stores/auth';
 import { listenToPushTaps, registerForPush } from '@/lib/push/pushNotifications';
 import { HARD_SHADOW, colors } from '@/theme/colors';
 import { MOTION } from '@/theme/motion';
@@ -97,7 +98,15 @@ function CenterButton({ onPress }: { onPress: () => void }) {
   );
 }
 
+// The tabs need a signed-in account with a finished profile. Any other way in
+// (an old screen in the history, a link) goes back through the splash, which
+// sends the user to login or onboarding.
 export default function TabsLayout() {
+  const ready = useAuthStore((s) => s.isAuthenticated && s.hasProfile);
+  return ready ? <SignedInTabs /> : <Redirect href="/" />;
+}
+
+function SignedInTabs() {
   const insets = useSafeAreaInsets();
   const [sheetOpen, setSheetOpen] = useState(false);
   const closeSheet = useCallback(() => setSheetOpen(false), []);

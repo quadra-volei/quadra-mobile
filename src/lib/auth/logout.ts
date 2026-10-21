@@ -32,7 +32,9 @@ async function revokeRemoteSession(): Promise<void> {
  *
  * Revokes the refresh token on the backend (best-effort), clears both
  * secure-store tokens, resets the Zustand auth store, wipes the TanStack Query
- * cache, and redirects to Login. The `QueryClient` is passed in (callers use
+ * cache, and redirects to Login with no screen behind it (the tabs left in the
+ * history let "voltar" reopen the app signed out, or with an account that has no
+ * profile yet). The `QueryClient` is passed in (callers use
  * `useQueryClient()`) so this helper stays decoupled from the root layout's
  * module-local client.
  */
@@ -45,5 +47,8 @@ export async function logout(queryClient: QueryClient): Promise<void> {
   await clearTokens();
   useAuthStore.getState().clearAuth();
   queryClient.clear();
+  if (router.canDismiss()) {
+    router.dismissAll();
+  }
   router.replace('/login');
 }

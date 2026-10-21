@@ -92,8 +92,11 @@ jest.mock('expo-router', () => {
 import { render, screen } from '@testing-library/react-native';
 
 import TabsLayout from '../../../../app/(tabs)/_layout';
+import { useAuthStore } from '@/stores/auth';
 
 beforeEach(() => {
+  // The tabs only open for a signed-in account with a profile.
+  useAuthStore.getState().setAuth({ userId: 'u1', accessToken: 'tok', hasProfile: true });
   mockPush.mockClear();
   mockNavigate.mockClear();
   mockEmit.mockClear();
