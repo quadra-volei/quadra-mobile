@@ -26,6 +26,7 @@ import {
 import { useNearbyMatches } from '@/features/matches/api/getNearby';
 import { distanceKm } from '@/features/matches/lib/distanceKm';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
+import { splitVenue } from '@/features/matches/lib/venueName';
 import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
 import { isMapAvailable } from '@/features/matches/lib/isMapAvailable';
 import type { NearbyMatch } from '@/features/matches/types/match';
@@ -562,7 +563,7 @@ export default function MapScreen() {
                     numberOfLines={1}
                     className="mt-0.5 font-body text-caption text-text-muted"
                   >
-                    {selected.venue}
+                    {splitVenue(selected.venue).name}
                   </Text>
                 ) : null}
 

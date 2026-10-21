@@ -18,6 +18,7 @@ import { type ActivityLine, useFriendsActivity } from "@/features/activity/api/a
 import { useUpcomingMatches } from "@/features/matches/api/getUpcoming";
 import { formatStartsAt } from "@/features/matches/lib/formatWhen";
 import { countdownLabel, pickNextGame } from "@/features/matches/lib/nextGame";
+import { splitVenue } from "@/features/matches/lib/venueName";
 import type { UpcomingMatch } from "@/features/matches/types/match";
 import { useFollowState } from "@/features/network/api/postsApi";
 import { useAuthStore } from "@/stores/auth";
@@ -166,7 +167,7 @@ function NextGameCard({ match }: { match: UpcomingMatch }) {
           style={{ fontSize: 12.5 }}
           numberOfLines={1}
         >
-          {match.venue ? `${when} · ${match.venue}` : when}
+          {match.venue ? `${when} · ${splitVenue(match.venue).name}` : when}
         </Text>
       </View>
       <View className="ml-2 rounded-pill bg-accent/20 px-[10px] py-1">

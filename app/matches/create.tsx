@@ -44,6 +44,8 @@ import MapView, { Marker } from 'react-native-maps';
 
 import { isMapAvailable } from '@/features/matches/lib/isMapAvailable';
 import { useDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
+import { splitVenue } from '@/features/matches/lib/venueName';
+import { findArenaAt } from '@/features/explore/api/venues';
 import { formatPriceLabel } from '@/features/matches/api/matchesApi';
 import {
   resolveMatchStartsAt,
@@ -266,12 +268,16 @@ function CreatedView({ match }: { match: CreatedMatch }) {
         </Text>
         <View className="mt-1 flex-row items-center gap-1">
           <MapPin size={16} color={colors.textOnDark} />
-          <Text
-            className="flex-1 font-body text-body text-text-on-dark/80"
-            testID="created-recap-location"
-          >
-            {input.location}
-          </Text>
+          <View className="flex-1" testID="created-recap-location">
+            <Text className="font-body-bold text-body text-text-on-dark">
+              {splitVenue(input.location).name}
+            </Text>
+            {splitVenue(input.location).address ? (
+              <Text className="font-body text-caption text-text-on-dark/70">
+                {splitVenue(input.location).address}
+              </Text>
+            ) : null}
+          </View>
         </View>
 
         <View className="mt-3 flex-row flex-wrap gap-2">
@@ -519,6 +525,13 @@ export default function CreateMatchScreen() {
     setValue('latitude', coords?.latitude);
     setValue('longitude', coords?.longitude);
     advanceTo('tipo');
+    // A plain address on top of a mapped arena takes the arena's name.
+    const arena = coords ? await findArenaAt(coords) : null;
+    if (arena && arena.title !== place.title) {
+      const arenaLabel = `${arena.title} · ${arena.address}`;
+      setLocation(arenaLabel);
+      setValue('location', arenaLabel, { shouldValidate: true });
+    }
   };
 
   const onSubmit = (formValues: CreateMatchInput) => {
@@ -673,6 +686,25 @@ export default function CreateMatchScreen() {
                       ) : null}
                     </Pressable>
                   ))}
+                </View>
+              ) : null}
+              {/* Picked place: the arena's name first, the address under it. */}
+              {placePicked ? (
+                <View
+                  className="mt-3 flex-row items-center gap-3 rounded-card border-2 border-primary bg-white p-3"
+                  testID="place-picked"
+                >
+                  <MapPin size={20} color={colors.primary} />
+                  <View className="flex-1">
+                    <Text className="font-body-bold text-body text-text-primary" numberOfLines={1}>
+                      {splitVenue(location).name}
+                    </Text>
+                    {splitVenue(location).address ? (
+                      <Text className="font-body text-caption text-text-muted" numberOfLines={2}>
+                        {splitVenue(location).address}
+                      </Text>
+                    ) : null}
+                  </View>
                 </View>
               ) : null}
               {/* Picked address: show where the pin landed so a wrong spot is

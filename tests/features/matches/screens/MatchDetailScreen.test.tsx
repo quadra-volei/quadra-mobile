@@ -393,7 +393,8 @@ describe('S12 — Match Detail screen', () => {
     expect(name?.props.className).toContain('uppercase');
 
     // venue · distance line (comma decimal)
-    expect(screen.getByText('Arena Quadra · 1,2 km')).toBeTruthy();
+    expect(screen.getByTestId('match-venue-name')).toHaveTextContent('Arena Quadra');
+    expect(screen.getByTestId('match-venue-address')).toHaveTextContent('1,2 km');
   });
 
   // -------------------------------------------------------------- info card

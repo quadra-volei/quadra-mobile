@@ -35,6 +35,7 @@ import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
 import { useShareMatch } from '@/features/network/api/postsApi';
 import { useCancelMatch } from '@/features/matches/api/editMatch';
 import { distanceKm } from '@/features/matches/lib/distanceKm';
+import { splitVenue } from '@/features/matches/lib/venueName';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
 import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
 import { useDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
@@ -501,16 +502,18 @@ export default function MatchDetailScreen() {
               </PressableScale>
             }
           >
-            <Text className="font-body-semibold text-body-bold text-text-primary">
-              {match.venue}
-              {deviceCoords
-                ? ` · ${formatDistance(
-                    distanceKm(deviceCoords, {
-                      latitude: match.lat,
-                      longitude: match.lon,
-                    }),
-                  )}`
-                : ''}
+            <Text className="font-body-semibold text-body-bold text-text-primary" testID="match-venue-name">
+              {splitVenue(match.venue).name}
+            </Text>
+            <Text className="font-body text-caption text-text-muted" testID="match-venue-address">
+              {[
+                splitVenue(match.venue).address,
+                deviceCoords
+                  ? formatDistance(distanceKm(deviceCoords, { latitude: match.lat, longitude: match.lon }))
+                  : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
             </Text>
           </InfoRow>
 

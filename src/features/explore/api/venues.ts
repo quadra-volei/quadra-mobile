@@ -74,3 +74,20 @@ export function useVenueDetails(placeId: string | null) {
 export function matchIdsAtVenues(venues: NearbyVenue[]): Set<string> {
   return new Set(venues.flatMap((v) => v.matches.map((m) => m.id)));
 }
+
+/**
+ * The known arena at a picked spot (within 100 m, the same distance the API uses to put
+ * games under an arena), with its name and address. Null when there is none or on any
+ * error: the typed or picked address is still a valid location.
+ */
+export async function findArenaAt(coords: { latitude: number; longitude: number }): Promise<VenueDetails | null> {
+  try {
+    const [closest] = (await getNearbyVenues({ lat: coords.latitude, lon: coords.longitude, radiusKm: 0.2 }))
+      .filter((v) => v.distanceKm <= 0.1)
+      .sort((a, b) => a.distanceKm - b.distanceKm);
+    if (!closest) return null;
+    return await authorizedApiClient<VenueDetails>(`/api/v1/places/${encodeURIComponent(closest.placeId)}`);
+  } catch {
+    return null;
+  }
+}
