@@ -6,6 +6,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
+import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { dialog } from '@/components/ui/Dialog';
 import { PressableScale } from '@/components/ui/PressableScale';
 import {
@@ -51,10 +52,18 @@ export default function ScoreboardScreen() {
   useScoreSubscription(matchId);
 
   if (gameQuery.isPending) {
+    // Shaped like the live board: header, two score panels, the buttons.
     return (
-      <Centered>
-        <Text className="font-body text-body text-white/70">Carregando...</Text>
-      </Centered>
+      <View className="flex-1 bg-surface-dark" testID="scoreboard-skeleton">
+        <SafeAreaView edges={['top', 'bottom']} className="flex-1 px-4 pt-4 gap-4">
+          <SkeletonBlock tone="dark" className="h-6 w-48 self-center" />
+          <View className="flex-1 flex-row gap-3">
+            <SkeletonBlock tone="dark" className="flex-1" />
+            <SkeletonBlock tone="dark" className="flex-1" />
+          </View>
+          <SkeletonBlock tone="dark" className="h-12" />
+        </SafeAreaView>
+      </View>
     );
   }
 

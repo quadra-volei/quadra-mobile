@@ -16,6 +16,7 @@ import MapView, { Marker, type Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
+import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { CourtImage } from '@/components/ui/CourtImage';
 import { Tag } from '@/components/ui/Tag';
 import { MatchCard } from '@/components/domain/MatchCard';
@@ -429,9 +430,15 @@ export default function MapScreen() {
 
   if (resolvingLocation || nearby.isPending) {
     return (
-      <StateContainer>
-        <ActivityIndicator color={colors.primary} />
-      </StateContainer>
+      <View className="flex-1 bg-bg-light" testID="map-skeleton">
+        <SkeletonBlock className="absolute inset-0 rounded-none" />
+        <SafeAreaView edges={['top']} className="flex-row items-center gap-3 px-4 pt-2">
+          <View className="h-12 w-12 rounded-full bg-white" />
+          <View className="h-9 w-40 rounded-pill bg-white" />
+          <View className="flex-1" />
+          <View className="h-12 w-12 rounded-full bg-white" />
+        </SafeAreaView>
+      </View>
     );
   }
 

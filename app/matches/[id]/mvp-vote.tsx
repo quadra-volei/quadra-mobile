@@ -2,12 +2,13 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { ChevronLeft } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PositionTag } from '@/components/domain/PositionPicker';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { dialog } from '@/components/ui/Dialog';
 import { PressableScale } from '@/components/ui/PressableScale';
 import {
@@ -165,8 +166,11 @@ export default function MvpVoteScreen() {
   if (playersQuery.isPending) {
     return (
       <Frame>
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color={colors.accent} />
+        <View className="px-4 gap-3" testID="mvp-skeleton">
+          <SkeletonBlock tone="dark" className="h-10 w-56" />
+          {[0, 1, 2, 3].map((i) => (
+            <SkeletonBlock key={i} tone="dark" className="h-20" />
+          ))}
         </View>
       </Frame>
     );

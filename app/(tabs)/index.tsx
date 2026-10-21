@@ -333,6 +333,12 @@ export default function HomeScreen() {
           <HomeHero />
         ) : (
           <>
+            {upcoming.isPending ? (
+              <View className="mx-4 mt-6 gap-3" testID="next-game-loading">
+                <SkeletonBlock className="h-5 w-52" />
+                <SkeletonBlock className="h-[84px]" />
+              </View>
+            ) : null}
             {nextGame ? (
               <>
                 <SectionHeader

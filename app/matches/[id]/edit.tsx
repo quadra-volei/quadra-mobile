@@ -5,11 +5,12 @@ import { ChevronLeft } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CoverPicker } from '@/components/domain/CoverPicker';
 import { Button } from '@/components/ui/Button';
+import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { DateTimePickerField } from '@/components/ui/DateTimePickerField';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { SearchField } from '@/components/ui/SearchField';
@@ -55,8 +56,11 @@ export default function EditMatchScreen() {
 
   if (defaults.isPending) {
     return (
-      <View className="flex-1 items-center justify-center bg-bg-light">
-        <ActivityIndicator color={colors.primary} />
+      <View className="flex-1 bg-bg-light px-4 pt-16 gap-4" testID="edit-skeleton">
+        <SkeletonBlock className="h-8 w-48" />
+        {[0, 1, 2, 3, 4].map((i) => (
+          <SkeletonBlock key={i} className="h-14" />
+        ))}
       </View>
     );
   }
