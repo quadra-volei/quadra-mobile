@@ -410,7 +410,13 @@ describe('S6 — Explore screen', () => {
     await render(<ExploreScreen />);
 
     await press(screen.getByLabelText('Filtros'));
-    await press(screen.getByText('Até 2 km'));
+    // The distance is a slider now: from "any" (50) down to 2 km, step by step.
+    expect(screen.getByText('Qualquer distância')).toBeTruthy();
+    const slider = screen.getByLabelText('Distância máxima');
+    for (let i = 0; i < 48; i++) {
+      await fireEvent(slider, 'accessibilityAction', { nativeEvent: { actionName: 'decrement' } });
+    }
+    expect(screen.getByText('Até 2 km')).toBeTruthy();
     await press(screen.getByText('Ver 1 partida'));
 
     expect(screen.getByText('Quadra do Parque')).toBeTruthy();

@@ -175,6 +175,13 @@ Each entry follows this structure:
   ```
 - **Notes**: Boxed numeric stepper — eyebrow label, a large `font-num` value (with an optional `prefix` like `"R$ "`), and round `−` / `+` controls (lucide `Minus`/`Plus`). Fills the gap `TextField` (free text) doesn't cover. Controlled; clamps to `[min, max]` and disables the relevant control at the bound (50% opacity). The root `View` is `flex-1` so two steppers sit side-by-side in a `flex-row gap-4` row. Each control exposes `accessibilityRole="button"` + `accessibilityState={{ disabled }}` and the value exposes an `accessibilityLabel`. Receives plain data via props; never fetches.
 
+### `Slider`
+- **Path**: `src/components/ui/Slider.tsx`
+- **Category**: ui
+- **Props**: `{ value: number; min: number; max: number; step?: number; onChange: (value: number) => void; accessibilityLabel: string; valueText: (value: number) => string; testID?: string }`
+- **Used in**: `ExploreFilterSheet` (Distância, 1–50 km, 50 = any).
+- **Notes**: Single-value slider dragged along its track: blue fill on a `primary/15` track, white thumb with the navy border and `HARD_SHADOW`. A touch anywhere on the track jumps there. React Native `PanResponder` (no package; works inside a `Modal`), which keeps the gesture from the scroll view around it. `accessibilityRole="adjustable"`: screen readers step it with increment/decrement and hear `valueText`.
+
 ### `ToggleField`
 - **Path**: `src/components/ui/ToggleField.tsx`
 - **Category**: ui

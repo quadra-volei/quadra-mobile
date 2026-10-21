@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
 import { FilterChip } from '@/components/ui/FilterChip';
+import { Slider } from '@/components/ui/Slider';
 import { ToggleField } from '@/components/ui/ToggleField';
 import {
   DEFAULT_FILTERS,
@@ -28,13 +29,9 @@ const WHENS: { id: When; label: string }[] = [
   { id: 'tomorrow', label: 'Amanhã' },
   { id: 'weekend', label: 'Fim de semana' },
 ];
-const DISTANCES: { km: number | null; label: string }[] = [
-  { km: 2, label: 'Até 2 km' },
-  { km: 5, label: 'Até 5 km' },
-  { km: 10, label: 'Até 10 km' },
-  { km: 25, label: 'Até 25 km' },
-  { km: null, label: 'Qualquer' },
-];
+// The slider runs 1–50 km; its end is "any distance", which the API's 50 km cap already is.
+const MAX_KM = 50;
+const distanceText = (km: number) => (km >= MAX_KM ? 'Qualquer distância' : `Até ${km} km`);
 const FORMATS: MatchFormat[] = ['2X2', '4X4', '6X6'];
 const LEVELS: MatchLevel[] = ['INICIANTE', 'INTERMEDIARIO', 'AVANCADO'];
 const PRICES: { max: number | null; label: string }[] = [
@@ -115,11 +112,23 @@ export function ExploreFilterSheet({ visible, value, source, onApply, onClose }:
                 <FilterChip key={w.id} label={w.label} selected={draft.when === w.id} onPress={() => set({ when: w.id })} />
               ))}
             </Section>
-            <Section title="Distância">
-              {DISTANCES.map((d) => (
-                <FilterChip key={d.label} label={d.label} selected={draft.maxKm === d.km} onPress={() => set({ maxKm: d.km })} />
-              ))}
-            </Section>
+            <View className="mt-5">
+              <View className="flex-row items-center justify-between">
+                <Text className="font-body-bold text-eyebrow text-text-primary uppercase">Distância</Text>
+                <Text className="font-body-bold text-caption text-primary" testID="explore-filter-distance">
+                  {distanceText(draft.maxKm ?? MAX_KM)}
+                </Text>
+              </View>
+              <Slider
+                value={draft.maxKm ?? MAX_KM}
+                min={1}
+                max={MAX_KM}
+                onChange={(km) => set({ maxKm: km >= MAX_KM ? null : km })}
+                accessibilityLabel="Distância máxima"
+                valueText={distanceText}
+                testID="explore-filter-distance-slider"
+              />
+            </View>
             <Section title="Formato">
               {FORMATS.map((f) => (
                 <FilterChip

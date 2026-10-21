@@ -1,13 +1,15 @@
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import { ChevronLeft, Clock, Flame, LandPlot, LocateFixed, MapPin, Users, Volleyball } from 'lucide-react-native';
+import { ArrowRight, ChevronLeft, Clock, LandPlot, LocateFixed, MapPin, Users, Volleyball } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  FlatList,
   Linking,
   Pressable,
   ScrollView,
   Text,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
@@ -107,7 +109,7 @@ const PIN_CENTER_OFFSET = {
   y: PIN_HEIGHT / 2 - PIN_TIP_Y,
 };
 
-/** How an arena pin looks: plain, 🔥 with a game today, red 🔥 with one being played now. */
+/** How an arena pin looks: plain, or with a green badge counting its games (red ring while one is played). */
 export type VenueActivity = 'none' | 'today' | 'live';
 
 export function venueActivityFor(venue: NearbyVenue): VenueActivity {
@@ -116,6 +118,176 @@ export function venueActivityFor(venue: NearbyVenue): VenueActivity {
 }
 
 const VENUE_PIN = 32; // h-8 w-8, round: an arena reads differently from a game's drop pin
+
+/**
+ * The closest other arena with games, from `from`: where the arena sheet's
+ * last card takes the user next. Null when no other arena has a game.
+ */
+export function nextVenueWithGames(from: NearbyVenue, venues: NearbyVenue[]): NearbyVenue | null {
+  const here = { latitude: from.lat, longitude: from.lon };
+  return (
+    venues
+      .filter((v) => v.placeId !== from.placeId && v.matches.length > 0)
+      .map((v) => ({ v, km: distanceKm(here, { latitude: v.lat, longitude: v.lon }) }))
+      .sort((a, b) => a.km - b.km)[0]?.v ?? null
+  );
+}
+
+/** "1,2 km" — comma decimal. */
+function formatKm(km: number): string {
+  return `${km.toFixed(1).replace('.', ',')} km`;
+}
+
+/**
+ * Custom marker views are drawn into a bitmap on Android. While a new set of
+ * pins mounts the map keeps redrawing them (`tracksViewChanges`), then stops,
+ * so a pin is never left as Google's default red marker or a blank, and the
+ * map does not redraw every pin on every frame.
+ */
+function useMarkerTracking(key: string): boolean {
+  const [tracking, setTracking] = useState(true);
+  useEffect(() => {
+    setTracking(true);
+    const timer = setTimeout(() => setTracking(false), 700);
+    return () => clearTimeout(timer);
+  }, [key]);
+  return tracking;
+}
+
+type VenueSheetItem = { kind: 'game'; id: string } | { kind: 'next'; venue: NearbyVenue };
+
+/**
+ * The tapped arena: its name (from Google, on tap) and address, then its games
+ * today as cards to swipe through — cover, name, time and open slots — and,
+ * after the last one, a card that moves on to the closest other arena with
+ * games, saying it is another place and how far.
+ */
+function VenueSheet({
+  venue,
+  title,
+  address,
+  matchesById,
+  next,
+  onOpenMatch,
+  onNextVenue,
+}: {
+  venue: NearbyVenue;
+  title: string;
+  address?: string;
+  matchesById: Map<string, NearbyMatch>;
+  next: NearbyVenue | null;
+  onOpenMatch: (id: string) => void;
+  onNextVenue: (venue: NearbyVenue) => void;
+}) {
+  const { width } = useWindowDimensions();
+  const cardWidth = Math.min(width - 64, 320);
+  const games = venue.matches;
+  const items: VenueSheetItem[] = [
+    ...games.map((m) => ({ kind: 'game' as const, id: m.id })),
+    ...(next ? [{ kind: 'next' as const, venue: next }] : []),
+  ];
+  const nextKm = next
+    ? distanceKm({ latitude: venue.lat, longitude: venue.lon }, { latitude: next.lat, longitude: next.lon })
+    : 0;
+
+  return (
+    <View className="bg-white rounded-card border-2 border-surface-dark pt-4 pb-4" style={HARD_SHADOW} testID="map-venue-card">
+      <View className="px-4 flex-row items-start gap-3">
+        <View className="flex-1">
+          <Text numberOfLines={1} className="font-body-bold text-h3 text-text-primary">
+            {title}
+          </Text>
+          {address ? (
+            <Text numberOfLines={1} className="mt-0.5 font-body text-caption text-text-muted">
+              {address}
+            </Text>
+          ) : null}
+        </View>
+        {games.length > 0 ? (
+          <View className="rounded-pill bg-success px-3 py-1">
+            <Text className="font-body-bold text-caption text-text-on-dark">
+              {games.length === 1 ? '1 jogo hoje' : `${games.length} jogos hoje`}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
+      {games.length === 0 ? (
+        <Text className="mt-3 px-4 font-body text-body text-text-muted">Nenhum jogo marcado aqui hoje.</Text>
+      ) : (
+        <FlatList<VenueSheetItem>
+          horizontal
+          data={items}
+          keyExtractor={(item) => (item.kind === 'game' ? item.id : `next-${item.venue.placeId}`)}
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={cardWidth + 12}
+          decelerationRate="fast"
+          contentContainerStyle={{ paddingHorizontal: 16, gap: 12, marginTop: 12 }}
+          renderItem={({ item }) => {
+            if (item.kind === 'next') {
+              return (
+                <Pressable
+                  onPress={() => onNextVenue(item.venue)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Próxima arena com jogos, a ${formatKm(nextKm)} daqui`}
+                  testID="map-venue-next"
+                  className="rounded-card border-2 border-dashed border-primary bg-bg-light p-4 justify-between"
+                  style={{ width: cardWidth, minHeight: 168 }}
+                >
+                  <View>
+                    <MapPin size={20} color={colors.primary} />
+                    <Text className="mt-2 font-body-bold text-body text-text-primary">Outra arena com jogos</Text>
+                    <Text className="font-body text-caption text-text-muted">
+                      {`a ${formatKm(nextKm)} daqui · ${
+                        item.venue.matches.length === 1 ? '1 jogo hoje' : `${item.venue.matches.length} jogos hoje`
+                      }`}
+                    </Text>
+                  </View>
+                  <View className="mt-3 flex-row items-center gap-2">
+                    <Text className="font-body-bold text-body text-primary">Ir para lá</Text>
+                    <ArrowRight size={18} color={colors.primary} />
+                  </View>
+                </Pressable>
+              );
+            }
+            const game = venue.matches.find((m) => m.id === item.id)!;
+            const match = matchesById.get(item.id);
+            const openSlots = match ? Math.max(0, match.capacity - match.confirmed) : null;
+            return (
+              <Pressable
+                onPress={() => onOpenMatch(item.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`${game.name}, ${game.live ? 'ao vivo' : formatWhen(game.startsAt)}`}
+                testID={`map-venue-match-${item.id}`}
+                className="overflow-hidden rounded-card border-2 border-surface-dark bg-white"
+                style={{ width: cardWidth }}
+              >
+                <CourtImage tint={match?.tint ?? colors.primary} imageUri={match?.coverUrl} height={88} radius={0}>
+                  <View className="absolute top-2 left-2 rounded-pill bg-white px-2 py-0.5">
+                    <Text className={`font-body-bold text-caption ${game.live ? 'text-danger' : 'text-surface-dark'}`}>
+                      {game.live ? 'AO VIVO' : formatWhen(game.startsAt)}
+                    </Text>
+                  </View>
+                </CourtImage>
+                <View className="px-3 py-2">
+                  <Text numberOfLines={1} className="font-body-bold text-body text-text-primary">
+                    {game.name}
+                  </Text>
+                  {openSlots != null ? (
+                    <Text className="font-body-semibold text-caption text-text-muted">
+                      {openSlots === 0 ? 'Lotada' : openSlots === 1 ? '1 vaga' : `${openSlots} vagas`}
+                      {match ? ` · ${match.priceLabel}` : ''}
+                    </Text>
+                  ) : null}
+                </View>
+              </Pressable>
+            );
+          }}
+        />
+      )}
+    </View>
+  );
+}
 
 /** Normalizes an expo-location permission status into the screen's state union. */
 function toPermissionState(status: Location.PermissionStatus): PermissionState {
@@ -160,6 +332,13 @@ export default function MapScreen() {
   // Arenas are extra: until they load (or if they fail) the map shows only the games.
   const venuesQuery = useNearbyVenues(area, isMapAvailable());
   const venueDetails = useVenueDetails(selectedVenueId);
+  // Pins redraw while their set changes (useMarkerTracking).
+  const tracking = useMarkerTracking(
+    [
+      ...(venuesQuery.data ?? []).map((v) => `${v.placeId}:${v.matches.length}`),
+      ...(nearby.data ?? []).map((m) => `${m.id}:${m.confirmed}`),
+    ].join(','),
+  );
 
   async function resolveLocation() {
     setResolvingLocation(true);
@@ -366,23 +545,28 @@ export default function MapScreen() {
               }}
               testID={`map-venue-${venue.placeId}`}
               anchor={{ x: 0.5, y: 0.5 }}
+              tracksViewChanges={tracking}
             >
-              <View style={{ width: VENUE_PIN + 8, height: VENUE_PIN + 8 }} className="items-center justify-center">
+              <View style={{ width: VENUE_PIN + 12, height: VENUE_PIN + 12 }} className="items-center justify-center">
+                {/* Colors inline: a refetch can change them, and a toggled className is
+                    not applied reliably (DECISIONS #87). */}
                 <View
-                  className={`h-8 w-8 rounded-full items-center justify-center border-2 bg-white ${
-                    activity === 'live' ? 'border-danger' : 'border-surface-dark'
-                  }`}
+                  className="h-8 w-8 rounded-full items-center justify-center border-2 border-surface-dark bg-white"
+                  style={{
+                    backgroundColor: activity === 'none' ? colors.textOnDark : colors.success,
+                    borderColor: activity === 'live' ? colors.danger : colors.surfaceDark,
+                  }}
                 >
-                  <LandPlot size={16} color={colors.surfaceDark} />
+                  <LandPlot size={16} color={activity === 'none' ? colors.surfaceDark : colors.textOnDark} />
                 </View>
                 {activity !== 'none' && (
                   <View
                     testID={`map-venue-${venue.placeId}-${activity}`}
-                    className={`absolute top-0 right-0 h-5 w-5 rounded-full items-center justify-center border-2 border-surface-dark ${
-                      activity === 'live' ? 'bg-danger' : 'bg-accent'
-                    }`}
+                    className="absolute top-0 right-0 h-5 min-w-5 px-1 rounded-full items-center justify-center border-2 border-surface-dark bg-white"
                   >
-                    <Flame size={11} color={activity === 'live' ? colors.textOnDark : colors.surfaceDark} />
+                    <Text className="font-num text-success" style={{ fontSize: 10, lineHeight: 12 }}>
+                      {venue.matches.length}
+                    </Text>
                   </View>
                 )}
               </View>
@@ -402,6 +586,7 @@ export default function MapScreen() {
               testID={`map-pin-${match.id}`}
               anchor={PIN_ANCHOR}
               centerOffset={PIN_CENTER_OFFSET}
+              tracksViewChanges={tracking}
             >
               <View style={{ width: PIN_WIDTH, height: PIN_HEIGHT }}>
                 <View
@@ -427,17 +612,14 @@ export default function MapScreen() {
         pointerEvents="box-none"
         className="absolute top-0 left-0 right-0"
       >
+        {/* Opening the map shows only the way back, a count and the recenter;
+            details come with a tap on a pin. */}
         <View pointerEvents="box-none" className="flex-row items-center gap-3 px-4 pt-2">
-          <View className="flex-1 flex-row items-center h-14 pl-1 pr-5 bg-white rounded-pill shadow-card">
-            {backButton('h-12 w-12')}
-            <View className="flex-1">
-              <Text numberOfLines={1} className="font-body-semibold text-body-bold text-text-primary">
-                Perto de você
-              </Text>
-              <Text numberOfLines={1} className="font-body text-caption text-text-muted">
-                {matches.length === 1
-                  ? '1 partida por perto'
-                  : `${matches.length} partidas por perto`}
+          {backButton('h-12 w-12 border-2 border-surface-dark bg-white')}
+          <View className="flex-1 items-start" pointerEvents="none">
+            <View className="rounded-pill bg-white px-4 py-2 shadow-card">
+              <Text numberOfLines={1} className="font-body-bold text-caption text-text-primary">
+                {matches.length === 1 ? '1 partida por perto' : `${matches.length} partidas por perto`}
               </Text>
             </View>
           </View>
@@ -448,7 +630,7 @@ export default function MapScreen() {
             accessibilityRole="button"
             accessibilityLabel="Centralizar na minha localização"
             testID="map-recenter"
-            className="h-14 w-14 rounded-full border-2 border-surface-dark bg-white items-center justify-center"
+            className="h-12 w-12 rounded-full border-2 border-surface-dark bg-white items-center justify-center"
             style={HARD_SHADOW}
           >
             <LocateFixed size={22} color={colors.surfaceDark} />
@@ -471,45 +653,25 @@ export default function MapScreen() {
         )}
       </SafeAreaView>
 
-      {/* Arena card — name from Google on tap, and today's games there */}
+      {/* Arena sheet — name from Google on tap, and today's games there to swipe */}
       {selectedVenue && (
         <SafeAreaView edges={['bottom']} className="absolute bottom-0 left-0 right-0">
           <View className="px-4 pb-4">
-            <View className="bg-white rounded-card shadow-card p-4" testID="map-venue-card">
-              <Text numberOfLines={1} className="font-body-bold text-h3 text-text-primary">
-                {venueDetails.data?.title ?? 'Arena'}
-              </Text>
-              {venueDetails.data?.address ? (
-                <Text numberOfLines={1} className="mt-0.5 font-body text-caption text-text-muted">
-                  {venueDetails.data.address}
-                </Text>
-              ) : null}
-              {selectedVenue.matches.length === 0 ? (
-                <Text className="mt-3 font-body text-body text-text-muted">
-                  Nenhum jogo marcado aqui hoje.
-                </Text>
-              ) : (
-                <View className="mt-3 gap-2">
-                  {selectedVenue.matches.map((m) => (
-                    <Pressable
-                      key={m.id}
-                      onPress={() => goMatch(m.id)}
-                      accessibilityRole="button"
-                      testID={`map-venue-match-${m.id}`}
-                      className="flex-row items-center gap-2 rounded-card border-2 border-surface-dark px-3 py-2"
-                    >
-                      <Flame size={14} color={m.live ? colors.danger : colors.primary} />
-                      <Text numberOfLines={1} className="flex-1 font-body-semibold text-body text-text-primary">
-                        {m.name}
-                      </Text>
-                      <Text className={`font-body-bold text-caption ${m.live ? 'text-danger' : 'text-text-muted'}`}>
-                        {m.live ? 'AO VIVO' : formatWhen(m.startsAt)}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              )}
-            </View>
+            <VenueSheet
+              venue={selectedVenue}
+              title={venueDetails.data?.title ?? 'Arena'}
+              address={venueDetails.data?.address}
+              matchesById={new Map(matches.map((m) => [m.id, m]))}
+              next={nextVenueWithGames(selectedVenue, venues)}
+              onOpenMatch={goMatch}
+              onNextVenue={(next) => {
+                setSelectedVenueId(next.placeId);
+                mapRef.current?.animateCamera?.(
+                  { center: { latitude: next.lat, longitude: next.lon } },
+                  { duration: 450 },
+                );
+              }}
+            />
           </View>
         </SafeAreaView>
       )}
