@@ -16,6 +16,7 @@ import {
 } from '@expo-google-fonts/dm-mono';
 import { RussoOne_400Regular } from '@expo-google-fonts/russo-one';
 import { Baloo2_600SemiBold } from '@expo-google-fonts/baloo-2';
+import * as Sentry from '@sentry/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -32,6 +33,13 @@ import { getAccessToken } from '@/lib/auth/getAccessToken';
 import { verifySession } from '@/lib/auth/verifySession';
 import { useAuthStore } from '@/stores/auth';
 import { STACK_OPTIONS } from '@/theme/motion';
+
+// Crashes, JS errors and a sample of traces to Sentry (project quadra-mobile). Without
+// EXPO_PUBLIC_SENTRY_DSN (local runs) nothing is sent. No PII: user IP and request bodies stay out.
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  tracesSampleRate: 0.2,
+});
 
 SplashScreen.preventAutoHideAsync();
 
@@ -97,7 +105,9 @@ const queryClient = new QueryClient({
   },
 });
 
-export default function RootLayout() {
+export default Sentry.wrap(RootLayout);
+
+function RootLayout() {
   const [fontsLoaded] = useFonts({
     'ClimateCrisis-Regular': require('../assets/fonts/ClimateCrisis-Regular-VariableFont_YEAR.ttf'),
     DMSans_400Regular,
