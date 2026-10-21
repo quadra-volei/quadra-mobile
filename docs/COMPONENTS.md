@@ -453,6 +453,13 @@ More UI primitives will live here:
   ```
 - **Notes**: Single **non-navigable** ranking-list row: a large `font-num` `text-primary` position number, an `<Avatar size="sm" />`, the name (`text-body-bold`; appends "· você" in `text-primary` when `isMe`), an `@handle · Posição` `text-caption text-text-muted` subtitle, a right-aligned `font-num` score, and a `TrendBadge` (↑ `success` / ↓ `danger` / — `text-muted`, arrows via lucide `ArrowUp`/`ArrowDown`/`Minus` colored from `src/theme/colors.ts`, delta in `font-num`; absent `trend` → "—"). The `isMe` row gets a subtle `bg-primary/10 rounded-card` highlight. No `accessibilityRole="button"` (rows are display-only); a single `accessibilityLabel` announces position/name/score/trend (+ "você"). Receives plain data via props; never fetches. No hardcoded hex.
 
+### `AuthHero`
+- **Path**: `src/components/domain/AuthHero.tsx`
+- **Category**: domain
+- **Props**: `{ lockup?: boolean; animate?: boolean; children?: ReactNode }`
+- **Used in**: `app/(auth)/login.tsx` (lockup, rising in, the CTA as `children`), `app/(auth)/sms-otp.tsx` (no lockup, still).
+- **Notes**: The sign-in background (DECISIONS #164): `HERO_GRADIENT`, the "quadra" lockup (or a same-height gap), "O JOGO COMEÇA AQUI." and the subtitle, staggered `useRiseIn` when `animate`. The SMS code screen draws it still and without the logo, so the step from the phone to the code only swaps the white card.
+
 ### `PresenceGrid`
 - **Path**: `src/components/domain/PresenceGrid.tsx`
 - **Category**: domain

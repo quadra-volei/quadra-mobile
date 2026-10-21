@@ -253,7 +253,6 @@ describe('S2 — Login screen', () => {
     await openSheet();
 
     expect(screen.getByText('ACESSE SUA CONTA')).toBeTruthy();
-    expect(screen.getByText(/Use seu telefone para entrar ou criar conta/i)).toBeTruthy();
     // dimmed backdrop present
     expect(screen.getByTestId('sheet-backdrop')).toBeTruthy();
   });

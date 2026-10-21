@@ -243,13 +243,15 @@ describe('S3 — SMS Verification screen', () => {
    *  quadra lockup, then a white card with the 'CONFIRME SEU NÚMERO' display
    *  headline."
    */
-  it('renders the hero strip (chevron + quadra lockup) and the CONFIRME headline card', async () => {
+  it('keeps the login background without the logo, with the chevron and the CONFIRME card', async () => {
     await renderScreen();
 
     // The hero strip gradient (the Button grad variant also renders one).
     expect(screen.getAllByTestId('linear-gradient').length).toBeGreaterThan(0);
     expect(screen.getByTestId('icon-chevron-left')).toBeTruthy();
-    expect(screen.getByLabelText('quadra')).toBeTruthy();
+    // Owner's review 2026-10-21 (item 16): no logo, the login's headline stays behind.
+    expect(screen.queryByLabelText('quadra')).toBeNull();
+    expect(screen.getByText('AQUI.')).toBeTruthy();
     expect(screen.getByText('CONFIRME SEU NÚMERO')).toBeTruthy();
   });
 

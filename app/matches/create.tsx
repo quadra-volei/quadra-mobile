@@ -634,7 +634,7 @@ export default function CreateMatchScreen() {
           {/* ─────────── BLOCO 2 · Local ─────────── */}
           <View ref={anchor('local')}>
             <Reveal show={showLocal}>
-              <Question step={2} sub="Busque uma quadra ou informe o endereço.">
+              <Question step={2}>
                 Onde vocês vão jogar?
               </Question>
               <SearchField
@@ -658,7 +658,7 @@ export default function CreateMatchScreen() {
                   {places.isFetching
                     ? 'Buscando endereços…'
                     : places.data && places.data.length > 0
-                      ? 'Escolha um endereço da lista para a partida aparecer no lugar certo do mapa.'
+                      ? 'Escolha um endereço da lista.'
                       : 'Nenhum endereço encontrado. Tente o nome da rua com o bairro ou a cidade.'}
                 </Text>
               ) : null}
@@ -739,8 +739,7 @@ export default function CreateMatchScreen() {
                     </MapView>
                   </View>
                   <Text className="mt-2 font-body text-caption text-text-muted">
-                    Confira se o pino está no lugar certo. Se não estiver, busque
-                    de novo com o número ou o nome da quadra.
+                    Pino no lugar errado? Busque com o número ou o nome da quadra.
                   </Text>
                 </View>
               ) : null}
@@ -750,7 +749,7 @@ export default function CreateMatchScreen() {
           {/* ─────────── BLOCO 3 · Avulso ou Recorrente ─────────── */}
           <View ref={anchor('tipo')}>
             <Reveal show={showTipo}>
-              <Question step={3} sub="Um jogo único ou toda semana?">
+              <Question step={3}>
                 Vai se repetir?
               </Question>
               <View className="flex-row gap-3">
@@ -1026,7 +1025,7 @@ export default function CreateMatchScreen() {
           {/* ─────────── BLOCO 5 · Nível ─────────── */}
           <View ref={anchor('nivel')}>
             <Reveal show={showNivel}>
-              <Question step={5} sub="Ajuda a juntar gente do mesmo ritmo.">
+              <Question step={5}>
                 Qual o nível?
               </Question>
               <View className="flex-row gap-2">
@@ -1142,7 +1141,7 @@ export default function CreateMatchScreen() {
           {/* ─────────── BLOCO 7 · Privacidade ─────────── */}
           <View ref={anchor('privacidade')}>
             <Reveal show={showPrivacidade}>
-              <Question step={7} sub="Quem pode entrar nessa partida?">
+              <Question step={7}>
                 Quem pode participar?
               </Question>
               <View className="flex-row gap-3">

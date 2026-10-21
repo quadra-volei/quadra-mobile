@@ -1,5 +1,4 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
@@ -16,8 +15,8 @@ import Animated, {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { z } from "zod";
 
+import { AuthHero } from "@/components/domain/AuthHero";
 import { GoogleMark } from "@/components/icons/GoogleMark";
-import { QuadraWordmark } from "@/components/icons/QuadraWordmark";
 import { Button } from "@/components/ui/Button";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import {
@@ -27,15 +26,12 @@ import {
 import { useRequestOtp } from "@/features/auth/api/requestOtp";
 import { useRiseIn } from "@/hooks/useRiseIn";
 import { useAuthStore } from "@/stores/auth";
-import { colors, HERO_GRADIENT } from "@/theme/colors";
+import { colors } from "@/theme/colors";
 import { LEGAL_URLS } from "@/lib/legal";
 
 const SWIPE_CLOSE_THRESHOLD = 120; // drag distance (px) past which a release closes the sheet
 
-// Intro entrance stagger (ms), mirroring the prototype's .q-rise animationDelays.
-const LOCKUP_DELAY = 0;
-const HEADLINE_DELAY = 60;
-const SUBTITLE_DELAY = 120;
+// The CTA rises in after the hero's intro (AuthHero).
 const CTA_DELAY = 180;
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
@@ -59,10 +55,6 @@ export default function LoginScreen() {
 
   const translateY = useSharedValue(SHEET_HIDDEN_OFFSET);
 
-  // Intro copy rises in on mount, one element after the next.
-  const lockupStyle = useRiseIn({ delay: LOCKUP_DELAY });
-  const headlineStyle = useRiseIn({ delay: HEADLINE_DELAY });
-  const subtitleStyle = useRiseIn({ delay: SUBTITLE_DELAY });
   const ctaStyle = useRiseIn({ delay: CTA_DELAY });
 
   const {
@@ -170,45 +162,14 @@ export default function LoginScreen() {
 
   return (
     <View className="flex-1 bg-surface-dark">
-      <LinearGradient
-        colors={HERO_GRADIENT}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ flex: 1 }}
-      >
-        <SafeAreaView className="flex-1 px-6">
-          <View className="flex-1 justify-center">
-            {/* brand lockup */}
-            <Animated.View style={lockupStyle}>
-              <QuadraWordmark variant="blue" height={64} testID="login-wordmark" />
-            </Animated.View>
-
-            {/* Intro set 1.5× the screen defaults (Johny, 2026-10-21). */}
-            <Animated.Text
-              className="font-display text-[54px] text-text-on-dark uppercase mt-12 leading-[57px]"
-              style={headlineStyle}
-            >
-              O JOGO{"\n"}COMEÇA{"\n"}
-              <Text className="text-accent">AQUI.</Text>
-            </Animated.Text>
-
-            <Animated.Text
-              className="font-body-semibold text-[22px] leading-[32px] text-text-on-dark mt-6"
-              style={subtitleStyle}
-            >
-              Encontre partidas de vôlei perto de você, monte seu time e suba no
-              ranking.
-            </Animated.Text>
-          </View>
-
-          {/* pinned CTA */}
-          <Animated.View className="pb-6" style={ctaStyle}>
-            <Button variant="grad" onPress={openSheet} testID="open-sheet">
-              Entrar e jogar
-            </Button>
-          </Animated.View>
-        </SafeAreaView>
-      </LinearGradient>
+      <AuthHero>
+        {/* pinned CTA */}
+        <Animated.View className="pb-6" style={ctaStyle}>
+          <Button variant="grad" onPress={openSheet} testID="open-sheet">
+            Entrar e jogar
+          </Button>
+        </Animated.View>
+      </AuthHero>
 
       {/* State B — phone login sheet (inline, not an extracted component) */}
       {sheetOpen ? (
@@ -256,9 +217,6 @@ export default function LoginScreen() {
 
                 <Text className="font-display text-h1 text-text-primary uppercase">
                   ACESSE SUA CONTA
-                </Text>
-                <Text className="font-body text-body text-text-muted mt-1">
-                  Use seu telefone para entrar ou criar conta.
                 </Text>
 
                 <Text className="font-body-bold text-eyebrow text-text-primary uppercase mt-6">
