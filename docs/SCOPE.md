@@ -33,8 +33,8 @@ State of the MVP on the `dev` branch, as of 2026-10-06. Reasons for each choice 
 Waiting on configuration (no code):
 
 - **Google login**: the OAuth client IDs (web, Android, iOS).
-- **SMS**: the test environment accepts a fixed code, so the app must not be shared outside
-  the team until Twilio is configured on the backend.
+- **SMS**: real codes go through Firebase Phone Auth (DECISIONS #133); a build without
+  `EXPO_PUBLIC_PHONE_AUTH=firebase` uses the test environment's fixed code.
 
 Neutral placeholders, because the backend has no such data yet:
 
@@ -44,10 +44,12 @@ Neutral placeholders, because the backend has no such data yet:
 
 Not built yet:
 
-- **Push notifications**: the notifications screen only stores local preferences; nothing is
-  sent or received. The bell has no notification list behind it.
 - **Full match history** ("Ver tudo" on recent matches is inert).
-- **Summary with rotating teams** does not say which pair played each set (backend limit).
+- **Summary with rotating teams** names each game's winner but not the team it beat (the
+  summary keeps no teams per game; backend limit).
+- **Map: arenas by type** (sand courts, regular courts, parks) with simple filters: needs the
+  Google place type stored with each arena (API). Owner's review of 2026-10-21, item 13.
+- **Map: blue arrows on the first open** (same review): not reproduced yet; check on a device.
 - **iOS**: only the Android test APK has been built.
 
 ## Out of the MVP
