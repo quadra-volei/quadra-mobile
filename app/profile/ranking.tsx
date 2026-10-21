@@ -4,6 +4,7 @@ import { Bell } from 'lucide-react-native';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { PositionTag } from '@/components/domain/PositionPicker';
 import { RankingRow } from '@/components/domain/RankingRow';
 import { Avatar } from '@/components/ui/Avatar';
 import { BackHeader } from '@/components/ui/BackHeader';
@@ -39,19 +40,92 @@ const EMPTY_MESSAGE: Record<RankingScope, string> = {
   general: 'Ninguém tem jogos suficientes neste mês ainda',
 };
 
-function ChipRow({ children }: { children: React.ReactNode }) {
+/** A filter group: an eyebrow saying what it controls, then its chips. */
+function ChipRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerClassName="gap-2 px-4 pb-2"
-    >
-      {children}
-    </ScrollView>
+    <View className="mt-3">
+      <Text
+        className="px-4 pb-2 font-body-bold text-eyebrow text-text-muted uppercase"
+        style={{ letterSpacing: 1.2 }}
+      >
+        {label}
+      </Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerClassName="gap-2 px-4"
+      >
+        {children}
+      </ScrollView>
+    </View>
   );
 }
 
-// ── Top-3 podium (inline; 2º left, 1º center on navy pedestal, 3º right) ──
+/**
+ * Amigos · Grupos · Geral: which ranking, the main choice, so a segmented
+ * control on navy (the active one lime) instead of one more chip row. Selected
+ * colors inline, never a toggled className (DECISIONS #87).
+ */
+function ScopeSwitch({ value, onChange }: { value: RankingScope; onChange: (scope: RankingScope) => void }) {
+  return (
+    <View className="mx-4 flex-row rounded-pill bg-surface-dark p-1" testID="ranking-scope">
+      {SCOPES.map((s) => {
+        const selected = value === s.scope;
+        return (
+          <Pressable
+            key={s.scope}
+            onPress={() => onChange(s.scope)}
+            accessibilityRole="button"
+            accessibilityState={{ selected }}
+            testID={`ranking-scope-${s.scope}`}
+            className="h-10 flex-1 items-center justify-center rounded-pill"
+            style={selected ? { backgroundColor: colors.accent } : undefined}
+          >
+            <Text
+              className="font-body-bold text-body-bold text-white/70"
+              style={selected ? { color: colors.surfaceDark } : undefined}
+            >
+              {s.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/** A position filter: the position tag (the onboarding look), selectable. */
+function PositionFilter({
+  code,
+  selected,
+  onPress,
+}: {
+  code: Position;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      accessibilityLabel={positionLabel(code)}
+      testID={`ranking-position-${code}`}
+      className="justify-center"
+    >
+      <PositionTag code={code} selected={selected} />
+    </Pressable>
+  );
+}
+
+// The podium's pedestals take the palette in its order: 1º lime, 2º blue, 3º orange.
+const PEDESTAL: Record<1 | 2 | 3, { box: string; label: string; height: string }> = {
+  1: { box: 'bg-accent', label: 'text-surface-dark', height: 'h-24' },
+  2: { box: 'bg-primary', label: 'text-text-on-dark', height: 'h-16' },
+  3: { box: 'bg-tertiary', label: 'text-surface-dark', height: 'h-12' },
+};
+
+// ── Top-3 podium on the navy hero (2º left, 1º center and tallest, 3º right) ──
 function PodiumColumn({
   row,
   place,
@@ -61,8 +135,7 @@ function PodiumColumn({
 }) {
   if (!row) return <View className="items-center w-24" />;
 
-  const isFirst = place === 1;
-  const pedestalHeight = isFirst ? 'h-24' : place === 2 ? 'h-16' : 'h-12';
+  const pedestal = PEDESTAL[place];
 
   return (
     <Pressable
@@ -74,39 +147,43 @@ function PodiumColumn({
       <Avatar uri={row.photoUrl} name={row.name} size="lg" level={row.level} />
       <Text
         numberOfLines={1}
-        className="font-body-semibold text-body-bold text-text-primary mt-2 text-center"
+        className="font-body-semibold text-body-bold text-text-on-dark mt-2 text-center"
       >
         {row.name}
       </Text>
-      <Text className="font-num text-primary text-body">{row.score}</Text>
-      {isFirst ? (
-        <View className={`rounded-card overflow-hidden w-24 mt-2 ${pedestalHeight}`}>
-          <LinearGradient
-            colors={HERO_GRADIENT}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Text className="font-num text-accent text-body">{row.position}º</Text>
-          </LinearGradient>
-        </View>
-      ) : (
-        <View
-          className={`bg-white rounded-card shadow-card items-center justify-center w-24 mt-2 ${pedestalHeight}`}
-        >
-          <Text className="font-num text-text-muted text-body">{row.position}º</Text>
-        </View>
-      )}
+      <Text className="font-num text-accent text-body">{row.score} pts</Text>
+      <View
+        className={`w-24 mt-2 items-center justify-center rounded-t-card border-2 border-b-0 border-surface-dark ${pedestal.box} ${pedestal.height}`}
+      >
+        <Text className={`font-num ${pedestal.label}`} style={{ fontSize: place === 1 ? 32 : 22 }}>
+          {row.position}º
+        </Text>
+      </View>
     </Pressable>
   );
 }
 
-function Podium({ top }: { top: RankingRowData[] }) {
+function Podium({ top, season }: { top: RankingRowData[]; season: string }) {
   return (
-    <View className="flex-row items-end justify-center gap-3 px-4 mt-2">
-      <PodiumColumn row={top[1]} place={2} />
-      <PodiumColumn row={top[0]} place={1} />
-      <PodiumColumn row={top[2]} place={3} />
+    <View className="mx-4 overflow-hidden rounded-card" testID="ranking-podium">
+      <LinearGradient
+        colors={HERO_GRADIENT}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={{ paddingTop: 16 }}
+      >
+        <Text
+          className="px-4 font-body-bold text-eyebrow text-accent uppercase text-center"
+          style={{ letterSpacing: 1.5 }}
+        >
+          {season}
+        </Text>
+        <View className="flex-row items-end justify-center gap-3 px-4 mt-4">
+          <PodiumColumn row={top[1]} place={2} />
+          <PodiumColumn row={top[0]} place={1} />
+          <PodiumColumn row={top[2]} place={3} />
+        </View>
+      </LinearGradient>
     </View>
   );
 }
@@ -180,7 +257,12 @@ export default function RankingScreen() {
   } else {
     body = (
       <>
-        <Podium top={top} />
+        <Podium
+          top={top}
+          season={`Temporada de ${seasonName(data!.seasonStart)}${
+            scope === 'general' ? ` · mínimo de ${data!.minMatches} jogos` : ''
+          }`}
+        />
         {rest.length > 0 ? (
           <View className="mx-4 mt-6 bg-white rounded-card shadow-card overflow-hidden">
             {rest.map((row, i) => (
@@ -203,21 +285,12 @@ export default function RankingScreen() {
     <View className="flex-1 bg-bg-light">
       <ScrollView
         contentContainerClassName="pb-10"
-        contentContainerStyle={{ paddingTop: headerHeight }}
+        contentContainerStyle={{ paddingTop: headerHeight + 8 }}
       >
-        <ChipRow>
-          {SCOPES.map((s) => (
-            <FilterChip
-              key={s.scope}
-              label={s.label}
-              selected={scope === s.scope}
-              onPress={() => setScope(s.scope)}
-            />
-          ))}
-        </ChipRow>
+        <ScopeSwitch value={scope} onChange={setScope} />
 
         {scope === 'group' && groups.data && groups.data.length > 0 ? (
-          <ChipRow>
+          <ChipRow label="Grupo">
             {groups.data.map((g) => (
               <FilterChip
                 key={g.id}
@@ -229,30 +302,23 @@ export default function RankingScreen() {
           </ChipRow>
         ) : null}
 
-        <ChipRow>
-          <FilterChip
-            label="Todas"
-            selected={position === undefined}
+        <ChipRow label="Posição">
+          <Pressable
             onPress={() => setPosition(undefined)}
-          />
+            accessibilityRole="button"
+            accessibilityState={{ selected: position === undefined }}
+            testID="ranking-position-all"
+            className="h-8 justify-center self-center rounded-pill border-2 border-line bg-white px-3"
+            style={position === undefined ? { borderColor: colors.primary, backgroundColor: colors.bgLightAlt } : undefined}
+          >
+            <Text className="font-body-bold text-caption text-surface-dark">Todas</Text>
+          </Pressable>
           {POSITIONS.map((p) => (
-            <FilterChip
-              key={p}
-              label={positionLabel(p) ?? p}
-              selected={position === p}
-              onPress={() => setPosition(p)}
-            />
+            <PositionFilter key={p} code={p} selected={position === p} onPress={() => setPosition(p)} />
           ))}
         </ChipRow>
 
-        {data ? (
-          <Text className="font-body text-caption text-text-muted px-4 pb-2">
-            Temporada de {seasonName(data.seasonStart)}
-            {scope === 'general' ? ` · mínimo de ${data.minMatches} jogos` : ''}
-          </Text>
-        ) : null}
-
-        <View className="mt-2">{body}</View>
+        <View className="mt-5">{body}</View>
 
         {me && !meListed ? (
           <View className="mx-4 mt-6">
