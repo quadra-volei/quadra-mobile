@@ -1,0 +1,32 @@
+# Typecheck and tests on every pull request into dev or main, and on pushes to them.
+# Builds stay manual (EAS).
+name: CI
+
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # Expo writes this file on `expo start` and keeps it out of git; tsc needs its global types.
+      - run: echo '/// <reference types="expo/types" />' > expo-env.d.ts
+      - run: npm run typecheck
+      - run: npm test -- --ci
