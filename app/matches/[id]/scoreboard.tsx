@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, Trophy } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -515,7 +515,7 @@ function GameOver({ matchId, game }: { matchId: string; game: LiveGame }) {
   const winner = game.teams.find((team) => team.id === game.winnerTeamId);
   return (
     <Centered>
-      <Text className="font-body-bold text-eyebrow text-accent uppercase">Fim de jogo</Text>
+      <Text className="font-body-bold text-eyebrow text-accent uppercase">Fim da partida</Text>
       <Text
         className="mt-2 mb-6 text-center font-display text-display text-text-on-dark uppercase"
         testID="game-over-winner"
@@ -527,13 +527,16 @@ function GameOver({ matchId, game }: { matchId: string; game: LiveGame }) {
         {game.teams.map((team, index) => (
           <View
             key={team.id}
-            className="flex-row items-center gap-3 rounded-card border border-white/10 bg-surface-dark-alt px-4 py-3"
+            className={`flex-row items-center gap-3 rounded-card bg-surface-dark-alt px-4 py-3 ${
+              team.id === winner?.id ? 'border-2 border-accent' : 'border border-white/10'
+            }`}
           >
             <View className={`h-3 w-3 rounded-full ${getTeamBgColor(index)}`} />
             <Text className="flex-1 font-body-semibold text-body-bold text-text-on-dark">
               {team.name}
             </Text>
-            <Text className="font-num text-body text-text-on-dark">
+            {team.id === winner?.id ? <Trophy size={16} color={colors.accent} /> : null}
+            <Text className={`font-num text-body ${team.id === winner?.id ? 'text-accent' : 'text-text-on-dark'}`}>
               {setsLabel(game.setsWon[team.id] ?? 0)}
             </Text>
           </View>
@@ -548,7 +551,7 @@ function GameOver({ matchId, game }: { matchId: string; game: LiveGame }) {
           }
           testID="go-mvp-vote"
         >
-          Votar no MVP
+          Votar no <Text className="font-num">MVP</Text>
         </Button>
       </View>
     </Centered>

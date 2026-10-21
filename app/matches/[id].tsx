@@ -317,7 +317,7 @@ export default function MatchDetailScreen() {
   // ── A game under way (or over) takes over the forward CTA ──
   const GAME_CTA = {
     LIVE: { label: 'Ver placar ao vivo', pathname: '/matches/[id]/scoreboard' },
-    VOTING: { label: 'Votar no MVP', pathname: '/matches/[id]/mvp-vote' },
+    VOTING: { label: <>Votar no <Text className="font-num">MVP</Text></>, pathname: '/matches/[id]/mvp-vote' },
     SUMMARY: { label: 'Ver resumo', pathname: '/matches/[id]/summary' },
   } as const;
   const gameCta = match.game ? GAME_CTA[match.game] : null;

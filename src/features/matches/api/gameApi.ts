@@ -76,7 +76,7 @@ export type ApiMatchSummary = {
   mvpPlayerId: string | null;
   mvpVoteCount: number | null;
   mvpTotalVotes: number;
-  sets: { setNumber: number; teamAPoints: number; teamBPoints: number }[];
+  sets: { setNumber: number; teamAPoints: number; teamBPoints: number; winnerTeamId?: string | null }[];
   teams: { teamId: string; name: string; playerIds: string[] }[];
 };
 

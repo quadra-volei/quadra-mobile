@@ -13,6 +13,7 @@ import {
   toTeams,
 } from '@/features/matches/api/gameApi';
 import { matchDetailQueryKey } from '@/features/matches/api/getMatchDetail';
+import { upcomingMatchesQueryKey } from '@/features/matches/api/getUpcoming';
 import {
   fetchMatchDetail,
   MATCHES_PATH,
@@ -180,6 +181,10 @@ function useGameMutation<TInput>(
       );
       // The match detail shows where the game is (placar / votação / resumo).
       void queryClient.invalidateQueries({ queryKey: matchDetailQueryKey(matchId) });
+      if (scoreboard.state === 'Ended') {
+        // An ended game leaves the Home's upcoming matches (API DECISIONS #83).
+        void queryClient.invalidateQueries({ queryKey: upcomingMatchesQueryKey });
+      }
     },
     onError: () => {
       // Someone else may have moved the game on: show what the server has.
@@ -286,6 +291,9 @@ export function useAddPoint(matchId: string) {
         previous ? { ...previous, scoreboard } : previous,
       );
       void queryClient.invalidateQueries({ queryKey: matchDetailQueryKey(matchId) });
+      if (scoreboard.state === 'Ended') {
+        void queryClient.invalidateQueries({ queryKey: upcomingMatchesQueryKey });
+      }
     },
     onError: (_error, input) => {
       queryClient.setQueryData<LiveGameData>(gameKey, (previous) =>

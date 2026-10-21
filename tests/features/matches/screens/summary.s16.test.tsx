@@ -106,6 +106,9 @@ import MatchSummaryScreen from '../../../../app/matches/[id]/summary';
 
 // --- Fixtures -------------------------------------------------------------
 
+const TEAM_1 = { id: 't1', name: 'Time 1', wins: 3, colorIndex: 0, mine: true, winner: true };
+const TEAM_2 = { id: 't2', name: 'Time 2', wins: 1, colorIndex: 1, mine: false, winner: false };
+
 function winFixture(over: Partial<MatchSummary> = {}): MatchSummary {
   return {
     format: '6X6',
@@ -113,12 +116,13 @@ function winFixture(over: Partial<MatchSummary> = {}): MatchSummary {
     name: 'Vôlei de Quinta',
     venue: 'Arena Pinheiros',
     dateLabel: '10 jun 2026',
-    finalScore: [3, 1],
-    setScores: [
-      [25, 19],
-      [23, 25],
-      [25, 21],
-      [25, 18],
+    winnerName: 'Time 1',
+    standings: [TEAM_1, TEAM_2],
+    games: [
+      { number: 1, winner: TEAM_1, points: [25, 19] },
+      { number: 2, winner: TEAM_2, points: [25, 23] },
+      { number: 3, winner: TEAM_1, points: [25, 21] },
+      { number: 4, winner: TEAM_1, points: [25, 18] },
     ],
     mvp: {
       id: 'o2',
@@ -146,7 +150,11 @@ function lossFixture(over: Partial<MatchSummary> = {}): MatchSummary {
     name: 'Racha do Sábado',
     venue: 'Quadra Central',
     dateLabel: '13 jun 2026',
-    finalScore: [1, 3],
+    winnerName: 'Time 2',
+    standings: [
+      { ...TEAM_2, wins: 3, winner: true },
+      { ...TEAM_1, wins: 1, winner: false },
+    ],
     ...over,
   });
 }
@@ -301,47 +309,26 @@ describe('S16 — Match Summary', () => {
   });
 
   /**
-   * Covers: S16 — Match Summary
-   * Criterion: "Final set score renders large in font-num (e.g. '3–1')."
+   * Covers: owner's review 2026-10-21, item 1 — every score names its team: who
+   * won, the games won per team (winner highlighted) and each game's winner.
    */
-  it('renders the final set score in font-num', async () => {
+  it('names the winner and shows the games won per team', async () => {
     await renderScreen();
-    const score = screen.getByText('3–1'); // en-dash, per the screen
-    expect(score.props.className).toContain('font-num');
-    expect(score.props.style).toEqual(expect.objectContaining({ fontSize: 56 }));
+
+    expect(screen.getByTestId('summary-winner')).toHaveTextContent('Time 1 venceu');
+    const winner = screen.getByTestId('summary-team-t1');
+    expect(winner.props.className).toContain('border-accent');
+    expect(screen.getByTestId('summary-team-t2').props.className).not.toContain('border-accent');
+    expect(screen.getByText('seu time', { exact: false })).toBeTruthy();
   });
 
-  /**
-   * Covers: S16 — Match Summary
-   * Criterion: "Per-set score pills render exactly setScores.length items
-   *  (e.g. 25-19, 23-25, 25-21, 25-18)."
-   */
-  it('renders exactly setScores.length per-set pills (data-driven)', async () => {
+  it('lists each game with the team that won it, winner points first', async () => {
     await renderScreen();
 
-    expect(screen.getByText('25-19')).toBeTruthy();
-    expect(screen.getByText('23-25')).toBeTruthy();
-    expect(screen.getByText('25-21')).toBeTruthy();
-    expect(screen.getByText('25-18')).toBeTruthy();
-    expect(allByClassName('rounded-chip')).toHaveLength(4);
-  });
-
-  /**
-   * Covers: S16 — Match Summary
-   * Criterion: "Per-set score pills render exactly setScores.length items" — the
-   *  count is data-driven (a 2-set match renders 2 pills, not a fixed 4).
-   */
-  it('renders a data-driven number of per-set pills (2-set match -> 2 pills)', async () => {
-    mockUseMatchSummary.mockReturnValue({
-      isPending: false,
-      isError: false,
-      data: winFixture({ setScores: [[25, 20], [25, 22]], finalScore: [2, 0] }),
-    });
-    await renderScreen();
-
-    expect(allByClassName('rounded-chip')).toHaveLength(2);
-    expect(screen.getByText('25-20')).toBeTruthy();
-    expect(screen.getByText('25-22')).toBeTruthy();
+    expect(screen.getByText('Jogo 2')).toBeTruthy();
+    expect(screen.getByText('Time 2 venceu')).toBeTruthy();
+    expect(screen.getAllByText('Time 1 venceu').length).toBeGreaterThanOrEqual(3);
+    expect(screen.getByText('25–23')).toBeTruthy();
   });
 
   /**
@@ -354,7 +341,7 @@ describe('S16 — Match Summary', () => {
     await renderScreen();
 
     expect(screen.getByText('Mais votado')).toBeTruthy();
-    expect(screen.getByTestId('icon-trophy')).toBeTruthy();
+    expect(screen.getAllByTestId('icon-trophy').length).toBeGreaterThan(0);
 
     // lime-bordered highlight card
     expect(allByClassName('border-accent').length).toBeGreaterThan(0);
@@ -426,7 +413,7 @@ describe('S16 — Match Summary', () => {
     expect(screen.queryByText('Mais votado')).toBeNull();
     // result header + score still render
     expect(screen.getByText('Vôlei de Quinta')).toBeTruthy();
-    expect(screen.getByText('3–1')).toBeTruthy();
+    expect(screen.getByTestId('summary-standings')).toBeTruthy();
   });
 
   /**
@@ -442,7 +429,7 @@ describe('S16 — Match Summary', () => {
 
     expect(Share.share).toHaveBeenCalledTimes(1);
     expect((Share.share as jest.Mock).mock.calls[0][0]).toEqual({
-      message: 'Vôlei de Quinta — Vitória 3–1. MVP: Érica Moraes.',
+      message: 'Vôlei de Quinta — Time 1 venceu: Time 1 3 × Time 2 1. MVP: Érica Moraes.',
     });
   });
 
@@ -524,7 +511,7 @@ describe('S16 — Match Summary', () => {
     // header stays; populated content + CTA are absent during loading
     expect(screen.getByText('Resumo da partida')).toBeTruthy();
     expect(screen.queryByText('Vôlei de Quinta')).toBeNull();
-    expect(screen.queryByText('3–1')).toBeNull();
+    expect(screen.queryByTestId('summary-standings')).toBeNull();
     expect(screen.queryByTestId('summary-back-to-profile')).toBeNull();
   });
 
@@ -553,7 +540,7 @@ describe('S16 — Match Summary', () => {
     await renderScreen();
 
     expect(
-      screen.getByLabelText('Vitória, placar 3 a 1, MVP Érica Moraes'),
+      screen.getByLabelText('Vitória, Time 1 venceu, MVP Érica Moraes'),
     ).toBeTruthy();
   });
 });
