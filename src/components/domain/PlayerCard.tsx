@@ -63,7 +63,6 @@ const RAD_TO_DEG = 180 / Math.PI;
 
 const CHAMFER_OUTER = '0,18 18,0 258,0 292,34 292,388 274,406 18,406 0,388';
 const CHAMFER_INNER = '3,19.5 19.5,3 256.5,3 289,35.5 289,386.5 272.5,403 19.5,403 3,386.5';
-const LOGO_TAB = '77,3 215,3 204,48 88,48';
 
 // The card's art until the player sets a photo (the prototype's illustration).
 const CARD_DEFAULT_ART = require('../../../assets/card/carta-padrao.jpg');
@@ -184,27 +183,35 @@ function Material({
         )}
         {/* Faint foil over the face: the face stays readable. */}
         <AnimatedRect animatedProps={foilFace} y={0} width={W * 2.6} height={H} fill={`url(#${id('foil')})`} opacity={tier.faceFoil} />
-        <AnimatedCircle animatedProps={glare} r={170} fill={`url(#${id('glare')})`} opacity={tier.glare} />
+        <AnimatedCircle animatedProps={glare} r={130} fill={`url(#${id('glare')})`} opacity={tier.glare} />
       </G>
 
-      {side === 'front' ? (
-        <>
-          <Polygon points={LOGO_TAB} fill={t.tab} />
-          <Rect x={88} y={47} width={116} height={1} fill={t.accent} opacity={0.55} />
-        </>
-      ) : null}
     </Svg>
   );
 }
 
 
+/**
+ * The logo on the card: always the designer's "Ativo 17" lockup (blue + lime),
+ * never recolored by the finish or the light, on its own navy plate in the top
+ * corner, clear of the frame, so it reads over any photo.
+ */
+export function CardLogo({ height }: { height: number }) {
+  return (
+    <View
+      className="self-start bg-surface-dark"
+      style={{ borderRadius: height * 0.4, paddingHorizontal: height * 0.35, paddingVertical: height * 0.22 }}
+    >
+      <QuadraWordmark variant="blue" height={height} />
+    </View>
+  );
+}
+
 function Front({ profile, t, k, title }: { profile: MyProfile; t: CardFinishTokens; k: number; title: string }) {
   const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ');
   return (
-    <View className="absolute inset-0" style={{ paddingHorizontal: 20 * k, paddingTop: 12 * k, paddingBottom: 22 * k }}>
-      <View className="items-center">
-        <QuadraWordmark variant={t.logo} height={26 * k} />
-      </View>
+    <View className="absolute inset-0" style={{ paddingHorizontal: 20 * k, paddingTop: 20 * k, paddingBottom: 22 * k }}>
+      <CardLogo height={16 * k} />
       <View className="mt-auto">
         <Text className="font-body-bold uppercase" style={{ color: t.accent, fontSize: 11 * k, letterSpacing: 1.5 * k }}>
           {title}
@@ -243,7 +250,7 @@ function Back({ profile, t, k, title, tierName }: { profile: MyProfile; t: CardF
 
   return (
     <View className="absolute inset-0" style={{ paddingHorizontal: 21 * k, paddingTop: 22 * k, paddingBottom: 20 * k }}>
-      <QuadraWordmark variant={t.logo} height={24 * k} />
+      <CardLogo height={16 * k} />
       <View style={{ marginTop: 20 * k }}>
         <Text className="font-mono" style={{ color: t.muted, fontSize: 8 * k, letterSpacing: 1.6 * k }}>{`EM QUADRA  ·  CARTA ${tierName.toUpperCase()}`}</Text>
         <Text className="font-num" numberOfLines={1} style={{ color: t.ink, fontSize: 19 * k, marginTop: 5 * k }}>{name}</Text>
@@ -284,8 +291,8 @@ function Back({ profile, t, k, title, tierName }: { profile: MyProfile; t: CardF
 }
 
 /**
- * The collectible player card ("Sua carta", DECISIONS #119). Front: logo on the
- * top tab, photo, title, name, @handle and position. Back: the real record
+ * The collectible player card ("Sua carta", DECISIONS #119). Front: the logo
+ * on its plate in the top corner (DECISIONS #159), photo, title, name, @handle and position. Back: the real record
  * (matches, wins, MVPs) and grouped numbers. Tilting the phone, or dragging,
  * tilts it on both axes and moves the holographic light; releasing settles it
  * back; a tap or a long horizontal swipe flips it. The foil follows the level

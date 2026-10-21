@@ -7,8 +7,7 @@ import { Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from "r
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 
-import { QuadraWordmark } from "@/components/icons/QuadraWordmark";
-import { PlayerCard } from "@/components/domain/PlayerCard";
+import { CardLogo, PlayerCard } from "@/components/domain/PlayerCard";
 import { Button } from "@/components/ui/Button";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
@@ -90,7 +89,7 @@ function FinishPicker({ profile, save }: { profile: MyProfile; save: Save }) {
                 end={{ x: 1, y: 1 }}
                 style={{ height: 56, borderRadius: t.shape === "rounded" ? 14 : 7, alignItems: "center", justifyContent: "center" }}
               >
-                <QuadraWordmark variant={t.logo} height={20} />
+                <CardLogo height={12} />
               </LinearGradient>
               <Text className="font-body-bold text-caption text-text-on-dark mt-2">{t.name}</Text>
               <Text className="font-mono text-mono text-white/60 mt-1">{equipped ? "EQUIPADO" : "EXPERIMENTAR"}</Text>
