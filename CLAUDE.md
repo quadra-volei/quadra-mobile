@@ -52,15 +52,16 @@ never run `eas init`).
 ## Environment (`.env.local`, gitignored)
 
 ```
-EXPO_PUBLIC_API_URL=https://quadra-api-xj6e.onrender.com
+EXPO_PUBLIC_API_URL=https://api-dev.quadra-volei.app
 EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID=
 EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID=
 EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_API_KEY=
 EXPO_PUBLIC_PHONE_AUTH=          # "firebase" = phone login through Firebase (DECISIONS #133); empty = API test code
 ```
 
-The URL above is the hosted test API (it sleeps when idle; the first request can take up to a
-minute). For a local backend use an address the device reaches (`http://10.0.2.2:5075` on the
+The URL above is the hosted test API (`quadra-api-dev` on Render, branch `dev`; it sleeps when idle;
+the first request can take up to a minute). Production is `https://api.quadra-volei.app`, set only in
+the `production` profile of `eas.json`. For a local backend use an address the device reaches (`http://10.0.2.2:5075` on the
 Android emulator, the machine's LAN IP on a phone). Log in with the test environment's SMS code.
 
 ## Branches
