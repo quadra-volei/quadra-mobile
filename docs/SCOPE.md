@@ -26,7 +26,7 @@ State of the MVP on the `dev` branch, as of 2026-10-06. Reasons for each choice 
 | S13.5 + S14 Scoreboard | `app/matches/[id]/scoreboard.tsx` | Pick the pair per set (3+ teams), organizer scores, undo, end set, live refresh over SignalR; organizer taps a team panel to score |
 | S15 MVP vote | `app/matches/[id]/mvp-vote.tsx` | One vote (who played, plus the organizer), changeable while open, no guests; organizer closes the vote and generates the summary |
 | S16 Summary | `app/matches/[id]/summary.tsx` | Result, sets, MVP, share through the system sheet |
-| S17 Map | `app/explore/map.tsx` | Full-screen map. The location permission is asked at the app entry, before the tabs (DECISIONS #72); the map asks again if it was never answered and points to the settings when denied. An Android build without the Maps key shows the nearby matches as a list |
+| S17 Map | `app/explore/map.tsx` | Full-screen map. The location permission is asked at the app entry, before the tabs (DECISIONS #72); the map asks again if it was never answered and points to the settings when denied. An Android build without the Maps key shows the nearby matches as a list. Arenas (DECISIONS #145): round pins with a 🔥 when there is a public game today (red when live), tap for name, address and the games there |
 
 ## Pending
 

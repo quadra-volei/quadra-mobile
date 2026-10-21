@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import { ChevronLeft, Clock, LocateFixed, MapPin, Users, Volleyball } from 'lucide-react-native';
+import { ChevronLeft, Clock, Flame, LandPlot, LocateFixed, MapPin, Users, Volleyball } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -17,6 +17,12 @@ import { Button } from '@/components/ui/Button';
 import { CourtImage } from '@/components/ui/CourtImage';
 import { Tag } from '@/components/ui/Tag';
 import { MatchCard } from '@/components/domain/MatchCard';
+import {
+  matchIdsAtVenues,
+  useNearbyVenues,
+  useVenueDetails,
+  type NearbyVenue,
+} from '@/features/explore/api/venues';
 import { useNearbyMatches } from '@/features/matches/api/getNearby';
 import { distanceKm } from '@/features/matches/lib/distanceKm';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
@@ -99,6 +105,16 @@ const PIN_CENTER_OFFSET = {
   y: PIN_HEIGHT / 2 - PIN_TIP_Y,
 };
 
+/** How an arena pin looks: plain, 🔥 with a game today, red 🔥 with one being played now. */
+export type VenueActivity = 'none' | 'today' | 'live';
+
+export function venueActivityFor(venue: NearbyVenue): VenueActivity {
+  if (venue.matches.some((m) => m.live)) return 'live';
+  return venue.matches.length > 0 ? 'today' : 'none';
+}
+
+const VENUE_PIN = 32; // h-8 w-8, round: an arena reads differently from a game's drop pin
+
 /** Normalizes an expo-location permission status into the screen's state union. */
 function toPermissionState(status: Location.PermissionStatus): PermissionState {
   if (status === Location.PermissionStatus.GRANTED) return 'granted';
@@ -126,17 +142,22 @@ export default function MapScreen() {
     { latitude: number; longitude: number } | null
   >(null);
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
+  const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
   const mapRef = useRef<MapView>(null);
 
   // Set once the user moves the map: the search then follows what is on screen
   // (a match in another city shows up when the map is taken there).
   const [searchArea, setSearchArea] = useState<SearchArea | null>(null);
 
-  const nearby = useNearbyMatches({
+  const area = {
     lat: searchArea?.lat ?? (userLocation ?? DEFAULT_CENTER).latitude,
     lon: searchArea?.lon ?? (userLocation ?? DEFAULT_CENTER).longitude,
     radiusKm: searchArea?.radiusKm ?? NEARBY_RADIUS_KM,
-  });
+  };
+  const nearby = useNearbyMatches(area);
+  // Arenas are extra: until they load (or if they fail) the map shows only the games.
+  const venuesQuery = useNearbyVenues(area, isMapAvailable());
+  const venueDetails = useVenueDetails(selectedVenueId);
 
   async function resolveLocation() {
     setResolvingLocation(true);
@@ -249,7 +270,12 @@ export default function MapScreen() {
   }
 
   const matches: NearbyMatch[] = nearby.data;
+  const venues: NearbyVenue[] = venuesQuery.data ?? [];
+  // A game at an arena is listed inside the arena's card instead of having its own pin.
+  const atVenues = matchIdsAtVenues(venues);
+  const looseMatches = matches.filter((m) => !atVenues.has(m.id));
   const selected = matches.find((m) => m.id === selectedMatchId) ?? null;
+  const selectedVenue = venues.find((v) => v.placeId === selectedVenueId) ?? null;
   const center = userLocation ?? DEFAULT_CENTER;
 
   function goMatch(id: string) {
@@ -319,16 +345,57 @@ export default function MapScreen() {
         // A pin tap also reaches the map's onPress on some platforms; only a tap
         // on the map itself closes the card.
         onPress={(e) => {
-          if (e.nativeEvent.action !== 'marker-press') setSelectedMatchId(null);
+          if (e.nativeEvent.action !== 'marker-press') {
+            setSelectedMatchId(null);
+            setSelectedVenueId(null);
+          }
         }}
       >
-        {matches.map((match) => {
+        {venues.map((venue) => {
+          const activity = venueActivityFor(venue);
+          return (
+            <Marker
+              key={venue.placeId}
+              coordinate={{ latitude: venue.lat, longitude: venue.lon }}
+              onPress={() => {
+                setSelectedMatchId(null);
+                setSelectedVenueId(venue.placeId);
+              }}
+              testID={`map-venue-${venue.placeId}`}
+              anchor={{ x: 0.5, y: 0.5 }}
+            >
+              <View style={{ width: VENUE_PIN + 8, height: VENUE_PIN + 8 }} className="items-center justify-center">
+                <View
+                  className={`h-8 w-8 rounded-full items-center justify-center border-2 bg-white ${
+                    activity === 'live' ? 'border-danger' : 'border-surface-dark'
+                  }`}
+                >
+                  <LandPlot size={16} color={colors.surfaceDark} />
+                </View>
+                {activity !== 'none' && (
+                  <View
+                    testID={`map-venue-${venue.placeId}-${activity}`}
+                    className={`absolute top-0 right-0 h-5 w-5 rounded-full items-center justify-center border-2 border-surface-dark ${
+                      activity === 'live' ? 'bg-danger' : 'bg-accent'
+                    }`}
+                  >
+                    <Flame size={11} color={activity === 'live' ? colors.textOnDark : colors.surfaceDark} />
+                  </View>
+                )}
+              </View>
+            </Marker>
+          );
+        })}
+        {looseMatches.map((match) => {
           const openSlots = match.capacity - match.confirmed;
           return (
             <Marker
               key={match.id}
               coordinate={{ latitude: match.lat, longitude: match.lon }}
-              onPress={() => setSelectedMatchId(match.id)}
+              onPress={() => {
+                setSelectedVenueId(null);
+                setSelectedMatchId(match.id);
+              }}
               testID={`map-pin-${match.id}`}
               anchor={PIN_ANCHOR}
               centerOffset={PIN_CENTER_OFFSET}
@@ -400,6 +467,49 @@ export default function MapScreen() {
           </View>
         )}
       </SafeAreaView>
+
+      {/* Arena card — name from Google on tap, and today's games there */}
+      {selectedVenue && (
+        <SafeAreaView edges={['bottom']} className="absolute bottom-0 left-0 right-0">
+          <View className="px-4 pb-4">
+            <View className="bg-white rounded-card shadow-card p-4" testID="map-venue-card">
+              <Text numberOfLines={1} className="font-body-bold text-h3 text-text-primary">
+                {venueDetails.data?.title ?? 'Arena'}
+              </Text>
+              {venueDetails.data?.address ? (
+                <Text numberOfLines={1} className="mt-0.5 font-body text-caption text-text-muted">
+                  {venueDetails.data.address}
+                </Text>
+              ) : null}
+              {selectedVenue.matches.length === 0 ? (
+                <Text className="mt-3 font-body text-body text-text-muted">
+                  Nenhum jogo marcado aqui hoje.
+                </Text>
+              ) : (
+                <View className="mt-3 gap-2">
+                  {selectedVenue.matches.map((m) => (
+                    <Pressable
+                      key={m.id}
+                      onPress={() => goMatch(m.id)}
+                      accessibilityRole="button"
+                      testID={`map-venue-match-${m.id}`}
+                      className="flex-row items-center gap-2 rounded-card border-2 border-surface-dark px-3 py-2"
+                    >
+                      <Flame size={14} color={m.live ? colors.danger : colors.primary} />
+                      <Text numberOfLines={1} className="flex-1 font-body-semibold text-body text-text-primary">
+                        {m.name}
+                      </Text>
+                      <Text className={`font-body-bold text-caption ${m.live ? 'text-danger' : 'text-text-muted'}`}>
+                        {m.live ? 'AO VIVO' : formatWhen(m.startsAt)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              )}
+            </View>
+          </View>
+        </SafeAreaView>
+      )}
 
       {/* Bottom preview card — only when a pin is selected */}
       {selected && (
