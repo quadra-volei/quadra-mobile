@@ -67,7 +67,8 @@ Android emulator, the machine's LAN IP on a phone). Log in with the test environ
 
 - Start every change from `dev` and merge it back into `dev`. Never commit straight to `dev`
   or `main`.
-- Typecheck and tests must pass before merging.
+- Typecheck and tests must pass before merging; GitHub Actions (`.github/workflows/ci.yml`)
+  runs them on every PR into `dev` or `main`.
 - Commit messages in Portuguese, `tipo(area): resumo` (as in `git log`).
 
 ## Conventions
