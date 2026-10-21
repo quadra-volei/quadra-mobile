@@ -26,5 +26,7 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # Expo writes this file on `expo start` and keeps it out of git; tsc needs its global types.
+      - run: echo '/// <reference types="expo/types" />' > expo-env.d.ts
       - run: npm run typecheck
       - run: npm test -- --ci
