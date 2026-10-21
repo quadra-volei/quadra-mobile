@@ -54,6 +54,8 @@ jest.mock('lucide-react-native', () => {
   return {
     ChevronLeft: stub('chevron-left'),
     Clock: stub('clock'),
+    Flame: stub('flame'),
+    LandPlot: stub('land-plot'),
     LocateFixed: stub('locate-fixed'),
     Volleyball: stub('volleyball'),
     MapPin: stub('map-pin'),
@@ -183,12 +185,26 @@ jest.mock('@/features/matches/api/getNearby', () => ({
   },
 }));
 
+// Arenas (DECISIONS #145): none by default, so the S17 cases above see only games.
+import type { NearbyVenue } from '@/features/explore/api/venues';
+
+const mockVenues: { data: NearbyVenue[] } = { data: [] };
+
+jest.mock('@/features/explore/api/venues', () => ({
+  ...jest.requireActual('@/features/explore/api/venues'),
+  useNearbyVenues: () => ({ data: mockVenues.data }),
+  useVenueDetails: (placeId: string | null) => ({
+    data: placeId ? { title: 'Arena Copacabana', address: 'Av. Atlântica, Rio' } : undefined,
+  }),
+}));
+
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import MapScreen, {
   PIN_ANCHOR,
   pinToneFor,
   searchAreaFor,
+  venueActivityFor,
 } from '../../../../app/explore/map';
 
 // --- Helpers ---------------------------------------------------------------
@@ -231,6 +247,7 @@ function resetMocks() {
     .mockReset()
     .mockResolvedValue({ coords: { latitude: -23.56, longitude: -46.64 } });
 
+  mockVenues.data = [];
   mockNearby.data = NEARBY_FIXTURE;
   mockNearby.isPending = false;
   mockNearby.isError = false;
@@ -520,5 +537,62 @@ describe('S17 — Map of Nearby Matches', () => {
     await press(screen.getByText('Tentar novamente'));
 
     expect(mockNearby.refetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Arenas on the map (DECISIONS #145): a round pin per arena, 🔥 with a game today,
+// red with one being played now; its games leave their own pins and go in its card.
+
+describe('Arenas on the map', () => {
+  const venue = (placeId: string, matches: NearbyVenue['matches']): NearbyVenue => ({
+    placeId,
+    lat: -23.56,
+    lon: -46.64,
+    distanceKm: 0.5,
+    matches,
+  });
+
+  it('marks arenas by activity and hides the pins of the games played there', async () => {
+    mockVenues.data = [
+      venue('quiet', []),
+      venue('today', [{ id: 'near-open', name: 'Arena Sky Beach', startsAt: '2026-10-21T22:00:00Z', live: false }]),
+      venue('live', [{ id: 'x-live', name: 'Rachão', startsAt: '2026-10-21T18:00:00Z', live: true }]),
+    ];
+    await renderScreen();
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
+
+    expect(screen.getByTestId('map-venue-quiet')).toBeTruthy();
+    expect(screen.queryByTestId('map-venue-quiet-today')).toBeNull();
+    expect(screen.getByTestId('map-venue-today-today')).toBeTruthy();
+    expect(screen.getByTestId('map-venue-live-live')).toBeTruthy();
+    // The game at the "today" arena is no longer its own pin; the others are.
+    expect(screen.queryByTestId('map-pin-near-open')).toBeNull();
+    expect(screen.getByTestId('map-pin-near-last')).toBeTruthy();
+  });
+
+  it('opens the arena card with its name from Google and its games', async () => {
+    mockVenues.data = [
+      venue('today', [{ id: 'near-open', name: 'Arena Sky Beach', startsAt: '2026-10-21T22:00:00Z', live: false }]),
+      venue('empty', []),
+    ];
+    await renderScreen();
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
+
+    await press(screen.getByTestId('map-venue-today'));
+    expect(screen.getByTestId('map-venue-card')).toBeTruthy();
+    expect(screen.getByText('Arena Copacabana')).toBeTruthy();
+    await press(screen.getByTestId('map-venue-match-near-open'));
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/matches/[id]', params: { id: 'near-open' } });
+
+    await press(screen.getByTestId('map-venue-empty'));
+    expect(screen.getByText('Nenhum jogo marcado aqui hoje.')).toBeTruthy();
+  });
+
+  it('venueActivityFor: live beats today beats none', () => {
+    const m = (live: boolean) => ({ id: 'm', name: 'n', startsAt: '2026-10-21T22:00:00Z', live });
+    expect(venueActivityFor(venue('a', []))).toBe('none');
+    expect(venueActivityFor(venue('a', [m(false)]))).toBe('today');
+    expect(venueActivityFor(venue('a', [m(false), m(true)]))).toBe('live');
   });
 });
