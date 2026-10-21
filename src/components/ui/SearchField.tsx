@@ -1,5 +1,5 @@
 import { Search, X } from 'lucide-react-native';
-import { Pressable, TextInput, View } from 'react-native';
+import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { colors } from '@/theme/colors';
 
@@ -8,6 +8,11 @@ export type SearchFieldProps = {
   onChangeText: (v: string) => void;
   placeholder?: string;
   onClear?: () => void;
+  /** Read by screen readers; defaults to the Explore search. */
+  accessibilityLabel?: string;
+  autoFocus?: boolean;
+  /** Set: the field is a button that opens a search screen (Rede), not an input. */
+  onPress?: () => void;
   testID?: string;
 };
 
@@ -25,9 +30,29 @@ export function SearchField({
   onChangeText,
   placeholder,
   onClear,
+  accessibilityLabel = 'Buscar partidas',
+  autoFocus,
+  onPress,
   testID,
 }: SearchFieldProps) {
   const showClear = value.length > 0 && Boolean(onClear);
+
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="search"
+        accessibilityLabel={accessibilityLabel}
+        testID={testID}
+        className="h-12 px-4 rounded-pill bg-white shadow-card flex-row items-center"
+      >
+        <Search size={20} color={colors.textMuted} />
+        <Text className="flex-1 ml-2 font-body text-body text-text-muted" numberOfLines={1}>
+          {placeholder}
+        </Text>
+      </Pressable>
+    );
+  }
 
   return (
     <View className="h-12 px-4 rounded-pill bg-white shadow-card flex-row items-center">
@@ -38,7 +63,8 @@ export function SearchField({
         placeholder={placeholder}
         placeholderTextColor={colors.textMuted}
         testID={testID}
-        accessibilityLabel="Buscar partidas"
+        accessibilityLabel={accessibilityLabel}
+        autoFocus={autoFocus}
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="search"

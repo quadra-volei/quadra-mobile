@@ -64,6 +64,7 @@ import {
 } from '@/features/matches/schema/createMatch';
 import type { MatchFormat, MatchLevel } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
+import { MAP_STYLE } from '@/theme/mapStyle';
 import { useAuthStore } from '@/stores/auth';
 
 // ════════════════════════════════════════════════════════════
@@ -689,6 +690,7 @@ export default function CreateMatchScreen() {
                     <MapView
                       key={`${values.latitude},${values.longitude}`}
                       liteMode
+                      customMapStyle={MAP_STYLE}
                       style={{ flex: 1 }}
                       initialRegion={{
                         latitude: values.latitude,

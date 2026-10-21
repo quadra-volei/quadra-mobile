@@ -333,6 +333,43 @@ describe('profile photo upload', () => {
     expect(calls().find((c) => c.url.endsWith('/api/v1/profiles/me') && c.method === 'PUT')?.body)
       .toMatchObject({ photoObjectKey: 'profiles/new.jpg' });
   });
+
+  // A camera photo goes up at most 1080 px on its longest side, as JPEG.
+  it('shrinks a large photo before uploading it', async () => {
+    const { ImageManipulator } = jest.requireMock('expo-image-manipulator');
+    const resize = jest.fn();
+    ImageManipulator.manipulate
+      .mockImplementationOnce(() => ({
+        renderAsync: async () => ({ width: 4000, height: 3000 }),
+      }))
+      .mockImplementationOnce(() => {
+        const ctx = {
+          resize: (size: object) => {
+            resize(size);
+            return ctx;
+          },
+          renderAsync: async () => ({
+            saveAsync: async () => ({ uri: 'file:///cache/small.jpg' }),
+          }),
+        };
+        return ctx;
+      });
+    fetchMock.mockImplementation(async (url: string) =>
+      url.endsWith('/photo/upload-url')
+        ? respond(201, { uploadUrl: 'https://storage.test/put-here', objectKey: 'profiles/new.jpg' })
+        : respond(200, apiProfile),
+    );
+
+    const settled = await runMutation(useUpdateProfile, { ...editInput, avatarUri: 'file:///picked/big.png' });
+
+    expect(settled.status).toBe('fulfilled');
+    expect(resize).toHaveBeenCalledWith({ width: 1080 });
+    expect(mockUpload).toHaveBeenCalledWith('https://storage.test/put-here', 'file:///cache/small.jpg', {
+      httpMethod: 'PUT',
+      uploadType: 0,
+      headers: { 'Content-Type': 'image/jpeg' },
+    });
+  });
 });
 
 describe('profile photo upload failures', () => {

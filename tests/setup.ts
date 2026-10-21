@@ -21,6 +21,27 @@ jest.mock('expo-notifications', () => ({
   AndroidImportance: { DEFAULT: 3 },
 }));
 
+// expo-image-manipulator is native (photo shrink before upload): a 1000×800
+// image saved back under the same uri, so upload tests see the picked file.
+jest.mock('expo-image-manipulator', () => {
+  type MockCtx = { resize: () => MockCtx; renderAsync: () => Promise<object> };
+  const context = (uri: string) => {
+    const ctx: MockCtx = {
+      resize: jest.fn(() => ctx),
+      renderAsync: jest.fn(async () => ({
+        width: 1000,
+        height: 800,
+        saveAsync: jest.fn(async () => ({ uri, width: 1000, height: 800 })),
+      })),
+    };
+    return ctx;
+  };
+  return {
+    ImageManipulator: { manipulate: jest.fn(context) },
+    SaveFormat: { JPEG: 'jpeg', PNG: 'png', WEBP: 'webp' },
+  };
+});
+
 // React Native Firebase is native (phone login): a stand-in the auth tests can drive.
 jest.mock('@react-native-firebase/auth', () => ({
   getAuth: jest.fn(() => ({})),

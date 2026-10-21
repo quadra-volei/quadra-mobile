@@ -68,7 +68,7 @@ describe("a friend's card", () => {
 
     expect(screen.getByText('Carta de Bia')).toBeTruthy();
     expect(mockCard).toHaveBeenLastCalledWith(
-      expect.objectContaining({ finish: 'Eclipse', photoUrl: 'https://example.com/card.png', flipped: false }),
+      expect.objectContaining({ finish: 'Eclipse', photoUrl: 'https://example.com/bia.png', flipped: false }),
     );
     expect(screen.getByText('315')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('friend-card-flip'));

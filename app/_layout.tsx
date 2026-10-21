@@ -15,7 +15,6 @@ import {
   DMMono_500Medium,
 } from '@expo-google-fonts/dm-mono';
 import { RussoOne_400Regular } from '@expo-google-fonts/russo-one';
-import { Baloo2_600SemiBold } from '@expo-google-fonts/baloo-2';
 import * as Sentry from '@sentry/react-native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
@@ -118,7 +117,6 @@ function RootLayout() {
     DMMono_400Regular,
     DMMono_500Medium,
     RussoOne_400Regular,
-    Baloo2_600SemiBold,
   });
 
   useEffect(() => {

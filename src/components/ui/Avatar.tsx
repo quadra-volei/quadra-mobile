@@ -1,6 +1,7 @@
 import { Image } from 'expo-image';
 import { Text, View } from 'react-native';
 
+import { remoteImage } from '@/lib/remoteImage';
 import { levelTier } from '@/theme/levelTier';
 import {
   type AvatarSource,
@@ -89,7 +90,7 @@ export function Avatar({
 }: AvatarProps) {
   const sizeClass = SIZE_CLASS[size];
   const label = name ? `Avatar de ${name}` : 'Avatar';
-  const source = uri ? { uri } : (defaultSource ?? defaultAvatarFor(name));
+  const source = uri ? remoteImage(uri) : (defaultSource ?? defaultAvatarFor(name));
 
   const circle = (
     <Image

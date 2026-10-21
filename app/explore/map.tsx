@@ -30,6 +30,7 @@ import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
 import { isMapAvailable } from '@/features/matches/lib/isMapAvailable';
 import type { NearbyMatch } from '@/features/matches/types/match';
 import { HARD_SHADOW, colors } from '@/theme/colors';
+import { MAP_STYLE } from '@/theme/mapStyle';
 
 // Fallback map center (São Paulo) used only to seed the nearby query before the
 // device location resolves.
@@ -326,6 +327,7 @@ export default function MapScreen() {
         style={{ flex: 1 }}
         showsUserLocation
         showsMyLocationButton={false}
+        customMapStyle={MAP_STYLE}
         // initialRegion, not region: a controlled region snaps the map back to
         // the centre on every re-render (e.g. when a pin is selected).
         initialRegion={{ ...center, ...REGION_DELTA }}

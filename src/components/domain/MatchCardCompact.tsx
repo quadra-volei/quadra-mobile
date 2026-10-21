@@ -8,6 +8,7 @@ import { Tag } from '@/components/ui/Tag';
 import { formatStartsAt } from '@/features/matches/lib/formatWhen';
 import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
 import type { UpcomingMatch } from '@/features/matches/types/match';
+import { remoteImage } from '@/lib/remoteImage';
 import { colors } from '@/theme/colors';
 
 export type MatchCardCompactProps = {
@@ -78,7 +79,7 @@ export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactPro
             {visibleAvatars.map((url, i) => (
               <Image
                 key={url}
-                source={{ uri: url }}
+                source={remoteImage(url)}
                 className={`h-[26px] w-[26px] rounded-full border-2 border-white ${i > 0 ? '-ml-[9px]' : ''}`}
               />
             ))}

@@ -86,9 +86,13 @@ jest.mock('expo-router', () => {
     });
   };
   Tabs.Screen = () => null;
+  // Redirect renders a marker with its target, so a test can see where it sends.
+  const { Text } = require('react-native');
+  const Redirect = ({ href }: any) => ReactLocal.createElement(Text, { testID: 'redirect' }, href);
   return {
     router: { push: (...args: any[]) => mockPush(...args) },
     Tabs,
+    Redirect,
   };
 });
 
@@ -96,8 +100,10 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Keyboard } from 'react-native';
 
 import TabsLayout from '../../../../app/(tabs)/_layout';
+import { useAuthStore } from '@/stores/auth';
 
 beforeEach(() => {
+  useAuthStore.getState().setAuth({ userId: 'u1', accessToken: 'tok', hasProfile: true });
   mockProfile = undefined;
   mockPush.mockClear();
   mockNavigate.mockClear();
@@ -105,6 +111,21 @@ beforeEach(() => {
 });
 
 describe('S5 — Bottom tab bar', () => {
+  // Bug of 2026-10-21: "voltar" from the onboarding of a new Google account
+  // reopened tabs left in the history, with no profile behind them.
+  it('sends an account without a finished profile back to the splash', async () => {
+    useAuthStore.getState().setHasProfile(false);
+    await render(<TabsLayout />);
+    expect(screen.getByTestId('redirect')).toHaveTextContent('/');
+    expect(screen.queryByLabelText('Criar')).toBeNull();
+  });
+
+  it('sends a signed-out user back to the splash', async () => {
+    useAuthStore.getState().clearAuth();
+    await render(<TabsLayout />);
+    expect(screen.getByTestId('redirect')).toHaveTextContent('/');
+  });
+
   /**
    * Covers: S5 — Home
    * Criterion: "The bottom tab bar persists ... and Home is the active tab." —

@@ -6,7 +6,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { BackHeader } from '@/components/ui/BackHeader';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
-import { TextField } from '@/components/ui/TextField';
+import { SearchField } from '@/components/ui/SearchField';
 import { toHandleQuery, usePlayerSearch } from '@/features/network/api/postsApi';
 import { positionLabel } from '@/features/profile/schema/onboarding';
 import { useDebounced } from '@/hooks/useDebounced';
@@ -25,12 +25,13 @@ export default function PlayerSearchScreen() {
         contentContainerStyle={{ paddingTop: headerHeight + 16 }}
         keyboardShouldPersistTaps="handled"
       >
-        <TextField
-          label="Buscar pelo @"
+        <SearchField
           value={text}
-          onChangeText={setText}
+          onChangeText={(v) => setText(v.slice(0, 21))}
+          onClear={() => setText('')}
           placeholder="@usuario"
-          maxLength={21}
+          accessibilityLabel="Buscar pelo @"
+          autoFocus
           testID="player-search-input"
         />
         <Text className="mt-2 font-body text-caption text-text-muted">
