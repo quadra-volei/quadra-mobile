@@ -1,7 +1,8 @@
 import { router } from "expo-router";
 import { Settings, Volleyball } from "lucide-react-native";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { FlatList, ScrollView, Text, View } from "react-native";
+import { FlatList, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { BellWithBadge } from '@/components/domain/BellWithBadge';
@@ -14,12 +15,13 @@ import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { IconButton } from "@/components/ui/IconButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { type ActivityLine, useFriendsActivity } from "@/features/activity/api/activityApi";
+import { type ActivityLine, activityQueryKey, useFriendsActivity } from "@/features/activity/api/activityApi";
 import { useUpcomingMatches } from "@/features/matches/api/getUpcoming";
 import { formatStartsAt } from "@/features/matches/lib/formatWhen";
 import { pickNextGame } from "@/features/matches/lib/nextGame";
 import type { UpcomingMatch } from "@/features/matches/types/match";
 import { useFollowState } from "@/features/network/api/postsApi";
+import { usePullToRefresh, useRefreshOnFocus } from "@/hooks/useRefresh";
 import { useAuthStore } from "@/stores/auth";
 import { colors } from "@/theme/colors";
 import { TAB_BAR_CLEARANCE } from "@/theme/layout";
@@ -302,6 +304,17 @@ export default function HomeScreen() {
 
   const upcoming = useUpcomingMatches();
   const userId = useAuthStore((s) => s.userId);
+  const queryClient = useQueryClient();
+
+  // My matches and my friends' activity change while the tab stays mounted:
+  // re-read them when the tab is shown again, or on a pull.
+  const refetch = () =>
+    Promise.all([
+      upcoming.refetch(),
+      queryClient.refetchQueries({ queryKey: activityQueryKey, type: "active" }),
+    ]);
+  useRefreshOnFocus(refetch);
+  const pull = usePullToRefresh(refetch);
 
   const nextGame = upcoming.data ? pickNextGame(upcoming.data) : undefined;
   // Empty Home: no upcoming match at all (so no next game either). Loading
@@ -315,6 +328,13 @@ export default function HomeScreen() {
           paddingTop: headerHeight,
           paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
         }}
+        refreshControl={
+          <RefreshControl
+            refreshing={pull.refreshing}
+            onRefresh={pull.onRefresh}
+            progressViewOffset={headerHeight}
+          />
+        }
       >
         {empty ? (
           <HomeHero />

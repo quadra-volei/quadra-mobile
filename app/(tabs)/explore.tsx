@@ -7,8 +7,9 @@ import {
   Settings,
   SlidersHorizontal,
 } from "lucide-react-native";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { RefreshControl, ScrollView, Text, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -35,6 +36,7 @@ import { useDeviceCoords } from "@/features/matches/lib/useDeviceCoords";
 import type { NearbyMatch } from "@/features/matches/types/match";
 import { HARD_SHADOW, colors } from "@/theme/colors";
 import { MAP_STYLE } from "@/theme/mapStyle";
+import { usePullToRefresh, useRefreshOnFocus } from "@/hooks/useRefresh";
 import { TAB_BAR_CLEARANCE } from "@/theme/layout";
 
 // Where Explore searches when the device location is not available: São Paulo
@@ -414,6 +416,14 @@ export default function ExploreScreen() {
   const [view, setView] = useState<ViewMode>("grid");
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
+
+  // Spots and new matches change while the tab stays mounted: re-read the
+  // nearby matches when the tab is shown again, or on a pull.
+  const refetch = () =>
+    queryClient.refetchQueries({ queryKey: ["matches", "nearby"], type: "active" });
+  useRefreshOnFocus(refetch);
+  const pull = usePullToRefresh(refetch);
 
   return (
     <View className="flex-1 bg-bg-light">
@@ -423,6 +433,13 @@ export default function ExploreScreen() {
             paddingTop: headerHeight,
             paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
           }}
+          refreshControl={
+            <RefreshControl
+              refreshing={pull.refreshing}
+              onRefresh={pull.onRefresh}
+              progressViewOffset={headerHeight}
+            />
+          }
         >
           <ResultsArea view={view} setView={setView} />
         </ScrollView>
