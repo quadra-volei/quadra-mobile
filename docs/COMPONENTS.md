@@ -480,7 +480,7 @@ More UI primitives will live here:
 - **Category**: domain
 - **Props**: `{ onClose: () => void; onCreateMatch: () => void; onCreatePost: () => void; blurTarget?: RefObject<View | null> }`
 - **Used in**: `app/(tabs)/_layout.tsx` (opened by the central "+")
-- **Notes**: "O que você quer criar?" overlay (DECISIONS #98): blurred and dimmed backdrop (tap closes), white card with 2px navy border and `HARD_SHADOW`, "Criar partida" (lime) and "Criar publicação" (white) wide options, "Cancelar" link. The card grows out of the "+" (a lime blob springing open) and folds back into it on close (DECISIONS #152). An overlay rather than a `Modal` so the Android blur can read the `BlurTargetView` passed as `blurTarget`; Android back closes it. Mount it only while open.
+- **Notes**: "O que você quer criar?" overlay (DECISIONS #98): blurred and dimmed backdrop (tap closes), white card with 2px navy border and `HARD_SHADOW`, "Criar partida" (lime) and "Criar publicação" (white) wide options, "Cancelar" link. The card grows out of the tab bar (it starts with the bar's frame and opens upward, no overshoot) and folds back into it on close; the layout hides the bar meanwhile (DECISIONS #160). An overlay rather than a `Modal` so the Android blur can read the `BlurTargetView` passed as `blurTarget`; Android back closes it. Mount it only while open.
 
 ### `CoverPicker`
 - **Path**: `src/components/domain/CoverPicker.tsx`
