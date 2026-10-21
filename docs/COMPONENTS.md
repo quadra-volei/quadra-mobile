@@ -449,24 +449,24 @@ More UI primitives will live here:
 ### `PresenceGrid`
 - **Path**: `src/components/domain/PresenceGrid.tsx`
 - **Category**: domain
-- **Props**: `{ players: PresencePlayer[]; capacity: number; onPressEmpty?: () => void; testID?: string }` where `PresencePlayer = { id: string; name: string; avatarUrl?: string; status: 'CONFIRMADO' | 'RECUSADO' | 'PENDENTE'; position?: 'LEV' | 'PON' | 'OPO' | 'CEN' | 'LIB' | 'COR'; level?: number; isGuest?: boolean }` (from `@/features/matches/types/matchDetail`)
-- **Used in**: S12 Match Detail ("CONFIRMADOS" confirmed-players grid). Designed for reuse by S13 (team rosters share the avatar+slot idiom).
+- **Props**: `{ players: PresencePlayer[]; capacity: number; onPressPlayer?: (player: PresencePlayer) => void; onAddGuest?: () => void; testID?: string }` where `PresencePlayer = { id; name; handle?; avatarUrl?; status; position?; level?; isGuest? }` (from `@/features/matches/types/matchDetail`)
+- **Used in**: S12 Match Detail (the "Confirmados" tab).
 - **Example**:
   ```tsx
-  <PresenceGrid players={match.players} capacity={match.capacity} onPressEmpty={() => setGuestSheetOpen(true)} testID="presence-grid" />
+  <PresenceGrid players={match.players} capacity={match.capacity} onPressPlayer={openPlayer} onAddGuest={isOrganizer ? openGuestSheet : undefined} testID="presence-grid" />
   ```
-- **Notes**: Capacity-aware wrapping grid (`w-1/4` cells) — renders an `<Avatar size="md" />` + **first name** per player, then dashed `border-line` "vaga" placeholders for the remaining `capacity - players.length` open slots (each tagged `{testID}-empty`). A player carrying a `level` gets the tier-colored level "bolinha" via `Avatar`'s `level` prop (guests have none, so theirs is omitted). Every open slot renders, so avatars + placeholders add up to `capacity`. A player with `isGuest` gets a muted "Convidado" eyebrow under the name. When `onPressEmpty` is passed the empty slots become buttons (organizer "add guest" affordance on S12); omit it for inert placeholders. Presentational: receives plain data via props, never fetches. **No per-player OVR number is rendered** (Layer-3 cut, per SCOPE S12). Avatars are display-only (no tap navigation). Small grid (≤ capacity, typically ≤ 12) → a wrapping `View` is used, not a `FlatList`.
+- **Notes**: Who is going (DECISIONS #158): a capacity bar (one segment per slot, lime when taken, `{testID}-bar`), then one white row per player — `Avatar size="sm"` with the level dot, the **@handle** (a guest keeps the name and a "Convidado" eyebrow), the `PositionTag` and a chevron; a tap calls `onPressPlayer` (never for a guest; rows are `{testID}-player-{id}`). With `onAddGuest` and an open slot, a lime "Adicionar convidado" `Button` closes the list (`{testID}-add-guest`). Open slots never look like players or like the action. Presentational, never fetches. **No per-player OVR number** (Layer-3 cut).
 
 ### `AddGuestSheet`
 - **Path**: `src/components/domain/AddGuestSheet.tsx`
 - **Category**: domain
 - **Props**: `{ visible: boolean; onClose: () => void; onSubmit: (values: AddGuestInput) => void; submitting?: boolean; testID?: string }` where `AddGuestInput = { name: string; position?: PlayerPosition }` (from `@/features/matches/schema/addGuest`)
-- **Used in**: S12 Match Detail — organizer taps an open "vaga" slot in `PresenceGrid` to fill it with a guest (someone without an app account).
+- **Used in**: S12 Match Detail — the organizer's "Adicionar convidado" under `PresenceGrid` fills an open slot with a guest (someone without an app account).
 - **Example**:
   ```tsx
   <AddGuestSheet visible={open} onClose={() => setOpen(false)} onSubmit={handleAddGuest} submitting={addGuest.isPending} testID="add-guest-sheet" />
   ```
-- **Notes**: Bottom-sheet (`Modal transparent animationType="slide"`) with a RHF + Zod form — required `Nome` (`TextField`) + optional `Posição` (`FilterChip` row; tap again to clear). Form resets each time it opens. Backdrop tap and the close/× dismiss. Respects the bottom safe-area inset. Presentational: the parent owns the `useAddGuest` mutation and closes the sheet on success.
+- **Notes**: Bottom-sheet (`Modal transparent animationType="slide"`) with a RHF + Zod form — required `Nome` (`TextField`) + optional `Posição` (a row of selectable `PositionTag`s; tap again to clear). Form resets each time it opens. Backdrop tap and the close/× dismiss. Respects the bottom safe-area inset. Presentational: the parent owns the `useAddGuest` mutation and closes the sheet on success.
 
 ### `ExploreFilterSheet`
 - **Path**: `src/components/domain/ExploreFilterSheet.tsx`
@@ -499,6 +499,13 @@ More UI primitives will live here:
 - **Props**: `{ value?: Position; onChange: (v: Position) => void; testIDPrefix?: string }` (cards are `${testIDPrefix}-${code}`, default `position`)
 - **Used in**: onboarding step 1, `app/profile/edit.tsx`
 - **Notes**: Single-select court-position cards of DECISIONS #85 (icon box, name, radio; blue border and hard shadow when chosen) plus the navy hint bar for the chosen position. Cards rise in (`useRiseIn`).
+
+### `PositionTag`
+- **Path**: `src/components/domain/PositionPicker.tsx`
+- **Category**: domain
+- **Props**: `{ code: Position; selected?: boolean; onDark?: boolean; short?: boolean; testID?: string }`
+- **Used in**: match roster (`PresenceGrid`), `TeamRoster`, the organizer row of S12, the MVP vote list (`onDark`), `AddGuestSheet` (selectable, `selected`).
+- **Notes**: A position as a small pill in the onboarding cards' look (DECISIONS #158): the same `PositionIcon` in a round box, DM Sans bold name, 2px `line` border. `selected` is the chosen card's blue (inline style, never a toggled className); `short` keeps only the icon (the name stays as the accessibility label).
 
 ### `TeamRoster`
 - **Path**: `src/components/domain/TeamRoster.tsx`

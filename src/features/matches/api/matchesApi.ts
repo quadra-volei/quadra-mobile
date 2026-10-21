@@ -323,6 +323,7 @@ export function toMatchDetail(api: ApiMatchDetail, userId: string | null): Match
     ...api.players.map(({ player, status }) => ({
       id: player.userId,
       name: player.displayName,
+      handle: player.handle ?? undefined,
       avatarUrl: player.photoUrl ?? undefined,
       status: STATUS_FROM_API[status],
       position: toPosition(player.position),

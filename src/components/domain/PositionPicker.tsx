@@ -42,7 +42,7 @@ const POSITION_ICONS = {
   COR: Shuffle,
 } as const;
 
-function PositionIcon({
+export function PositionIcon({
   code,
   size,
   color,
@@ -71,6 +71,59 @@ function PositionIcon({
   }
   const Icon = POSITION_ICONS[code];
   return <Icon size={size} color={color} strokeWidth={1.9} />;
+}
+
+/**
+ * A player's position as a small tag in the onboarding cards' look: the same
+ * icon in a rounded square, DM Sans bold name, 2px border. `selected` is the
+ * selected card's blue (pickers); `onDark` for navy surfaces. Used wherever a
+ * position shows (match roster, teams, organizer, add-guest sheet).
+ */
+export function PositionTag({
+  code,
+  selected = false,
+  onDark = false,
+  short = false,
+  testID,
+}: {
+  code: Position;
+  selected?: boolean;
+  onDark?: boolean;
+  /** Icon only (tight rows); the name stays as the accessibility label. */
+  short?: boolean;
+  testID?: string;
+}) {
+  const name = POSITION_OPTIONS.find((option) => option.code === code)?.name ?? code;
+  return (
+    <View
+      accessible
+      accessibilityLabel={name}
+      testID={testID}
+      // Selected colors inline, never a toggled className (DECISIONS #87).
+      className={`flex-row items-center gap-1.5 self-start rounded-pill border-2 p-0.5 ${short ? '' : 'pr-2.5'} ${
+        onDark ? 'border-white/15 bg-white/10' : 'border-line bg-white'
+      }`}
+      style={selected ? { borderColor: colors.primary, backgroundColor: colors.bgLightAlt } : undefined}
+    >
+      <View
+        className={`h-6 w-6 items-center justify-center rounded-full ${onDark ? 'bg-white/15' : 'bg-bg-light'}`}
+        style={selected ? { backgroundColor: colors.primary } : undefined}
+      >
+        <PositionIcon
+          code={code}
+          size={14}
+          color={selected || onDark ? colors.textOnDark : colors.surfaceDark}
+        />
+      </View>
+      {short ? null : (
+        <Text
+          className={`font-body-bold text-caption ${onDark ? 'text-text-on-dark' : 'text-surface-dark'}`}
+        >
+          {name}
+        </Text>
+      )}
+    </View>
+  );
 }
 
 // Position cards carry their own 4px hard shadow: soft navy at rest, blue when

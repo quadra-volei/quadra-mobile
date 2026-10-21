@@ -33,6 +33,8 @@ export type PricePlan = 'AVULSO' | 'RECORRENTE';
 export type PresencePlayer = {
   id: string;
   name: string;
+  /** The player's @ (without the "@"); shown instead of the name. Absent for guests. */
+  handle?: string;
   avatarUrl?: string;
   status: PresenceStatus;
   position?: PlayerPosition;

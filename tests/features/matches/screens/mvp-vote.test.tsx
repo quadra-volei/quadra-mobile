@@ -12,7 +12,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 jest.mock('lucide-react-native', () => {
   const React = require('react');
   const { Pressable, Text } = require('react-native');
-  return {
+  const icons: Record<string, unknown> = {
     ChevronLeft: (props: any) =>
       React.createElement(Pressable, {
         ...props,
@@ -20,6 +20,8 @@ jest.mock('lucide-react-native', () => {
         children: React.createElement(Text, null, 'Back'),
       }),
   };
+  const fallback = (props: any) => require('react').createElement(require('react-native').View, props);
+  return new Proxy(icons, { get: (target, key: string) => (key in target ? target[key] : fallback) });
 });
 
 const mockBack = jest.fn();
@@ -137,18 +139,19 @@ describe('S15 — Post-Match MVP Vote', () => {
   });
 
   /** Criterion 3: All players listed with avatar, name, @handle, position */
-  it('displays all players with name, handle, and position', async () => {
+  it('displays all players by @handle with their position tag', async () => {
     await render(<MvpVoteScreen />, { wrapper });
 
-    expect(screen.getByText('Renan')).toBeTruthy();
-    expect(screen.getByText('Érica')).toBeTruthy();
-    expect(screen.getByText('Caio')).toBeTruthy();
-    expect(screen.getByText('Duda')).toBeTruthy();
+    expect(screen.getByText('@renan_dias')).toBeTruthy();
+    expect(screen.getByText('@erica_cen')).toBeTruthy();
+    expect(screen.getByText('@caio_op')).toBeTruthy();
+    expect(screen.getByText('@duda_lib')).toBeTruthy();
+    expect(screen.queryByText('Renan')).toBeNull();
 
-    expect(screen.getByText('@renan_dias · LEV')).toBeTruthy();
-    expect(screen.getByText('@erica_cen · CEN')).toBeTruthy();
-    expect(screen.getByText('@caio_op · OPO')).toBeTruthy();
-    expect(screen.getByText('@duda_lib · LIB')).toBeTruthy();
+    expect(screen.getByText('Levantador')).toBeTruthy();
+    expect(screen.getByText('Central')).toBeTruthy();
+    expect(screen.getByText('Oposto')).toBeTruthy();
+    expect(screen.getByText('Líbero')).toBeTruthy();
   });
 
   /** Criterion 4: Per-player stats (PON/BLO/DEF/ACE) NOT visible */
@@ -165,7 +168,7 @@ describe('S15 — Post-Match MVP Vote', () => {
   it('shows current user with "você" label', async () => {
     await render(<MvpVoteScreen />, { wrapper });
 
-    expect(screen.getByText('Renan')).toBeTruthy();
+    expect(screen.getByText('@renan_dias')).toBeTruthy();
     expect(screen.getByText('você')).toBeTruthy();
   });
 
@@ -241,7 +244,7 @@ describe('S15 — Post-Match MVP Vote', () => {
     await render(<MvpVoteScreen />, { wrapper });
 
     expect(screen.getByText('QUEM BRILHOU?')).toBeTruthy();
-    expect(screen.queryByText('Érica')).toBeNull();
+    expect(screen.queryByText('@erica_cen')).toBeNull();
   });
 
   /** Criterion 14: Error states with "Tentar novamente" button */
@@ -305,7 +308,7 @@ describe('S15 — Post-Match MVP Vote', () => {
       await render(<MvpVoteScreen />, { wrapper });
 
       expect(screen.getByTestId('mvp-submit-button')).toBeTruthy();
-      expect(screen.getByText('Érica')).toBeTruthy();
+      expect(screen.getByText('@erica_cen')).toBeTruthy();
     } finally {
       mockIsOrganizer.value = false;
     }

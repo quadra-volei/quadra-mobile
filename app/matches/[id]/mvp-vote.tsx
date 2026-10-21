@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PositionTag } from '@/components/domain/PositionPicker';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { dialog } from '@/components/ui/Dialog';
@@ -264,11 +265,11 @@ export default function MvpVoteScreen() {
                 }`}
               >
                 <Avatar uri={player.avatarUrl} name={player.name} size="md" />
-                <View className="flex-1">
-                  <Text className="font-body-extrabold text-h3 text-text-on-dark">{player.name}</Text>
-                  <Text className="font-body text-caption text-white/70">
-                    @{player.handle} · {player.position}
+                <View className="flex-1 gap-1">
+                  <Text className="font-body-extrabold text-h3 text-text-on-dark" numberOfLines={1}>
+                    {player.handle ? `@${player.handle}` : player.name}
                   </Text>
+                  <PositionTag code={player.position} onDark />
                 </View>
                 {isCurrentUser ? (
                   <Text className="text-caption text-accent font-mono">você</Text>

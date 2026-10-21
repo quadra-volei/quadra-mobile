@@ -22,6 +22,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AddGuestSheet } from '@/components/domain/AddGuestSheet';
+import { PositionTag } from '@/components/domain/PositionPicker';
 import { PresenceGrid } from '@/components/domain/PresenceGrid';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
@@ -45,25 +46,12 @@ import {
   useJoinMatch,
 } from '@/features/matches/api/presence';
 import type { AddGuestInput } from '@/features/matches/schema/addGuest';
-import type {
-  MatchDetail,
-  PlayerPosition,
-} from '@/features/matches/types/matchDetail';
+import type { MatchDetail } from '@/features/matches/types/matchDetail';
 import { inviteLink } from '@/lib/inviteLink';
 import { useAuthStore } from '@/stores/auth';
 import { colors, COVER_SCRIM, COVER_SCRIM_LOCATIONS } from '@/theme/colors';
 import { ICON_HIT_SLOP } from '@/theme/layout';
 import { MOTION } from '@/theme/motion';
-
-// ── Pure label maps (token-free; presentational copy) ──
-const POSITION_LABEL: Record<PlayerPosition, string> = {
-  LEV: 'Levantador',
-  PON: 'Ponteiro',
-  OPO: 'Oposto',
-  CEN: 'Central',
-  LIB: 'Líbero',
-  COR: 'Coringa',
-};
 
 /** Cover height; the hero bleeds under the status bar, as in the prototype. */
 const HERO_HEIGHT = 210;
@@ -264,9 +252,6 @@ export default function MatchDetailScreen() {
   // Same arithmetic as PresenceGrid, so the line above the grid matches it.
   const openSlots = Math.max(0, match.capacity - match.players.length);
   const levelBadge = LEVEL_BADGE[match.level];
-  const positionLabel = match.organizer.position
-    ? POSITION_LABEL[match.organizer.position]
-    : undefined;
   const countdownLabel = formatCountdown(match, new Date());
   const isRecurring =
     match.pricePlan === 'RECORRENTE' && Boolean(match.priceMonthlyLabel);
@@ -550,13 +535,7 @@ export default function MatchDetailScreen() {
               />
             }
             trailing={
-              positionLabel ? (
-                <View className="rounded-pill bg-bg-light px-3 py-1">
-                  <Text className="font-mono text-mono text-primary uppercase">
-                    {positionLabel}
-                  </Text>
-                </View>
-              ) : null
+              match.organizer.position ? <PositionTag code={match.organizer.position} /> : null
             }
           >
             <Text className="font-body text-caption text-text-muted">
@@ -649,11 +628,6 @@ export default function MatchDetailScreen() {
                     ? '1 vaga aberta'
                     : `${openSlots} vagas abertas`}
               </Text>
-              {isOrganizer && openSlots > 0 ? (
-                <Text className="font-body text-caption text-text-muted">
-                  Toque em uma vaga para adicionar um convidado.
-                </Text>
-              ) : null}
             </View>
             {isOrganizer ? (
               <Button
@@ -669,7 +643,12 @@ export default function MatchDetailScreen() {
           <PresenceGrid
             players={match.players}
             capacity={match.capacity}
-            onPressEmpty={isOrganizer ? () => setGuestSheetOpen(true) : undefined}
+            onPressPlayer={(player) =>
+              player.id === userId
+                ? router.push('/(tabs)/profile')
+                : router.push({ pathname: '/players/[id]', params: { id: player.id } })
+            }
+            onAddGuest={isOrganizer ? () => setGuestSheetOpen(true) : undefined}
             testID="presence-grid"
           />
         </Animated.View>
