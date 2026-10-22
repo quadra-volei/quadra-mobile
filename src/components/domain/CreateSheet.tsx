@@ -33,7 +33,7 @@ const OPTION =
 // (same sides and bottom, 64 tall, 32 corners, a hairline border) and opens
 // upward from the bar's bottom edge, without overshoot so it never pokes past
 // the screen; closing folds it back into the bar. The layout hides the bar
-// while the sheet is up (DECISIONS #160).
+// while the sheet is up (DECISIONS #161).
 const MORPH = {
   spring: { damping: 26, stiffness: 260, mass: 0.9 },
   closeMs: 180,

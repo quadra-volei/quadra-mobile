@@ -211,7 +211,7 @@ function SignedInTabs() {
               right: 16,
               bottom: 0,
               // The create sheet takes the bar's place while it is up: it grows
-              // out of the bar's frame and folds back into it (DECISIONS #160).
+              // out of the bar's frame and folds back into it (DECISIONS #161).
               opacity: sheetOpen ? 0 : 1,
             }}
           >

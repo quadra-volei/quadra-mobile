@@ -458,7 +458,7 @@ More UI primitives will live here:
 - **Category**: domain
 - **Props**: `{ lockup?: boolean; animate?: boolean; children?: ReactNode }`
 - **Used in**: `app/(auth)/login.tsx` (lockup, rising in, the CTA as `children`), `app/(auth)/sms-otp.tsx` (no lockup, still).
-- **Notes**: The sign-in background (DECISIONS #164): `HERO_GRADIENT`, the "quadra" lockup (or a same-height gap), "O JOGO COMEÇA AQUI." and the subtitle, staggered `useRiseIn` when `animate`. The SMS code screen draws it still and without the logo, so the step from the phone to the code only swaps the white card.
+- **Notes**: The sign-in background (DECISIONS #165): `HERO_GRADIENT`, the "quadra" lockup (or a same-height gap), "O JOGO COMEÇA AQUI." and the subtitle, staggered `useRiseIn` when `animate`. The SMS code screen draws it still and without the logo, so the step from the phone to the code only swaps the white card.
 
 ### `PresenceGrid`
 - **Path**: `src/components/domain/PresenceGrid.tsx`
@@ -469,7 +469,7 @@ More UI primitives will live here:
   ```tsx
   <PresenceGrid players={match.players} capacity={match.capacity} onPressPlayer={openPlayer} onAddGuest={isOrganizer ? openGuestSheet : undefined} testID="presence-grid" />
   ```
-- **Notes**: Who is going (DECISIONS #158): a capacity bar (one segment per slot, lime when taken, `{testID}-bar`), then one white row per player — `Avatar size="sm"` with the level dot, the **@handle** (a guest keeps the name and a "Convidado" eyebrow), the `PositionTag` and a chevron; a tap calls `onPressPlayer` (never for a guest; rows are `{testID}-player-{id}`). With `onAddGuest` and an open slot, a lime "Adicionar convidado" `Button` closes the list (`{testID}-add-guest`). Open slots never look like players or like the action. Presentational, never fetches. **No per-player OVR number** (Layer-3 cut).
+- **Notes**: Who is going (DECISIONS #159): a capacity bar (one segment per slot, lime when taken, `{testID}-bar`), then one white row per player — `Avatar size="sm"` with the level dot, the **@handle** (a guest keeps the name and a "Convidado" eyebrow), the `PositionTag` and a chevron; a tap calls `onPressPlayer` (never for a guest; rows are `{testID}-player-{id}`). With `onAddGuest` and an open slot, a lime "Adicionar convidado" `Button` closes the list (`{testID}-add-guest`). Open slots never look like players or like the action. Presentational, never fetches. **No per-player OVR number** (Layer-3 cut).
 
 ### `AddGuestSheet`
 - **Path**: `src/components/domain/AddGuestSheet.tsx`
@@ -494,7 +494,7 @@ More UI primitives will live here:
 - **Category**: domain
 - **Props**: `{ onClose: () => void; onCreateMatch: () => void; onCreatePost: () => void; blurTarget?: RefObject<View | null> }`
 - **Used in**: `app/(tabs)/_layout.tsx` (opened by the central "+")
-- **Notes**: "O que você quer criar?" overlay (DECISIONS #98): blurred and dimmed backdrop (tap closes), white card with 2px navy border and `HARD_SHADOW`, "Criar partida" (lime) and "Criar publicação" (white) wide options, "Cancelar" link. The card grows out of the tab bar (it starts with the bar's frame and opens upward, no overshoot) and folds back into it on close; the layout hides the bar meanwhile (DECISIONS #160). An overlay rather than a `Modal` so the Android blur can read the `BlurTargetView` passed as `blurTarget`; Android back closes it. Mount it only while open.
+- **Notes**: "O que você quer criar?" overlay (DECISIONS #98): blurred and dimmed backdrop (tap closes), white card with 2px navy border and `HARD_SHADOW`, "Criar partida" (lime) and "Criar publicação" (white) wide options, "Cancelar" link. The card grows out of the tab bar (it starts with the bar's frame and opens upward, no overshoot) and folds back into it on close; the layout hides the bar meanwhile (DECISIONS #161). An overlay rather than a `Modal` so the Android blur can read the `BlurTargetView` passed as `blurTarget`; Android back closes it. Mount it only while open.
 
 ### `CoverPicker`
 - **Path**: `src/components/domain/CoverPicker.tsx`
@@ -519,7 +519,7 @@ More UI primitives will live here:
 - **Category**: domain
 - **Props**: `{ code: Position; selected?: boolean; onDark?: boolean; short?: boolean; testID?: string }`
 - **Used in**: match roster (`PresenceGrid`), `TeamRoster`, the organizer row of S12, the MVP vote list (`onDark`), `AddGuestSheet` (selectable, `selected`).
-- **Notes**: A position as a small pill in the onboarding cards' look (DECISIONS #158): the same `PositionIcon` in a round box, DM Sans bold name, 2px `line` border. `selected` is the chosen card's blue (inline style, never a toggled className); `short` keeps only the icon (the name stays as the accessibility label).
+- **Notes**: A position as a small pill in the onboarding cards' look (DECISIONS #159): the same `PositionIcon` in a round box, DM Sans bold name, 2px `line` border. `selected` is the chosen card's blue (inline style, never a toggled className); `short` keeps only the icon (the name stays as the accessibility label).
 
 ### `TeamRoster`
 - **Path**: `src/components/domain/TeamRoster.tsx`

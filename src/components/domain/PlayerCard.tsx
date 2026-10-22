@@ -292,7 +292,7 @@ function Back({ profile, t, k, title, tierName }: { profile: MyProfile; t: CardF
 
 /**
  * The collectible player card ("Sua carta", DECISIONS #119). Front: the logo
- * on its plate in the top corner (DECISIONS #159), photo, title, name, @handle and position. Back: the real record
+ * on its plate in the top corner (DECISIONS #160), photo, title, name, @handle and position. Back: the real record
  * (matches, wins, MVPs) and grouped numbers. Tilting the phone, or dragging,
  * tilts it on both axes and moves the holographic light; releasing settles it
  * back; a tap or a long horizontal swipe flips it. The foil follows the level

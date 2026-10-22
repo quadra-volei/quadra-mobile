@@ -143,7 +143,7 @@ export default function SmsOtpScreen() {
   return (
     <View className="flex-1 bg-surface-dark">
       {/* The login's background, still and without the logo, dimmed like the
-          login sheet's backdrop: only the white card changes (DECISIONS #164). */}
+          login sheet's backdrop: only the white card changes (DECISIONS #165). */}
       <AuthHero lockup={false} animate={false} />
       <View pointerEvents="none" className="absolute inset-0 bg-surface-dark/60" />
       <SafeAreaView className="absolute inset-x-0 top-0">

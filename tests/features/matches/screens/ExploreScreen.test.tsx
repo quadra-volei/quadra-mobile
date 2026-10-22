@@ -176,6 +176,13 @@ const mockNearby: QueryState & { refetch: jest.Mock; lastParams: unknown } = {
   lastParams: undefined,
 };
 
+// The screen re-reads queries through the query client (pull to refresh).
+const mockRefetchQueries = jest.fn(async () => undefined);
+jest.mock('@tanstack/react-query', () => ({
+  ...jest.requireActual('@tanstack/react-query'),
+  useQueryClient: () => ({ refetchQueries: mockRefetchQueries }),
+}));
+
 jest.mock('@/features/matches/api/getNearby', () => ({
   useNearbyMatches: (params: unknown) => {
     mockNearby.lastParams = params;
@@ -221,10 +228,22 @@ function resetNearby() {
 
 beforeEach(() => {
   mockPush.mockClear();
+  mockRefetchQueries.mockClear();
   resetNearby();
 });
 
 describe('S6 — Explore screen', () => {
+  // The tab stays mounted: a pull re-reads the nearby matches (spots, new games).
+  it('re-reads the nearby matches on a pull', async () => {
+    const { container } = await render(<ExploreScreen />);
+    // The scroll view carries the RefreshControl; a pull calls its onRefresh.
+    const [scroll] = container.queryAll((node) => Boolean(node.props.refreshControl));
+    await act(async () => {
+      await scroll!.props.refreshControl.props.onRefresh();
+    });
+    expect(mockRefetchQueries).toHaveBeenCalledWith({ queryKey: ['matches', 'nearby'], type: 'active' });
+  });
+
   // ----------------------------------------------------------------- header
   /**
    * Covers: S6 — Explore

@@ -198,6 +198,13 @@ const mockUpcoming: QueryState<UpcomingMatch> & { refetch: jest.Mock } = {
   refetch: jest.fn(),
 };
 
+// The screen re-reads queries through the query client (pull to refresh).
+const mockRefetchQueries = jest.fn(async () => undefined);
+jest.mock('@tanstack/react-query', () => ({
+  ...jest.requireActual('@tanstack/react-query'),
+  useQueryClient: () => ({ refetchQueries: mockRefetchQueries }),
+}));
+
 jest.mock('@/features/matches/api/getUpcoming', () => ({
   useUpcomingMatches: () => ({
     data: mockUpcoming.data,
@@ -226,10 +233,23 @@ beforeEach(() => {
   mockActivity.isPending = false;
   mockActivity.isError = false;
   mockActivity.refetch.mockClear();
+  mockRefetchQueries.mockClear();
   resetUpcoming();
 });
 
 describe('S5 — Home screen', () => {
+  // The tab stays mounted: a pull re-reads my matches and my friends' activity.
+  it('re-reads the matches and the friends activity on a pull', async () => {
+    const { container } = await render(<HomeScreen />);
+    // The scroll view carries the RefreshControl; a pull calls its onRefresh.
+    const [scroll] = container.queryAll((node) => Boolean(node.props.refreshControl));
+    await act(async () => {
+      await scroll!.props.refreshControl.props.onRefresh();
+    });
+    expect(mockUpcoming.refetch).toHaveBeenCalled();
+    expect(mockRefetchQueries).toHaveBeenCalledWith({ queryKey: ['activity'], type: 'active' });
+  });
+
   // -------------------------------------------------------------------- header
   /**
    * Covers: S5 — Home

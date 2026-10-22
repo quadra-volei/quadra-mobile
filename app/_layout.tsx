@@ -16,12 +16,13 @@ import {
 } from '@expo-google-fonts/dm-mono';
 import { RussoOne_400Regular } from '@expo-google-fonts/russo-one';
 import * as Sentry from '@sentry/react-native';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -94,6 +95,14 @@ export function getAuthBootstrap(): Promise<void> {
   }
   return bootstrapPromise;
 }
+
+// React Native has no window focus: the app coming back to the foreground is
+// the "focus", so stale data is re-read on return and polling (the match
+// screen) stops while the app is in the background.
+focusManager.setEventListener((setFocused) => {
+  const subscription = AppState.addEventListener('change', (state) => setFocused(state === 'active'));
+  return () => subscription.remove();
+});
 
 const queryClient = new QueryClient({
   defaultOptions: {

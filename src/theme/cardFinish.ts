@@ -93,7 +93,7 @@ export type CardTierTokens = {
 // The card's look grows with the player's level (Johny, 2026-10-21). Placeholders
 // until the designer's art (normal, foil, reverse foil...): Clássica is matte,
 // Prisma has a foil on the frame, Holográfica a rainbow. The light enhances the
-// card without covering it (DECISIONS #159): the frame shows through its foil,
+// card without covering it (DECISIONS #160): the frame shows through its foil,
 // the face foil is only a tint over photo and text, the glare is small.
 export const CARD_TIERS: Record<CardTier, CardTierTokens> = {
   Classico: { name: 'Clássica', from: 1, frameFoil: 0, faceFoil: 0, glare: 0.14, rainbow: false },

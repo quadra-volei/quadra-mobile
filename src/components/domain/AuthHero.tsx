@@ -18,7 +18,7 @@ const SUBTITLE_DELAY = 120;
  * gradient, the lockup, the headline and the subtitle. The login shows it with
  * the lockup and rises it in; the SMS code screen shows the same background
  * still and without the lockup, so going from one to the other only swaps the
- * white card (DECISIONS #164). `children` sit pinned at the bottom (the
+ * white card (DECISIONS #165). `children` sit pinned at the bottom (the
  * login's CTA).
  */
 export function AuthHero({
