@@ -204,6 +204,7 @@ function matchDetailFixture(over: Partial<MatchDetail> = {}): MatchDetail {
     myParticipationType: 'REGULAR',
     myStatus: 'CONFIRMADO',
     teamConfig: { teamCount: 2, perTeam: 4, drawMode: 'MANUAL' },
+    freeTeams: false,
     ...over,
   };
 }
@@ -239,7 +240,9 @@ const mockStartSet = { mutateAsync: jest.fn(async (_pair: [string, string]) => (
 
 jest.mock('@/features/matches/api/liveGame', () => ({
   useStartSet: () => mockStartSet,
+  useStartFreeGame: () => mockStartFree,
 }));
+const mockStartFree = { isPending: false, mutate: jest.fn() };
 
 const mockMovePlayer = { isPending: false, mutate: jest.fn() };
 

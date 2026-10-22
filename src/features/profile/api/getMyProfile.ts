@@ -5,7 +5,7 @@ import {
   fetchMyProfile,
   fromApiDate,
 } from '@/features/profile/api/profileApi';
-import type { MyProfile } from '@/features/profile/types/profile';
+import type { MyProfile, ProfileActions } from '@/features/profile/types/profile';
 import { authorizedApiClient } from '@/lib/api/authorizedClient';
 
 /** Query key (ARCHITECTURE convention). */
@@ -41,6 +41,22 @@ function toNationalDigits(e164: string | null): string | undefined {
   return digits.startsWith('55') ? digits.slice(2) : digits;
 }
 
+const NONE = { total: 0, perMatch: null };
+
+/** The recorded actions; an API without them reads as no sheet yet. */
+export function toActions(api: ApiProfile['actions']): ProfileActions {
+  return {
+    matches: api?.matches ?? 0,
+    byAction: {
+      kills: api?.kills ?? NONE,
+      blocks: api?.blocks ?? NONE,
+      aces: api?.aces ?? NONE,
+      digs: api?.digs ?? NONE,
+      assists: api?.assists ?? NONE,
+    },
+  };
+}
+
 export function toMyProfile(api: ApiProfile, phoneNumber: string | null): MyProfile {
   return {
     id: api.userId,
@@ -54,12 +70,9 @@ export function toMyProfile(api: ApiProfile, phoneNumber: string | null): MyProf
     overall: api.skills.overall,
     ace: api.skills.ace,
     blk: api.skills.block,
-    ata: api.skills.attack,
+    atk: api.skills.attack,
     def: api.skills.defense,
-    // PLACEHOLDER: the backend rates four skills; the card's SRV/REC cells show
-    // the overall until serve/receive ratings exist.
-    srv: api.skills.overall,
-    rec: api.skills.overall,
+    actions: toActions(api.actions),
     ...toProgress(api.stats),
     shareActivity: api.shareActivity ?? true,
     record: {

@@ -211,7 +211,14 @@ function Front({ profile, t, k, title }: { profile: MyProfile; t: CardFinishToke
   const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ');
   return (
     <View className="absolute inset-0" style={{ paddingHorizontal: 20 * k, paddingTop: 20 * k, paddingBottom: 22 * k }}>
-      <CardLogo height={16 * k} />
+      <View className="flex-row items-start justify-between">
+        <CardLogo height={16 * k} />
+        {/* GERAL, the same number as the profile and the ranking. */}
+        <View className="items-end" testID="card-overall">
+          <Text className="font-num" style={{ color: t.ink, fontSize: 34 * k, lineHeight: 36 * k }}>{profile.overall}</Text>
+          <Text className="font-mono" style={{ color: t.muted, fontSize: 8 * k, letterSpacing: 1.6 * k }}>GERAL</Text>
+        </View>
+      </View>
       <View className="mt-auto">
         <Text className="font-body-bold uppercase" style={{ color: t.accent, fontSize: 11 * k, letterSpacing: 1.5 * k }}>
           {title}
@@ -243,6 +250,7 @@ function Back({ profile, t, k, title, tierName }: { profile: MyProfile; t: CardF
   const name = [profile.firstName, profile.lastName].filter(Boolean).join(' ');
   const r = profile.record;
   const groups: { label: string; cells: [string, string][] }[] = [
+    { label: 'Atributos', cells: [['ATK', String(profile.atk)], ['DEF', String(profile.def)], ['BLK', String(profile.blk)], ['ACE', String(profile.ace)]] },
     { label: 'Resultados', cells: [['Derrotas', String(r.losses)], ['Empates', String(r.draws)], ['Aproveitamento', percent(r.wins, r.matches)]] },
     { label: 'Evolução', cells: [['Nível', String(profile.level)], ['Pontos', String(profile.points)], ['MVP por jogo', percent(r.mvps, r.matches)]] },
   ];

@@ -60,6 +60,20 @@ export type ApiProfile = {
   shareActivity?: boolean | null;
   /** How the player dressed their card (API DECISIONS #65). */
   cardStyle?: ApiCardStyle | null;
+  /** Recorded actions over the history (API DECISIONS #85); absent on an older API. */
+  actions?: ApiActions | null;
+};
+
+type ApiActionSummary = { total: number; perMatch: number | null };
+
+/** Matches with a stats sheet, and per action the total and the average per match. */
+export type ApiActions = {
+  matches: number;
+  kills: ApiActionSummary;
+  blocks: ApiActionSummary;
+  aces: ApiActionSummary;
+  digs: ApiActionSummary;
+  assists: ApiActionSummary;
 };
 
 /** `cardStyle` on the profile and the `PUT /profiles/me/card-style` response. */

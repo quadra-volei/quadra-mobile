@@ -7,7 +7,7 @@ jest.mock('@/components/domain/BellWithBadge', () => ({
  * Covers every acceptance criterion in docs/specs/S8-profile.md:
  *  - Header shows the authenticated user's avatar, "Olá," + first name (display),
  *    plus a notification bell and a theme toggle.
- *  - "Seu progresso" shows the GERAL number (font-num) + the ACE/BLK/ATA/DEF
+ *  - "Seu progresso" shows the GERAL number (font-num) + the ACE/BLK/ATK/DEF
  *    stats grid + a Level/XP bar ("Level N", "XP: a / b").
  *  - The "Ver sua carta" gradient CTA navigates to the player card
  *    (/profile/card).
@@ -138,10 +138,9 @@ const PROFILE_FIXTURE: MyProfile = {
   // the GERAL 68, the ranking scores, positions, or "Level 15").
   ace: 34,
   blk: 25,
-  ata: 20,
+  atk: 20,
   def: 22,
-  srv: 27,
-  rec: 24,
+  actions: { matches: 0, byAction: { kills: { total: 0, perMatch: null }, blocks: { total: 0, perMatch: null }, aces: { total: 0, perMatch: null }, digs: { total: 0, perMatch: null }, assists: { total: 0, perMatch: null } } },
   level: 15,
   xp: 2450,
   xpToNext: 5000,
@@ -158,6 +157,7 @@ const RECENT_FIXTURE: RecentMatch[] = [
     format: '6X6',
     result: 'VITORIA',
     setScore: '3-1',
+    actionsLine: '',
   },
   {
     id: 'rm-2',
@@ -166,6 +166,7 @@ const RECENT_FIXTURE: RecentMatch[] = [
     format: '4X4',
     result: 'DERROTA',
     setScore: '1-3',
+    actionsLine: '',
   },
 ];
 
@@ -344,16 +345,16 @@ describe('S8 — Profile screen', () => {
 
   /**
    * Covers: S8 — Profile
-   * Criterion: the "Seu progresso" card renders the ACE/BLK/ATA/DEF stats grid
+   * Criterion: the "Seu progresso" card renders the ACE/BLK/ATK/DEF stats grid
    *  (per-skill ratings) next to the GERAL box.
    */
-  it('renders the ACE/BLK/ATA/DEF stats grid', async () => {
+  it('renders the ACE/BLK/ATK/DEF stats grid', async () => {
     await render(<ProfileScreen />);
 
     // labels
     expect(screen.getByText('ACE')).toBeTruthy();
     expect(screen.getByText('BLK')).toBeTruthy();
-    expect(screen.getByText('ATA')).toBeTruthy();
+    expect(screen.getByText('ATK')).toBeTruthy();
     expect(screen.getByText('DEF')).toBeTruthy();
 
     // values (font-num), distinct per cell in the fixture

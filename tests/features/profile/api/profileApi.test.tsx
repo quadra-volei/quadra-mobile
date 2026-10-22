@@ -273,11 +273,10 @@ describe('useMyProfile', () => {
       overall: 62,
       ace: 64,
       blk: 60,
-      ata: 60,
+      atk: 60,
       def: 64,
       // Placeholders until the backend has serve/receive ratings.
-      srv: 62,
-      rec: 62,
+      actions: { matches: 0, byAction: { kills: { total: 0, perMatch: null }, blocks: { total: 0, perMatch: null }, aces: { total: 0, perMatch: null }, digs: { total: 0, perMatch: null }, assists: { total: 0, perMatch: null } } },
       // 35 points: level 2 (20 points) on the way to level 3 (60).
       level: 2,
       xp: 15,

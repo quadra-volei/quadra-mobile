@@ -15,6 +15,7 @@ import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { useSaveCardStyle } from "@/features/profile/api/saveCardStyle";
 import { CARD_TITLES, cardTitleCode } from "@/features/profile/card/cardTitles";
 import type { MyProfile } from "@/features/profile/types/profile";
+import { ActionsSummary } from "@/components/domain/ActionsSummary";
 import { CARD_FINISHES, CARD_FINISH_ORDER, CARD_SCREEN, CARD_TIERS, CARD_TIER_ORDER, cardTier } from "@/theme/cardFinish";
 import { colors } from "@/theme/colors";
 
@@ -142,6 +143,11 @@ export function StatsList({ profile }: { profile: MyProfile }) {
   ];
   return (
     <>
+      {/* The recorded actions behind ATK, DEF, BLK and ACE (API DECISIONS #85). */}
+      <View className="rounded-chip border border-white/15 bg-white/5 px-3 py-3 mb-2">
+        <Text className="font-body-bold text-body text-text-on-dark mb-2">Em quadra</Text>
+        <ActionsSummary actions={profile.actions} tone="dark" testID="card-actions" />
+      </View>
       {rows.map(([label, hint, value]) => (
         <View key={label} className="flex-row items-center justify-between rounded-chip border border-white/15 bg-white/5 px-3 py-3 mb-2">
           <View className="flex-1">

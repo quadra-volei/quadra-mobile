@@ -16,6 +16,7 @@ import {
   useEndGame,
   useEndSet,
   useLiveGame,
+  useStartFreeGame,
   useStartSet,
   useUndoPoint,
 } from '@/features/matches/api/liveGame';
@@ -35,6 +36,9 @@ import { ICON_HIT_SLOP } from '@/theme/layout';
  * - PLAYING — the live scoreboard (S14): the organizer scores, undoes the last
  *   point and may end the set early; everyone else watches it update live.
  * - ENDED — on to the MVP vote.
+ * A match without fixed teams (API DECISIONS #86) has none of that: it runs
+ * from "Começar" to "Encerrar" with no score (`FreeGame`).
+ * The organizer reaches the stats sheet from every phase.
  *
  * The whole route is navy: secondary text is `text-white/70` (never
  * `text-text-muted`, which is the muted tone for light surfaces) and buttons
@@ -86,6 +90,9 @@ export default function ScoreboardScreen() {
 
   const game = gameQuery.data;
 
+  if (game.free) {
+    return <FreeGame matchId={matchId} game={game} />;
+  }
   if (game.phase === 'ENDED') {
     return <GameOver matchId={matchId} game={game} />;
   }
@@ -481,6 +488,7 @@ function LiveScoreboard({
             <Text className="font-body text-caption text-white/70 text-center">
               Toque no time para marcar o ponto
             </Text>
+            <StatsLink matchId={matchId} />
             <View className="flex-row gap-3">
               <View className="flex-1">
                 <Button
@@ -552,7 +560,7 @@ function GameOver({ matchId, game }: { matchId: string; game: LiveGame }) {
         ))}
       </View>
 
-      <View className="self-stretch">
+      <View className="self-stretch gap-3">
         <Button
           variant="grad"
           onPress={() =>
@@ -562,7 +570,122 @@ function GameOver({ matchId, game }: { matchId: string; game: LiveGame }) {
         >
           Votar no <Text className="font-num">MVP</Text>
         </Button>
+        {game.isOrganizer ? <StatsLink matchId={matchId} /> : null}
       </View>
     </Centered>
+  );
+}
+
+/** The organizer's way to the stats sheet, open from the start until the summary. */
+function StatsLink({ matchId }: { matchId: string }) {
+  return (
+    <Button
+      variant="outlineW"
+      onPress={() => router.push({ pathname: '/matches/[id]/stats', params: { id: matchId } })}
+      testID="go-stats"
+    >
+      Registrar estatísticas
+    </Button>
+  );
+}
+
+/**
+ * A match without fixed teams: no teams on screen and no score. The organizer
+ * starts it, records the stats along the way and ends it; then it is the MVP
+ * vote, as in any match.
+ */
+function FreeGame({ matchId, game }: { matchId: string; game: LiveGame }) {
+  const start = useStartFreeGame(matchId);
+  const endGame = useEndGame(matchId);
+  const elapsed = useElapsed(game.startedAt);
+
+  const handleEnd = () => {
+    dialog.alert('Encerrar a partida?', 'Depois vem a votação do MVP.', [
+      { text: 'Continuar jogando', style: 'cancel' },
+      {
+        text: 'Encerrar',
+        style: 'destructive',
+        onPress: () =>
+          endGame.mutate(undefined, {
+            onError: (error) => dialog.alert('Não foi possível encerrar', error.message),
+          }),
+      },
+    ]);
+  };
+
+  if (game.phase === 'ENDED') {
+    return (
+      <Centered>
+        <Text className="font-body-bold text-eyebrow text-accent uppercase">Fim da partida</Text>
+        <Text className="mt-2 mb-8 text-center font-display text-display text-text-on-dark uppercase" testID="free-game-over">
+          Partida encerrada
+        </Text>
+        <View className="self-stretch gap-3">
+          <Button
+            variant="grad"
+            onPress={() => router.replace({ pathname: '/matches/[id]/mvp-vote', params: { id: matchId } })}
+            testID="go-mvp-vote"
+          >
+            Votar no <Text className="font-num">MVP</Text>
+          </Button>
+          {game.isOrganizer ? <StatsLink matchId={matchId} /> : null}
+        </View>
+      </Centered>
+    );
+  }
+
+  const playing = game.phase === 'PLAYING';
+  return (
+    <View className="flex-1 bg-surface-dark" testID="free-game">
+      <SafeAreaView edges={['top', 'bottom']} className="flex-1">
+        <View className="flex-row items-center justify-between px-4 py-3 border-b border-white/10">
+          <BackButton />
+          <Text className="font-body-bold text-eyebrow text-white/70 uppercase">Sem times fixos</Text>
+          <View className="w-10" />
+        </View>
+
+        <View className="flex-1 items-center justify-center px-6">
+          <Text className="font-body-bold text-eyebrow text-accent uppercase">
+            {playing ? 'Partida em andamento' : 'Pronto para começar'}
+          </Text>
+          <Text className="mt-3 font-num text-text-on-dark" style={{ fontSize: 64, lineHeight: 70 }} testID="free-game-clock">
+            {playing ? elapsed : '00:00'}
+          </Text>
+          <Text className="mt-3 text-center font-body text-body text-white/70">
+            {game.matchName}
+          </Text>
+        </View>
+
+        <View className="px-4 pb-4 gap-3">
+          {game.isOrganizer ? (
+            playing ? (
+              <>
+                <StatsLink matchId={matchId} />
+                <Button variant="grad" onPress={handleEnd} loading={endGame.isPending} testID="end-free-game">
+                  Encerrar partida
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="grad"
+                onPress={() =>
+                  start.mutate(undefined, {
+                    onError: (error) => dialog.alert('Não foi possível começar', error.message),
+                  })
+                }
+                loading={start.isPending}
+                testID="start-free-game"
+              >
+                Começar partida
+              </Button>
+            )
+          ) : (
+            <Text className="font-body text-caption text-white/70 text-center">
+              {playing ? 'Quem organiza encerra a partida.' : 'A partida ainda não começou.'}
+            </Text>
+          )}
+        </View>
+      </SafeAreaView>
+    </View>
   );
 }

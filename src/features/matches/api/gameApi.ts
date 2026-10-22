@@ -37,7 +37,9 @@ export type ApiScoreboardSet = {
 
 export type ApiScoreboard = {
   matchId: string;
-  format: 'SingleGame' | 'BestOf3' | 'BestOf5';
+  /** `Free`: no fixed teams, no score — the match only starts and ends (API DECISIONS #86). */
+  format: 'SingleGame' | 'BestOf3' | 'BestOf5' | 'Free';
+  startedAt?: string | null;
   state: 'NotStarted' | 'InProgress' | 'Ended';
   /** The pair on court (of the current set when teams rotate). */
   teamAId: string;
@@ -66,7 +68,7 @@ export type ApiMvpVoting = {
 };
 
 export type ApiMatchSummary = {
-  format: 'SingleGame' | 'BestOf3' | 'BestOf5';
+  format: 'SingleGame' | 'BestOf3' | 'BestOf5' | 'Free';
   teamAId: string;
   teamBId: string;
   teamASetsWon: number;
@@ -176,6 +178,17 @@ export async function postStartGame(
     teamBId,
   });
   return send<ApiScoreboard>('POST', gamePath(matchId, 'scoreboard/start'));
+}
+
+/** Starts a match without fixed teams: one roster of everyone confirmed, no score. */
+export async function postStartFreeGame(matchId: string): Promise<ApiScoreboard> {
+  const existing = await fetchScoreboard(matchId);
+  if (!existing) {
+    await send('POST', gamePath(matchId, 'scoreboard'), { format: 'Free' });
+  }
+  return existing && existing.state !== 'NotStarted'
+    ? existing
+    : send<ApiScoreboard>('POST', gamePath(matchId, 'scoreboard/start'));
 }
 
 export function postNextSet(

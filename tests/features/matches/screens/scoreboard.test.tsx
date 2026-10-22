@@ -97,6 +97,8 @@ function game(overrides: Partial<LiveGame>): LiveGame {
   return {
     matchName: 'Racha de Quinta',
     isOrganizer: true,
+    free: false,
+    startedAt: null,
     teams,
     phase: 'NOT_STARTED',
     bestOf: null,

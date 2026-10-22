@@ -35,6 +35,7 @@ import { useAddGuest } from '@/features/matches/api/addGuest';
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
 import { useShareMatch } from '@/features/network/api/postsApi';
 import { useCancelMatch } from '@/features/matches/api/editMatch';
+import { useStartFreeGame } from '@/features/matches/api/liveGame';
 import { distanceKm } from '@/features/matches/lib/distanceKm';
 import { splitVenue } from '@/features/matches/lib/venueName';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
@@ -231,6 +232,7 @@ export default function MatchDetailScreen() {
   const addGuest = useAddGuest(matchId);
   const shareMatch = useShareMatch();
   const cancelMatch = useCancelMatch(matchId);
+  const startFreeGame = useStartFreeGame(matchId);
 
   // Invite code typed by someone joining a private match.
   const [inviteCode, setInviteCode] = useState(linkCode ?? '');
@@ -304,6 +306,13 @@ export default function MatchDetailScreen() {
   const goToTeams = () => {
     router.push({ pathname: '/matches/[id]/teams', params: { id: match.id } });
   };
+  // No fixed teams: nothing to build, the organizer starts it from here.
+  const startFree = () =>
+    startFreeGame.mutate(undefined, {
+      onSuccess: () => router.push({ pathname: '/matches/[id]/scoreboard', params: { id: match.id } }),
+      onError: (error) => dialog.alert('Não foi possível começar', error.message),
+    });
+  const goToStats = () => router.push({ pathname: '/matches/[id]/stats', params: { id: match.id } });
 
   // ── A game under way (or over) takes over the forward CTA ──
   const GAME_CTA = {
@@ -412,6 +421,11 @@ export default function MatchDetailScreen() {
                   {match.format}
                 </Text>
               </View>
+              {match.freeTeams ? (
+                <View className="rounded-pill bg-white/90 px-3 py-1" testID="free-teams-badge">
+                  <Text className="font-mono text-mono text-text-primary uppercase">Sem times fixos</Text>
+                </View>
+              ) : null}
               <View
                 className="rounded-pill border-[1.5px] border-white px-3 py-1"
                 style={{ backgroundColor: levelBadge.bg }}
@@ -686,14 +700,29 @@ export default function MatchDetailScreen() {
             Partida cancelada
           </Button>
         ) : gameCta ? (
-          <Button variant="grad" onPress={goToGame} testID="game-cta">
-            {gameCta.label}
-          </Button>
+          <>
+            <Button variant="grad" onPress={goToGame} testID="game-cta">
+              {gameCta.label}
+            </Button>
+            {/* The stats sheet is open from the start of the game until the summary. */}
+            {isOrganizer && match.game !== 'SUMMARY' ? (
+              <View className="mt-1">
+                <Button variant="ghost" onPress={goToStats} testID="detail-stats">
+                  Registrar estatísticas
+                </Button>
+              </View>
+            ) : null}
+          </>
         ) : isOrganizer ? (
           <>
             {/* Building teams works off the confirmed list, so it only shows on
-                that tab; the presence toggle below stays on every tab. */}
-            {tab === 'players' ? (
+                that tab; the presence toggle below stays on every tab. A match
+                without fixed teams starts right away instead. */}
+            {match.freeTeams ? (
+              <Button variant="grad" onPress={startFree} loading={startFreeGame.isPending} testID="start-free-match">
+                Começar partida
+              </Button>
+            ) : tab === 'players' ? (
               <Button variant="grad" onPress={goToTeams} testID="build-teams">
                 Montar os times
               </Button>

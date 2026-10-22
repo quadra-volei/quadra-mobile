@@ -431,16 +431,23 @@ More UI primitives will live here:
   ```
 - **Notes**: Labeled XP progress bar — a "Level N" label (`font-num`), a track (`bg-bg-light-alt`) + fill (lime `bg-accent`) bar, and an "XP: a / b" caption (thousands formatted pt-BR, e.g. `2.450`). The fill width is the only inline style (a runtime percentage NativeWind can't express); no colors are inlined. The ratio is clamped to `[0, 1]`. Receives plain data via props; never fetches. Designed for reuse on profile/ranking surfaces.
 
+### `ActionsSummary`
+- **Path**: `src/components/domain/ActionsSummary.tsx`
+- **Category**: domain
+- **Props**: `{ actions: ProfileActions; tone?: 'light' | 'dark'; testID?: string }` (`ProfileActions` from `@/features/profile/types/profile`)
+- **Used in**: S8 Profile ("Seu progresso"), S8b "Sua carta" (below the card, dark)
+- **Notes**: The five recorded actions (CRT · BLK · ACE · SAL · AST, `PLAYER_ACTIONS`): the total in `font-num` and the average per match below ("1,5"; "—" when never recorded), plus how many matches had a sheet. With no sheet yet, one neutral line instead of zeros (#168).
+
 ### `MatchHistoryRow`
 - **Path**: `src/components/domain/MatchHistoryRow.tsx`
 - **Category**: domain
-- **Props**: `{ match: RecentMatch; onPress: (id: string) => void; testID?: string }` where `RecentMatch = { id: string; name: string; playedAt: string; format: '2X2' | '4X4' | '6X6'; result: 'VITORIA' | 'DERROTA'; setScore: string }` (from `@/features/profile/types/profile`)
+- **Props**: `{ match: RecentMatch; onPress: (id: string) => void; testID?: string }` where `RecentMatch = { id: string; name: string; playedAt: string; format: '2X2' | '4X4' | '6X6'; result: 'VITORIA' | 'DERROTA' | 'EMPATE' | 'SEM_PLACAR'; setScore: string; actionsLine: string }` (from `@/features/profile/types/profile`)
 - **Used in**: S8 Profile ("MINHAS PARTIDAS" recent-match list)
 - **Example**:
   ```tsx
   <MatchHistoryRow match={m} onPress={(id) => router.push({ pathname: '/matches/[id]', params: { id } })} />
   ```
-- **Notes**: Slim recent-match result row (distinct from `MatchCardCompact`, which is a cover-strip *upcoming* card). A `Volleyball` icon in a `bg-bg-light-alt` circle, the match name + "date · format" subtitle (`playedAt` rendered relatively as `"Hoje · 19h30"` / `"Ontem · 19h30"` / `"20/06"` via a pure internal formatter), a right-aligned Vitória/Derrota label (`text-success` / `text-danger`) over the set score (`font-num`), and a trailing `ChevronRight`. Single `accessibilityRole="button"` target announcing name + result + score. Receives plain data via props; never fetches. No hardcoded hex — icon colors come from `src/theme/colors.ts`.
+- **Notes**: Slim recent-match result row (distinct from `MatchCardCompact`, which is a cover-strip *upcoming* card). A `Volleyball` icon in a `bg-bg-light-alt` circle, the match name + "date · format · actions" subtitle (actions: "8 CRT · 3 SAL", only the recorded ones above zero) (`playedAt` rendered relatively as `"Hoje · 19h30"` / `"Ontem · 19h30"` / `"20/06"` via a pure internal formatter), a right-aligned Vitória/Derrota label (`text-success` / `text-danger`) over the set score (`font-num`), and a trailing `ChevronRight`. Single `accessibilityRole="button"` target announcing name + result + score. Receives plain data via props; never fetches. No hardcoded hex — icon colors come from `src/theme/colors.ts`.
 
 ### `RankingRow`
 - **Path**: `src/components/domain/RankingRow.tsx`

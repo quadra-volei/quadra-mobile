@@ -63,10 +63,9 @@ const PROFILE_FIXTURE: MyProfile = {
   overall: 68,
   ace: 30,
   blk: 25,
-  ata: 20,
+  atk: 19,
   def: 31,
-  srv: 27,
-  rec: 24,
+  actions: { matches: 0, byAction: { kills: { total: 0, perMatch: null }, blocks: { total: 0, perMatch: null }, aces: { total: 0, perMatch: null }, digs: { total: 0, perMatch: null }, assists: { total: 0, perMatch: null } } },
   level: 7,
   xp: 40,
   xpToNext: 140,
@@ -112,14 +111,14 @@ describe('S8b — Sua carta', () => {
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
-  it('shows the front: title from the position, name, @handle and position, no GERAL or premium note', async () => {
+  it('shows the front: title from the position, name, @handle and position, GERAL in the corner, no premium note', async () => {
     await render(<CardScreen />);
 
     expect(screen.getAllByText('O Maestro').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Renan Dias').length).toBeGreaterThan(0);
     expect(screen.getAllByText('@renan').length).toBeGreaterThan(0);
     expect(screen.getByText('Levantador')).toBeTruthy();
-    expect(screen.queryByText('68')).toBeNull();
+    expect(screen.getAllByText('68').length).toBeGreaterThan(0); // GERAL
     expect(screen.queryByText(/Premium/)).toBeNull();
   });
 
