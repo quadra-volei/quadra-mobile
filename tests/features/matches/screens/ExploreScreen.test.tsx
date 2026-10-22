@@ -435,10 +435,10 @@ describe('S6 — Explore screen', () => {
     await render(<ExploreScreen />);
 
     await press(screen.getByLabelText('Filtros'));
-    // The distance is a slider now: from "any" (50) down to 2 km, step by step.
-    expect(screen.getByText('Qualquer distância')).toBeTruthy();
+    // The distance is a slider: from the default 15 km down to 2 km, step by step.
+    expect(screen.getByText('Até 15 km')).toBeTruthy();
     const slider = screen.getByLabelText('Distância máxima');
-    for (let i = 0; i < 48; i++) {
+    for (let i = 0; i < 13; i++) {
       await fireEvent(slider, 'accessibilityAction', { nativeEvent: { actionName: 'decrement' } });
     }
     expect(screen.getByText('Até 2 km')).toBeTruthy();
@@ -446,6 +446,16 @@ describe('S6 — Explore screen', () => {
 
     expect(screen.getByText('Quadra do Parque')).toBeTruthy();
     expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
+  });
+
+  it('opens with the games up to 15 km, and offers the whole 50 km when none is that close', async () => {
+    mockNearby.data = NEARBY_FIXTURE.map((m) => ({ ...m, distanceKm: m.distanceKm + 20 }));
+    await render(<ExploreScreen />);
+
+    expect(screen.getByText('0 partidas encontradas')).toBeTruthy();
+    expect(screen.getByText('Nenhuma partida até 15 km')).toBeTruthy();
+    await press(screen.getByText('Ver até 50 km'));
+    expect(screen.getByText('3 partidas encontradas')).toBeTruthy();
   });
 
   // --------------------------------------------------------------- map preview

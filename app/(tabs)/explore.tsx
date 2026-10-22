@@ -9,14 +9,26 @@ import {
 } from "lucide-react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { RefreshControl, ScrollView, Text, View } from "react-native";
+import { RefreshControl, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ExploreFilterSheet } from "@/components/domain/ExploreFilterSheet";
 import { MatchCard } from "@/components/domain/MatchCard";
-import { MATCH_PIN_ANCHOR, MatchPin, VenuePin, venuePinKey } from "@/components/domain/MapPins";
-import { matchIdsAtVenues, useNearbyVenues, type NearbyVenue } from "@/features/explore/api/venues";
+import {
+  CLUSTER_ANCHOR,
+  MATCH_PIN_ANCHOR,
+  clusterImage,
+  matchPinImage,
+  venuePinImage,
+} from "@/components/domain/MapPins";
+import { clusterPoints } from "@/features/explore/lib/cluster";
+import {
+  NEARBY_VENUES_KM,
+  matchIdsAtVenues,
+  useNearbyVenues,
+  type NearbyVenue,
+} from "@/features/explore/api/venues";
 import { Button } from "@/components/ui/Button";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
@@ -27,6 +39,7 @@ import { FilterChip } from "@/components/ui/FilterChip";
 import { SearchField } from "@/components/ui/SearchField";
 import {
   DEFAULT_FILTERS,
+  NEARBY_KM,
   applyFilters,
   countActive,
   toggle,
@@ -34,7 +47,7 @@ import {
 } from "@/features/explore/lib/filters";
 import { useNearbyMatches } from "@/features/matches/api/getNearby";
 import { isMapAvailable } from "@/features/matches/lib/isMapAvailable";
-import { useDeviceCoords } from "@/features/matches/lib/useDeviceCoords";
+import { useDeviceLocation } from "@/features/matches/lib/useDeviceCoords";
 import type { NearbyMatch } from "@/features/matches/types/match";
 import { HARD_SHADOW, colors } from "@/theme/colors";
 import { MAP_STYLE } from "@/theme/mapStyle";
@@ -44,7 +57,8 @@ import { TAB_BAR_CLEARANCE } from "@/theme/layout";
 // Where Explore searches when the device location is not available: São Paulo
 // centre. Explore never prompts for location (S6 spec "Permissions"). The
 // radius is the API's 50 km cap: one fetch, then every filter (distance
-// included) runs on the device (DECISIONS #114).
+// included) runs on the device (DECISIONS #114); the cards start at NEARBY_KM
+// (DECISIONS #176).
 const DEFAULT_GEO = { lat: -23.55, lon: -46.63, radiusKm: 50 };
 
 type ViewMode = "grid" | "list";
@@ -143,12 +157,18 @@ function FiltersButton({
   );
 }
 
+// The preview always frames NEARBY_KM around the user (owner, 22/10/2026).
+const MINI_MAP_DELTA = (2 * NEARBY_KM) / 111;
+const MINI_MAP_PINS = 20;
+const MINI_MAP_HEIGHT = 144; // h-36
+
 /**
  * Static mini map (Android lite mode: a bitmap, cheap inside a scroll list)
- * drawn like the full map (owner's 4th review, item 1): arenas with the number
- * of the filtered games there, and a drop pin per filtered game away from an
- * arena. Framed around the search centre and the nearest results. Taps go to
- * the card around it, never into the map.
+ * drawn like the full map (owner's 4th review, item 1), but only where there
+ * is a game: arenas with the number of the filtered games there, and a drop
+ * per filtered game away from an arena. Arenas without games are left to the
+ * full map; at this scale they were a cloud of dots. Always framed NEARBY_KM
+ * around the search centre. Taps go to the card around it, never into the map.
  */
 function MiniMap({
   center,
@@ -161,52 +181,60 @@ function MiniMap({
 }) {
   const shown = new Set(matches.map((m) => m.id));
   const atVenues = matchIdsAtVenues(venues);
-  const loose = matches.filter((m) => !atVenues.has(m.id)).slice(0, 20);
-  // Arenas with a filtered game first, then the closest others; the count follows the filters.
+  const loose = matches.filter((m) => !atVenues.has(m.id)).slice(0, MINI_MAP_PINS);
   const arenas = venues
     .map((v) => ({ venue: v, games: v.matches.filter((m) => shown.has(m.id)).length }))
-    .sort((a, b) => b.games - a.games || a.venue.distanceKm - b.venue.distanceKm)
-    .slice(0, 20);
-  const span = [...loose, ...arenas.filter((a) => a.games > 0).map((a) => a.venue)].reduce(
-    (max, p) => Math.max(max, Math.abs(p.lat - center.lat), Math.abs(p.lon - center.lon)),
-    0,
+    .filter((a) => a.games > 0)
+    .slice(0, MINI_MAP_PINS);
+  // Grouped like the full map (DECISIONS #177). The card is the screen minus
+  // its margins wide; the map shows the frame's height and more across.
+  const width = useWindowDimensions().width - 32;
+  const clusters = clusterPoints<{ venue?: NearbyVenue; games: number; match?: NearbyMatch }>(
+    [
+      ...arenas.map(({ venue, games }) => ({
+        id: `v:${venue.placeId}`, lat: venue.lat, lon: venue.lon, games, item: { venue, games },
+      })),
+      ...loose.map((m) => ({ id: `m:${m.id}`, lat: m.lat, lon: m.lon, games: 1, item: { match: m, games: 1 } })),
+    ],
+    {
+      latitudeDelta: MINI_MAP_DELTA,
+      longitudeDelta: (MINI_MAP_DELTA * width) / MINI_MAP_HEIGHT / Math.cos((center.lat * Math.PI) / 180),
+      width,
+      height: MINI_MAP_HEIGHT,
+    },
   );
-  // Rounded so a filter change that keeps the same frame does not remount the map.
-  const delta = Math.round(Math.max(span * 2.4, 0.03) * 100) / 100;
   return (
     <View pointerEvents="none" className="h-36" testID="explore-mini-map">
       <MapView
-        key={`${center.lat},${center.lon},${delta}`}
+        key={`${center.lat},${center.lon}`}
         liteMode
         customMapStyle={MAP_STYLE}
         style={{ flex: 1 }}
         initialRegion={{
           latitude: center.lat,
           longitude: center.lon,
-          latitudeDelta: delta,
-          longitudeDelta: delta,
+          latitudeDelta: MINI_MAP_DELTA,
+          longitudeDelta: MINI_MAP_DELTA,
         }}
       >
-        {arenas.map(({ venue, games }) => (
-          <Marker
-            key={venuePinKey(venue, games, false)}
-            coordinate={{ latitude: venue.lat, longitude: venue.lon }}
-            anchor={{ x: 0.5, y: 0.5 }}
-            tracksViewChanges={false}
-          >
-            <VenuePin venue={venue} games={games} />
-          </Marker>
-        ))}
-        {loose.map((m) => (
-          <Marker
-            key={`${m.id}:${m.capacity - m.confirmed}`}
-            coordinate={{ latitude: m.lat, longitude: m.lon }}
-            anchor={MATCH_PIN_ANCHOR}
-            tracksViewChanges={false}
-          >
-            <MatchPin openSlots={m.capacity - m.confirmed} />
-          </Marker>
-        ))}
+        {clusters.map((c) => {
+          const { venue, match, games } = c.points[0]!.item;
+          const [anchor, image] =
+            c.points.length > 1
+              ? [CLUSTER_ANCHOR, clusterImage(c.games, c.points.length)]
+              : venue
+                ? [{ x: 0.5, y: 0.5 }, venuePinImage(venue, games)]
+                : [MATCH_PIN_ANCHOR, matchPinImage(match ? match.capacity - match.confirmed : 0)];
+          return (
+            <Marker
+              key={c.id}
+              coordinate={{ latitude: c.lat, longitude: c.lon }}
+              anchor={anchor}
+              image={image}
+              testID={`explore-mini-map-pin-${c.id}`}
+            />
+          );
+        })}
       </MapView>
     </View>
   );
@@ -222,13 +250,19 @@ function ResultsArea({
   const [filters, setFilters] = useState<ExploreFilters>(DEFAULT_FILTERS);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const coords = useDeviceCoords();
+  // Nothing is searched until the position is known: searching the default
+  // centre first meant two searches and the cards changing under the user.
+  const { coords, resolved } = useDeviceLocation();
   const geo = coords
     ? { ...DEFAULT_GEO, lat: coords.latitude, lon: coords.longitude }
     : DEFAULT_GEO;
-  const { data, isPending, isError, refetch } = useNearbyMatches(geo);
-  // The arenas around, for the preview map (optional: none while loading or on error).
-  const venuesQuery = useNearbyVenues({ lat: geo.lat, lon: geo.lon, radiusKm: 10 }, isMapAvailable());
+  const { data, isPending, isError, refetch } = useNearbyMatches(geo, resolved);
+  // The arenas around, for the preview map (optional: none while loading or on
+  // error). Same query the full map opens with, so it opens from the cache.
+  const venuesQuery = useNearbyVenues(
+    { lat: geo.lat, lon: geo.lon, radiusKm: NEARBY_VENUES_KM },
+    isMapAvailable() && resolved,
+  );
 
   const results = useMemo(
     () => applyFilters(data ?? [], filters),
@@ -284,9 +318,13 @@ function ResultsArea({
         accessibilityRole="button"
         accessibilityLabel="Abrir mapa de partidas"
       >
-        {isMapAvailable() ? (
+        {/* The native map mounts once the results are in: the tab opens without
+            waiting for it, and the map is drawn once, with its pins. */}
+        {!isMapAvailable() ? null : isPending ? (
+          <SkeletonBlock className="h-36 rounded-none" />
+        ) : (
           <MiniMap center={geo} matches={results} venues={venuesQuery.data?.venues ?? []} />
-        ) : null}
+        )}
         <View className="p-3 flex-row items-center gap-3">
           <View className="h-10 w-10 rounded-chip bg-primary items-center justify-center">
             <MapPin size={20} color={colors.textOnDark} />
@@ -349,6 +387,16 @@ function ResultsArea({
         results={results}
         view={view}
         sourceEmpty={(data ?? []).length === 0}
+        // None this close, but some farther: offer the whole 50 km instead of
+        // "Limpar filtros", which would bring back the same NEARBY_KM.
+        widenKm={
+          results.length === 0 &&
+          filters.maxKm != null &&
+          applyFilters(data ?? [], { ...filters, maxKm: null }).length > 0
+            ? filters.maxKm
+            : null
+        }
+        onWiden={() => patch({ maxKm: null })}
         onRetry={() => refetch()}
         onClearFilters={() => setFilters(DEFAULT_FILTERS)}
       />
@@ -373,6 +421,8 @@ function ResultsBody({
   results,
   view,
   sourceEmpty,
+  widenKm,
+  onWiden,
   onRetry,
   onClearFilters,
 }: {
@@ -381,6 +431,9 @@ function ResultsBody({
   results: NearbyMatch[];
   view: ViewMode;
   sourceEmpty: boolean;
+  /** The distance limit that hides every result, when a wider one would show some. */
+  widenKm: number | null;
+  onWiden: () => void;
   onRetry: () => void;
   onClearFilters: () => void;
 }) {
@@ -418,6 +471,15 @@ function ResultsBody({
     if (sourceEmpty) {
       return (
         <StateMessage message="Nenhuma partida perto de você ainda" />
+      );
+    }
+    if (widenKm != null) {
+      return (
+        <StateMessage
+          message={`Nenhuma partida até ${widenKm} km`}
+          actionLabel="Ver até 50 km"
+          onAction={onWiden}
+        />
       );
     }
     return (

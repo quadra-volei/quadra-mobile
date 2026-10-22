@@ -78,6 +78,7 @@
     ],
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1",
+      "^.*/assets/map-pins/(.*)\\.png$": "<rootDir>/assets/map-pins/$1@3x.png",
       "\\.(css)$": "<rootDir>/tests/__mocks__/styleMock.js"
     },
     "transformIgnorePatterns": [
