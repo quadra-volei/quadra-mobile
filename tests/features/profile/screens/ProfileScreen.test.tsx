@@ -87,6 +87,7 @@ jest.mock('lucide-react-native', () => {
     Settings: stub('settings'),
     ChevronRight: stub('chevron-right'),
     Volleyball: stub('volleyball'),
+    Star: stub('star'),
   };
 });
 
@@ -127,6 +128,7 @@ import type {
   MyProfile,
   RecentMatch,
 } from '@/features/profile/types/profile';
+import type { MatchHistoryPage } from '@/features/profile/api/getRecentMatches';
 import type { RankingRow } from '@/features/ranking/types/ranking';
 
 const PROFILE_FIXTURE: MyProfile = {
@@ -158,6 +160,7 @@ const RECENT_FIXTURE: RecentMatch[] = [
     result: 'VITORIA',
     setScore: '3-1',
     actionsLine: '',
+    isMvp: false,
   },
   {
     id: 'rm-2',
@@ -167,6 +170,7 @@ const RECENT_FIXTURE: RecentMatch[] = [
     result: 'DERROTA',
     setScore: '1-3',
     actionsLine: '',
+    isMvp: false,
   },
 ];
 
@@ -191,8 +195,8 @@ const mockProfile: QueryState<MyProfile | undefined> & { refetch: jest.Mock } = 
   refetch: jest.fn(),
 };
 
-const mockRecent: QueryState<RecentMatch[]> & { refetch: jest.Mock } = {
-  data: RECENT_FIXTURE,
+const mockRecent: QueryState<MatchHistoryPage> & { refetch: jest.Mock } = {
+  data: { items: RECENT_FIXTURE, total: 2, hasNextPage: false },
   isPending: false,
   isError: false,
   refetch: jest.fn(),
@@ -253,7 +257,7 @@ function resetProfile() {
 }
 
 function resetRecent() {
-  mockRecent.data = RECENT_FIXTURE;
+  mockRecent.data = { items: RECENT_FIXTURE, total: 2, hasNextPage: false };
   mockRecent.isPending = false;
   mockRecent.isError = false;
   mockRecent.refetch.mockClear();
@@ -427,20 +431,30 @@ describe('S8 — Profile screen', () => {
     });
   });
 
-  /**
-   * Covers: S8 — Profile
-   * Criterion: MINHAS PARTIDAS carries a "Ver tudo" button (matching the
-   *  prototype) but it is inert — there is no full-history screen in MVP, so
-   *  pressing it navigates nowhere.
-   */
-  it('renders an inert "Ver tudo" under the MINHAS PARTIDAS section', async () => {
+  it('hides "Ver tudo" when the recent rows are the whole history', async () => {
     await render(<ProfileScreen />);
 
-    const verTudo = screen.getByTestId('ver-tudo-partidas');
-    expect(verTudo).toBeTruthy();
+    expect(screen.queryByTestId('ver-tudo-partidas')).toBeNull();
+  });
 
-    fireEvent.press(verTudo);
-    expect(mockPush).not.toHaveBeenCalled();
+  it('opens the full history from "Ver tudo" when there are older matches', async () => {
+    mockRecent.data = { items: RECENT_FIXTURE, total: 12, hasNextPage: true };
+    await render(<ProfileScreen />);
+
+    fireEvent.press(screen.getByTestId('ver-tudo-partidas'));
+    expect(mockPush).toHaveBeenCalledWith('/profile/history');
+  });
+
+  it('marks the matches where I was the MVP', async () => {
+    mockRecent.data = {
+      items: [{ ...RECENT_FIXTURE[0]!, isMvp: true }, RECENT_FIXTURE[1]!],
+      total: 2,
+      hasNextPage: false,
+    };
+    await render(<ProfileScreen />);
+
+    expect(screen.getAllByTestId('mvp-badge')).toHaveLength(1);
+    expect(screen.getByLabelText(/Vôlei de Quinta, VITÓRIA 3-1, MVP/)).toBeTruthy();
   });
 
   // --------------------------------------------------- Ranking semanal section
@@ -623,7 +637,7 @@ describe('S8 — Profile screen', () => {
    *  MINHAS PARTIDAS empty -> "Você ainda não jogou nenhuma partida".
    */
   it('shows the MINHAS PARTIDAS empty state independently', async () => {
-    mockRecent.data = [];
+    mockRecent.data = { items: [], total: 0, hasNextPage: false };
     await render(<ProfileScreen />);
 
     expect(

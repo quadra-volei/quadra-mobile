@@ -448,13 +448,13 @@ More UI primitives will live here:
 ### `MatchHistoryRow`
 - **Path**: `src/components/domain/MatchHistoryRow.tsx`
 - **Category**: domain
-- **Props**: `{ match: RecentMatch; onPress: (id: string) => void; testID?: string }` where `RecentMatch = { id: string; name: string; playedAt: string; format: '2X2' | '4X4' | '6X6'; result: 'VITORIA' | 'DERROTA' | 'EMPATE' | 'SEM_PLACAR'; setScore: string; actionsLine: string }` (from `@/features/profile/types/profile`)
-- **Used in**: S8 Profile ("MINHAS PARTIDAS" recent-match list)
+- **Props**: `{ match: RecentMatch; onPress: (id: string) => void; testID?: string }` where `RecentMatch = { id: string; name: string; playedAt: string; format: '2X2' | '4X4' | '6X6'; result: 'VITORIA' | 'DERROTA' | 'EMPATE' | 'SEM_PLACAR'; setScore: string; actionsLine: string; isMvp: boolean }` (from `@/features/profile/types/profile`)
+- **Used in**: S8 Profile ("MINHAS PARTIDAS" recent-match list), `app/profile/history.tsx` (full history)
 - **Example**:
   ```tsx
   <MatchHistoryRow match={m} onPress={(id) => router.push({ pathname: '/matches/[id]', params: { id } })} />
   ```
-- **Notes**: Slim recent-match result row (distinct from `MatchCardCompact`, which is a cover-strip *upcoming* card). A `Volleyball` icon in a `bg-bg-light-alt` circle, the match name + "date · format · actions" subtitle (actions: "8 CRT · 3 SAL", only the recorded ones above zero) (`playedAt` rendered relatively as `"Hoje · 19h30"` / `"Ontem · 19h30"` / `"20/06"` via a pure internal formatter), a right-aligned Vitória/Derrota label (`text-success` / `text-danger`) over the set score (`font-num`), and a trailing `ChevronRight`. Single `accessibilityRole="button"` target announcing name + result + score. Receives plain data via props; never fetches. No hardcoded hex — icon colors come from `src/theme/colors.ts`.
+- **Notes**: Slim recent-match result row (distinct from `MatchCardCompact`, which is a cover-strip *upcoming* card). A `Volleyball` icon in a `bg-bg-light-alt` circle, the match name + "date · format · actions" subtitle (actions: "8 CRT · 3 SAL", only the recorded ones above zero) (`playedAt` rendered relatively as `"Hoje · 19h30"` / `"Ontem · 19h30"` / `"20/06"` via a pure internal formatter), a lime "MVP" pill after the name when `isMvp` (#174), a right-aligned Vitória/Derrota label (`text-success` / `text-danger`) over the set score (`font-num`), and a trailing `ChevronRight`. Single `accessibilityRole="button"` target announcing name + result + score (+ ", MVP"). Receives plain data via props; never fetches. No hardcoded hex — icon colors come from `src/theme/colors.ts`.
 
 ### `RankingRow`
 - **Path**: `src/components/domain/RankingRow.tsx`

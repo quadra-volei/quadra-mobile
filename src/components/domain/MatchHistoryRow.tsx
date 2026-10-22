@@ -1,4 +1,4 @@
-import { ChevronRight, Volleyball } from 'lucide-react-native';
+import { ChevronRight, Star, Volleyball } from 'lucide-react-native';
 import { Text, View } from 'react-native';
 
 import { PressableScale } from '@/components/ui/PressableScale';
@@ -67,7 +67,7 @@ export function MatchHistoryRow({ match, onPress, testID }: MatchHistoryRowProps
       onPress={() => onPress(match.id)}
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={`${match.name}, ${RESULT_LABEL[match.result]} ${match.setScore}`}
+      accessibilityLabel={`${match.name}, ${RESULT_LABEL[match.result]} ${match.setScore}${match.isMvp ? ', MVP' : ''}`}
       className="flex-row items-center px-4 py-3"
     >
       <View className="h-10 w-10 rounded-full bg-bg-light-alt items-center justify-center">
@@ -75,9 +75,17 @@ export function MatchHistoryRow({ match, onPress, testID }: MatchHistoryRowProps
       </View>
 
       <View className="flex-1 ml-3">
-        <Text className="font-body-semibold text-body-bold text-text-primary" numberOfLines={1}>
-          {match.name}
-        </Text>
+        <View className="flex-row items-center">
+          <Text className="shrink font-body-semibold text-body-bold text-text-primary" numberOfLines={1}>
+            {match.name}
+          </Text>
+          {match.isMvp ? (
+            <View testID="mvp-badge" className="ml-2 flex-row items-center rounded-full bg-accent px-1.5">
+              <Star size={10} color={colors.surfaceDark} fill={colors.surfaceDark} />
+              <Text className="ml-0.5 font-mono text-mono text-surface-dark">MVP</Text>
+            </View>
+          ) : null}
+        </View>
         <Text className="font-body text-caption text-text-muted">{subtitle}</Text>
       </View>
 

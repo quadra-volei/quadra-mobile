@@ -170,11 +170,11 @@ export default function NewPostScreen() {
           </>
         ) : null}
 
-        {recentMatches.data?.length ? (
+        {recentMatches.data?.items.length ? (
           <>
             <SectionLabel>Partida jogada</SectionLabel>
             <View className="flex-row flex-wrap gap-2">
-              {recentMatches.data.map((match) => (
+              {recentMatches.data.items.map((match) => (
                 <FilterChip
                   key={match.id}
                   label={match.name}

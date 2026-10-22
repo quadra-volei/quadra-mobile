@@ -98,4 +98,6 @@ export type RecentMatch = {
   setScore: string;
   /** "8 CRT · 3 SAL": the player's recorded actions in the match; empty with no sheet. */
   actionsLine: string;
+  /** The player was the match's MVP. */
+  isMvp: boolean;
 };
