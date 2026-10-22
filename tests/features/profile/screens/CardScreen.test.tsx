@@ -168,7 +168,9 @@ describe('S8b — Sua carta', () => {
 
     await fireEvent.press(screen.getByText("Estatísticas"));
     expect(screen.getAllByText('720')).toHaveLength(2); // back of the card + the list
-    expect(screen.getByText('Vezes eleito o melhor da partida')).toBeTruthy();
+    // Only the rule nobody can guess keeps a hint (owner's review 2026-10-21, item 14).
+    expect(screen.queryByText('Vezes eleito o melhor da partida')).toBeNull();
+    expect(screen.getByText('Presença +10, vitória +15, MVP +25')).toBeTruthy();
   });
 
   it('shows a loading placeholder while the profile is pending', async () => {

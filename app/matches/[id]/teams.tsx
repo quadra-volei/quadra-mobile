@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TeamRoster } from '@/components/domain/TeamRoster';
 import { Button } from '@/components/ui/Button';
+import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { dialog } from '@/components/ui/Dialog';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { StepperField } from '@/components/ui/StepperField';
@@ -110,6 +111,19 @@ export default function TeamsScreen() {
           <Button variant="outline" onPress={() => router.back()}>
             Voltar
           </Button>
+        </SafeAreaView>
+      </View>
+    );
+  }
+
+  if (matchQuery.isPending) {
+    return (
+      <View className="flex-1 bg-bg-light">
+        <SafeAreaView edges={['top']} className="flex-1 px-4 pt-4 gap-4" testID="teams-skeleton">
+          <SkeletonBlock className="h-8 w-40" />
+          <SkeletonBlock className="h-28" />
+          <SkeletonBlock className="h-40" />
+          <SkeletonBlock className="h-40" />
         </SafeAreaView>
       </View>
     );

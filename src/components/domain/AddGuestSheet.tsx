@@ -5,8 +5,8 @@ import { Controller, useForm } from 'react-hook-form';
 import { KeyboardAvoidingView, Modal, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { PositionTag } from '@/components/domain/PositionPicker';
 import { Button } from '@/components/ui/Button';
-import { FilterChip } from '@/components/ui/FilterChip';
 import { TextField } from '@/components/ui/TextField';
 import {
   addGuestSchema,
@@ -132,16 +132,19 @@ export function AddGuestSheet({
           </Text>
           <View className="mt-2 flex-row flex-wrap gap-2">
             {PLAYER_POSITIONS.map((pos) => (
-              <FilterChip
+              <Pressable
                 key={pos}
-                label={POSITION_LABEL[pos]}
-                selected={position === pos}
+                accessibilityRole="button"
+                accessibilityLabel={POSITION_LABEL[pos]}
+                accessibilityState={{ selected: position === pos }}
                 // Tap again to clear the optional selection.
                 onPress={() =>
                   setValue('position', position === pos ? undefined : pos)
                 }
                 testID={`guest-position-${pos}`}
-              />
+              >
+                <PositionTag code={pos} selected={position === pos} />
+              </Pressable>
             ))}
           </View>
 

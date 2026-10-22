@@ -7,8 +7,7 @@ import { Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from "r
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 
-import { QuadraWordmark } from "@/components/icons/QuadraWordmark";
-import { PlayerCard } from "@/components/domain/PlayerCard";
+import { CardLogo, PlayerCard } from "@/components/domain/PlayerCard";
 import { Button } from "@/components/ui/Button";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
@@ -90,7 +89,7 @@ function FinishPicker({ profile, save }: { profile: MyProfile; save: Save }) {
                 end={{ x: 1, y: 1 }}
                 style={{ height: 56, borderRadius: t.shape === "rounded" ? 14 : 7, alignItems: "center", justifyContent: "center" }}
               >
-                <QuadraWordmark variant={t.logo} height={20} />
+                <CardLogo height={12} />
               </LinearGradient>
               <Text className="font-body-bold text-caption text-text-on-dark mt-2">{t.name}</Text>
               <Text className="font-mono text-mono text-white/60 mt-1">{equipped ? "EQUIPADO" : "EXPERIMENTAR"}</Text>
@@ -126,9 +125,6 @@ function TitlePicker({ profile, save }: { profile: MyProfile; save: Save }) {
           </PressableScale>
         );
       })}
-      <Text className="font-body text-caption text-white/60 my-3">
-        Títulos de identidade. Eles não representam uma classificação técnica.
-      </Text>
     </>
   );
 }
@@ -136,29 +132,27 @@ function TitlePicker({ profile, save }: { profile: MyProfile; save: Save }) {
 export function StatsList({ profile }: { profile: MyProfile }) {
   const r = profile.record;
   const rows: [string, string, number][] = [
-    ["Partidas", "Partidas concluídas em quadra", r.matches],
-    ["Vitórias", "Partidas em que o time venceu", r.wins],
-    ["Derrotas", "Partidas em que o time perdeu", r.losses],
-    ["Empates", "Partidas encerradas empatadas", r.draws],
-    ["MVPs", "Vezes eleito o melhor da partida", r.mvps],
+    ["Partidas", "", r.matches],
+    ["Vitórias", "", r.wins],
+    ["Derrotas", "", r.losses],
+    ["Empates", "", r.draws],
+    ["MVPs", "", r.mvps],
+    // The only rule a player cannot guess: how points are earned.
     ["Pontos", "Presença +10, vitória +15, MVP +25", profile.points],
   ];
   return (
     <>
-      <Text className="font-body text-caption text-white/60 mb-3">
-        Só partidas concluídas e registradas compõem a carta.
-      </Text>
       {rows.map(([label, hint, value]) => (
         <View key={label} className="flex-row items-center justify-between rounded-chip border border-white/15 bg-white/5 px-3 py-3 mb-2">
           <View className="flex-1">
             <Text className="font-body-bold text-body text-text-on-dark">{label}</Text>
-            <Text className="font-body text-caption text-white/60 mt-1">{hint}</Text>
+            {hint ? <Text className="font-body text-caption text-white/60 mt-1">{hint}</Text> : null}
           </View>
           <Text className="font-num text-h3 text-text-on-dark">{value}</Text>
         </View>
       ))}
       <Text className="font-body text-caption text-white/60 my-3">
-        O nível representa experiência no app. Acabamentos e títulos não dão pontos nem vantagem no sorteio.
+        Acabamentos e títulos não dão pontos nem vantagem no sorteio.
       </Text>
     </>
   );

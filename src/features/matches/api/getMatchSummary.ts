@@ -31,6 +31,24 @@ export type MatchPerformance = {
   aces: number;
 };
 
+/** A team in the final standings. `colorIndex` follows the scoreboard's team colors. */
+export type SummaryTeam = {
+  id: string;
+  name: string;
+  wins: number;
+  colorIndex: number;
+  mine: boolean;
+  winner: boolean;
+};
+
+/** A game of the session: its winner and the points as [winner, loser]. */
+export type SummaryGame = {
+  number: number;
+  /** Null when the game ended tied (forced end). */
+  winner: SummaryTeam | null;
+  points: [number, number];
+};
+
 /**
  * Full read-only match summary (F1.6). Returned by useMatchSummary.
  * result + final score + per-set breakdown + most-voted MVP + vote ranking.
@@ -42,10 +60,12 @@ export type MatchSummary = {
   venue: string;
   /** Pre-formatted pt-BR date, e.g. "10 jun 2026". */
   dateLabel: string;
-  /** Sets won [mine, theirs] (the two teams of the last set when teams rotated). */
-  finalScore: [number, number];
-  /** Per-set point scores, one tuple per set played. */
-  setScores: Array<[number, number]>;
+  /** The winning team's name; null when nobody won (ended on a tie). */
+  winnerName: string | null;
+  /** Every team with the games it won, most wins first. */
+  standings: SummaryTeam[];
+  /** One row per game played, with who won it. */
+  games: SummaryGame[];
   /** The most-voted player, with their vote count. */
   mvp: MatchSummaryPlayer;
   /** Denominator for "N de M votos" (total votes cast). */
@@ -84,8 +104,8 @@ const NO_PERFORMANCE: MatchPerformance = { xpGained: 0, points: 0, blocks: 0, de
 
 /**
  * Reads the summary of a concluded match (`GET /matches/{id}/summary`), from the
- * signed-in player's side: the result is a win when their team won, and scores
- * are shown as [mine, theirs]. Names come from the match roster and the vote
+ * signed-in player's side: the result is a win when their team won. Every score
+ * carries its team: games won per team, and each game's winner. Names come from the match roster and the vote
  * ranking from the closed MVP voting.
  */
 async function getMatchSummary(matchId: string): Promise<MatchSummary> {
@@ -102,9 +122,20 @@ async function getMatchSummary(matchId: string): Promise<MatchSummary> {
   const match = toMatchDetail(detail, userId);
   const players = gamePlayersById(detail);
   const myTeamId = summary.teams.find((team) => userId != null && team.playerIds.includes(userId))?.teamId;
-  // Show my team first; someone who sat out the last set sees it as recorded.
-  const flip = myTeamId === summary.teamBId;
-  const pair = (a: number, b: number): [number, number] => (flip ? [b, a] : [a, b]);
+  // Teams come sorted by name, the same order the scoreboard colors them in.
+  const teams: SummaryTeam[] = summary.teams.map((team, colorIndex) => ({
+    id: team.teamId,
+    name: team.name,
+    wins: summary.sets.filter((set) => set.winnerTeamId === team.teamId).length,
+    colorIndex,
+    mine: team.teamId === myTeamId,
+    winner: team.teamId === summary.winnerTeamId,
+  }));
+  const games: SummaryGame[] = summary.sets.map((set) => ({
+    number: set.setNumber,
+    winner: teams.find((team) => team.id === set.winnerTeamId) ?? null,
+    points: [Math.max(set.teamAPoints, set.teamBPoints), Math.min(set.teamAPoints, set.teamBPoints)],
+  }));
 
   const voteRanking: MatchSummaryPlayer[] = (voting?.results ?? [])
     .map((tally) => {
@@ -121,8 +152,9 @@ async function getMatchSummary(matchId: string): Promise<MatchSummary> {
     name: match.name,
     venue: match.venue,
     dateLabel: toDateLabel(summary.endedAt),
-    finalScore: pair(summary.teamASetsWon, summary.teamBSetsWon),
-    setScores: summary.sets.map((set) => pair(set.teamAPoints, set.teamBPoints)),
+    winnerName: teams.find((team) => team.winner)?.name ?? null,
+    standings: [...teams].sort((a, b) => Number(b.winner) - Number(a.winner) || b.wins - a.wins),
+    games,
     mvp: mvpPlayer ? { ...mvpPlayer, votes: summary.mvpVoteCount ?? 0 } : NO_MVP,
     totalVotes: summary.mvpTotalVotes,
     voteRanking,

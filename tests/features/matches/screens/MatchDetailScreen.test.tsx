@@ -77,7 +77,7 @@ jest.mock('lucide-react-native', () => {
   const { View } = require('react-native');
   const stub = (name: string) => (props: any) =>
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
+  const icons: Record<string, unknown> = {
     Banknote: stub('banknote'),
     Calendar: stub('calendar'),
     Check: stub('check'),
@@ -97,6 +97,8 @@ jest.mock('lucide-react-native', () => {
     X: stub('x'),
     XCircle: stub('x-circle'),
   };
+  const fallback = (props: any) => require('react').createElement(require('react-native').View, props);
+  return new Proxy(icons, { get: (target, key: string) => (key in target ? target[key] : fallback) });
 });
 
 // Button: a plain Pressable that surfaces `variant` (so the grad-vs-primary
@@ -406,7 +408,8 @@ describe('S12 — Match Detail screen', () => {
     expect(name?.props.className).toContain('uppercase');
 
     // venue · distance line (comma decimal)
-    expect(screen.getByText('Arena Quadra · 1,2 km')).toBeTruthy();
+    expect(screen.getByTestId('match-venue-name')).toHaveTextContent('Arena Quadra');
+    expect(screen.getByTestId('match-venue-address')).toHaveTextContent('1,2 km');
   });
 
   // -------------------------------------------------------------- info card
@@ -430,9 +433,9 @@ describe('S12 — Match Detail screen', () => {
     expect(screen.getByText('Érica Moraes')).toBeTruthy();
     expect(screen.getByLabelText('Avatar de Érica Moraes')).toBeTruthy();
 
-    // position pill, colored with the primary token on the light card
-    const pill = screen.getByText('Central');
-    expect(pill.props.className).toContain('text-primary');
+    // position tag in the onboarding style
+    expect(screen.getByLabelText('Central')).toBeTruthy();
+    expect(screen.getByText('Central')).toBeTruthy();
   });
 
   // -------------------------------------------------------------- presence grid
@@ -464,8 +467,8 @@ describe('S12 — Match Detail screen', () => {
     expect(screen.getByText('Renan')).toBeTruthy();
     expect(screen.getByText('Bia')).toBeTruthy();
     expect(screen.getByText('Caio')).toBeTruthy();
-    // 12 - 3 = 9 open slots, one placeholder each: avatars + vagas = capacity
-    expect(screen.getAllByTestId('presence-grid-empty')).toHaveLength(9);
+    // one bar segment per slot: 3 taken + 9 open = capacity
+    expect(screen.getByTestId('presence-grid-bar').children).toHaveLength(12);
     expect(screen.getByText('9 vagas abertas')).toBeTruthy();
   });
 
@@ -498,15 +501,14 @@ describe('S12 — Match Detail screen', () => {
 
   /**
    * Covers: S12 — Match Detail
-   * Criterion: "Confirmed-player avatars are display-only (no navigation on tap)."
+   * Owner's review of 2026-10-21 (item 7): a confirmed player opens their profile.
    */
-  it('does not navigate when a confirmed-player avatar is tapped', async () => {
+  it('opens the profile of a confirmed player on tap', async () => {
     await renderScreen();
     await openPlayersTab();
 
-    fireEvent.press(screen.getByLabelText('Avatar de Renan'));
-    expect(mockPush).not.toHaveBeenCalled();
-    expect(mockBack).not.toHaveBeenCalled();
+    await fireEvent.press(screen.getByTestId('presence-grid-player-p2'));
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/players/[id]', params: { id: 'p2' } });
   });
 
   // -------------------------------------------------------------- countdown

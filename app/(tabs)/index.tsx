@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { Settings, Volleyball } from "lucide-react-native";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { FlatList, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -18,12 +18,13 @@ import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { type ActivityLine, activityQueryKey, useFriendsActivity } from "@/features/activity/api/activityApi";
 import { useUpcomingMatches } from "@/features/matches/api/getUpcoming";
 import { formatStartsAt } from "@/features/matches/lib/formatWhen";
-import { pickNextGame } from "@/features/matches/lib/nextGame";
+import { countdownLabel, pickNextGame } from "@/features/matches/lib/nextGame";
+import { splitVenue } from "@/features/matches/lib/venueName";
 import type { UpcomingMatch } from "@/features/matches/types/match";
 import { useFollowState } from "@/features/network/api/postsApi";
 import { usePullToRefresh, useRefreshOnFocus } from "@/hooks/useRefresh";
 import { useAuthStore } from "@/stores/auth";
-import { colors } from "@/theme/colors";
+import { HARD_SHADOW, colors } from "@/theme/colors";
 import { TAB_BAR_CLEARANCE } from "@/theme/layout";
 
 function goExplore() {
@@ -124,44 +125,56 @@ function HomeHero() {
   );
 }
 
-/** "SEU PRÓXIMO JOGO" card: lime strip on the left, ball icon, CONFIRMADO chip. */
+/** Re-renders once a minute, so a countdown stays right while the Home is open. */
+function useMinuteClock(): Date {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
+  return now;
+}
+
+/**
+ * "VOCÊ ENTRA EM QUADRA": the user's confirmed next game. Navy with the hard
+ * shadow, so it reads as a commitment and not as one more card of the list
+ * below; a lime countdown on the right.
+ */
 function NextGameCard({ match }: { match: UpcomingMatch }) {
+  const now = useMinuteClock();
   const when = formatStartsAt(match.startsAt);
+  const countdown = countdownLabel(match.startsAt, now);
   return (
     <PressableScale
       onPress={() => goMatch(match.id)}
       accessibilityRole="button"
-      accessibilityLabel={`Seu próximo jogo: ${match.name}, ${when}`}
-      className="mx-4 mt-2 flex-row items-center rounded-card border border-line bg-white p-4 shadow-card overflow-hidden"
+      accessibilityLabel={`Você entra em quadra: ${match.name}, ${when}, ${countdown}`}
+      testID="next-game-card"
+      className="mx-4 mt-2 flex-row items-center rounded-card border-2 border-surface-dark bg-surface-dark p-4"
+      style={HARD_SHADOW}
     >
-      <View className="absolute left-0 top-0 bottom-0 w-1 bg-accent" />
-      <View className="h-12 w-12 items-center justify-center rounded-chip bg-quaternary/10">
-        <Volleyball size={24} color={colors.primary} strokeWidth={2.2} />
+      <View className="h-12 w-12 items-center justify-center rounded-chip bg-accent">
+        <Volleyball size={24} color={colors.surfaceDark} strokeWidth={2.2} />
       </View>
       <View className="ml-3 flex-1">
-        <View className="flex-row items-center justify-between gap-2">
-          <Text
-            className="flex-1 font-body-bold text-text-primary"
-            style={{ fontSize: 16 }}
-            numberOfLines={1}
-          >
-            {match.name}
-          </Text>
-          <View className="rounded-pill bg-accent/25 px-[9px] py-1">
-            <Text
-              className="font-body-bold text-surface-dark uppercase"
-              style={{ fontSize: 10, letterSpacing: 1, lineHeight: 12 }}
-            >
-              Confirmado
-            </Text>
-          </View>
-        </View>
         <Text
-          className="mt-1 font-body-semibold text-text-muted"
+          className="font-body-bold text-text-on-dark"
+          style={{ fontSize: 16 }}
+          numberOfLines={1}
+        >
+          {match.name}
+        </Text>
+        <Text
+          className="mt-1 font-body-semibold text-white/70"
           style={{ fontSize: 12.5 }}
           numberOfLines={1}
         >
-          {match.venue ? `${when} · ${match.venue}` : when}
+          {match.venue ? `${when} · ${splitVenue(match.venue).name}` : when}
+        </Text>
+      </View>
+      <View className="ml-2 rounded-pill bg-accent/20 px-[10px] py-1">
+        <Text className="font-body-bold text-accent" style={{ fontSize: 11.5 }} testID="next-game-countdown">
+          {countdown}
         </Text>
       </View>
     </PressableScale>
@@ -340,10 +353,16 @@ export default function HomeScreen() {
           <HomeHero />
         ) : (
           <>
+            {upcoming.isPending ? (
+              <View className="mx-4 mt-6 gap-3" testID="next-game-loading">
+                <SkeletonBlock className="h-5 w-52" />
+                <SkeletonBlock className="h-[84px]" />
+              </View>
+            ) : null}
             {nextGame ? (
               <>
                 <SectionHeader
-                  title="SEU PRÓXIMO JOGO"
+                  title="VOCÊ ENTRA EM QUADRA"
                   actionLabel="Ver jogo"
                   onAction={() => goMatch(nextGame.id)}
                 />

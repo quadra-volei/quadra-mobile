@@ -4,7 +4,14 @@ import { Plus } from 'lucide-react-native';
 import type { ComponentType } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, View } from 'react-native';
-import Animated, { FadeIn } from 'react-native-reanimated';
+import Animated, {
+  FadeIn,
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CreateSheet } from '@/components/domain/CreateSheet';
@@ -20,7 +27,7 @@ import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import { takePendingLink } from '@/lib/pendingLink';
 import { useAuthStore } from '@/stores/auth';
 import { listenToPushTaps, registerForPush } from '@/lib/push/pushNotifications';
-import { HARD_SHADOW, colors } from '@/theme/colors';
+import { colors } from '@/theme/colors';
 import { MOTION } from '@/theme/motion';
 
 // "Perfil" shows the signed-in user's photo, Instagram-style: a small circle
@@ -63,27 +70,44 @@ function TabBarButton({
   focused: boolean;
   onPress: () => void;
 }) {
+  // A short, small bounce on tap: down a little, then back with one soft overshoot.
+  const scale = useSharedValue(1);
+  const bounce = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
     <PressableScale
-      onPress={onPress}
+      onPress={() => {
+        scale.value = withSequence(
+          withTiming(TAB_BOUNCE.down, { duration: TAB_BOUNCE.downMs }),
+          withSpring(1, TAB_BOUNCE.spring),
+        );
+        onPress();
+      }}
       accessibilityRole="button"
       accessibilityState={{ selected: focused }}
       accessibilityLabel={label}
       className="flex-1 h-full items-center justify-center"
     >
       {/* Active / inactive icon swap fades in instead of cutting. */}
-      <Animated.View key={String(focused)} entering={FadeIn.duration(MOTION.fadeIn)}>
-        <Icon focused={focused} size={28} />
+      <Animated.View style={bounce}>
+        <Animated.View key={String(focused)} entering={FadeIn.duration(MOTION.fadeIn)}>
+          <Icon focused={focused} size={28} />
+        </Animated.View>
       </Animated.View>
     </PressableScale>
   );
 }
 
+const TAB_BOUNCE = {
+  down: 0.86,
+  downMs: 70,
+  spring: { damping: 9, stiffness: 320, mass: 0.6 },
+};
+
 const PILL_RADIUS = 32;
 const CENTER_SIZE = 64;
 
-// The lime "+" raised above the pill. It is drawn outside the pill (which clips
-// its children); the row keeps an empty slot where it sits.
+// The lime "+" raised above the pill, without a shadow. It is drawn outside the
+// pill (which clips its children); the row keeps an empty slot where it sits.
 function CenterButton({ onPress }: { onPress: () => void }) {
   return (
     <PressableScale
@@ -91,7 +115,7 @@ function CenterButton({ onPress }: { onPress: () => void }) {
       accessibilityRole="button"
       accessibilityLabel="Criar"
       className="items-center justify-center rounded-full border-2 border-surface-dark bg-accent overflow-hidden"
-      style={{ width: CENTER_SIZE, height: CENTER_SIZE, ...HARD_SHADOW }}
+      style={{ width: CENTER_SIZE, height: CENTER_SIZE }}
     >
       <Plus size={30} color={colors.surfaceDark} strokeWidth={2.6} />
     </PressableScale>
@@ -186,6 +210,9 @@ function SignedInTabs() {
               left: 16,
               right: 16,
               bottom: 0,
+              // The create sheet takes the bar's place while it is up: it grows
+              // out of the bar's frame and folds back into it (DECISIONS #161).
+              opacity: sheetOpen ? 0 : 1,
             }}
           >
           {/* Pill spanning the screen minus a 16 side margin, Instagram-style. */}

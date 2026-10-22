@@ -1,105 +1,106 @@
-import { Pressable, Text, View } from 'react-native';
+import { ChevronRight, UserPlus } from 'lucide-react-native';
+import { Text, View } from 'react-native';
 
+import { PositionTag } from '@/components/domain/PositionPicker';
 import { Avatar } from '@/components/ui/Avatar';
+import { Button } from '@/components/ui/Button';
+import { PressableScale } from '@/components/ui/PressableScale';
 import type { PresencePlayer } from '@/features/matches/types/matchDetail';
+import { colors } from '@/theme/colors';
 
 export type PresenceGridProps = {
-  /** Confirmed/known players; rendered first, in order. */
+  /** Confirmed/known players; listed in order. */
   players: PresencePlayer[];
-  /** Total slots; empties beyond `players.length` render as dashed "vaga". */
+  /** Total slots; the bar shows how many of them are taken. */
   capacity: number;
+  /** Opens a player's profile; guests (no account) are never pressable. */
+  onPressPlayer?: (player: PresencePlayer) => void;
   /**
-   * When set, each empty "vaga" slot becomes a button that calls this (organizer
-   * "add guest" affordance on S12). Omit to render inert placeholders.
+   * When set and a slot is open, an "Adicionar convidado" action closes the
+   * list (organizer on S12). Omit to show only the open slots.
    */
-  onPressEmpty?: () => void;
+  onAddGuest?: () => void;
   testID?: string;
 };
 
-/** "Renan Dias" → "Renan"; the grid cell only has room for a first name. */
-function firstName(name: string): string {
-  return name.trim().split(' ')[0] ?? name;
+/** "@renan.dias" for a player with an @, the name for a guest. */
+function displayName(player: PresencePlayer): string {
+  return player.handle ? `@${player.handle}` : player.name;
 }
 
 /**
- * Capacity-aware confirmed-players grid (S12 Match Detail; reused by S13 team
- * rosters). Renders an `Avatar` + first-name cell per player — with the
- * tier-colored level "bolinha" when the player has a level — then dashed
- * "vaga" placeholders for every remaining open slot, so avatars + placeholders
- * always add up to `capacity`.
+ * Who is going (S12 Match Detail): a capacity bar (one segment per slot, lime
+ * when taken), one row per player (avatar with the level dot, @, position tag;
+ * a tap opens the profile) and, for the organizer, the add-guest action. Taken
+ * slots, open slots and the action never look alike: rows are white cards, open
+ * slots only live in the bar and its count, the action is a lime button.
  *
- * Presentational — receives plain data via props and never fetches. No OVR
- * number is rendered anywhere (Layer-3 cut, per SCOPE S12).
+ * Presentational — receives plain data via props and never fetches.
  */
 export function PresenceGrid({
   players,
   capacity,
-  onPressEmpty,
+  onPressPlayer,
+  onAddGuest,
   testID,
 }: PresenceGridProps) {
-  const emptySlots = Array.from(
-    { length: Math.max(0, capacity - players.length) },
-    (_, i) => i,
-  );
+  const openSlots = Math.max(0, capacity - players.length);
 
   return (
-    <View testID={testID} className="flex-row flex-wrap">
-      {players.map((player) => (
-        <View key={player.id} className="w-1/4 items-center mb-4 px-1">
-          <Avatar
-            uri={player.avatarUrl}
-            name={player.name}
-            size="md"
-            level={player.level}
-          />
-          <Text
-            numberOfLines={1}
-            className="mt-2 font-body-semibold text-caption text-text-primary"
-          >
-            {firstName(player.name)}
-          </Text>
-          {player.isGuest ? (
-            <Text className="font-body-bold text-eyebrow text-text-muted uppercase">
-              Convidado
-            </Text>
-          ) : null}
-        </View>
-      ))}
-
-      {emptySlots.map((slot) => {
-        const emptyTestID = testID ? `${testID}-empty` : undefined;
-        const inner = (
-          <>
-            <View className="h-12 w-12 items-center justify-center rounded-full border-2 border-dashed border-line bg-bg-light">
-              <Text className="font-num text-h3 text-text-muted">+</Text>
-            </View>
-            <Text className="mt-2 font-body text-caption text-text-muted">
-              vaga
-            </Text>
-          </>
-        );
-
-        return onPressEmpty ? (
-          <Pressable
-            key={`vaga-${slot}`}
-            testID={emptyTestID}
-            onPress={onPressEmpty}
-            accessibilityRole="button"
-            accessibilityLabel="Adicionar convidado nesta vaga"
-            className="w-1/4 items-center mb-4 px-1"
-          >
-            {inner}
-          </Pressable>
-        ) : (
+    <View testID={testID}>
+      <View className="mb-3 flex-row gap-1" testID={testID ? `${testID}-bar` : undefined}>
+        {Array.from({ length: Math.max(capacity, players.length) }, (_, i) => (
           <View
-            key={`vaga-${slot}`}
-            testID={emptyTestID}
-            className="w-1/4 items-center mb-4 px-1"
+            key={i}
+            className={`h-2 flex-1 rounded-full ${i < players.length ? 'bg-accent' : 'bg-primary/10'}`}
+          />
+        ))}
+      </View>
+
+      <View className="gap-2">
+        {players.map((player) => {
+          const pressable = Boolean(onPressPlayer) && !player.isGuest;
+          return (
+            <PressableScale
+              key={player.id}
+              disabled={!pressable}
+              onPress={() => onPressPlayer?.(player)}
+              accessibilityRole={pressable ? 'button' : undefined}
+              accessibilityLabel={displayName(player)}
+              accessibilityHint={pressable ? 'Abrir perfil' : undefined}
+              testID={testID ? `${testID}-player-${player.id}` : undefined}
+              className="flex-row items-center gap-3 rounded-card border border-line bg-white px-3 py-2.5"
+            >
+              <Avatar uri={player.avatarUrl} name={player.name} size="sm" level={player.level} />
+              <View className="flex-1">
+                <Text numberOfLines={1} className="font-body-bold text-body text-text-primary">
+                  {displayName(player)}
+                </Text>
+                {player.isGuest ? (
+                  <Text className="font-body-bold text-eyebrow text-text-muted uppercase">
+                    Convidado
+                  </Text>
+                ) : null}
+              </View>
+              {player.position ? <PositionTag code={player.position} /> : null}
+              {pressable ? <ChevronRight size={18} color={colors.textMuted} /> : null}
+            </PressableScale>
+          );
+        })}
+      </View>
+
+      {onAddGuest && openSlots > 0 ? (
+        <View className="mt-3">
+          <Button
+            variant="grad"
+            onPress={onAddGuest}
+            leftIcon={<UserPlus size={18} color={colors.surfaceDark} />}
+            testID={testID ? `${testID}-add-guest` : undefined}
           >
-            {inner}
-          </View>
-        );
-      })}
+            Adicionar convidado
+          </Button>
+        </View>
+      ) : null}
     </View>
   );
 }

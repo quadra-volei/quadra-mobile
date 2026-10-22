@@ -2,20 +2,19 @@ import { router, useLocalSearchParams } from "expo-router";
 import { ChevronLeft } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import { Dimensions, Pressable, Text, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import Animated, {
   useAnimatedKeyboard,
   useAnimatedStyle,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { QuadraWordmark } from "@/components/icons/QuadraWordmark";
+import { AuthHero } from "@/components/domain/AuthHero";
 import { Button } from "@/components/ui/Button";
 import { OtpInput } from "@/components/ui/OtpInput";
 import { useResendOtp } from "@/features/auth/api/resendOtp";
 import { useVerifyOtp } from "@/features/auth/api/verifyOtp";
 import { useAuthStore } from "@/stores/auth";
-import { colors, HERO_GRADIENT } from "@/theme/colors";
+import { colors } from "@/theme/colors";
 
 const SCREEN_HEIGHT = Dimensions.get("window").height;
 const SHEET_MIN_HEIGHT = Math.round(SCREEN_HEIGHT * 0.4); // card occupies ~40% of the screen
@@ -143,32 +142,21 @@ export default function SmsOtpScreen() {
 
   return (
     <View className="flex-1 bg-surface-dark">
-      <LinearGradient
-        colors={HERO_GRADIENT}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ flex: 1 }}
-      >
-        <SafeAreaView className="flex-1">
-          {/* back chevron and the brand lockup on one row, at the top of the
-              dark strip, so the card below never covers them */}
-          <View className="flex-row items-center px-4 mt-2">
-            <Pressable
-              onPress={goBackToLogin}
-              accessibilityRole="button"
-              accessibilityLabel="Voltar"
-              className="h-10 w-10 rounded-full bg-surface-dark/40 items-center justify-center"
-              testID="otp-back"
-            >
-              <ChevronLeft size={24} color={colors.textOnDark} />
-            </Pressable>
-            <View className="flex-1 items-center">
-              <QuadraWordmark variant="blue" height={32} />
-            </View>
-            <View className="w-10" />
-          </View>
-        </SafeAreaView>
-      </LinearGradient>
+      {/* The login's background, still and without the logo, dimmed like the
+          login sheet's backdrop: only the white card changes (DECISIONS #165). */}
+      <AuthHero lockup={false} animate={false} />
+      <View pointerEvents="none" className="absolute inset-0 bg-surface-dark/60" />
+      <SafeAreaView className="absolute inset-x-0 top-0">
+        <Pressable
+          onPress={goBackToLogin}
+          accessibilityRole="button"
+          accessibilityLabel="Voltar"
+          className="ml-4 mt-2 h-10 w-10 rounded-full bg-surface-dark/40 items-center justify-center"
+          testID="otp-back"
+        >
+          <ChevronLeft size={24} color={colors.textOnDark} />
+        </Pressable>
+      </SafeAreaView>
 
       {/* white card pulled up over the strip */}
       <Animated.View

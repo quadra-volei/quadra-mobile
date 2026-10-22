@@ -417,6 +417,7 @@ describe('useMatchDetail', () => {
       {
         id: ORGANIZER,
         name: 'Ana Souza',
+        handle: 'ana',
         avatarUrl: 'https://cdn.test/ana.jpg',
         status: 'CONFIRMADO',
         position: 'LEV',

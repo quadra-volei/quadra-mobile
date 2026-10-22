@@ -25,7 +25,8 @@ jest.mock('react-native-safe-area-context', () => {
 jest.mock('lucide-react-native', () => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
-  return { ChevronLeft: (props: any) => ReactLocal.createElement(View, props) };
+  const Icon = (props: any) => ReactLocal.createElement(View, props);
+  return { ChevronLeft: Icon, Trophy: Icon };
 });
 
 jest.mock('@/components/ui/Button', () => {

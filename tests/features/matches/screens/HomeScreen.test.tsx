@@ -391,9 +391,9 @@ describe('S5 — Home screen', () => {
     ];
     await render(<HomeScreen />);
 
-    expect(screen.getByText('SEU PRÓXIMO JOGO')).toBeTruthy();
-    expect(screen.getAllByText('Confirmado')).toHaveLength(1);
-    const card = screen.getByLabelText(/^Seu próximo jogo: Vôlei de Quinta/);
+    expect(screen.getByText('VOCÊ ENTRA EM QUADRA')).toBeTruthy();
+    expect(screen.getAllByTestId('next-game-countdown')).toHaveLength(1);
+    const card = screen.getByLabelText(/^Você entra em quadra: Vôlei de Quinta/);
     expect(screen.getByText(/· Arena Pinheiros$/)).toBeTruthy();
     // the next game leaves the carousel; the others stay
     expect(screen.getAllByText('Vôlei de Quinta')).toHaveLength(1);
@@ -407,10 +407,10 @@ describe('S5 — Home screen', () => {
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/matches/[id]', params: { id: 'soon' } });
   });
 
-  it('hides SEU PRÓXIMO JOGO when no upcoming match is confirmed', async () => {
+  it('hides VOCÊ ENTRA EM QUADRA when no upcoming match is confirmed', async () => {
     await render(<HomeScreen />);
 
-    expect(screen.queryByText('SEU PRÓXIMO JOGO')).toBeNull();
+    expect(screen.queryByText('VOCÊ ENTRA EM QUADRA')).toBeNull();
     expect(screen.queryByText('Confirmado')).toBeNull();
   });
 

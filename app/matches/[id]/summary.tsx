@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { getTeamBgColor } from '@/features/matches/lib/teamColors';
 import {
   matchSummaryQueryKey,
   useMatchSummary,
@@ -100,13 +101,17 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
 
   const isWin = summary.result === 'VITORIA';
   const hasVoting = summary.voteRanking.length > 0;
+  // "Time 1 venceu: Time 1 3 × 1 Time 2"
+  const standingsText = `${summary.winnerName ? `${summary.winnerName} venceu: ` : ''}${summary.standings
+    .map((team) => `${team.name} ${team.wins}`)
+    .join(' × ')}`;
 
   const handleShare = async () => {
     if (isSharing) return;
     setIsSharing(true);
     try {
       await Share.share({
-        message: `${summary.name} — ${resultLabel(summary.result)} ${summary.finalScore[0]}–${summary.finalScore[1]}. MVP: ${summary.mvp.name}.`,
+        message: `${summary.name} — ${standingsText}.${hasVoting ? ` MVP: ${summary.mvp.name}.` : ''}`,
       });
     } finally {
       setIsSharing(false);
@@ -117,9 +122,9 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
     router.replace('/(tabs)/profile');
   };
 
-  const resultA11yLabel = `${resultLabel(summary.result)}, placar ${summary.finalScore[0]} a ${summary.finalScore[1]}${
-    hasVoting ? `, MVP ${summary.mvp.name}` : ''
-  }`;
+  const resultA11yLabel = `${resultLabel(summary.result)}${
+    summary.winnerName ? `, ${summary.winnerName} venceu` : ''
+  }${hasVoting ? `, MVP ${summary.mvp.name}` : ''}`;
 
   return (
     <View className="flex-1 bg-surface-dark">
@@ -161,22 +166,64 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
               </Text>
             </View>
 
-            {/* Final set score */}
-            <Text className="font-num text-accent mt-4" style={{ fontSize: 56 }}>
-              {summary.finalScore[0]}–{summary.finalScore[1]}
-            </Text>
+            {summary.winnerName ? (
+              <Text
+                className="font-body-extrabold text-h3 text-accent mt-4 text-center"
+                testID="summary-winner"
+              >
+                {summary.winnerName} venceu
+              </Text>
+            ) : null}
+          </View>
 
-            {/* Per-set pills — exactly summary.setScores.length */}
-            <View className="flex-row flex-wrap justify-center gap-2 mt-4">
-              {summary.setScores.map((s, i) => (
-                <View key={i} className="bg-white/10 rounded-chip px-3 py-1">
-                  <Text className="font-num text-text-on-dark text-caption">
-                    {s[0]}-{s[1]}
+          {/* ── Games won per team, the winner highlighted ── */}
+          <View className="px-4 mt-4 gap-2" testID="summary-standings">
+            {summary.standings.map((team) => (
+              <View
+                key={team.id}
+                testID={`summary-team-${team.id}`}
+                className={`flex-row items-center gap-3 rounded-card px-4 py-3 ${
+                  team.winner ? 'border-2 border-accent bg-white/10' : 'border border-white/10 bg-white/5'
+                }`}
+              >
+                <View className={`h-3 w-3 rounded-full ${getTeamBgColor(team.colorIndex)}`} />
+                <Text
+                  className="flex-1 font-body-semibold text-body-bold text-text-on-dark"
+                  numberOfLines={1}
+                >
+                  {team.name}
+                  {team.mine ? <Text className="text-caption text-accent font-mono"> · seu time</Text> : null}
+                </Text>
+                {team.winner ? <Trophy size={16} color={colors.accent} /> : null}
+                <Text className={`font-num ${team.winner ? 'text-accent' : 'text-text-on-dark'}`} style={{ fontSize: 24 }}>
+                  {team.wins}
+                </Text>
+                <Text className="font-body text-caption text-white/70">
+                  {team.wins === 1 ? 'vitória' : 'vitórias'}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {/* ── Each game and who won it ── */}
+          {summary.games.length > 0 ? (
+            <View className="px-4 mt-4 gap-1" testID="summary-games">
+              {summary.games.map((game) => (
+                <View key={game.number} className="flex-row items-center gap-2 py-1">
+                  <Text className="font-mono text-mono text-white/70 uppercase w-14">Jogo {game.number}</Text>
+                  {game.winner ? (
+                    <View className={`h-2 w-2 rounded-full ${getTeamBgColor(game.winner.colorIndex)}`} />
+                  ) : null}
+                  <Text className="flex-1 font-body text-caption text-text-on-dark" numberOfLines={1}>
+                    {game.winner ? `${game.winner.name} venceu` : 'Empate'}
+                  </Text>
+                  <Text className="font-num text-caption text-text-on-dark">
+                    {game.points[0]}–{game.points[1]}
                   </Text>
                 </View>
               ))}
             </View>
-          </View>
+          ) : null}
 
           {/* ── Mais votado ── */}
           {hasVoting ? (

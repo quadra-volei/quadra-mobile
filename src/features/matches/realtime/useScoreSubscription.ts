@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
+import { upcomingMatchesQueryKey } from '@/features/matches/api/getUpcoming';
 import { liveGameQueryKey, scoreMutationKey } from '@/features/matches/api/liveGame';
 import { getConnection, joinMatchRoom, leaveMatchRoom } from '@/lib/realtime/connection';
 
@@ -30,7 +31,11 @@ export function useScoreSubscription(matchId: string): void {
         const conn = await getConnection();
         const refetch = () => void queryClient.invalidateQueries({ queryKey: liveGameQueryKey(matchId) });
         await joinMatchRoom(matchId, refetch);
-        const handler = () => {
+        const handler = (message?: { state?: string }) => {
+          if (message?.state === 'Ended') {
+            // An ended game leaves the Home's upcoming matches (API DECISIONS #83).
+            void queryClient.invalidateQueries({ queryKey: upcomingMatchesQueryKey });
+          }
           // The organizer's own taps announce themselves too; while some are
           // still on their way the server is behind the screen, and the last
           // one writes the server's score anyway (useAddPoint).

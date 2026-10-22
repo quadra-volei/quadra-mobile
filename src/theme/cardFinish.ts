@@ -2,8 +2,6 @@
 // collectible card. The player picks one; it is saved on the account. Components
 // read `CARD_FINISHES[finish]`; screens never inline these hex values.
 
-import type { QuadraWordmarkVariant } from '@/components/icons/QuadraWordmark';
-
 export type CardFinish = 'Prisma' | 'Ion' | 'Eclipse';
 
 type Gradient = readonly [string, string, ...string[]];
@@ -25,10 +23,6 @@ export type CardFinishTokens = {
   frame: Gradient;
   /** Holographic band that slides over the frame with the finger. */
   foil: Gradient;
-  /** Behind the logo on the top tab of the front. */
-  tab: string;
-  /** Which official lockup sits on the card (light on dark finishes, navy on Íon). */
-  logo: QuadraWordmarkVariant;
   /** Prisma and Eclipse have cut corners; Íon is rounded. */
   shape: 'chamfer' | 'rounded';
   /** Picker swatch background. */
@@ -45,8 +39,6 @@ export const CARD_FINISHES: Record<CardFinish, CardFinishTokens> = {
     accent: '#C6F135',
     frame: ['#BED5FF', '#687EE4', '#F2FCFF', '#BDD98A', '#DFBDFF', '#7CD6F0'],
     foil: ['rgba(152,227,245,0)', 'rgba(152,227,245,0.9)', 'rgba(213,172,255,0.9)', 'rgba(241,215,149,0.9)', 'rgba(172,248,196,0.9)', 'rgba(172,248,196,0)'],
-    tab: 'rgba(11,21,57,0.91)',
-    logo: 'light',
     shape: 'chamfer',
     swatch: ['#141749', '#4157D4', '#18163D'],
   },
@@ -59,8 +51,6 @@ export const CARD_FINISHES: Record<CardFinish, CardFinishTokens> = {
     accent: '#18685F',
     frame: ['#F5FFF9', '#67BBA9', '#DDFFF3', '#608C96'],
     foil: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.95)', 'rgba(188,233,223,0.9)', 'rgba(255,255,255,0)'],
-    tab: '#E0F0EB',
-    logo: 'navy',
     shape: 'rounded',
     swatch: ['#D5EDE4', '#96CDBF'],
   },
@@ -73,8 +63,6 @@ export const CARD_FINISHES: Record<CardFinish, CardFinishTokens> = {
     accent: '#EDC596',
     frame: ['#FFF0D1', '#A57B59', '#E6C591', '#80637A', '#FFF0D1'],
     foil: ['rgba(239,199,147,0)', 'rgba(239,199,147,0.9)', 'rgba(188,145,168,0.85)', 'rgba(239,199,147,0)'],
-    tab: '#251D28',
-    logo: 'light',
     shape: 'chamfer',
     swatch: ['#765143', '#251D28'],
   },
@@ -104,23 +92,26 @@ export type CardTierTokens = {
 
 // The card's look grows with the player's level (Johny, 2026-10-21). Placeholders
 // until the designer's art (normal, foil, reverse foil...): Clássica is matte,
-// Prisma has today's foil, Holográfica a strong rainbow over the whole card.
+// Prisma has a foil on the frame, Holográfica a rainbow. The light enhances the
+// card without covering it (DECISIONS #160): the frame shows through its foil,
+// the face foil is only a tint over photo and text, the glare is small.
 export const CARD_TIERS: Record<CardTier, CardTierTokens> = {
-  Classico: { name: 'Clássica', from: 1, frameFoil: 0, faceFoil: 0, glare: 0.2, rainbow: false },
-  Prisma: { name: 'Prisma', from: 10, frameFoil: 0.75, faceFoil: 0.14, glare: 0.35, rainbow: false },
-  Holografico: { name: 'Holográfica', from: 20, frameFoil: 0.95, faceFoil: 0.38, glare: 0.5, rainbow: true },
+  Classico: { name: 'Clássica', from: 1, frameFoil: 0, faceFoil: 0, glare: 0.14, rainbow: false },
+  Prisma: { name: 'Prisma', from: 10, frameFoil: 0.5, faceFoil: 0.06, glare: 0.22, rainbow: false },
+  Holografico: { name: 'Holográfica', from: 20, frameFoil: 0.6, faceFoil: 0.12, glare: 0.28, rainbow: true },
 };
 
 export const CARD_TIER_ORDER: CardTier[] = ['Classico', 'Prisma', 'Holografico'];
 
+// Pastel rainbow, spread evenly with soft ends: no single color dominates.
 export const HOLO_FOIL: Gradient = [
-  'rgba(255,90,160,0)',
-  'rgba(255,90,160,0.9)',
-  'rgba(255,210,80,0.9)',
-  'rgba(110,255,170,0.9)',
-  'rgba(90,180,255,0.9)',
-  'rgba(190,120,255,0.9)',
-  'rgba(190,120,255,0)',
+  'rgba(255,150,200,0)',
+  'rgba(255,150,200,0.55)',
+  'rgba(255,224,150,0.55)',
+  'rgba(160,250,200,0.55)',
+  'rgba(150,205,255,0.55)',
+  'rgba(205,170,255,0.55)',
+  'rgba(205,170,255,0)',
 ];
 
 /** The tier a level falls in: 1–9 Clássica, 10–19 Prisma, 20+ Holográfica. */

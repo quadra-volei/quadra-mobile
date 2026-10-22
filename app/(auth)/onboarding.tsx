@@ -441,9 +441,6 @@ function PersonalDataStep({
           </Button>
         </View>
 
-        <Text className="mt-4 text-center font-body text-caption text-text-muted">
-          Você poderá editar essas informações depois no seu perfil.
-        </Text>
       </Animated.ScrollView>
     </View>
   );

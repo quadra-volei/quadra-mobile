@@ -1,11 +1,11 @@
 import { BlurView } from 'expo-blur';
-import { Plus } from 'lucide-react-native';
 import type { RefObject } from 'react';
 import { useCallback, useEffect } from 'react';
-import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
+import { BackHandler, type LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
   Extrapolation,
   interpolate,
+  interpolateColor,
   runOnJS,
   useAnimatedStyle,
   useReducedMotion,
@@ -29,20 +29,23 @@ export type CreateSheetProps = {
 const OPTION =
   'h-14 justify-center rounded-btn border-2 border-surface-dark px-4';
 
-// The card grows out of the tab bar's lime "+": it starts as a lime blob the
-// size of the button over it (scaled from its bottom centre, lifted onto the
-// button) and springs open with a small overshoot; closing shrinks it back.
+// The card grows out of the tab bar itself: it starts with the bar's frame
+// (same sides and bottom, 64 tall, 32 corners, a hairline border) and opens
+// upward from the bar's bottom edge, without overshoot so it never pokes past
+// the screen; closing folds it back into the bar. The layout hides the bar
+// while the sheet is up (DECISIONS #161).
 const MORPH = {
-  spring: { damping: 15, stiffness: 240, mass: 0.9 },
-  closeMs: 170,
-  from: { scaleX: 0.18, scaleY: 0.24, lift: -24, radius: 160 },
+  spring: { damping: 26, stiffness: 260, mass: 0.9 },
+  closeMs: 180,
+  barHeight: 64,
+  barRadius: 32,
 };
 
 /**
  * "O que você quer criar?" — the sheet the tab bar's central "+" opens: the
  * screen behind blurred and dimmed, a white card with a thick navy border and
  * the hard shadow, two wide options and a "Cancelar" link. The card grows out
- * of the "+" and folds back into it on close (MORPH). Rendered as an
+ * of the tab bar and folds back into it on close (MORPH). Rendered as an
  * overlay (not a `Modal`) so the blur can read the tabs behind it; Android's
  * back button closes it.
  */
@@ -55,10 +58,19 @@ export function CreateSheet({
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const open = useSharedValue(reduceMotion ? 1 : 0);
+  // The card's full height, known after the first layout: until then it stays
+  // the bar's size, so it opens from the bar and not from a guess.
+  const height = useSharedValue(0);
 
-  useEffect(() => {
-    open.value = withSpring(1, MORPH.spring);
-  }, [open]);
+  const onContentLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      if (height.value > 0) return;
+      // + 4: the card's 2px border, top and bottom.
+      height.value = e.nativeEvent.layout.height + 4;
+      open.value = withSpring(1, MORPH.spring);
+    },
+    [height, open],
+  );
 
   // Back, the veil and "Cancelar" fold the card back into the "+" first.
   const close = useCallback(() => {
@@ -78,26 +90,12 @@ export function CreateSheet({
   const veil = useAnimatedStyle(() => ({
     opacity: interpolate(open.value, [0, 0.6], [0, 1], Extrapolation.CLAMP),
   }));
+  // Height and corners go from the bar's to the card's and the hairline turns
+  // into the navy border; the bottom edge stays where the bar's is.
   const card = useAnimatedStyle(() => ({
-    opacity: interpolate(open.value, [0, 0.08], [0, 1], Extrapolation.CLAMP),
-    borderRadius: interpolate(open.value, [0, 1], [MORPH.from.radius, 20]),
-    transform: [
-      { translateY: interpolate(open.value, [0, 1], [MORPH.from.lift, 0]) },
-      { scaleX: interpolate(open.value, [0, 1], [MORPH.from.scaleX, 1]) },
-      { scaleY: interpolate(open.value, [0, 1], [MORPH.from.scaleY, 1]) },
-    ],
-  }));
-  // The lime of the "+" fades off the card as it opens; the content fades in.
-  const lime = useAnimatedStyle(() => ({
-    opacity: interpolate(open.value, [0.2, 0.7], [1, 0], Extrapolation.CLAMP),
-  }));
-  // The "+" keeps its size while the card under it stretches, and turns.
-  const plus = useAnimatedStyle(() => ({
-    transform: [
-      { scaleX: 1 / interpolate(open.value, [0, 1], [MORPH.from.scaleX, 1]) },
-      { scaleY: 1 / interpolate(open.value, [0, 1], [MORPH.from.scaleY, 1]) },
-      { rotate: `${interpolate(open.value, [0, 1], [0, 90])}deg` },
-    ],
+    height: interpolate(open.value, [0, 1], [MORPH.barHeight, height.value || MORPH.barHeight]),
+    borderRadius: interpolate(open.value, [0, 1], [MORPH.barRadius, 20]),
+    borderColor: interpolateColor(open.value, [0, 1], [colors.line, colors.surfaceDark]),
   }));
   const content = useAnimatedStyle(() => ({
     opacity: interpolate(open.value, [0.55, 1], [0, 1], Extrapolation.CLAMP),
@@ -130,9 +128,14 @@ export function CreateSheet({
 
       <Animated.View
         className="absolute left-4 right-4 overflow-hidden rounded-card border-2 border-surface-dark bg-white"
-        style={[{ ...HARD_SHADOW, bottom: insets.bottom + 12, transformOrigin: 'bottom' }, card]}
+        style={[{ ...HARD_SHADOW, bottom: insets.bottom + 12, justifyContent: 'flex-end' }, card]}
       >
-        <Animated.View style={content} className="px-6 pt-6 pb-4">
+        {/* Absolute, so its own height (measured once) never follows the card's. */}
+        <Animated.View
+          style={content}
+          className="absolute bottom-0 left-0 right-0 px-6 pt-6 pb-4"
+          onLayout={onContentLayout}
+        >
           <Text className="font-display text-h3 text-surface-dark uppercase">
             O que você quer criar?
           </Text>
@@ -174,15 +177,6 @@ export function CreateSheet({
           </Pressable>
         </Animated.View>
 
-        <Animated.View
-          pointerEvents="none"
-          className="absolute inset-0 items-center justify-center bg-accent"
-          style={lime}
-        >
-          <Animated.View style={plus}>
-            <Plus size={30} color={colors.surfaceDark} strokeWidth={2.6} />
-          </Animated.View>
-        </Animated.View>
       </Animated.View>
     </View>
   );

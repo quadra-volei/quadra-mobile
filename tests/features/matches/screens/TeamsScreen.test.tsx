@@ -55,7 +55,7 @@ jest.mock('lucide-react-native', () => {
   const { View } = require('react-native');
   const stub = (name: string) => (props: any) =>
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
+  const icons: Record<string, unknown> = {
     ChevronLeft: stub('chevron-left'),
     Check: stub('check'),
     Minus: stub('minus'),
@@ -63,6 +63,8 @@ jest.mock('lucide-react-native', () => {
     Scale: stub('scale'),
     Shuffle: stub('shuffle'),
   };
+  const fallback = (props: any) => require('react').createElement(require('react-native').View, props);
+  return new Proxy(icons, { get: (target, key: string) => (key in target ? target[key] : fallback) });
 });
 
 // Button: a plain Pressable that surfaces loading/disabled state.

@@ -444,7 +444,7 @@ describe('MVP and summary', () => {
     expect(requests()).toEqual(['POST /mvp-voting/close', 'POST /summary']);
   });
 
-  it('shows the summary from my side: my team first, win when it won', async () => {
+  it('shows the summary from my side: win when my team won, each score with its team', async () => {
     useAuthStore.setState({ userId: ANA });
     serve({
       'GET /detail': { status: 200, body: apiDetail },
@@ -473,9 +473,9 @@ describe('MVP and summary', () => {
           mvpVoteCount: 2,
           mvpTotalVotes: 2,
           sets: [
-            { setNumber: 1, teamAPoints: 25, teamBPoints: 20 },
-            { setNumber: 2, teamAPoints: 18, teamBPoints: 25 },
-            { setNumber: 3, teamAPoints: 10, teamBPoints: 15 },
+            { setNumber: 1, teamAPoints: 25, teamBPoints: 20, winnerTeamId: 'team-a' },
+            { setNumber: 2, teamAPoints: 18, teamBPoints: 25, winnerTeamId: 'team-b' },
+            { setNumber: 3, teamAPoints: 10, teamBPoints: 15, winnerTeamId: 'team-b' },
           ],
           teams: [
             { teamId: 'team-a', name: 'Team A', playerIds: [ME] },
@@ -493,11 +493,15 @@ describe('MVP and summary', () => {
       name: 'Racha de Quinta',
       venue: 'Arena Central',
       format: '4X4',
-      finalScore: [2, 1],
-      setScores: [
-        [20, 25],
-        [25, 18],
-        [15, 10],
+      winnerName: 'Team B',
+      standings: [
+        { id: 'team-b', name: 'Team B', wins: 2, mine: true, winner: true, colorIndex: 1 },
+        { id: 'team-a', name: 'Team A', wins: 1, mine: false, winner: false, colorIndex: 0 },
+      ],
+      games: [
+        { number: 1, winner: { id: 'team-a' }, points: [25, 20] },
+        { number: 2, winner: { id: 'team-b' }, points: [25, 18] },
+        { number: 3, winner: { id: 'team-b' }, points: [15, 10] },
       ],
       mvp: { id: ANA, name: 'Ana', votes: 2 },
       totalVotes: 2,

@@ -51,7 +51,7 @@ jest.mock('lucide-react-native', () => {
   const { View } = require('react-native');
   const stub = (name: string) => (props: any) =>
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
+  const icons: Record<string, unknown> = {
     ChevronLeft: stub('chevron-left'),
     Clock: stub('clock'),
     Flame: stub('flame'),
@@ -61,6 +61,8 @@ jest.mock('lucide-react-native', () => {
     MapPin: stub('map-pin'),
     Users: stub('users'),
   };
+  const fallback = (props: any) => require('react').createElement(require('react-native').View, props);
+  return new Proxy(icons, { get: (target, key: string) => (key in target ? target[key] : fallback) });
 });
 
 // react-native-maps -> View stubs. Marker is a Pressable so fireEvent.press
@@ -203,6 +205,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-
 import MapScreen, {
   PIN_ANCHOR,
   pinToneFor,
+  nextVenueWithGames,
   searchAreaFor,
   venueActivityFor,
 } from '../../../../app/explore/map';
@@ -587,6 +590,25 @@ describe('Arenas on the map', () => {
 
     await press(screen.getByTestId('map-venue-empty'));
     expect(screen.getByText('Nenhum jogo marcado aqui hoje.')).toBeTruthy();
+  });
+
+  it('ends the arena games with the closest other arena that has games', async () => {
+    const game = (id: string) => ({ id, name: id, startsAt: '2026-10-21T22:00:00Z', live: false });
+    const far = { ...venue('far', [game('g-far')]), lat: -23.6 };
+    const close = { ...venue('close', [game('g-close')]), lat: -23.57 };
+    const here = venue('here', [game('near-open')]);
+    expect(nextVenueWithGames(here, [here, far, venue('quiet', []), close])?.placeId).toBe('close');
+    expect(nextVenueWithGames(here, [here, venue('quiet', [])])).toBeNull();
+
+    mockVenues.data = [here, close];
+    await renderScreen();
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
+    await press(screen.getByTestId('map-venue-here'));
+    expect(screen.getByText('1 jogo hoje')).toBeTruthy();
+    expect(screen.getByText('Outra arena com jogos')).toBeTruthy();
+    await press(screen.getByTestId('map-venue-next'));
+    expect(screen.queryByTestId('map-venue-match-near-open')).toBeNull();
+    expect(screen.getByTestId('map-venue-match-g-close')).toBeTruthy();
   });
 
   it('venueActivityFor: live beats today beats none', () => {
