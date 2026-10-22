@@ -217,15 +217,14 @@ describe('useUpdateProfile (edit profile)', () => {
    *  is the login identity and is not part of the profile.
    */
   it('PUTs the edited fields, keeping modality, level and the current photo', async () => {
-    fetchMock.mockImplementation(async (url: string, init: RequestInit) => {
-      // No photo storage in this environment: the picked photo is not uploaded.
-      if (url.endsWith('/photo/upload-url')) return respond(503);
-      return init.method === 'PUT'
+    fetchMock.mockImplementation(async (_url: string, init: RequestInit) =>
+      init.method === 'PUT'
         ? respond(200, { ...apiProfile, handle: 'renan_d', position: 'LIB' })
-        : respond(200, apiProfile);
-    });
+        : respond(200, apiProfile),
+    );
+    const noNewPhoto = { ...editInput, avatarUri: undefined };
 
-    const settled = await runMutation(useUpdateProfile, editInput);
+    const settled = await runMutation(useUpdateProfile, noNewPhoto);
 
     expect(putCall().body).toEqual({
       firstName: 'Renan',
@@ -239,8 +238,24 @@ describe('useUpdateProfile (edit profile)', () => {
     });
     expect(settled).toEqual({
       status: 'fulfilled',
-      value: { profile: { ...editInput, id: USER_ID } },
+      value: { profile: { ...noNewPhoto, id: USER_ID } },
     });
+  });
+
+  /**
+   * Covers: owner's 4th review, item 15 — a picked photo that cannot be stored
+   * (no photo storage: 503) fails the save with a message to try again; it is
+   * never reported as saved with the old photo (DECISIONS #170).
+   */
+  it('fails, without saving, when the picked photo cannot be uploaded', async () => {
+    fetchMock.mockImplementation(async (url: string) =>
+      url.endsWith('/photo/upload-url') ? respond(503) : respond(200, apiProfile),
+    );
+
+    const settled = await runMutation(useUpdateProfile, { ...editInput, avatarUri: 'file:///picked.jpg' });
+
+    expect(settled.status).toBe('rejected');
+    expect(calls().some((c) => c.method === 'PUT')).toBe(false);
   });
 });
 
@@ -273,11 +288,10 @@ describe('useMyProfile', () => {
       overall: 62,
       ace: 64,
       blk: 60,
-      ata: 60,
+      atk: 60,
       def: 64,
       // Placeholders until the backend has serve/receive ratings.
-      srv: 62,
-      rec: 62,
+      actions: { matches: 0, byAction: { kills: { total: 0, perMatch: null }, blocks: { total: 0, perMatch: null }, aces: { total: 0, perMatch: null }, digs: { total: 0, perMatch: null }, assists: { total: 0, perMatch: null } } },
       // 35 points: level 2 (20 points) on the way to level 3 (60).
       level: 2,
       xp: 15,
@@ -332,6 +346,43 @@ describe('profile photo upload', () => {
     });
     expect(calls().find((c) => c.url.endsWith('/api/v1/profiles/me') && c.method === 'PUT')?.body)
       .toMatchObject({ photoObjectKey: 'profiles/new.jpg' });
+  });
+
+  // A camera photo goes up at most 1080 px on its longest side, as JPEG.
+  it('shrinks a large photo before uploading it', async () => {
+    const { ImageManipulator } = jest.requireMock('expo-image-manipulator');
+    const resize = jest.fn();
+    ImageManipulator.manipulate
+      .mockImplementationOnce(() => ({
+        renderAsync: async () => ({ width: 4000, height: 3000 }),
+      }))
+      .mockImplementationOnce(() => {
+        const ctx = {
+          resize: (size: object) => {
+            resize(size);
+            return ctx;
+          },
+          renderAsync: async () => ({
+            saveAsync: async () => ({ uri: 'file:///cache/small.jpg' }),
+          }),
+        };
+        return ctx;
+      });
+    fetchMock.mockImplementation(async (url: string) =>
+      url.endsWith('/photo/upload-url')
+        ? respond(201, { uploadUrl: 'https://storage.test/put-here', objectKey: 'profiles/new.jpg' })
+        : respond(200, apiProfile),
+    );
+
+    const settled = await runMutation(useUpdateProfile, { ...editInput, avatarUri: 'file:///picked/big.png' });
+
+    expect(settled.status).toBe('fulfilled');
+    expect(resize).toHaveBeenCalledWith({ width: 1080 });
+    expect(mockUpload).toHaveBeenCalledWith('https://storage.test/put-here', 'file:///cache/small.jpg', {
+      httpMethod: 'PUT',
+      uploadType: 0,
+      headers: { 'Content-Type': 'image/jpeg' },
+    });
   });
 });
 

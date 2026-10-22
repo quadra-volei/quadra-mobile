@@ -42,6 +42,8 @@ type ApiRankingEntry = {
   photoUrl: string | null;
   points: number;
   matches: number;
+  /** GERAL, the same number as the profile and the card (API DECISIONS #85). */
+  overall?: number | null;
 };
 
 type ApiRanking = {
@@ -61,6 +63,7 @@ export function toRankingRow(entry: ApiRankingEntry, userId: string | null): Ran
     entry.handle ? `@${entry.handle}` : null,
     positionLabel((entry.position ?? undefined) as Position | undefined),
     `${entry.matches} ${entry.matches === 1 ? 'jogo' : 'jogos'}`,
+    entry.overall != null ? `GERAL ${entry.overall}` : null,
   ]
     .filter(Boolean)
     .join(' · ');

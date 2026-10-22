@@ -33,6 +33,8 @@ export type PricePlan = 'AVULSO' | 'RECORRENTE';
 export type PresencePlayer = {
   id: string;
   name: string;
+  /** The player's @ (without the "@"); shown instead of the name. Absent for guests. */
+  handle?: string;
   avatarUrl?: string;
   status: PresenceStatus;
   position?: PlayerPosition;
@@ -132,6 +134,11 @@ export type MatchDetail = {
   inviteCode?: string;
   /** The current user's place in the waiting list, when queued. */
   myWaitingListPosition?: number | null;
+  /**
+   * No fixed teams (API DECISIONS #86): one list of players, no team screens; the
+   * organizer starts and ends the match with no score.
+   */
+  freeTeams: boolean;
   /** Where the game is; null/absent until the organizer starts it. */
   game?: MatchGameStage | null;
   /** The organizer cancelled the match. */

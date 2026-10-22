@@ -415,9 +415,11 @@ export default function SettingsScreen() {
         </ScrollView>
       </View>
 
+      {/* Opened from the tab headers: its title sits where theirs do (owner's 4th review, item 14). */}
       <BackHeader
         title="Configurações"
         onHeight={setHeaderHeight}
+        asTab
       />
     </View>
   );

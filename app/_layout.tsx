@@ -15,13 +15,14 @@ import {
   DMMono_500Medium,
 } from '@expo-google-fonts/dm-mono';
 import { RussoOne_400Regular } from '@expo-google-fonts/russo-one';
-import { Baloo2_600SemiBold } from '@expo-google-fonts/baloo-2';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import * as Sentry from '@sentry/react-native';
+import { focusManager, QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -32,6 +33,13 @@ import { getAccessToken } from '@/lib/auth/getAccessToken';
 import { verifySession } from '@/lib/auth/verifySession';
 import { useAuthStore } from '@/stores/auth';
 import { STACK_OPTIONS } from '@/theme/motion';
+
+// Crashes, JS errors and a sample of traces to Sentry (project quadra-mobile). Without
+// EXPO_PUBLIC_SENTRY_DSN (local runs) nothing is sent. No PII: user IP and request bodies stay out.
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  tracesSampleRate: 0.2,
+});
 
 SplashScreen.preventAutoHideAsync();
 
@@ -88,6 +96,14 @@ export function getAuthBootstrap(): Promise<void> {
   return bootstrapPromise;
 }
 
+// React Native has no window focus: the app coming back to the foreground is
+// the "focus", so stale data is re-read on return and polling (the match
+// screen) stops while the app is in the background.
+focusManager.setEventListener((setFocused) => {
+  const subscription = AppState.addEventListener('change', (state) => setFocused(state === 'active'));
+  return () => subscription.remove();
+});
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -97,7 +113,9 @@ const queryClient = new QueryClient({
   },
 });
 
-export default function RootLayout() {
+export default Sentry.wrap(RootLayout);
+
+function RootLayout() {
   const [fontsLoaded] = useFonts({
     'ClimateCrisis-Regular': require('../assets/fonts/ClimateCrisis-Regular-VariableFont_YEAR.ttf'),
     DMSans_400Regular,
@@ -108,7 +126,6 @@ export default function RootLayout() {
     DMMono_400Regular,
     DMMono_500Medium,
     RussoOne_400Regular,
-    Baloo2_600SemiBold,
   });
 
   useEffect(() => {
@@ -137,7 +154,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
-          <StatusBar style="auto" />
+          <AppStatusBar />
           <Stack screenOptions={STACK_OPTIONS}>
             {/* Splash → login / tabs swaps the whole app: a fade, not a push. */}
             <Stack.Screen name="index" options={{ animation: 'fade' }} />
@@ -151,3 +168,23 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+// Screens drawn on navy or blue (splash, sign-in, the live game, the card):
+// light status-bar icons there, dark everywhere else. Never "auto": it follows
+// the phone's dark mode, and the app is light-only, so the icons vanished on
+// the light screens (owner's 4th review, item 9; DECISIONS #172).
+const DARK_ROUTES = [
+  /^\/$/,
+  /^\/(login|sms-otp|onboarding)$/,
+  /\/(scoreboard|mvp-vote|summary)$/,
+  /^\/profile\/card$/,
+  /^\/players\/[^/]+\/card$/,
+  /^\/p\//,
+];
+
+function AppStatusBar() {
+  const pathname = usePathname();
+  return <StatusBar style={DARK_ROUTES.some((route) => route.test(pathname)) ? 'light' : 'dark'} />;
+}
+
+

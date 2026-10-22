@@ -2,7 +2,7 @@
  * S3 — SMS Verification screen tests.
  *
  * Covers every acceptance criterion in docs/specs/S3-sms-otp.md:
- *  - Navy->blue hero strip with back chevron + message icon, white card with the
+ *  - Navy->blue hero strip with back chevron + quadra lockup, white card with the
  *    "CONFIRME SEU NÚMERO" display headline.
  *  - Subtitle echoes the phone passed from S2 via route params.
  *  - Six separate digit boxes; typing auto-advances focus; backspace on an empty
@@ -78,8 +78,6 @@ jest.mock('lucide-react-native', () => {
   return {
     ChevronLeft: (props: any) =>
       ReactLocal.createElement(View, { ...props, testID: 'icon-chevron-left' }),
-    MessageSquare: (props: any) =>
-      ReactLocal.createElement(View, { ...props, testID: 'icon-message' }),
   };
 });
 
@@ -241,17 +239,19 @@ describe('S3 — SMS Verification screen', () => {
   // ---------------------------------------------------------------- layout
   /**
    * Covers: S3 — SMS Verification
-   * Criterion: "renders the navy->blue hero strip with a back chevron and a
-   *  message icon, then a white card with the 'CONFIRME SEU NÚMERO' display
+   * Criterion: "renders the navy->blue hero strip with a back chevron and the
+   *  quadra lockup, then a white card with the 'CONFIRME SEU NÚMERO' display
    *  headline."
    */
-  it('renders the hero strip (chevron + message icon) and the CONFIRME headline card', async () => {
+  it('keeps the login background without the logo, with the chevron and the CONFIRME card', async () => {
     await renderScreen();
 
     // The hero strip gradient (the Button grad variant also renders one).
     expect(screen.getAllByTestId('linear-gradient').length).toBeGreaterThan(0);
     expect(screen.getByTestId('icon-chevron-left')).toBeTruthy();
-    expect(screen.getByTestId('icon-message')).toBeTruthy();
+    // Owner's review 2026-10-21 (item 16): no logo, the login's headline stays behind.
+    expect(screen.queryByLabelText('quadra')).toBeNull();
+    expect(screen.getByText('AQUI.')).toBeTruthy();
     expect(screen.getByText('CONFIRME SEU NÚMERO')).toBeTruthy();
   });
 

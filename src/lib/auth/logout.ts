@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { apiClient } from '@/lib/api/client';
 import { clearTokens, getRefreshToken } from '@/lib/auth/tokenStorage';
 import { unregisterPush } from '@/lib/push/pushNotifications';
+import { disconnectConnection } from '@/lib/realtime/connection';
 import { useAuthStore } from '@/stores/auth';
 
 /**
@@ -31,16 +32,23 @@ async function revokeRemoteSession(): Promise<void> {
  *
  * Revokes the refresh token on the backend (best-effort), clears both
  * secure-store tokens, resets the Zustand auth store, wipes the TanStack Query
- * cache, and redirects to Login. The `QueryClient` is passed in (callers use
+ * cache, and redirects to Login with no screen behind it (the tabs left in the
+ * history let "voltar" reopen the app signed out, or with an account that has no
+ * profile yet). The `QueryClient` is passed in (callers use
  * `useQueryClient()`) so this helper stays decoupled from the root layout's
  * module-local client.
  */
 export async function logout(queryClient: QueryClient): Promise<void> {
   // While the session still works: this phone stops getting the account's pushes.
   await unregisterPush();
+  // The live-score connection carries this account's token: drop it with the session.
+  await disconnectConnection();
   await revokeRemoteSession();
   await clearTokens();
   useAuthStore.getState().clearAuth();
   queryClient.clear();
+  if (router.canDismiss()) {
+    router.dismissAll();
+  }
   router.replace('/login');
 }

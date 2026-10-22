@@ -1,5 +1,6 @@
 import { Pressable, Text, View } from 'react-native';
 
+import { PositionTag } from '@/components/domain/PositionPicker';
 import { Avatar } from '@/components/ui/Avatar';
 import { getTeamBgColor } from '@/features/matches/lib/teamColors';
 import type { PresencePlayer } from '@/features/matches/types/matchDetail';
@@ -17,7 +18,7 @@ export type TeamRosterProps = {
 
 /**
  * One team as a card: the team's color and name, how many play, and one row per
- * player (avatar, name, position).
+ * player (avatar, @ or a guest's name, position tag).
  *
  * Presentational: receives plain data via props, never fetches. Used by S13
  * In-Game Teams, one card per team stacked down the screen.
@@ -65,13 +66,9 @@ export function TeamRoster({
               className="flex-1 font-body-medium text-body text-text-primary"
               numberOfLines={1}
             >
-              {player.name}
+              {player.handle ? `@${player.handle}` : player.name}
             </Text>
-            {player.position ? (
-              <Text className="font-mono text-mono text-primary uppercase">
-                {player.position}
-              </Text>
-            ) : null}
+            {player.position ? <PositionTag code={player.position} /> : null}
           </Pressable>
         ))}
       </View>

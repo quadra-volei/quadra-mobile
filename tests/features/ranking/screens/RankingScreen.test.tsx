@@ -49,7 +49,7 @@ jest.mock('lucide-react-native', () => {
   const { View } = require('react-native');
   const stub = (name: string) => (props: any) =>
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
+  const icons: Record<string, unknown> = {
     Bell: stub('bell'),
     Sun: stub('sun'),
     ChevronLeft: stub('chevron-left'),
@@ -58,6 +58,8 @@ jest.mock('lucide-react-native', () => {
     ArrowDown: stub('arrow-down'),
     Minus: stub('minus'),
   };
+  const fallback = (props: any) => require('react').createElement(require('react-native').View, props);
+  return new Proxy(icons, { get: (target, key: string) => (key in target ? target[key] : fallback) });
 });
 
 // Button is a NativeWind (css-interop) Pressable; pressing the real one schedules

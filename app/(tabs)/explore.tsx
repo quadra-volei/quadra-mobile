@@ -7,13 +7,16 @@ import {
   Settings,
   SlidersHorizontal,
 } from "lucide-react-native";
+import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { RefreshControl, ScrollView, Text, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ExploreFilterSheet } from "@/components/domain/ExploreFilterSheet";
 import { MatchCard } from "@/components/domain/MatchCard";
+import { MATCH_PIN_ANCHOR, MatchPin, VenuePin, venuePinKey } from "@/components/domain/MapPins";
+import { matchIdsAtVenues, useNearbyVenues, type NearbyVenue } from "@/features/explore/api/venues";
 import { Button } from "@/components/ui/Button";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
@@ -33,7 +36,9 @@ import { useNearbyMatches } from "@/features/matches/api/getNearby";
 import { isMapAvailable } from "@/features/matches/lib/isMapAvailable";
 import { useDeviceCoords } from "@/features/matches/lib/useDeviceCoords";
 import type { NearbyMatch } from "@/features/matches/types/match";
-import { colors } from "@/theme/colors";
+import { HARD_SHADOW, colors } from "@/theme/colors";
+import { MAP_STYLE } from "@/theme/mapStyle";
+import { usePullToRefresh, useRefreshOnFocus } from "@/hooks/useRefresh";
 import { TAB_BAR_CLEARANCE } from "@/theme/layout";
 
 // Where Explore searches when the device location is not available: São Paulo
@@ -106,58 +111,74 @@ function FiltersButton({
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={on ? `Filtros, ${active} ativos` : "Filtros"}
-      className="h-9 px-3 rounded-pill flex-row items-center gap-1.5 bg-white border border-line"
+      className="h-11 px-4 rounded-pill flex-row items-center gap-2 bg-white border-2 border-surface-dark"
       style={
         on
-          ? { backgroundColor: colors.surfaceDark, borderColor: colors.surfaceDark }
-          : undefined
+          ? { backgroundColor: colors.surfaceDark, ...HARD_SHADOW }
+          : HARD_SHADOW
       }
     >
       <SlidersHorizontal
-        size={16}
+        size={18}
         color={on ? colors.textOnDark : colors.surfaceDark}
       />
       <Text
-        className="font-mono text-mono uppercase text-text-primary"
+        className="font-body-bold text-h2 text-text-primary"
         style={on ? { color: colors.textOnDark } : undefined}
       >
         Filtros
       </Text>
-      {on ? (
-        <View className="h-5 min-w-[20px] px-1 rounded-pill bg-accent items-center justify-center">
-          <Text className="font-body-bold text-caption text-text-primary">
-            {active}
-          </Text>
-        </View>
-      ) : null}
+      {/* The badge's room is always there, so turning a filter on never
+          resizes the button (owner's 4th review, item 4). */}
+      <View
+        className="h-5 min-w-[20px] px-1 rounded-pill bg-accent items-center justify-center"
+        style={{ opacity: on ? 1 : 0 }}
+        testID="explore-filters-badge"
+      >
+        <Text className="font-body-bold text-caption text-text-primary">
+          {on ? active : 0}
+        </Text>
+      </View>
     </PressableScale>
   );
 }
 
 /**
  * Static mini map (Android lite mode: a bitmap, cheap inside a scroll list)
- * with a pin per visible match, framed around the search centre and the
- * nearest results. Taps go to the card around it, never into the map.
+ * drawn like the full map (owner's 4th review, item 1): arenas with the number
+ * of the filtered games there, and a drop pin per filtered game away from an
+ * arena. Framed around the search centre and the nearest results. Taps go to
+ * the card around it, never into the map.
  */
 function MiniMap({
   center,
   matches,
+  venues,
 }: {
   center: { lat: number; lon: number };
   matches: NearbyMatch[];
+  venues: NearbyVenue[];
 }) {
-  const pins = matches.slice(0, 20);
-  const span = pins.reduce(
-    (max, m) =>
-      Math.max(max, Math.abs(m.lat - center.lat), Math.abs(m.lon - center.lon)),
+  const shown = new Set(matches.map((m) => m.id));
+  const atVenues = matchIdsAtVenues(venues);
+  const loose = matches.filter((m) => !atVenues.has(m.id)).slice(0, 20);
+  // Arenas with a filtered game first, then the closest others; the count follows the filters.
+  const arenas = venues
+    .map((v) => ({ venue: v, games: v.matches.filter((m) => shown.has(m.id)).length }))
+    .sort((a, b) => b.games - a.games || a.venue.distanceKm - b.venue.distanceKm)
+    .slice(0, 20);
+  const span = [...loose, ...arenas.filter((a) => a.games > 0).map((a) => a.venue)].reduce(
+    (max, p) => Math.max(max, Math.abs(p.lat - center.lat), Math.abs(p.lon - center.lon)),
     0,
   );
-  const delta = Math.max(span * 2.4, 0.03);
+  // Rounded so a filter change that keeps the same frame does not remount the map.
+  const delta = Math.round(Math.max(span * 2.4, 0.03) * 100) / 100;
   return (
     <View pointerEvents="none" className="h-36" testID="explore-mini-map">
       <MapView
-        key={`${center.lat},${center.lon},${delta},${pins.length}`}
+        key={`${center.lat},${center.lon},${delta}`}
         liteMode
+        customMapStyle={MAP_STYLE}
         style={{ flex: 1 }}
         initialRegion={{
           latitude: center.lat,
@@ -166,12 +187,25 @@ function MiniMap({
           longitudeDelta: delta,
         }}
       >
-        {pins.map((m) => (
+        {arenas.map(({ venue, games }) => (
           <Marker
-            key={m.id}
+            key={venuePinKey(venue, games, false)}
+            coordinate={{ latitude: venue.lat, longitude: venue.lon }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false}
+          >
+            <VenuePin venue={venue} games={games} />
+          </Marker>
+        ))}
+        {loose.map((m) => (
+          <Marker
+            key={`${m.id}:${m.capacity - m.confirmed}`}
             coordinate={{ latitude: m.lat, longitude: m.lon }}
-            pinColor={colors.primary}
-          />
+            anchor={MATCH_PIN_ANCHOR}
+            tracksViewChanges={false}
+          >
+            <MatchPin openSlots={m.capacity - m.confirmed} />
+          </Marker>
         ))}
       </MapView>
     </View>
@@ -193,6 +227,8 @@ function ResultsArea({
     ? { ...DEFAULT_GEO, lat: coords.latitude, lon: coords.longitude }
     : DEFAULT_GEO;
   const { data, isPending, isError, refetch } = useNearbyMatches(geo);
+  // The arenas around, for the preview map (optional: none while loading or on error).
+  const venuesQuery = useNearbyVenues({ lat: geo.lat, lon: geo.lon, radiusKm: 10 }, isMapAvailable());
 
   const results = useMemo(
     () => applyFilters(data ?? [], filters),
@@ -226,7 +262,8 @@ function ResultsArea({
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerClassName="px-4 gap-2 mt-3"
+        // pb-1 leaves room for the selected chips' hard shadow.
+        contentContainerClassName="px-4 gap-2 pt-3 pb-1"
       >
         <FiltersButton active={active} onPress={() => setSheetOpen(true)} />
         {QUICK.map((q) => (
@@ -247,7 +284,9 @@ function ResultsArea({
         accessibilityRole="button"
         accessibilityLabel="Abrir mapa de partidas"
       >
-        {isMapAvailable() ? <MiniMap center={geo} matches={results} /> : null}
+        {isMapAvailable() ? (
+          <MiniMap center={geo} matches={results} venues={venuesQuery.data?.venues ?? []} />
+        ) : null}
         <View className="p-3 flex-row items-center gap-3">
           <View className="h-10 w-10 rounded-chip bg-primary items-center justify-center">
             <MapPin size={20} color={colors.textOnDark} />
@@ -411,6 +450,14 @@ export default function ExploreScreen() {
   const [view, setView] = useState<ViewMode>("grid");
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
+
+  // Spots and new matches change while the tab stays mounted: re-read the
+  // nearby matches when the tab is shown again, or on a pull.
+  const refetch = () =>
+    queryClient.refetchQueries({ queryKey: ["matches", "nearby"], type: "active" });
+  useRefreshOnFocus(refetch);
+  const pull = usePullToRefresh(refetch);
 
   return (
     <View className="flex-1 bg-bg-light">
@@ -420,6 +467,13 @@ export default function ExploreScreen() {
             paddingTop: headerHeight,
             paddingBottom: insets.bottom + TAB_BAR_CLEARANCE,
           }}
+          refreshControl={
+            <RefreshControl
+              refreshing={pull.refreshing}
+              onRefresh={pull.onRefresh}
+              progressViewOffset={headerHeight}
+            />
+          }
         >
           <ResultsArea view={view} setView={setView} />
         </ScrollView>

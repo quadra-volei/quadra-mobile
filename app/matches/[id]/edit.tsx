@@ -5,17 +5,19 @@ import { ChevronLeft } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CoverPicker } from '@/components/domain/CoverPicker';
 import { Button } from '@/components/ui/Button';
+import { dialog } from '@/components/ui/Dialog';
+import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { DateTimePickerField } from '@/components/ui/DateTimePickerField';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { SearchField } from '@/components/ui/SearchField';
 import { StepperField } from '@/components/ui/StepperField';
 import { TextField } from '@/components/ui/TextField';
-import { useEditMatch, useMatchEditDefaults } from '@/features/matches/api/editMatch';
+import { useCancelMatch, useEditMatch, useMatchEditDefaults } from '@/features/matches/api/editMatch';
 import {
   newPlaceSessionToken,
   placeLabel,
@@ -55,8 +57,11 @@ export default function EditMatchScreen() {
 
   if (defaults.isPending) {
     return (
-      <View className="flex-1 items-center justify-center bg-bg-light">
-        <ActivityIndicator color={colors.primary} />
+      <View className="flex-1 bg-bg-light px-4 pt-16 gap-4" testID="edit-skeleton">
+        <SkeletonBlock className="h-8 w-48" />
+        {[0, 1, 2, 3, 4].map((i) => (
+          <SkeletonBlock key={i} className="h-14" />
+        ))}
       </View>
     );
   }
@@ -91,6 +96,7 @@ function EditMatchForm({
 }) {
   const insets = useSafeAreaInsets();
   const editMatch = useEditMatch(id);
+  const cancelMatch = useCancelMatch(id);
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -116,6 +122,7 @@ function EditMatchForm({
   const level = watch('level');
   const duration = watch('duration');
   const gamePoints = watch('gamePoints');
+  const freeTeams = watch('freeTeams');
 
   const pickCover = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -141,6 +148,27 @@ function EditMatchForm({
 
   const onSubmit = (values: EditMatchInput) =>
     editMatch.mutate({ ...values, coverUri }, { onSuccess: () => router.back() });
+
+  const onEndGroup = () =>
+    dialog.alert(
+      'Encerrar a pelada fixa?',
+      'Este jogo é cancelado e nenhum outro é marcado. O ranking do grupo fica como está.',
+      [
+        { text: 'Voltar', style: 'cancel' },
+        {
+          text: 'Encerrar pelada',
+          style: 'destructive',
+          onPress: () =>
+            cancelMatch.mutate(
+              { endGroup: true },
+              {
+                onSuccess: () => router.back(),
+                onError: (error) => dialog.alert('Não deu para encerrar', error.message),
+              },
+            ),
+        },
+      ],
+    );
 
   const locationError =
     formState.errors.location?.message ?? formState.errors.latitude?.message;
@@ -298,17 +326,24 @@ function EditMatchForm({
                 />
               ))}
             </View>
-            <View className="mb-3 flex-row flex-wrap gap-2">
-              {GAME_POINTS.map((p) => (
-                <FilterChip
-                  key={p}
-                  label={`Até ${p} pontos`}
-                  selected={gamePoints === p}
-                  onPress={() => setValue('gamePoints', p)}
-                  testID={`edit-game-points-${p}`}
-                />
-              ))}
+            <View className="mb-3 flex-row gap-2">
+              <FilterChip label="Times fixos" selected={!freeTeams} onPress={() => setValue('freeTeams', false)} testID="edit-teams-fixed" />
+              <FilterChip label="Sem times fixos" selected={freeTeams} onPress={() => setValue('freeTeams', true)} testID="edit-teams-free" />
             </View>
+            {/* With no fixed teams there is no score to play to. */}
+            {freeTeams ? null : (
+              <View className="mb-3 flex-row flex-wrap gap-2">
+                {GAME_POINTS.map((p) => (
+                  <FilterChip
+                    key={p}
+                    label={`Até ${p} pontos`}
+                    selected={gamePoints === p}
+                    onPress={() => setValue('gamePoints', p)}
+                    testID={`edit-game-points-${p}`}
+                  />
+                ))}
+              </View>
+            )}
             <Controller
               control={control}
               name="players"
@@ -396,6 +431,20 @@ function EditMatchForm({
               Salvar alterações
             </Button>
           </View>
+
+          {/* Cancelling one game keeps the group going; only this ends it (API DECISIONS #89). */}
+          {isRecurring ? (
+            <View className="mt-3">
+              <Button
+                variant="outline"
+                onPress={onEndGroup}
+                loading={cancelMatch.isPending}
+                testID="end-group"
+              >
+                Encerrar pelada fixa
+              </Button>
+            </View>
+          ) : null}
         </ScrollView>
       </SafeAreaView>
     </View>

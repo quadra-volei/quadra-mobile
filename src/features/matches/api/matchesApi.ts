@@ -50,6 +50,8 @@ export type ApiMatch = {
   durationMinutes: number | null;
   /** Points that win the single game; null on matches from before (API DECISIONS #72). */
   gamePoints?: number | null;
+  /** No fixed teams (API DECISIONS #86); absent on an older API. */
+  freeTeams?: boolean;
   description?: string | null;
   visibility: 'Open' | 'Private';
   inviteMode: 'Code' | 'Guests' | null;
@@ -136,6 +138,7 @@ export type ApiCreateMatch = {
   level: ApiMatchLevel;
   durationMinutes: number;
   gamePoints: number;
+  freeTeams: boolean;
   visibility: 'Open' | 'Private';
   inviteMode: 'Code' | 'Guests' | null;
   priceMonthly: number | null;
@@ -241,6 +244,7 @@ export function toApiCreateMatch(
     level: LEVEL_TO_API[input.level],
     durationMinutes: toMinutes(input.duration),
     gamePoints: input.gamePoints,
+    freeTeams: input.freeTeams,
     visibility: isPrivate ? 'Private' : 'Open',
     inviteMode: isPrivate ? (input.inviteMode === 'guests' ? 'Guests' : 'Code') : null,
     priceMonthly: recurring && input.priceMonthly > 0 ? input.priceMonthly : null,
@@ -323,6 +327,7 @@ export function toMatchDetail(api: ApiMatchDetail, userId: string | null): Match
     ...api.players.map(({ player, status }) => ({
       id: player.userId,
       name: player.displayName,
+      handle: player.handle ?? undefined,
       avatarUrl: player.photoUrl ?? undefined,
       status: STATUS_FROM_API[status],
       position: toPosition(player.position),
@@ -377,6 +382,7 @@ export function toMatchDetail(api: ApiMatchDetail, userId: string | null): Match
     inviteCode: api.inviteCode ?? undefined,
     myWaitingListPosition: api.myWaitingListPosition,
     game: toGameStage(api.game),
+    freeTeams: match.freeTeams ?? false,
     cancelled: match.status === 'Cancelled',
     // The API refuses edits once the game started or the window closed (DECISIONS).
     editable:
@@ -434,6 +440,7 @@ export type ApiUpdateMatch = {
   level: ApiMatchLevel;
   durationMinutes: number;
   gamePoints: number;
+  freeTeams: boolean;
   priceMonthly: number | null;
   coverObjectKey: string | null;
 };
@@ -458,6 +465,7 @@ export function toApiUpdateMatch(
     level: LEVEL_TO_API[input.level],
     durationMinutes: toMinutes(input.duration),
     gamePoints: input.gamePoints,
+    freeTeams: input.freeTeams,
     priceMonthly: input.priceMonthly > 0 ? input.priceMonthly : null,
     coverObjectKey,
   };
@@ -483,6 +491,7 @@ export function toEditMatchDefaults(api: ApiMatchDetail): EditMatchInput {
     format: toFormat(match.format),
     level: toLevel(match.level),
     gamePoints: match.gamePoints ?? DEFAULT_GAME_POINTS,
+    freeTeams: match.freeTeams ?? false,
     // A duration the app has no preset for (made elsewhere) starts at the default.
     duration:
       MATCH_DURATIONS.find((d) => toMinutes(d) === minutes) ?? '1h30',
@@ -497,8 +506,9 @@ export function putMatch(id: string, body: ApiUpdateMatch): Promise<ApiMatch> {
 }
 
 /** Cancels the match (kept as Cancelled by the API). */
-export function deleteMatch(id: string): Promise<unknown> {
-  return authorizedApiClient<unknown>(`${MATCHES_PATH}/${id}`, { method: 'DELETE' });
+export function deleteMatch(id: string, endGroup = false): Promise<unknown> {
+  const query = endGroup ? '?endGroup=true' : '';
+  return authorizedApiClient<unknown>(`${MATCHES_PATH}/${id}${query}`, { method: 'DELETE' });
 }
 
 export function fetchMatchDetail(id: string, inviteCode?: string): Promise<ApiMatchDetail> {

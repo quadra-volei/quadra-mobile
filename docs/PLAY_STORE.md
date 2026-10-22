@@ -77,7 +77,7 @@ Respostas gerais:
 | Coleta ou compartilha algum dado do tipo exigido? | Sim |
 | Todos os dados são criptografados em trânsito? | Sim (HTTPS) |
 | O usuário pode pedir a exclusão dos dados? | Sim: no app (Configurações → Excluir conta) e em https://quadra-volei.app/excluir-conta |
-| Compartilha dados com terceiros? | Não. Os provedores (Render, Neon, Cloudflare, Google/Firebase, Expo) processam em nome do Quadra, o que a Play não conta como compartilhamento. |
+| Compartilha dados com terceiros? | Não. Os provedores (Render, Neon, Cloudflare, Google/Firebase, Expo, Sentry) processam em nome do Quadra, o que a Play não conta como compartilhamento. |
 
 Dados coletados (nenhum é usado para publicidade ou vendido):
 
@@ -92,7 +92,8 @@ Dados coletados (nenhum é usado para publicidade ou vendido):
 | Fotos e vídeos → Fotos | Foto de perfil, capa da partida, fotos de posts | Opcional | Funcionalidade do app |
 | Atividade no app → Interações no app | Presenças, times, placar, votos de MVP, curtidas, quem segue | Obrigatório | Funcionalidade do app |
 | Atividade no app → Outro conteúdo gerado pelo usuário | Posts, comentários, denúncias, feedback | Opcional | Funcionalidade do app, Prevenção de fraudes e segurança |
-| Informações e desempenho do app → Diagnósticos | Versão do app e do sistema enviadas no feedback; [relatórios de erro, se o Sentry for ligado] | Opcional | Análise, Funcionalidade do app |
+| Informações e desempenho do app → Diagnósticos | Versão do app e do sistema enviadas no feedback; erros sem falha (Sentry, DECISIONS #142) | Obrigatório | Análise, Funcionalidade do app |
+| Informações e desempenho do app → Registros de falhas | Relatórios de falha do app (Sentry, DECISIONS #142) | Obrigatório | Análise, Funcionalidade do app |
 | IDs do dispositivo ou outros IDs | Token de notificação e identificador do aparelho usado na sessão | Obrigatório | Funcionalidade do app, Prevenção de fraudes e segurança |
 
 Não coletados: dados financeiros, de saúde, contatos, agenda, mensagens SMS, arquivos,

@@ -346,10 +346,11 @@ describe('S11 — Create-match (formulário vivo)', () => {
   });
 
   // ----------------------------------------------------------------- cover
-  it('renders the cover placeholder with CAPA DA PARTIDA and Trocar capa', async () => {
+  it('renders the cover placeholder with CAPA DA PARTIDA and Adicionar capa', async () => {
     await renderScreen();
-    expect(screen.getByText('Capa da partida')).toBeTruthy();
-    expect(screen.getByText('Trocar capa')).toBeTruthy();
+    expect(screen.queryByText('Capa da partida')).toBeNull();
+    expect(screen.getByText('Adicionar capa')).toBeTruthy();
+    expect(screen.getByText('Adicionar capa')).toBeTruthy();
     expect(screen.queryByTestId('cover-picker-image')).toBeNull();
   });
 
@@ -368,6 +369,9 @@ describe('S11 — Create-match (formulário vivo)', () => {
     expect(screen.getByTestId('cover-picker-image').props.source).toEqual({
       uri: PICKED_URI,
     });
+    // The picked photo shows alone: no "add/change cover" text over it.
+    expect(screen.queryByText('Adicionar capa')).toBeNull();
+    expect(screen.queryByText('Trocar capa')).toBeNull();
 
     await completeOneOffFlow();
     await press('create-submit');

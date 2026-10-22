@@ -86,6 +86,7 @@ const payload: CreateMatchPayload = {
   time: '19h30',
   duration: '1h30',
   gamePoints: 21,
+  freeTeams: false,
   format: '4X4',
   players: 8,
   level: 'AVANCADO',
@@ -417,6 +418,7 @@ describe('useMatchDetail', () => {
       {
         id: ORGANIZER,
         name: 'Ana Souza',
+        handle: 'ana',
         avatarUrl: 'https://cdn.test/ana.jpg',
         status: 'CONFIRMADO',
         position: 'LEV',
@@ -626,6 +628,11 @@ describe('edit and cancel', () => {
     fetchMock.mockResolvedValueOnce(respond(204));
     expect((await runMutation(() => useCancelMatch(MATCH_ID), undefined)).status).toBe('fulfilled');
     expect(call().method).toBe('DELETE');
+    expect(call().url).not.toContain('endGroup');
+
+    fetchMock.mockResolvedValueOnce(respond(204));
+    await runMutation(() => useCancelMatch(MATCH_ID), { endGroup: true });
+    expect(call(1).url).toContain(`/api/v1/matches/${MATCH_ID}?endGroup=true`);
 
     fetchMock.mockResolvedValueOnce(respond(409, {}));
     expect(rejectionMessage(await runMutation(() => useCancelMatch(MATCH_ID), undefined))).toBe(

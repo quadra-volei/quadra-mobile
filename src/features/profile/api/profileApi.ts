@@ -4,6 +4,7 @@ import type {
   Position,
 } from '@/features/profile/schema/onboarding';
 import { FileSystemUploadType, uploadAsync } from 'expo-file-system/legacy';
+import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
 import type { CardTitleCode } from '@/features/profile/card/cardTitles';
 import { ApiError } from '@/lib/api/client';
@@ -59,6 +60,20 @@ export type ApiProfile = {
   shareActivity?: boolean | null;
   /** How the player dressed their card (API DECISIONS #65). */
   cardStyle?: ApiCardStyle | null;
+  /** Recorded actions over the history (API DECISIONS #85); absent on an older API. */
+  actions?: ApiActions | null;
+};
+
+type ApiActionSummary = { total: number; perMatch: number | null };
+
+/** Matches with a stats sheet, and per action the total and the average per match. */
+export type ApiActions = {
+  matches: number;
+  kills: ApiActionSummary;
+  blocks: ApiActionSummary;
+  aces: ApiActionSummary;
+  digs: ApiActionSummary;
+  assists: ApiActionSummary;
 };
 
 /** `cardStyle` on the profile and the `PUT /profiles/me/card-style` response. */
@@ -127,13 +142,38 @@ export function putMyProfile(body: ApiProfileUpdate): Promise<ApiProfile> {
   });
 }
 
+// Longest side of every uploaded photo (profile, post, match cover): sharp on a
+// phone, ~10× lighter than the camera's original.
+const MAX_PHOTO_PX = 1080;
+
+/** A JPEG copy of the picked photo, at most MAX_PHOTO_PX on its longest side. */
+async function shrinkPhoto(localUri: string): Promise<string> {
+  const original = await ImageManipulator.manipulate(localUri).renderAsync();
+  const scale = MAX_PHOTO_PX / Math.max(original.width, original.height);
+  const image = scale < 1
+    ? await ImageManipulator.manipulate(localUri)
+        .resize({ width: Math.round(original.width * scale) })
+        .renderAsync()
+    : original;
+  const saved = await image.saveAsync({ compress: 0.8, format: SaveFormat.JPEG });
+  return saved.uri;
+}
+
 /**
  * Uploads a picked photo (`POST /profiles/me/photo/upload-url`, then a PUT of
  * the file straight to the storage) and returns the object key to save on the
- * profile. Null when this environment has no photo storage (503): the profile
- * is then saved with the photo it already had.
+ * profile. Every caller (profile, post, match cover) goes through here, so the
+ * photo is shrunk here first. An environment with no photo storage (503) is an
+ * error like any other: the caller must never report a photo as saved when it
+ * was not (DECISIONS #170).
  */
-export async function uploadProfilePhoto(localUri: string): Promise<string | null> {
+export async function uploadProfilePhoto(pickedUri: string): Promise<string> {
+  let localUri: string;
+  try {
+    localUri = await shrinkPhoto(pickedUri);
+  } catch {
+    throw new Error('Não foi possível preparar a foto. Tente outra imagem.');
+  }
   const contentType = photoContentType(localUri);
   let target: { uploadUrl: string; objectKey: string };
   try {
@@ -143,7 +183,7 @@ export async function uploadProfilePhoto(localUri: string): Promise<string | nul
     });
   } catch (error) {
     if (error instanceof ApiError && error.status === 503) {
-      return null;
+      throw new Error('O envio de fotos está indisponível no momento. Tente de novo mais tarde.');
     }
     if (error instanceof ApiError && error.status !== 401) {
       throw new Error(`Não foi possível preparar o envio da foto (erro ${error.status}).`);

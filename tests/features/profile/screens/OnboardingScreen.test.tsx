@@ -108,6 +108,16 @@ jest.mock('@/features/profile/api/handleAvailability', () => ({
   useHandleTaken: () => mockHandleTaken.value,
 }));
 
+// Leaving step 0 signs out (the account has no profile yet).
+const mockLogout = jest.fn();
+const mockQueryClient = {};
+jest.mock('@/lib/auth/logout', () => ({
+  logout: (...args: any[]) => mockLogout(...args),
+}));
+jest.mock('@tanstack/react-query', () => ({
+  useQueryClient: () => mockQueryClient,
+}));
+
 jest.mock('@/features/profile/api/createProfile', () => ({
   useCreateProfile: () => ({
     mutate: mockCreate.mutate,
@@ -132,6 +142,7 @@ import OnboardingScreen from '../../../../app/(auth)/onboarding';
 beforeEach(() => {
   mockBack.mockClear();
   mockReplace.mockClear();
+  mockLogout.mockClear();
   mockCanGoBack.mockReturnValue(true);
   mockCreate.mutate.mockClear();
   mockCreate.isPending = false;
@@ -405,10 +416,11 @@ describe('S4 — Onboarding wizard', () => {
 
   // ------------------------------------------------------------ back navigation
   /**
-   * Step 0 back chevron -> router.back(). The wizard steps have no chevron
-   * (DECISIONS #85): the Android back gesture walks one step back instead.
+   * The wizard steps have no chevron (DECISIONS #85): the Android back gesture
+   * walks one step back. Leaving step 0 (chevron or Android back) signs out to
+   * the login, never pops the history (it could hold tabs of an older session).
    */
-  it('walks back within the wizard on Android back and leaves step 0 via the chevron', async () => {
+  it('walks back within the wizard on Android back and leaves step 0 by signing out', async () => {
     const onHardwareBack = jest.spyOn(BackHandler, 'addEventListener');
     await renderScreen();
     await fillStep0();
@@ -423,9 +435,18 @@ describe('S4 — Onboarding wizard', () => {
     expect(mockBack).not.toHaveBeenCalled();
     expect(screen.getByTestId('onboarding-first-name')).toBeTruthy();
 
-    // step-0 back chevron leaves the route
+    // step-0 back chevron signs out
     await press('onboarding-back');
-    expect(mockBack).toHaveBeenCalledTimes(1);
+    expect(mockLogout).toHaveBeenCalledWith(mockQueryClient);
+    expect(mockBack).not.toHaveBeenCalled();
+
+    // so does the Android back on step 0
+    mockLogout.mockClear();
+    await act(async () => {
+      handled = onHardwareBack.mock.calls.at(-1)?.[1]();
+    });
+    expect(handled).toBe(true);
+    expect(mockLogout).toHaveBeenCalledTimes(1);
   });
 
   /** The chosen position's role shows under the grid (the cards carry only the name). */

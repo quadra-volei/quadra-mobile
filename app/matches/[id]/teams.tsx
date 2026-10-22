@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { TeamRoster } from '@/components/domain/TeamRoster';
 import { Button } from '@/components/ui/Button';
+import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { dialog } from '@/components/ui/Dialog';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { StepperField } from '@/components/ui/StepperField';
@@ -20,7 +21,7 @@ import { useDrawTeams, useMovePlayer } from '@/features/matches/api/drawTeams';
 import type { DrawMode, PresencePlayer } from '@/features/matches/types/matchDetail';
 import type { Team } from '@/features/matches/types/team';
 import { colors } from '@/theme/colors';
-import { useStartSet } from '@/features/matches/api/liveGame';
+import { useStartFreeGame, useStartSet } from '@/features/matches/api/liveGame';
 
 // What each draw mode asks the backend for (drawTeams.ts): MANUAL is a random
 // draw, AUTO balances the teams by level.
@@ -78,6 +79,7 @@ export default function TeamsScreen() {
   const draw = useDrawTeams(matchId);
   const movePlayer = useMovePlayer(matchId);
   const startSet = useStartSet(matchId);
+  const startFree = useStartFreeGame(matchId);
 
   // ── Local UI state ──
   // The configuration is what the organizer picked, or the match's default
@@ -115,6 +117,19 @@ export default function TeamsScreen() {
     );
   }
 
+  if (matchQuery.isPending) {
+    return (
+      <View className="flex-1 bg-bg-light">
+        <SafeAreaView edges={['top']} className="flex-1 px-4 pt-4 gap-4" testID="teams-skeleton">
+          <SkeletonBlock className="h-8 w-40" />
+          <SkeletonBlock className="h-28" />
+          <SkeletonBlock className="h-40" />
+          <SkeletonBlock className="h-40" />
+        </SafeAreaView>
+      </View>
+    );
+  }
+
   if (matchQuery.isError) {
     return (
       <View className="flex-1 bg-bg-light">
@@ -147,6 +162,14 @@ export default function TeamsScreen() {
       },
     );
   };
+
+  // Teams are optional: the match can go on as one list, teams formed on court
+  // (API DECISIONS #86) — nothing to create, name, fill or draw.
+  const handlePlayWithoutTeams = () =>
+    startFree.mutate(undefined, {
+      onSuccess: () => router.replace({ pathname: '/matches/[id]/scoreboard', params: { id: matchId } }),
+      onError: (error) => dialog.alert('Não foi possível começar', error.message),
+    });
 
   // After the draw the organizer can still fix the teams: tap a player, pick
   // the team they go to. Saved on the backend, which answers with every team.
@@ -407,16 +430,26 @@ export default function TeamsScreen() {
               Começar partida
             </Button>
           ) : (
-            <Button
-              variant="grad"
-              onPress={handleDraw}
-              loading={draw.isPending}
-              disabled={tooFew}
-              leftIcon={<Shuffle size={20} color={colors.surfaceDark} />}
-              testID="draw-teams"
-            >
-              Sortear times
-            </Button>
+            <View className="gap-2">
+              <Button
+                variant="grad"
+                onPress={handleDraw}
+                loading={draw.isPending}
+                disabled={tooFew}
+                leftIcon={<Shuffle size={20} color={colors.surfaceDark} />}
+                testID="draw-teams"
+              >
+                Sortear times
+              </Button>
+              <Button
+                variant="outline"
+                onPress={handlePlayWithoutTeams}
+                loading={startFree.isPending}
+                testID="play-without-teams"
+              >
+                Jogar sem times fixos
+              </Button>
+            </View>
           )}
         </View>
       </SafeAreaView>

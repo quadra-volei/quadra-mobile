@@ -1,7 +1,7 @@
 import { Text } from 'react-native';
 
 import { PressableScale } from '@/components/ui/PressableScale';
-import { colors } from '@/theme/colors';
+import { HARD_SHADOW, colors } from '@/theme/colors';
 
 export type FilterChipProps = {
   label: string;
@@ -17,8 +17,9 @@ export type FilterChipProps = {
  * reused by S11 date/format/level chips and S9/S10 scope/position chips).
  *
  * Controlled and purely presentational — holds no state and never fetches.
- * Selected = blue `primary` fill with white label; unselected = white fill
- * with a hairline `border-line` and primary-text label. Mono uppercase label.
+ * Sized and drawn like the app's buttons (DESIGN_SYSTEM "Buttons"): 44px tall,
+ * DM Sans bold label, 2px border. Selected = blue `primary` fill, navy border,
+ * white label and the hard shadow; unselected = white with a `line` border.
  * `disabled` renders a muted, inert pill (no press, `accessibilityState.disabled`)
  * — used by S9's "Em breve" Bairro/Geral scope tabs. Exposes
  * `accessibilityState={{ selected, disabled }}` for assistive tech.
@@ -36,6 +37,11 @@ export function FilterChip({
   testID,
 }: FilterChipProps) {
   const fill = disabled ? colors.bgLightAlt : selected ? colors.primary : undefined;
+  const look = selected && !disabled
+    ? { backgroundColor: colors.primary, borderColor: colors.surfaceDark, ...HARD_SHADOW }
+    : fill
+      ? { backgroundColor: fill }
+      : undefined;
   const labelColor = disabled
     ? colors.textMuted
     : selected
@@ -49,12 +55,12 @@ export function FilterChip({
       testID={testID}
       accessibilityRole="button"
       accessibilityState={{ selected, disabled: Boolean(disabled) }}
-      className="h-9 px-4 rounded-pill items-center justify-center overflow-hidden bg-white border border-line"
-      style={fill ? { backgroundColor: fill, borderColor: fill } : undefined}
+      className="h-11 px-5 rounded-pill items-center justify-center bg-white border-2 border-line"
+      style={look}
     >
       <Text
         testID={testID ? `${testID}-label` : undefined}
-        className="font-mono text-mono uppercase text-text-primary"
+        className="font-body-bold text-h2 text-text-primary"
         style={labelColor ? { color: labelColor } : undefined}
       >
         {label}

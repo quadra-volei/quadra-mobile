@@ -198,6 +198,13 @@ const mockUpcoming: QueryState<UpcomingMatch> & { refetch: jest.Mock } = {
   refetch: jest.fn(),
 };
 
+// The screen re-reads queries through the query client (pull to refresh).
+const mockRefetchQueries = jest.fn(async () => undefined);
+jest.mock('@tanstack/react-query', () => ({
+  ...jest.requireActual('@tanstack/react-query'),
+  useQueryClient: () => ({ refetchQueries: mockRefetchQueries }),
+}));
+
 jest.mock('@/features/matches/api/getUpcoming', () => ({
   useUpcomingMatches: () => ({
     data: mockUpcoming.data,
@@ -226,10 +233,23 @@ beforeEach(() => {
   mockActivity.isPending = false;
   mockActivity.isError = false;
   mockActivity.refetch.mockClear();
+  mockRefetchQueries.mockClear();
   resetUpcoming();
 });
 
 describe('S5 — Home screen', () => {
+  // The tab stays mounted: a pull re-reads my matches and my friends' activity.
+  it('re-reads the matches and the friends activity on a pull', async () => {
+    const { container } = await render(<HomeScreen />);
+    // The scroll view carries the RefreshControl; a pull calls its onRefresh.
+    const [scroll] = container.queryAll((node) => Boolean(node.props.refreshControl));
+    await act(async () => {
+      await scroll!.props.refreshControl.props.onRefresh();
+    });
+    expect(mockUpcoming.refetch).toHaveBeenCalled();
+    expect(mockRefetchQueries).toHaveBeenCalledWith({ queryKey: ['activity'], type: 'active' });
+  });
+
   // -------------------------------------------------------------------- header
   /**
    * Covers: S5 — Home
@@ -371,9 +391,9 @@ describe('S5 — Home screen', () => {
     ];
     await render(<HomeScreen />);
 
-    expect(screen.getByText('SEU PRÓXIMO JOGO')).toBeTruthy();
-    expect(screen.getAllByText('Confirmado')).toHaveLength(1);
-    const card = screen.getByLabelText(/^Seu próximo jogo: Vôlei de Quinta/);
+    expect(screen.getByText('VOCÊ ENTRA EM QUADRA')).toBeTruthy();
+    expect(screen.getAllByTestId('next-game-countdown')).toHaveLength(1);
+    const card = screen.getByLabelText(/^Você entra em quadra: Vôlei de Quinta/);
     expect(screen.getByText(/· Arena Pinheiros$/)).toBeTruthy();
     // the next game leaves the carousel; the others stay
     expect(screen.getAllByText('Vôlei de Quinta')).toHaveLength(1);
@@ -387,10 +407,10 @@ describe('S5 — Home screen', () => {
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/matches/[id]', params: { id: 'soon' } });
   });
 
-  it('hides SEU PRÓXIMO JOGO when no upcoming match is confirmed', async () => {
+  it('hides VOCÊ ENTRA EM QUADRA when no upcoming match is confirmed', async () => {
     await render(<HomeScreen />);
 
-    expect(screen.queryByText('SEU PRÓXIMO JOGO')).toBeNull();
+    expect(screen.queryByText('VOCÊ ENTRA EM QUADRA')).toBeNull();
     expect(screen.queryByText('Confirmado')).toBeNull();
   });
 

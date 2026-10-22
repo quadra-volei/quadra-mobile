@@ -21,7 +21,8 @@
  * never the native map canvas. Read hook is mocked at the boundary; no MSW.
  */
 import React from 'react';
-import { Linking, Platform } from 'react-native';
+import { Linking, Platform, StyleSheet } from 'react-native';
+import { colors } from '@/theme/colors';
 
 // --- Native / module mocks -------------------------------------------------
 
@@ -51,14 +52,18 @@ jest.mock('lucide-react-native', () => {
   const { View } = require('react-native');
   const stub = (name: string) => (props: any) =>
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
+  const icons: Record<string, unknown> = {
     ChevronLeft: stub('chevron-left'),
     Clock: stub('clock'),
+    Flame: stub('flame'),
+    LandPlot: stub('land-plot'),
     LocateFixed: stub('locate-fixed'),
     Volleyball: stub('volleyball'),
     MapPin: stub('map-pin'),
     Users: stub('users'),
   };
+  const fallback = (props: any) => require('react').createElement(require('react-native').View, props);
+  return new Proxy(icons, { get: (target, key: string) => (key in target ? target[key] : fallback) });
 });
 
 // react-native-maps -> View stubs. Marker is a Pressable so fireEvent.press
@@ -183,12 +188,27 @@ jest.mock('@/features/matches/api/getNearby', () => ({
   },
 }));
 
+// Arenas (DECISIONS #145): none by default, so the S17 cases above see only games.
+import type { NearbyVenue } from '@/features/explore/api/venues';
+
+const mockVenues: { data: NearbyVenue[] } = { data: [] };
+
+jest.mock('@/features/explore/api/venues', () => ({
+  ...jest.requireActual('@/features/explore/api/venues'),
+  useNearbyVenues: () => ({ data: { venues: mockVenues.data, hasMore: false } }),
+  useVenueDetails: (placeId: string | null) => ({
+    data: placeId ? { title: 'Arena Copacabana', address: 'Av. Atlântica, Rio' } : undefined,
+  }),
+}));
+
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import MapScreen, {
   PIN_ANCHOR,
   pinToneFor,
+  nextVenueWithGames,
   searchAreaFor,
+  venueActivityFor,
 } from '../../../../app/explore/map';
 
 // --- Helpers ---------------------------------------------------------------
@@ -206,20 +226,6 @@ async function press(element: Parameters<typeof fireEvent.press>[0]) {
   });
 }
 
-/** Reads the color-coded className off a pin's head (the bordered shape). */
-function pinWrapperClass(testID: string): string {
-  const pin = screen.getByTestId(testID);
-  const stack: any[] = [...pin.children];
-  while (stack.length) {
-    const node = stack.shift();
-    if (node && typeof node !== 'string') {
-      const cn = node.props?.className;
-      if (typeof cn === 'string' && cn.includes('border-2')) return cn;
-      stack.push(...node.children);
-    }
-  }
-  return '';
-}
 
 function resetMocks() {
   mockPush.mockClear();
@@ -231,6 +237,7 @@ function resetMocks() {
     .mockReset()
     .mockResolvedValue({ coords: { latitude: -23.56, longitude: -46.64 } });
 
+  mockVenues.data = [];
   mockNearby.data = NEARBY_FIXTURE;
   mockNearby.isPending = false;
   mockNearby.isError = false;
@@ -391,9 +398,12 @@ describe('S17 — Map of Nearby Matches', () => {
     await renderScreen();
     await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
 
-    expect(pinWrapperClass('map-pin-near-open')).toContain('bg-accent');
-    expect(pinWrapperClass('map-pin-near-last')).toContain('bg-warning');
-    expect(pinWrapperClass('map-pin-near-full')).toContain('bg-text-muted');
+    // Plain views with inline colors (no SVG, no tracking: DECISIONS #171).
+    const fill = (id: string) =>
+      StyleSheet.flatten(screen.getByTestId(`${id}-pin-head`).props.style).backgroundColor;
+    expect(fill('map-pin-near-open')).toBe(colors.accent);
+    expect(fill('map-pin-near-last')).toBe(colors.warning);
+    expect(fill('map-pin-near-full')).toBe(colors.textMuted);
   });
 
   // ---------------------------------------------------------- preview + nav
@@ -520,5 +530,82 @@ describe('S17 — Map of Nearby Matches', () => {
     await press(screen.getByText('Tentar novamente'));
 
     expect(mockNearby.refetch).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Arenas on the map (DECISIONS #145): a round pin per arena, 🔥 with a game today,
+// red with one being played now; its games leave their own pins and go in its card.
+
+describe('Arenas on the map', () => {
+  const venue = (placeId: string, matches: NearbyVenue['matches']): NearbyVenue => ({
+    placeId,
+    lat: -23.56,
+    lon: -46.64,
+    distanceKm: 0.5,
+    kind: 'Court',
+    matches,
+  });
+
+  it('marks arenas by activity and hides the pins of the games played there', async () => {
+    mockVenues.data = [
+      venue('quiet', []),
+      venue('today', [{ id: 'near-open', name: 'Arena Sky Beach', startsAt: '2026-10-21T22:00:00Z', live: false }]),
+      venue('live', [{ id: 'x-live', name: 'Rachão', startsAt: '2026-10-21T18:00:00Z', live: true }]),
+    ];
+    await renderScreen();
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
+
+    expect(screen.getByTestId('map-venue-quiet')).toBeTruthy();
+    expect(screen.queryByTestId('map-venue-quiet-today')).toBeNull();
+    expect(screen.getByTestId('map-venue-today-today')).toBeTruthy();
+    expect(screen.getByTestId('map-venue-live-live')).toBeTruthy();
+    // The game at the "today" arena is no longer its own pin; the others are.
+    expect(screen.queryByTestId('map-pin-near-open')).toBeNull();
+    expect(screen.getByTestId('map-pin-near-last')).toBeTruthy();
+  });
+
+  it('opens the arena card with its name from Google and its games', async () => {
+    mockVenues.data = [
+      venue('today', [{ id: 'near-open', name: 'Arena Sky Beach', startsAt: '2026-10-21T22:00:00Z', live: false }]),
+      venue('empty', []),
+    ];
+    await renderScreen();
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
+
+    await press(screen.getByTestId('map-venue-today'));
+    expect(screen.getByTestId('map-venue-card')).toBeTruthy();
+    expect(screen.getByText('Arena Copacabana')).toBeTruthy();
+    await press(screen.getByTestId('map-venue-match-near-open'));
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/matches/[id]', params: { id: 'near-open' } });
+
+    await press(screen.getByTestId('map-venue-empty'));
+    expect(screen.getByText('Nenhum jogo marcado aqui hoje.')).toBeTruthy();
+  });
+
+  it('ends the arena games with the closest other arena that has games', async () => {
+    const game = (id: string) => ({ id, name: id, startsAt: '2026-10-21T22:00:00Z', live: false });
+    const far = { ...venue('far', [game('g-far')]), lat: -23.6 };
+    const close = { ...venue('close', [game('g-close')]), lat: -23.57 };
+    const here = venue('here', [game('near-open')]);
+    expect(nextVenueWithGames(here, [here, far, venue('quiet', []), close])?.placeId).toBe('close');
+    expect(nextVenueWithGames(here, [here, venue('quiet', [])])).toBeNull();
+
+    mockVenues.data = [here, close];
+    await renderScreen();
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
+    await press(screen.getByTestId('map-venue-here'));
+    expect(screen.getByText('1 jogo hoje')).toBeTruthy();
+    expect(screen.getByText('Outra arena com jogos')).toBeTruthy();
+    await press(screen.getByTestId('map-venue-next'));
+    expect(screen.queryByTestId('map-venue-match-near-open')).toBeNull();
+    expect(screen.getByTestId('map-venue-match-g-close')).toBeTruthy();
+  });
+
+  it('venueActivityFor: live beats today beats none', () => {
+    const m = (live: boolean) => ({ id: 'm', name: 'n', startsAt: '2026-10-21T22:00:00Z', live });
+    expect(venueActivityFor(venue('a', []))).toBe('none');
+    expect(venueActivityFor(venue('a', [m(false)]))).toBe('today');
+    expect(venueActivityFor(venue('a', [m(false), m(true)]))).toBe('live');
   });
 });

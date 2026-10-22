@@ -8,6 +8,7 @@ import type {
   PresencePlayer,
 } from '@/features/matches/types/matchDetail';
 import type { Team } from '@/features/matches/types/team';
+import { teamName } from '@/features/matches/lib/teamColors';
 import { ApiError } from '@/lib/api/client';
 import { authorizedApiClient } from '@/lib/api/authorizedClient';
 
@@ -37,7 +38,9 @@ export type ApiScoreboardSet = {
 
 export type ApiScoreboard = {
   matchId: string;
-  format: 'SingleGame' | 'BestOf3' | 'BestOf5';
+  /** `Free`: no fixed teams, no score — the match only starts and ends (API DECISIONS #86). */
+  format: 'SingleGame' | 'BestOf3' | 'BestOf5' | 'Free';
+  startedAt?: string | null;
   state: 'NotStarted' | 'InProgress' | 'Ended';
   /** The pair on court (of the current set when teams rotate). */
   teamAId: string;
@@ -66,7 +69,7 @@ export type ApiMvpVoting = {
 };
 
 export type ApiMatchSummary = {
-  format: 'SingleGame' | 'BestOf3' | 'BestOf5';
+  format: 'SingleGame' | 'BestOf3' | 'BestOf5' | 'Free';
   teamAId: string;
   teamBId: string;
   teamASetsWon: number;
@@ -76,7 +79,7 @@ export type ApiMatchSummary = {
   mvpPlayerId: string | null;
   mvpVoteCount: number | null;
   mvpTotalVotes: number;
-  sets: { setNumber: number; teamAPoints: number; teamBPoints: number }[];
+  sets: { setNumber: number; teamAPoints: number; teamBPoints: number; winnerTeamId?: string | null }[];
   teams: { teamId: string; name: string; playerIds: string[] }[];
 };
 
@@ -136,16 +139,16 @@ export async function putTeamMember(
 }
 
 /**
- * Backend teams → the app's `Team`, in the backend's order ("Team A" first):
- * numbered from 1, named "Time N", with each member resolved against the match
- * roster (`players`, which includes the guests).
+ * Backend teams → the app's `Team`, in the backend's (palette) order: numbered
+ * from 1, named by place ("Time Azul", "Time Limão"…: `teamName`), with each
+ * member resolved against the match roster (`players`, which includes the guests).
  */
 export function toTeams(apiTeams: ApiTeam[], players: PresencePlayer[]): Team[] {
   const byId = new Map(players.map((player) => [player.id, player]));
   return apiTeams.map((team, index) => ({
     id: team.id,
     number: index + 1,
-    name: `Time ${index + 1}`,
+    name: teamName(index),
     players: team.members.map(
       (member) =>
         byId.get(member.playerId) ?? {
@@ -176,6 +179,17 @@ export async function postStartGame(
     teamBId,
   });
   return send<ApiScoreboard>('POST', gamePath(matchId, 'scoreboard/start'));
+}
+
+/** Starts a match without fixed teams: one roster of everyone confirmed, no score. */
+export async function postStartFreeGame(matchId: string): Promise<ApiScoreboard> {
+  const existing = await fetchScoreboard(matchId);
+  if (!existing) {
+    await send('POST', gamePath(matchId, 'scoreboard'), { format: 'Free' });
+  }
+  return existing && existing.state !== 'NotStarted'
+    ? existing
+    : send<ApiScoreboard>('POST', gamePath(matchId, 'scoreboard/start'));
 }
 
 export function postNextSet(

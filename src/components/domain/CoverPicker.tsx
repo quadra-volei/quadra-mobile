@@ -14,10 +14,10 @@ export type CoverPickerProps = {
 
 /**
  * Rectangular match-cover banner used by S11 (distinct from the circular
- * `Avatar`). Renders a navy `HERO_GRADIENT` block with a "CAPA DA PARTIDA"
- * eyebrow and a dashed "Trocar capa" affordance; once a cover is picked it
- * shows that image with the same affordance overlaid. The consuming screen runs
- * `expo-image-picker` on press.
+ * `Avatar`). Without a cover: a navy `HERO_GRADIENT` block with a dashed
+ * "Adicionar capa" frame (no eyebrow: owner's 4th review, item 20). With one: the photo
+ * alone, with a small pencil in the corner to change it. The consuming screen
+ * runs `expo-image-picker` on press.
  */
 export function CoverPicker({ uri, onPress, testID }: CoverPickerProps) {
   return (
@@ -25,41 +25,43 @@ export function CoverPicker({ uri, onPress, testID }: CoverPickerProps) {
       onPress={onPress}
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel="Trocar capa da partida"
+      accessibilityLabel={uri ? "Trocar capa da partida" : "Adicionar capa da partida"}
       className="h-40 overflow-hidden rounded-card"
     >
       {uri ? (
-        <Image
-          source={{ uri }}
-          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
-          contentFit="cover"
-          testID={testID ? `${testID}-image` : undefined}
-        />
-      ) : (
-        <LinearGradient
-          colors={HERO_GRADIENT}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
-        />
-      )}
-
-      {/* Eyebrow (top-right). */}
-      <Text className="absolute right-4 top-3 font-body-bold text-eyebrow text-text-on-dark uppercase">
-        Capa da partida
-      </Text>
-
-      {/* Dashed frame + pencil + "Trocar capa" affordance. */}
-      <View className="flex-1 items-center justify-center p-4">
-        <View className="w-full flex-1 items-center justify-center rounded-card border border-dashed border-white/40">
-          <View className="flex-row items-center gap-2">
+        <>
+          <Image
+            source={{ uri }}
+            style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+            contentFit="cover"
+            testID={testID ? `${testID}-image` : undefined}
+          />
+          <View className="absolute right-3 bottom-3 h-9 w-9 items-center justify-center rounded-full bg-surface-dark/60">
             <Pencil size={16} color={colors.textOnDark} />
-            <Text className="font-body-semibold text-body-bold text-text-on-dark">
-              Trocar capa
-            </Text>
           </View>
-        </View>
-      </View>
+        </>
+      ) : (
+        <>
+          <LinearGradient
+            colors={HERO_GRADIENT}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
+          />
+
+          {/* Dashed frame + pencil + "Adicionar capa" affordance. */}
+          <View className="flex-1 items-center justify-center p-4">
+            <View className="w-full flex-1 items-center justify-center rounded-card border border-dashed border-white/40">
+              <View className="flex-row items-center gap-2">
+                <Pencil size={16} color={colors.textOnDark} />
+                <Text className="font-body-semibold text-body-bold text-text-on-dark">
+                  Adicionar capa
+                </Text>
+              </View>
+            </View>
+          </View>
+        </>
+      )}
     </Pressable>
   );
 }

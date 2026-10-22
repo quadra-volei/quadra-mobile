@@ -1,4 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Asset } from "expo-asset";
+import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { Pencil } from "lucide-react-native";
@@ -27,7 +29,7 @@ import {
 } from "@/features/profile/schema/editProfile";
 import type { MyProfile } from "@/features/profile/types/profile";
 import { colors } from "@/theme/colors";
-import { DEFAULT_AVATAR } from "@/theme/defaultAvatars";
+import { DEFAULT_AVATAR, PRESET_AVATARS } from "@/theme/defaultAvatars";
 
 function EditSkeleton() {
   return (
@@ -92,6 +94,8 @@ function EditProfileForm({
   const insets = useSafeAreaInsets();
   // Local UI state: a polite message when media-library permission is denied.
   const [permissionDenied, setPermissionDenied] = useState(false);
+  // Which Quadra avatar is picked (null: none, or a photo from the gallery).
+  const [preset, setPreset] = useState<number | null>(null);
 
   const {
     control,
@@ -130,7 +134,17 @@ function EditProfileForm({
     });
     const picked = result.canceled ? undefined : result.assets[0];
     if (picked) {
+      setPreset(null);
       setValue("avatarUri", picked.uri, { shouldDirty: true });
+    }
+  };
+
+  // A preset avatar becomes the photo: its bundled file goes up like a pick.
+  const onPickPreset = async (index: number) => {
+    const [asset] = await Asset.loadAsync(PRESET_AVATARS[index]!);
+    if (asset?.localUri) {
+      setPreset(index);
+      setValue("avatarUri", asset.localUri, { shouldDirty: true });
     }
   };
 
@@ -177,6 +191,32 @@ function EditProfileForm({
             </Text>
           ) : null}
         </View>
+
+        {/* Or one of the Quadra avatars */}
+        <Text className="font-body-bold text-eyebrow text-text-muted uppercase mt-6">
+          Ou escolha um avatar
+        </Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="-mx-4 mt-2"
+          contentContainerClassName="px-4 gap-3"
+        >
+          {PRESET_AVATARS.map((source, index) => (
+            <Pressable
+              key={index}
+              accessibilityRole="button"
+              accessibilityLabel={`Avatar ${index + 1}`}
+              accessibilityState={{ selected: preset === index }}
+              onPress={() => void onPickPreset(index)}
+              testID={`preset-avatar-${index}`}
+              className="h-16 w-16 rounded-full border-2 border-transparent"
+              style={preset === index ? { borderColor: colors.primary } : undefined}
+            >
+              <Image source={source} contentFit="cover" style={{ flex: 1, borderRadius: 999 }} />
+            </Pressable>
+          ))}
+        </ScrollView>
 
         {/* NOME + SOBRENOME */}
         <View className="flex-row gap-4 mt-6">

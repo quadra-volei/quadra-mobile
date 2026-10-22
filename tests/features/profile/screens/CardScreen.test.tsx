@@ -63,10 +63,9 @@ const PROFILE_FIXTURE: MyProfile = {
   overall: 68,
   ace: 30,
   blk: 25,
-  ata: 20,
+  atk: 19,
   def: 31,
-  srv: 27,
-  rec: 24,
+  actions: { matches: 0, byAction: { kills: { total: 0, perMatch: null }, blocks: { total: 0, perMatch: null }, aces: { total: 0, perMatch: null }, digs: { total: 0, perMatch: null }, assists: { total: 0, perMatch: null } } },
   level: 7,
   xp: 40,
   xpToNext: 140,
@@ -112,14 +111,14 @@ describe('S8b — Sua carta', () => {
     expect(mockBack).toHaveBeenCalledTimes(1);
   });
 
-  it('shows the front: title from the position, name, @handle and position, no GERAL or premium note', async () => {
+  it('shows the front: title from the position, name, @handle and position, GERAL in the corner, no premium note', async () => {
     await render(<CardScreen />);
 
     expect(screen.getAllByText('O Maestro').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Renan Dias').length).toBeGreaterThan(0);
     expect(screen.getAllByText('@renan').length).toBeGreaterThan(0);
     expect(screen.getByText('Levantador')).toBeTruthy();
-    expect(screen.queryByText('68')).toBeNull();
+    expect(screen.getAllByText('68').length).toBeGreaterThan(0); // GERAL
     expect(screen.queryByText(/Premium/)).toBeNull();
   });
 
@@ -168,7 +167,9 @@ describe('S8b — Sua carta', () => {
 
     await fireEvent.press(screen.getByText("Estatísticas"));
     expect(screen.getAllByText('720')).toHaveLength(2); // back of the card + the list
-    expect(screen.getByText('Vezes eleito o melhor da partida')).toBeTruthy();
+    // Only the rule nobody can guess keeps a hint (owner's review 2026-10-21, item 14).
+    expect(screen.queryByText('Vezes eleito o melhor da partida')).toBeNull();
+    expect(screen.getByText('Presença +10, vitória +15, MVP +25')).toBeTruthy();
   });
 
   it('shows a loading placeholder while the profile is pending', async () => {

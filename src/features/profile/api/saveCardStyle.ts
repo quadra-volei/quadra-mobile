@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import type { CardTitleCode } from '@/features/profile/card/cardTitles';
 import { myProfileQueryKey } from '@/features/profile/api/getMyProfile';
-import { type ApiCardStyle, uploadProfilePhoto } from '@/features/profile/api/profileApi';
+import type { ApiCardStyle } from '@/features/profile/api/profileApi';
 import type { MyProfile } from '@/features/profile/types/profile';
 import { ApiError } from '@/lib/api/client';
 import { authorizedApiClient } from '@/lib/api/authorizedClient';
@@ -11,26 +11,20 @@ import type { CardFinish } from '@/theme/cardFinish';
 export type CardStyleChange = {
   finish: CardFinish;
   title: CardTitleCode | null;
-  /** A newly picked photo for the card (local uri); omitted keeps the current one. */
-  photoUri?: string;
 };
 
 /**
- * Saves the card's finish, title and photo on the account
- * (`PUT /api/v1/profiles/me/card-style`, API DECISIONS #65). A picked photo is
- * uploaded first; without photo storage (503) the card keeps its photo.
+ * Saves the card's finish and title on the account
+ * (`PUT /api/v1/profiles/me/card-style`, API DECISIONS #65). The card shows the
+ * profile photo, so the old card-photo key only goes back unchanged.
  */
 async function saveCardStyle(change: CardStyleChange, current: MyProfile['cardStyle']): Promise<ApiCardStyle> {
-  const uploaded = change.photoUri ? await uploadProfilePhoto(change.photoUri) : null;
-  if (change.photoUri && !uploaded) {
-    throw new Error('Fotos não estão disponíveis neste ambiente.');
-  }
   return authorizedApiClient<ApiCardStyle>('/api/v1/profiles/me/card-style', {
     method: 'PUT',
     body: JSON.stringify({
       finish: change.finish,
       title: change.title,
-      photoObjectKey: uploaded ?? current.photoObjectKey,
+      photoObjectKey: current.photoObjectKey,
     }),
   });
 }

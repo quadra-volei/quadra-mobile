@@ -65,7 +65,7 @@ export default function PlayerCardScreen() {
                 profile={profile}
                 finish={profile.cardStyle.finish}
                 title={cardTitleCode(profile.cardStyle.title, profile.position)}
-                photoUrl={profile.cardStyle.photoUrl ?? profile.avatarUrl}
+                photoUrl={profile.avatarUrl}
                 flipped={flipped}
                 onFlip={() => setFlipped((v) => !v)}
                 width={Math.min(width - 80, 300)}

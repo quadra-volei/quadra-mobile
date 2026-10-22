@@ -223,9 +223,9 @@ describe('S2 — Login screen', () => {
 
     // navy->blue gradient hero present
     expect(screen.getAllByTestId('linear-gradient').length).toBeGreaterThan(0);
-    // quadra wordmark + logo
-    expect(screen.getByText('quadra')).toBeTruthy();
-    expect(screen.getByTestId('svg-mock')).toBeTruthy();
+    // the official "quadra" lockup (an image, not typed text)
+    expect(screen.getByTestId('login-wordmark')).toBeTruthy();
+    expect(screen.queryByText('quadra')).toBeNull();
     // headline split across text nodes -> match by substrings
     expect(screen.getByText(/O JOGO/)).toBeTruthy();
     expect(screen.getByText(/COMEÇA/)).toBeTruthy();
@@ -253,7 +253,6 @@ describe('S2 — Login screen', () => {
     await openSheet();
 
     expect(screen.getByText('ACESSE SUA CONTA')).toBeTruthy();
-    expect(screen.getByText(/Use seu telefone para entrar ou criar conta/i)).toBeTruthy();
     // dimmed backdrop present
     expect(screen.getByTestId('sheet-backdrop')).toBeTruthy();
   });

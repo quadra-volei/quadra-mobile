@@ -38,3 +38,20 @@ export function defaultAvatarFor(seed?: string): AvatarSource {
   const index = Math.abs(hash) % DEFAULT_AVATARS.length;
   return DEFAULT_AVATARS[index] ?? DEFAULT_AVATAR;
 }
+
+/**
+ * The designer's avatars a player can pick as their profile photo (Editar
+ * perfil). A pick is uploaded like any photo, so everyone sees it.
+ */
+export const PRESET_AVATARS: readonly number[] = [
+  require('../../assets/avatars/preset-01.png'),
+  require('../../assets/avatars/preset-02.png'),
+  require('../../assets/avatars/preset-03.png'),
+  require('../../assets/avatars/preset-04.png'),
+  require('../../assets/avatars/preset-05.png'),
+  require('../../assets/avatars/preset-06.png'),
+  require('../../assets/avatars/preset-07.png'),
+  require('../../assets/avatars/preset-08.png'),
+  require('../../assets/avatars/preset-09.png'),
+  require('../../assets/avatars/preset-10.png'),
+];

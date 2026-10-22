@@ -17,6 +17,7 @@ import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { useRecentMatches } from "@/features/profile/api/getRecentMatches";
 import { useGroupRanking } from "@/features/ranking/api/getGroupRanking";
 import type { RankingRow } from "@/features/ranking/types/ranking";
+import { ActionsSummary } from "@/components/domain/ActionsSummary";
 import { useAuthStore } from "@/stores/auth";
 import { colors } from "@/theme/colors";
 import { DEFAULT_AVATAR } from "@/theme/defaultAvatars";
@@ -34,9 +35,9 @@ function goSettings() {
 function goNotifications() {
   router.push("/notifications");
 }
-// "Ver tudo" on MINHAS PARTIDAS has no full-history screen in MVP — the button is
-// present (matching the prototype) but inert until a history screen exists.
-function noop() {}
+function goMatchHistory() {
+  router.push("/profile/history");
+}
 function goMatchSummary(id: string) {
   // "Minhas partidas" lists past matches — open the read-only summary, not the live detail.
   router.push({ pathname: "/matches/[id]/summary", params: { id } });
@@ -126,7 +127,7 @@ function StatCell({ label, value }: { label: string; value: number }) {
   );
 }
 
-// ── "Seu progresso" card (GERAL box + ACE/BLK/ATA/DEF grid + card CTA + Level/XP) ──
+// ── "Seu progresso" card (GERAL box + ACE/BLK/ATK/DEF grid + recorded actions + card CTA + Level/XP) ──
 function ProgressSection() {
   const { data, isPending, isError, refetch } = useMyProfile();
 
@@ -163,10 +164,15 @@ function ProgressSection() {
             <StatCell label="BLK" value={data.blk} />
           </View>
           <View className="flex-row gap-2">
-            <StatCell label="ATA" value={data.ata} />
+            <StatCell label="ATK" value={data.atk} />
             <StatCell label="DEF" value={data.def} />
           </View>
         </View>
+      </View>
+
+      {/* What the ratings come from: the recorded actions (API DECISIONS #85). */}
+      <View className="mt-4 border-t border-line pt-3">
+        <ActionsSummary actions={data.actions} testID="profile-actions" />
       </View>
 
       {/* Ver sua carta → player card (S8b) */}
@@ -183,7 +189,7 @@ function ProgressSection() {
   );
 }
 
-// ── MINHAS PARTIDAS (history rows; "Ver tudo" hidden — no full-history screen) ──
+// ── MINHAS PARTIDAS (last 5; "Ver tudo" opens the full history when there is more) ──
 function RecentMatchesSection() {
   const { data, isPending, isError, refetch } = useRecentMatches();
 
@@ -201,7 +207,7 @@ function RecentMatchesSection() {
       </View>
     );
   }
-  if (data.length === 0) {
+  if (data.items.length === 0) {
     return (
       <View className="mx-4 mt-2 bg-white rounded-card shadow-card">
         <StateMessage message="Você ainda não jogou nenhuma partida" />
@@ -211,19 +217,19 @@ function RecentMatchesSection() {
 
   return (
     <View className="mx-4 mt-2 bg-white rounded-card shadow-card overflow-hidden">
-      {data.map((m, i) => (
+      {data.items.map((m, i) => (
         <View key={m.id}>
           {i > 0 ? <View className="h-px bg-line mx-4" /> : null}
           <MatchHistoryRow match={m} onPress={goMatchSummary} />
         </View>
       ))}
-      {/* "Ver tudo" placeholder — no full-history screen yet, so it is inert
-          (matches the prototype, whose handler is empty). */}
-      <View className="p-3 pt-1">
-        <Button variant="outline" onPress={noop} testID="ver-tudo-partidas">
-          Ver tudo
-        </Button>
-      </View>
+      {data.total > data.items.length ? (
+        <View className="p-3 pt-1">
+          <Button variant="outline" onPress={goMatchHistory} testID="ver-tudo-partidas">
+            Ver tudo
+          </Button>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -352,7 +358,7 @@ export default function ProfileScreen() {
             <ProgressSection />
           </View>
 
-          {/* MINHAS PARTIDAS — "Ver tudo" hidden (no full-history screen in MVP) */}
+          {/* MINHAS PARTIDAS */}
           <SectionTitleRow title="MINHAS PARTIDAS" />
           <RecentMatchesSection />
 

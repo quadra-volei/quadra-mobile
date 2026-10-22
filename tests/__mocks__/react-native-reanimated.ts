@@ -14,7 +14,20 @@ import { ScrollView, View } from 'react-native';
 
 const useSharedValue = (initial: number) => ({ value: initial });
 
-const withTiming = (toValue: number, _config?: object) => toValue;
+// Lands on the end value at once and reports the animation as finished.
+const withTiming = (toValue: number, _config?: object, done?: (finished: boolean) => void) => {
+  done?.(true);
+  return toValue;
+};
+const withSpring = (toValue: number, _config?: object) => toValue;
+// Linear, clamped to the output range (every caller here clamps or stays inside).
+const interpolate = (value: number, input: number[], output: number[]) => {
+  const [i0 = 0, i1 = 1] = input;
+  const [o0 = 0, o1 = 1] = output;
+  const t = Math.min(Math.max((value - i0) / (i1 - i0), 0), 1);
+  return o0 + (o1 - o0) * t;
+};
+const Extrapolation = { CLAMP: 'clamp', EXTEND: 'extend', IDENTITY: 'identity' };
 const withRepeat = (animation: unknown, _count?: number, _reverse?: boolean) => animation;
 const withDelay = (_ms: number, animation: unknown) => animation;
 // Lands on the last step, like the finished animation.
@@ -25,6 +38,15 @@ const useReducedMotion = () => false;
 
 // Keyboard hook stub — reports a closed keyboard (height 0).
 const useAnimatedKeyboard = () => ({ height: { value: 0 } });
+
+// The card's rotation sensor: a phone lying still. Reactions never fire.
+const SensorType = { ROTATION: 5 };
+const useAnimatedSensor = () => ({
+  sensor: { value: { pitch: 0, roll: 0, yaw: 0 } },
+  isAvailable: false,
+  unregister: () => {},
+});
+const useAnimatedReaction = () => {};
 
 // runOnJS just invokes the function directly in the JS test environment.
 const runOnJS = (fn: (...args: unknown[]) => unknown) => fn;
@@ -86,6 +108,9 @@ module.exports = {
   default: Animated,
   useSharedValue,
   withTiming,
+  withSpring,
+  interpolate,
+  Extrapolation,
   withRepeat,
   withDelay,
   withSequence,
@@ -93,6 +118,9 @@ module.exports = {
   useAnimatedProps,
   useReducedMotion,
   useAnimatedKeyboard,
+  SensorType,
+  useAnimatedSensor,
+  useAnimatedReaction,
   runOnJS,
   Easing,
   createAnimatedComponent,

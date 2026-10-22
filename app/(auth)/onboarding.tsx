@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import {
@@ -39,6 +40,7 @@ import {
   type Position,
 } from "@/features/profile/schema/onboarding";
 import { useRiseIn } from "@/hooks/useRiseIn";
+import { logout } from "@/lib/auth/logout";
 import { useAuthStore } from "@/stores/auth";
 import {
   colors,
@@ -125,6 +127,7 @@ export default function OnboardingScreen() {
   const [step, setStep] = useState<Step>(0);
   const createProfile = useCreateProfile();
   const setHasProfile = useAuthStore((s) => s.setHasProfile);
+  const queryClient = useQueryClient();
 
   const {
     control,
@@ -169,26 +172,26 @@ export default function OnboardingScreen() {
     }
   })();
 
+  // Leaving the first step (chevron or Android back) signs out and opens the
+  // login: the account has no profile yet, and popping the history could land
+  // on tabs left behind by an earlier session.
+  const leave = () => {
+    void logout(queryClient);
+  };
+
   // Steps 1–4 have no back chevron (designer's layout), so the Android back
   // gesture walks one step back instead of leaving the wizard with the answers.
   useEffect(() => {
-    if (step === 0) {
-      return;
-    }
     const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
-      setStep((step - 1) as Step);
+      if (step === 0) {
+        leave();
+      } else {
+        setStep((step - 1) as Step);
+      }
       return true;
     });
     return () => subscription.remove();
-  }, [step]);
-
-  const goBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace("/login");
-    }
-  };
+  });
 
   const advance = async () => {
     const ok = await trigger(STEP_FIELDS[step]);
@@ -213,7 +216,7 @@ export default function OnboardingScreen() {
         control={control}
         errors={errors}
         canContinue={stepValid}
-        onBack={goBack}
+        onBack={leave}
         onContinue={advance}
       />
     );
@@ -438,9 +441,6 @@ function PersonalDataStep({
           </Button>
         </View>
 
-        <Text className="mt-4 text-center font-body text-caption text-text-muted">
-          Você poderá editar essas informações depois no seu perfil.
-        </Text>
       </Animated.ScrollView>
     </View>
   );

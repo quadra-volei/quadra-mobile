@@ -138,18 +138,18 @@ Each entry follows this structure:
   <FilterChip label="Perto" selected={activeFilter === 'perto'} onPress={() => setActiveFilter('perto')} />
   <FilterChip label="Bairro" selected={false} onPress={() => {}} disabled />
   ```
-- **Notes**: Selectable filter pill — controlled and purely presentational (holds no state, never fetches). `h-9 px-4 rounded-pill` with a `font-mono` `text-mono` uppercase label. Selected = `bg-primary` fill + `text-text-on-dark`; unselected = `bg-white border border-line` + `text-text-primary`. `disabled` renders an inert, muted pill (`bg-bg-light-alt` + `text-text-muted`, press is no-op via `Pressable disabled`) — used by S9's "Em breve" Bairro/Geral scope tabs. Single `accessibilityRole="button"` exposing `accessibilityState={{ selected, disabled }}`. Distinct from a static tag/pill (this is interactive single/multi-select chrome). Designed for reuse by S11 (date/format/level chips) and S9/S10 (scope/position chips).
+- **Notes**: Selectable filter pill — controlled and purely presentational (holds no state, never fetches). Drawn like a button (DECISIONS #148): `h-11 px-5 rounded-pill border-2` with a `font-body-bold` `text-h2` label. Selected = `primary` fill, navy border, white label and `HARD_SHADOW`; unselected = `bg-white border-line` + `text-text-primary`. `disabled` renders an inert, muted pill (`bg-bg-light-alt` + `text-text-muted`, press is no-op via `Pressable disabled`) — used by S9's "Em breve" Bairro/Geral scope tabs. Single `accessibilityRole="button"` exposing `accessibilityState={{ selected, disabled }}`. Distinct from a static tag/pill (this is interactive single/multi-select chrome). Designed for reuse by S11 (date/format/level chips) and S9/S10 (scope/position chips).
 
 ### `SearchField`
 - **Path**: `src/components/ui/SearchField.tsx`
 - **Category**: ui
-- **Props**: `{ value: string; onChangeText: (v: string) => void; placeholder?: string; onClear?: () => void; testID?: string }`
-- **Used in**: S6 Explore (match-list search)
+- **Props**: `{ value: string; onChangeText: (v: string) => void; placeholder?: string; onClear?: () => void; accessibilityLabel?: string; autoFocus?: boolean; onPress?: () => void; testID?: string }`
+- **Used in**: S6 Explore (match-list search), Rede header (with `onPress`: a button that opens the @ search), Buscar jogador (focused input)
 - **Example**:
   ```tsx
   <SearchField value={query} onChangeText={setQuery} placeholder="Buscar quadra, bairro ou horário..." onClear={() => setQuery('')} />
   ```
-- **Notes**: Label-less search input — controlled and purely presentational (holds no state, never fetches). `h-12 px-4 rounded-pill bg-white shadow-card` container with a leading lucide `Search` (`text-muted`) and an optional trailing clear (`X`) shown only when `value` is non-empty and `onClear` is provided. Exposes `accessibilityLabel="Buscar partidas"`. Distinct from `TextField` (an RHF-controlled **labeled** form field with error caption/adornments) — `SearchField` is an ephemeral filter control, not a form input (no RHF/Zod). Designed for reuse by S11 ("Buscar quadra ou endereço") and S10. **Deferred catalog note (from S11):** S11's "LOCAL" mockup shows a leading `MapPin`, but the leading icon is currently hardcoded to lucide `Search`. S11 uses it as-is; a future change may add an optional `leftIcon`/`icon` prop so consumers can swap the leading glyph — not done as part of S11 to avoid touching a shared component's API mid-screen.
+- **Notes**: Label-less search input — controlled and purely presentational (holds no state, never fetches). `h-12 px-4 rounded-pill bg-white shadow-card` container with a leading lucide `Search` (`text-muted`) and an optional trailing clear (`X`) shown only when `value` is non-empty and `onClear` is provided. `accessibilityLabel` defaults to "Buscar partidas". Distinct from `TextField` (an RHF-controlled **labeled** form field with error caption/adornments) — `SearchField` is an ephemeral filter control, not a form input (no RHF/Zod). Designed for reuse by S11 ("Buscar quadra ou endereço") and S10. **Deferred catalog note (from S11):** S11's "LOCAL" mockup shows a leading `MapPin`, but the leading icon is currently hardcoded to lucide `Search`. S11 uses it as-is; a future change may add an optional `leftIcon`/`icon` prop so consumers can swap the leading glyph — not done as part of S11 to avoid touching a shared component's API mid-screen.
 
 ### `Avatar`
 - **Path**: `src/components/ui/Avatar.tsx`
@@ -174,6 +174,13 @@ Each entry follows this structure:
   <StepperField label="Valor / pessoa" value={value} onChange={onChange} min={0} prefix="R$ " testID="price-stepper" />
   ```
 - **Notes**: Boxed numeric stepper — eyebrow label, a large `font-num` value (with an optional `prefix` like `"R$ "`), and round `−` / `+` controls (lucide `Minus`/`Plus`). Fills the gap `TextField` (free text) doesn't cover. Controlled; clamps to `[min, max]` and disables the relevant control at the bound (50% opacity). The root `View` is `flex-1` so two steppers sit side-by-side in a `flex-row gap-4` row. Each control exposes `accessibilityRole="button"` + `accessibilityState={{ disabled }}` and the value exposes an `accessibilityLabel`. Receives plain data via props; never fetches.
+
+### `Slider`
+- **Path**: `src/components/ui/Slider.tsx`
+- **Category**: ui
+- **Props**: `{ value: number; min: number; max: number; step?: number; onChange: (value: number) => void; accessibilityLabel: string; valueText: (value: number) => string; testID?: string }`
+- **Used in**: `ExploreFilterSheet` (Distância, 1–50 km, 50 = any).
+- **Notes**: Single-value slider dragged along its track: blue fill on a `primary/15` track, white thumb with the navy border and `HARD_SHADOW`. A touch anywhere on the track jumps there. React Native `PanResponder` (no package; works inside a `Modal`), which keeps the gesture from the scroll view around it. `accessibilityRole="adjustable"`: screen readers step it with increment/decrement and hear `valueText`.
 
 ### `ToggleField`
 - **Path**: `src/components/ui/ToggleField.tsx`
@@ -213,10 +220,10 @@ Each entry follows this structure:
 ### `BackHeader`
 - **Path**: `src/components/ui/BackHeader.tsx`
 - **Purpose**: Standard header for pushed stack screens.
-- **Props**: `{ title: string; tint?: 'light' | 'dark'; right?: ReactNode; onHeight?: (height: number) => void }`
+- **Props**: `{ title: string; tint?: 'light' | 'dark'; right?: ReactNode; onHeight?: (height: number) => void; asTab?: boolean }` (`asTab`: title laid out like the tab headers, "Fechar" on the right instead of the back chevron — #172)
 - **Example**:
   ```tsx
-  <BackHeader title="Configurações" onHeight={setHeaderHeight} />
+  <BackHeader title="Configurações" onHeight={setHeaderHeight} asTab />
   ```
 - **Notes**: Bare `ChevronLeft` back affordance (`accessibilityLabel="Voltar"`, `router.back()`, 48dp touch target) + `font-display text-h1 uppercase` title + optional `right` cluster, composed over `ScreenHeader`.
 
@@ -290,10 +297,16 @@ More UI primitives will live here:
 
 ## Icons (`src/components/icons/`)
 
+### `QuadraWordmark`
+- **Path**: `src/components/icons/QuadraWordmark.tsx`
+- **Props**: `{ variant: 'blue' | 'light' | 'navy'; height: number; testID?: string }`
+- **Used in**: S2 Login, S3 SMS code, `PlayerCard`, card finish swatches
+- **Notes**: The full "quadra" lockup (mark + wordmark) as the designer's PNG (`assets/logo/`). `blue`: blue + lime blocks, light text, for dark/blue backgrounds; `light`: light blocks + lime, for dark card finishes; `navy`: for light surfaces. Never recolored; the width follows the image's ratio.
+
 ### `QuadraLogo`
 - **Path**: `src/components/icons/QuadraLogo.tsx`
 - **Props**: `{ size?: number; testID?: string }`
-- **Used in**: S1 Splash, S2 Login
+- **Used in**: S1 Splash
 - **Notes**: Official brand mark (three overlapping blocks, blue + lime). Colors are fixed — never recolor. Only exception: `blockColor` replaces the two blue blocks on a blue background (the splash passes white).
 
 ### `GoogleMark`
@@ -418,16 +431,30 @@ More UI primitives will live here:
   ```
 - **Notes**: Labeled XP progress bar — a "Level N" label (`font-num`), a track (`bg-bg-light-alt`) + fill (lime `bg-accent`) bar, and an "XP: a / b" caption (thousands formatted pt-BR, e.g. `2.450`). The fill width is the only inline style (a runtime percentage NativeWind can't express); no colors are inlined. The ratio is clamped to `[0, 1]`. Receives plain data via props; never fetches. Designed for reuse on profile/ranking surfaces.
 
+### `ActionsSummary`
+- **Path**: `src/components/domain/ActionsSummary.tsx`
+- **Category**: domain
+- **Props**: `{ actions: ProfileActions; tone?: 'light' | 'dark'; testID?: string }` (`ProfileActions` from `@/features/profile/types/profile`)
+- **Used in**: S8 Profile ("Seu progresso"), S8b "Sua carta" (below the card, dark)
+- **Notes**: The five recorded actions (CRT · BLK · ACE · SAL · AST, `PLAYER_ACTIONS`): the total in `font-num` and the average per match below ("1,5"; "—" when never recorded), plus how many matches had a sheet. With no sheet yet, one neutral line instead of zeros (#168).
+
+### `MapPins` (`VenuePin`, `MatchPin`)
+- **Path**: `src/components/domain/MapPins.tsx`
+- **Category**: domain
+- **Props**: `VenuePin { venue: NearbyVenue; games: number; selected?: boolean; testID? }`, `MatchPin { openSlots: number; testID? }`; helpers `venuePinKey`, `venueActivityFor`, `pinColorFor`, `MATCH_PIN_ANCHOR`, `MATCH_PIN_CENTER_OFFSET`
+- **Used in**: S17 map (`app/explore/map.tsx`), S6 Explore preview map
+- **Notes**: Plain views and text only, so Android draws the marker bitmap complete with `tracksViewChanges={false}` (#171); put `venuePinKey(...)` in the Marker `key` so a change of look mounts a new marker.
+
 ### `MatchHistoryRow`
 - **Path**: `src/components/domain/MatchHistoryRow.tsx`
 - **Category**: domain
-- **Props**: `{ match: RecentMatch; onPress: (id: string) => void; testID?: string }` where `RecentMatch = { id: string; name: string; playedAt: string; format: '2X2' | '4X4' | '6X6'; result: 'VITORIA' | 'DERROTA'; setScore: string }` (from `@/features/profile/types/profile`)
-- **Used in**: S8 Profile ("MINHAS PARTIDAS" recent-match list)
+- **Props**: `{ match: RecentMatch; onPress: (id: string) => void; testID?: string }` where `RecentMatch = { id: string; name: string; playedAt: string; format: '2X2' | '4X4' | '6X6'; result: 'VITORIA' | 'DERROTA' | 'EMPATE' | 'SEM_PLACAR'; setScore: string; actionsLine: string; isMvp: boolean }` (from `@/features/profile/types/profile`)
+- **Used in**: S8 Profile ("MINHAS PARTIDAS" recent-match list), `app/profile/history.tsx` (full history)
 - **Example**:
   ```tsx
   <MatchHistoryRow match={m} onPress={(id) => router.push({ pathname: '/matches/[id]', params: { id } })} />
   ```
-- **Notes**: Slim recent-match result row (distinct from `MatchCardCompact`, which is a cover-strip *upcoming* card). A `Volleyball` icon in a `bg-bg-light-alt` circle, the match name + "date · format" subtitle (`playedAt` rendered relatively as `"Hoje · 19h30"` / `"Ontem · 19h30"` / `"20/06"` via a pure internal formatter), a right-aligned Vitória/Derrota label (`text-success` / `text-danger`) over the set score (`font-num`), and a trailing `ChevronRight`. Single `accessibilityRole="button"` target announcing name + result + score. Receives plain data via props; never fetches. No hardcoded hex — icon colors come from `src/theme/colors.ts`.
+- **Notes**: Slim recent-match result row (distinct from `MatchCardCompact`, which is a cover-strip *upcoming* card). A `Volleyball` icon in a `bg-bg-light-alt` circle, the match name + "date · format · actions" subtitle (actions: "8 CRT · 3 SAL", only the recorded ones above zero) (`playedAt` rendered relatively as `"Hoje · 19h30"` / `"Ontem · 19h30"` / `"20/06"` via a pure internal formatter), a lime "MVP" pill after the name when `isMvp` (#174), a right-aligned Vitória/Derrota label (`text-success` / `text-danger`) over the set score (`font-num`), and a trailing `ChevronRight`. Single `accessibilityRole="button"` target announcing name + result + score (+ ", MVP"). Receives plain data via props; never fetches. No hardcoded hex — icon colors come from `src/theme/colors.ts`.
 
 ### `RankingRow`
 - **Path**: `src/components/domain/RankingRow.tsx`
@@ -440,27 +467,34 @@ More UI primitives will live here:
   ```
 - **Notes**: Single **non-navigable** ranking-list row: a large `font-num` `text-primary` position number, an `<Avatar size="sm" />`, the name (`text-body-bold`; appends "· você" in `text-primary` when `isMe`), an `@handle · Posição` `text-caption text-text-muted` subtitle, a right-aligned `font-num` score, and a `TrendBadge` (↑ `success` / ↓ `danger` / — `text-muted`, arrows via lucide `ArrowUp`/`ArrowDown`/`Minus` colored from `src/theme/colors.ts`, delta in `font-num`; absent `trend` → "—"). The `isMe` row gets a subtle `bg-primary/10 rounded-card` highlight. No `accessibilityRole="button"` (rows are display-only); a single `accessibilityLabel` announces position/name/score/trend (+ "você"). Receives plain data via props; never fetches. No hardcoded hex.
 
+### `AuthHero`
+- **Path**: `src/components/domain/AuthHero.tsx`
+- **Category**: domain
+- **Props**: `{ lockup?: boolean; animate?: boolean; children?: ReactNode }`
+- **Used in**: `app/(auth)/login.tsx` (lockup, rising in, the CTA as `children`), `app/(auth)/sms-otp.tsx` (no lockup, still).
+- **Notes**: The sign-in background (DECISIONS #165): `HERO_GRADIENT`, the "quadra" lockup (or a same-height gap), "O JOGO COMEÇA AQUI." and the subtitle, staggered `useRiseIn` when `animate`. The SMS code screen draws it still and without the logo, so the step from the phone to the code only swaps the white card.
+
 ### `PresenceGrid`
 - **Path**: `src/components/domain/PresenceGrid.tsx`
 - **Category**: domain
-- **Props**: `{ players: PresencePlayer[]; capacity: number; onPressEmpty?: () => void; testID?: string }` where `PresencePlayer = { id: string; name: string; avatarUrl?: string; status: 'CONFIRMADO' | 'RECUSADO' | 'PENDENTE'; position?: 'LEV' | 'PON' | 'OPO' | 'CEN' | 'LIB' | 'COR'; level?: number; isGuest?: boolean }` (from `@/features/matches/types/matchDetail`)
-- **Used in**: S12 Match Detail ("CONFIRMADOS" confirmed-players grid). Designed for reuse by S13 (team rosters share the avatar+slot idiom).
+- **Props**: `{ players: PresencePlayer[]; capacity: number; onPressPlayer?: (player: PresencePlayer) => void; onAddGuest?: () => void; testID?: string }` where `PresencePlayer = { id; name; handle?; avatarUrl?; status; position?; level?; isGuest? }` (from `@/features/matches/types/matchDetail`)
+- **Used in**: S12 Match Detail (the "Confirmados" tab).
 - **Example**:
   ```tsx
-  <PresenceGrid players={match.players} capacity={match.capacity} onPressEmpty={() => setGuestSheetOpen(true)} testID="presence-grid" />
+  <PresenceGrid players={match.players} capacity={match.capacity} onPressPlayer={openPlayer} onAddGuest={isOrganizer ? openGuestSheet : undefined} testID="presence-grid" />
   ```
-- **Notes**: Capacity-aware wrapping grid (`w-1/4` cells) — renders an `<Avatar size="md" />` + **first name** per player, then dashed `border-line` "vaga" placeholders for the remaining `capacity - players.length` open slots (each tagged `{testID}-empty`). A player carrying a `level` gets the tier-colored level "bolinha" via `Avatar`'s `level` prop (guests have none, so theirs is omitted). Every open slot renders, so avatars + placeholders add up to `capacity`. A player with `isGuest` gets a muted "Convidado" eyebrow under the name. When `onPressEmpty` is passed the empty slots become buttons (organizer "add guest" affordance on S12); omit it for inert placeholders. Presentational: receives plain data via props, never fetches. **No per-player OVR number is rendered** (Layer-3 cut, per SCOPE S12). Avatars are display-only (no tap navigation). Small grid (≤ capacity, typically ≤ 12) → a wrapping `View` is used, not a `FlatList`.
+- **Notes**: Who is going (DECISIONS #159): a capacity bar (one segment per slot, lime when taken, `{testID}-bar`), then one white row per player — `Avatar size="sm"` with the level dot, the **@handle** (a guest keeps the name and a "Convidado" eyebrow), the `PositionTag` and a chevron; a tap calls `onPressPlayer` (never for a guest; rows are `{testID}-player-{id}`). With `onAddGuest` and an open slot, a lime "Adicionar convidado" `Button` closes the list (`{testID}-add-guest`). Open slots never look like players or like the action. Presentational, never fetches. **No per-player OVR number** (Layer-3 cut).
 
 ### `AddGuestSheet`
 - **Path**: `src/components/domain/AddGuestSheet.tsx`
 - **Category**: domain
 - **Props**: `{ visible: boolean; onClose: () => void; onSubmit: (values: AddGuestInput) => void; submitting?: boolean; testID?: string }` where `AddGuestInput = { name: string; position?: PlayerPosition }` (from `@/features/matches/schema/addGuest`)
-- **Used in**: S12 Match Detail — organizer taps an open "vaga" slot in `PresenceGrid` to fill it with a guest (someone without an app account).
+- **Used in**: S12 Match Detail — the organizer's "Adicionar convidado" under `PresenceGrid` fills an open slot with a guest (someone without an app account).
 - **Example**:
   ```tsx
   <AddGuestSheet visible={open} onClose={() => setOpen(false)} onSubmit={handleAddGuest} submitting={addGuest.isPending} testID="add-guest-sheet" />
   ```
-- **Notes**: Bottom-sheet (`Modal transparent animationType="slide"`) with a RHF + Zod form — required `Nome` (`TextField`) + optional `Posição` (`FilterChip` row; tap again to clear). Form resets each time it opens. Backdrop tap and the close/× dismiss. Respects the bottom safe-area inset. Presentational: the parent owns the `useAddGuest` mutation and closes the sheet on success.
+- **Notes**: Bottom-sheet (`Modal transparent animationType="slide"`) with a RHF + Zod form — required `Nome` (`TextField`) + optional `Posição` (a row of selectable `PositionTag`s; tap again to clear). Form resets each time it opens. Backdrop tap and the close/× dismiss. Respects the bottom safe-area inset. Presentational: the parent owns the `useAddGuest` mutation and closes the sheet on success.
 
 ### `ExploreFilterSheet`
 - **Path**: `src/components/domain/ExploreFilterSheet.tsx`
@@ -474,7 +508,7 @@ More UI primitives will live here:
 - **Category**: domain
 - **Props**: `{ onClose: () => void; onCreateMatch: () => void; onCreatePost: () => void; blurTarget?: RefObject<View | null> }`
 - **Used in**: `app/(tabs)/_layout.tsx` (opened by the central "+")
-- **Notes**: "O que você quer criar?" overlay (DECISIONS #98): blurred and dimmed backdrop (tap closes), white card with 2px navy border and `HARD_SHADOW`, "Criar partida" (lime) and "Criar publicação" (white) wide options, "Cancelar" link. An overlay rather than a `Modal` so the Android blur can read the `BlurTargetView` passed as `blurTarget`; Android back closes it. Mount it only while open.
+- **Notes**: "O que você quer criar?" overlay (DECISIONS #98): blurred and dimmed backdrop (tap closes), white card with 2px navy border and `HARD_SHADOW`, "Criar partida" (lime) and "Criar publicação" (white) wide options, "Cancelar" link. The card grows out of the tab bar (it starts with the bar's frame and opens upward, no overshoot) and folds back into it on close; the layout hides the bar meanwhile (DECISIONS #161). An overlay rather than a `Modal` so the Android blur can read the `BlurTargetView` passed as `blurTarget`; Android back closes it. Mount it only while open.
 
 ### `CoverPicker`
 - **Path**: `src/components/domain/CoverPicker.tsx`
@@ -485,7 +519,7 @@ More UI primitives will live here:
   ```tsx
   <CoverPicker uri={coverUri} onPress={pickCover} testID="cover-picker" />
   ```
-- **Notes**: Rectangular match-cover banner (`h-40 rounded-card`) — distinct from the circular `Avatar`. With no `uri` it renders a navy `HERO_GRADIENT` (`expo-linear-gradient`) placeholder with a "CAPA DA PARTIDA" eyebrow, a dashed frame, and a pencil + "Trocar capa" affordance; once picked it shows the chosen image (`expo-image`, `contentFit="cover"`) with the same affordance overlaid. Presentational: the consuming screen owns the `expo-image-picker` invocation (passed via `onPress`); the component never touches the picker or fetches. Single `accessibilityRole="button"` announcing "Trocar capa da partida". No hardcoded hex — gradient/icon colors from `src/theme/colors.ts`.
+- **Notes**: Rectangular match-cover banner (`h-40 rounded-card`) — distinct from the circular `Avatar`. With no `uri` it renders a navy `HERO_GRADIENT` (`expo-linear-gradient`) placeholder with a "CAPA DA PARTIDA" eyebrow, a dashed frame, and a pencil + "Adicionar capa" affordance; once picked it shows only the chosen image (`expo-image`, `contentFit="cover"`) and a small pencil in the corner. Presentational: the consuming screen owns the `expo-image-picker` invocation (passed via `onPress`); the component never touches the picker or fetches. Single `accessibilityRole="button"` announcing "Trocar capa da partida". No hardcoded hex — gradient/icon colors from `src/theme/colors.ts`.
 
 ### `PositionGrid`
 - **Path**: `src/components/domain/PositionPicker.tsx`
@@ -493,6 +527,13 @@ More UI primitives will live here:
 - **Props**: `{ value?: Position; onChange: (v: Position) => void; testIDPrefix?: string }` (cards are `${testIDPrefix}-${code}`, default `position`)
 - **Used in**: onboarding step 1, `app/profile/edit.tsx`
 - **Notes**: Single-select court-position cards of DECISIONS #85 (icon box, name, radio; blue border and hard shadow when chosen) plus the navy hint bar for the chosen position. Cards rise in (`useRiseIn`).
+
+### `PositionTag`
+- **Path**: `src/components/domain/PositionPicker.tsx`
+- **Category**: domain
+- **Props**: `{ code: Position; selected?: boolean; onDark?: boolean; short?: boolean; testID?: string }`
+- **Used in**: match roster (`PresenceGrid`), `TeamRoster`, the organizer row of S12, the MVP vote list (`onDark`), `AddGuestSheet` (selectable, `selected`).
+- **Notes**: A position as a small pill in the onboarding cards' look (DECISIONS #159): the same `PositionIcon` in a round box, DM Sans bold name, 2px `line` border. `selected` is the chosen card's blue (inline style, never a toggled className); `short` keeps only the icon (the name stays as the accessibility label).
 
 ### `TeamRoster`
 - **Path**: `src/components/domain/TeamRoster.tsx`

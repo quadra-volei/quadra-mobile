@@ -67,13 +67,16 @@ export function useEditMatch(id: string) {
   });
 }
 
-/** `DELETE /matches/{id}`: cancels the match (it stays visible as cancelled). */
+/**
+ * `DELETE /matches/{id}`: cancels the match (it stays visible as cancelled). A recurring
+ * game's next one is still scheduled, empty, unless `endGroup` is true (API DECISIONS #89).
+ */
 export function useCancelMatch(id: string) {
   const queryClient = useQueryClient();
-  return useMutation<unknown, Error, void>({
-    mutationFn: async () => {
+  return useMutation<unknown, Error, { endGroup: boolean } | void>({
+    mutationFn: async (variables) => {
       try {
-        return await deleteMatch(id);
+        return await deleteMatch(id, variables?.endGroup ?? false);
       } catch (error) {
         throw toMatchError(error, {
           403: 'Só quem organiza pode cancelar a partida.',

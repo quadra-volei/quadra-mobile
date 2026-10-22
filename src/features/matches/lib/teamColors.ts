@@ -1,10 +1,24 @@
 /**
- * Team color mapping helper — maps team index to color class following
- * DESIGN_SYSTEM brand priority: primary (blue) → accent (lime) → tertiary (orange) → quaternary (violet).
+ * A team's color and name follow its place in the match (DECISIONS #173, API
+ * DECISIONS #88), from the brand palette: Time Azul (#1A1AFF), Time Limão
+ * (#AADD00), Time Laranja (#FF6B00), Time Roxo (#6B1AFF). Two teams are Azul ×
+ * Limão. The API returns teams in this order.
  *
- * Used wherever a team is shown (teams screen, set picker, live scoreboard) so
- * a team keeps the same color through the whole game.
+ * Used wherever a team is shown (teams screen, set picker, live scoreboard,
+ * summary) so a team keeps the same color and name through the whole game.
  */
+
+const TEAM_NAMES = ['Time Azul', 'Time Limão', 'Time Laranja', 'Time Roxo'] as const;
+
+/** "Time Azul"… by place; past the palette, "Time 5". */
+export function teamName(teamIndex: number): string {
+  return TEAM_NAMES[teamIndex] ?? `Time ${teamIndex + 1}`;
+}
+
+/** The short form for tight spots: "Azul", "Limão", "Laranja", "Roxo". */
+export function shortTeamName(name: string): string {
+  return name.replace(/^Time /, '');
+}
 
 export type TeamColorClass = 'bg-primary' | 'bg-accent' | 'bg-tertiary' | 'bg-quaternary';
 

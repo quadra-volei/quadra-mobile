@@ -86,9 +86,13 @@ jest.mock('expo-router', () => {
     });
   };
   Tabs.Screen = () => null;
+  // Redirect renders a marker with its target, so a test can see where it sends.
+  const { Text } = require('react-native');
+  const Redirect = ({ href }: any) => ReactLocal.createElement(Text, { testID: 'redirect' }, href);
   return {
     router: { push: (...args: any[]) => mockPush(...args) },
     Tabs,
+    Redirect,
   };
 });
 
@@ -96,8 +100,10 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Keyboard } from 'react-native';
 
 import TabsLayout from '../../../../app/(tabs)/_layout';
+import { useAuthStore } from '@/stores/auth';
 
 beforeEach(() => {
+  useAuthStore.getState().setAuth({ userId: 'u1', accessToken: 'tok', hasProfile: true });
   mockProfile = undefined;
   mockPush.mockClear();
   mockNavigate.mockClear();
@@ -105,6 +111,21 @@ beforeEach(() => {
 });
 
 describe('S5 — Bottom tab bar', () => {
+  // Bug of 2026-10-21: "voltar" from the onboarding of a new Google account
+  // reopened tabs left in the history, with no profile behind them.
+  it('sends an account without a finished profile back to the splash', async () => {
+    useAuthStore.getState().setHasProfile(false);
+    await render(<TabsLayout />);
+    expect(screen.getByTestId('redirect')).toHaveTextContent('/');
+    expect(screen.queryByLabelText('Criar')).toBeNull();
+  });
+
+  it('sends a signed-out user back to the splash', async () => {
+    useAuthStore.getState().clearAuth();
+    await render(<TabsLayout />);
+    expect(screen.getByTestId('redirect')).toHaveTextContent('/');
+  });
+
   /**
    * Covers: S5 — Home
    * Criterion: "The bottom tab bar persists ... and Home is the active tab." —
@@ -130,7 +151,8 @@ describe('S5 — Bottom tab bar', () => {
     expect(screen.queryByTestId('create-sheet')).toBeNull();
 
     await fireEvent.press(screen.getByLabelText('Criar'));
-    expect(screen.getByTestId('create-sheet')).toBeTruthy();
+    // The sheet opens once the button's bounce has shown (DECISIONS #172).
+    expect(await screen.findByTestId('create-sheet')).toBeTruthy();
     expect(screen.getByText('O que você quer criar?')).toBeTruthy();
     // Blur and veil cover the whole screen, not only the strip above the card.
     const fill = { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 };
@@ -144,7 +166,7 @@ describe('S5 — Bottom tab bar', () => {
     expect(screen.queryByTestId('create-sheet')).toBeNull();
 
     await fireEvent.press(screen.getByLabelText('Criar'));
-    await fireEvent.press(screen.getByLabelText('Criar publicação'));
+    await fireEvent.press(await screen.findByLabelText('Criar publicação'));
     expect(mockPush).toHaveBeenCalledWith('/network/new');
     expect(screen.queryByTestId('create-sheet')).toBeNull();
   });
@@ -153,7 +175,7 @@ describe('S5 — Bottom tab bar', () => {
     await render(<TabsLayout />);
 
     await fireEvent.press(screen.getByLabelText('Criar'));
-    await fireEvent.press(screen.getByLabelText('Cancelar'));
+    await fireEvent.press(await screen.findByLabelText('Cancelar'));
 
     expect(screen.queryByTestId('create-sheet')).toBeNull();
     expect(mockPush).not.toHaveBeenCalled();

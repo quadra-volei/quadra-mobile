@@ -5,7 +5,6 @@ import {
   Check,
   ChevronLeft,
   Clock,
-  Copy,
   Heart,
   Lock,
   MapPin,
@@ -15,14 +14,13 @@ import {
   Zap,
 } from 'lucide-react-native';
 import type { ReactNode } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
   Pressable,
   ScrollView,
   Text,
   View,
-  type LayoutChangeEvent,
 } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -46,6 +44,8 @@ import MapView, { Marker } from 'react-native-maps';
 
 import { isMapAvailable } from '@/features/matches/lib/isMapAvailable';
 import { useDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
+import { splitVenue } from '@/features/matches/lib/venueName';
+import { findArenaAt } from '@/features/explore/api/venues';
 import { formatPriceLabel } from '@/features/matches/api/matchesApi';
 import {
   resolveMatchStartsAt,
@@ -64,6 +64,7 @@ import {
 } from '@/features/matches/schema/createMatch';
 import type { MatchFormat, MatchLevel } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
+import { MAP_STYLE } from '@/theme/mapStyle';
 import { useAuthStore } from '@/stores/auth';
 
 // ════════════════════════════════════════════════════════════
@@ -267,16 +268,21 @@ function CreatedView({ match }: { match: CreatedMatch }) {
         </Text>
         <View className="mt-1 flex-row items-center gap-1">
           <MapPin size={16} color={colors.textOnDark} />
-          <Text
-            className="flex-1 font-body text-body text-text-on-dark/80"
-            testID="created-recap-location"
-          >
-            {input.location}
-          </Text>
+          <View className="flex-1" testID="created-recap-location">
+            <Text className="font-body-bold text-body text-text-on-dark">
+              {splitVenue(input.location).name}
+            </Text>
+            {splitVenue(input.location).address ? (
+              <Text className="font-body text-caption text-text-on-dark/70">
+                {splitVenue(input.location).address}
+              </Text>
+            ) : null}
+          </View>
         </View>
 
         <View className="mt-3 flex-row flex-wrap gap-2">
           <RecapPill>{input.format}</RecapPill>
+          {input.freeTeams ? <RecapPill>Sem times fixos</RecapPill> : null}
           <RecapPill>{LEVEL_LABEL[input.level]}</RecapPill>
           <RecapPill>{TYPE_LABEL[input.type]}</RecapPill>
         </View>
@@ -392,6 +398,7 @@ export default function CreateMatchScreen() {
       time: '',
       duration: '1h30',
       gamePoints: DEFAULT_GAME_POINTS,
+      freeTeams: false,
       players: 0,
       price: 25,
       priceMonthly: 80,
@@ -412,6 +419,7 @@ export default function CreateMatchScreen() {
     duration,
     format,
     gamePoints,
+    freeTeams,
     level,
     privacy,
     inviteMode,
@@ -450,43 +458,39 @@ export default function CreateMatchScreen() {
   ];
   const progress = steps.filter(Boolean).length / steps.length;
 
-  // ── Auto-scroll to the freshly revealed block (soft, best-effort) ──
+  // ── After a valid pick, bring the next question into view (soft, best-effort) ──
   const scrollRef = useRef<ScrollView>(null);
-  const blockY = useRef<Record<string, number>>({});
-  const focusKey = showPrivacidade
-    ? 'privacidade'
-    : showValor
-        ? 'valor'
-        : showNivel
-          ? 'nivel'
-          : showFormato
-            ? 'formato'
-            : showTime
-              ? 'time'
-              : showTipo
-                ? 'tipo'
-                : showLocal
-                  ? 'local'
-                  : '';
-
-  useEffect(() => {
-    if (!focusKey) return;
-    const y = blockY.current[focusKey];
-    if (y == null) return;
-    const id = setTimeout(() => {
-      scrollRef.current?.scrollTo({ y: Math.max(0, y - 20), animated: true });
-    }, 140);
-    return () => clearTimeout(id);
-  }, [focusKey]);
-
-  const onBlockLayout = (key: string) => (e: LayoutChangeEvent) => {
-    blockY.current[key] = e.nativeEvent.layout.y;
+  const scrollY = useRef(0);
+  const anchors = useRef<Record<string, View | null>>({});
+  const anchor = (key: string) => (node: View | null) => {
+    anchors.current[key] = node;
+  };
+  // Waits for the next block to mount and start its entering animation.
+  const advanceTo = (key: string) => {
+    setTimeout(() => {
+      const scroll = scrollRef.current;
+      if (key === 'end') {
+        scroll?.scrollToEnd({ animated: true });
+        return;
+      }
+      const viewport = scroll?.getNativeScrollRef?.();
+      const target = anchors.current[key];
+      if (!scroll || !viewport?.measureInWindow || !target?.measureInWindow) return;
+      // Both in window coordinates: the gap is how far the question sits from the top.
+      viewport.measureInWindow((_vx, viewportY) => {
+        target.measureInWindow((_tx, targetY) => {
+          const y = scrollY.current + targetY - viewportY - 20;
+          scroll.scrollTo({ y: Math.max(0, y), animated: true });
+        });
+      });
+    }, 180);
   };
 
   // Picking a format pre-fills the suggested player count.
   const pickFormat = (f: MatchFormat) => {
     setValue('format', f, { shouldValidate: true });
     setValue('players', SUGGESTED_PLAYERS[f], { shouldValidate: true });
+    advanceTo('times');
   };
 
   const toggleDay = (i: number) => {
@@ -523,6 +527,14 @@ export default function CreateMatchScreen() {
     const coords = await resolvePlace(place, placeSession);
     setValue('latitude', coords?.latitude);
     setValue('longitude', coords?.longitude);
+    advanceTo('tipo');
+    // A plain address on top of a mapped arena takes the arena's name.
+    const arena = coords ? await findArenaAt(coords) : null;
+    if (arena && arena.title !== place.title) {
+      const arenaLabel = `${arena.title} · ${arena.address}`;
+      setLocation(arenaLabel);
+      setValue('location', arenaLabel, { shouldValidate: true });
+    }
   };
 
   const onSubmit = (formValues: CreateMatchInput) => {
@@ -587,6 +599,10 @@ export default function CreateMatchScreen() {
           contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          onScroll={(e) => {
+            scrollY.current = e.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={32}
         >
           {/* ─────────── BLOCO 1 · Capa + nome ─────────── */}
           <Question sub="Dê um nome e uma cara pra sua partida.">
@@ -619,9 +635,9 @@ export default function CreateMatchScreen() {
           </View>
 
           {/* ─────────── BLOCO 2 · Local ─────────── */}
-          <View onLayout={onBlockLayout('local')}>
+          <View ref={anchor('local')}>
             <Reveal show={showLocal}>
-              <Question step={2} sub="Busque uma quadra ou informe o endereço.">
+              <Question step={2}>
                 Onde vocês vão jogar?
               </Question>
               <SearchField
@@ -645,7 +661,7 @@ export default function CreateMatchScreen() {
                   {places.isFetching
                     ? 'Buscando endereços…'
                     : places.data && places.data.length > 0
-                      ? 'Escolha um endereço da lista para a partida aparecer no lugar certo do mapa.'
+                      ? 'Escolha um endereço da lista.'
                       : 'Nenhum endereço encontrado. Tente o nome da rua com o bairro ou a cidade.'}
                 </Text>
               ) : null}
@@ -675,6 +691,25 @@ export default function CreateMatchScreen() {
                   ))}
                 </View>
               ) : null}
+              {/* Picked place: the arena's name first, the address under it. */}
+              {placePicked ? (
+                <View
+                  className="mt-3 flex-row items-center gap-3 rounded-card border-2 border-primary bg-white p-3"
+                  testID="place-picked"
+                >
+                  <MapPin size={20} color={colors.primary} />
+                  <View className="flex-1">
+                    <Text className="font-body-bold text-body text-text-primary" numberOfLines={1}>
+                      {splitVenue(location).name}
+                    </Text>
+                    {splitVenue(location).address ? (
+                      <Text className="font-body text-caption text-text-muted" numberOfLines={2}>
+                        {splitVenue(location).address}
+                      </Text>
+                    ) : null}
+                  </View>
+                </View>
+              ) : null}
               {/* Picked address: show where the pin landed so a wrong spot is
                   caught before the match is published. Static map (liteMode). */}
               {placePicked &&
@@ -689,6 +724,7 @@ export default function CreateMatchScreen() {
                     <MapView
                       key={`${values.latitude},${values.longitude}`}
                       liteMode
+                      customMapStyle={MAP_STYLE}
                       style={{ flex: 1 }}
                       initialRegion={{
                         latitude: values.latitude,
@@ -706,8 +742,7 @@ export default function CreateMatchScreen() {
                     </MapView>
                   </View>
                   <Text className="mt-2 font-body text-caption text-text-muted">
-                    Confira se o pino está no lugar certo. Se não estiver, busque
-                    de novo com o número ou o nome da quadra.
+                    Pino no lugar errado? Busque com o número ou o nome da quadra.
                   </Text>
                 </View>
               ) : null}
@@ -715,15 +750,18 @@ export default function CreateMatchScreen() {
           </View>
 
           {/* ─────────── BLOCO 3 · Avulso ou Recorrente ─────────── */}
-          <View onLayout={onBlockLayout('tipo')}>
+          <View ref={anchor('tipo')}>
             <Reveal show={showTipo}>
-              <Question step={3} sub="Um jogo único ou toda semana?">
+              <Question step={3}>
                 Vai se repetir?
               </Question>
               <View className="flex-row gap-3">
                 <OptionCard
                   selected={type === 'OneOff'}
-                  onPress={() => setValue('type', 'OneOff', { shouldValidate: true })}
+                  onPress={() => {
+                    setValue('type', 'OneOff', { shouldValidate: true });
+                    advanceTo('when');
+                  }}
                   icon={
                     <Zap
                       size={20}
@@ -736,9 +774,10 @@ export default function CreateMatchScreen() {
                 />
                 <OptionCard
                   selected={type === 'Recurring'}
-                  onPress={() =>
-                    setValue('type', 'Recurring', { shouldValidate: true })
-                  }
+                  onPress={() => {
+                    setValue('type', 'Recurring', { shouldValidate: true });
+                    advanceTo('when');
+                  }}
                   icon={
                     <Clock
                       size={20}
@@ -755,20 +794,25 @@ export default function CreateMatchScreen() {
 
               {/* AVULSO → escolher a data */}
               <Reveal show={type === 'OneOff'}>
+                <View ref={anchor('when')} />
                 <MiniLabel>Quando essa partida vai rolar?</MiniLabel>
                 <View className="flex-row gap-2">
                   <FilterChip
                     label="Hoje"
                     selected={whenType === 'today'}
-                    onPress={() => setValue('whenType', 'today', { shouldValidate: true })}
+                    onPress={() => {
+                      setValue('whenType', 'today', { shouldValidate: true });
+                      advanceTo('time');
+                    }}
                     testID="when-today"
                   />
                   <FilterChip
                     label="Amanhã"
                     selected={whenType === 'tomorrow'}
-                    onPress={() =>
-                      setValue('whenType', 'tomorrow', { shouldValidate: true })
-                    }
+                    onPress={() => {
+                      setValue('whenType', 'tomorrow', { shouldValidate: true });
+                      advanceTo('time');
+                    }}
                     testID="when-tomorrow"
                   />
                   <FilterChip
@@ -787,7 +831,10 @@ export default function CreateMatchScreen() {
                         mode="date"
                         label="Data da partida"
                         value={value ?? ''}
-                        onChange={onChange}
+                        onChange={(next) => {
+                          onChange(next);
+                          advanceTo('time');
+                        }}
                         placeholder="Escolha a data"
                         minimumDate={today}
                         testID="custom-date"
@@ -799,7 +846,7 @@ export default function CreateMatchScreen() {
 
               {/* RECORRENTE → dias, frequência, início */}
               <Reveal show={type === 'Recurring'}>
-                <View className="rounded-card border border-line bg-white p-4">
+                <View ref={anchor('when')} className="rounded-card border border-line bg-white p-4">
                   <MiniLabel>Dias da semana</MiniLabel>
                   <View className="flex-row justify-between gap-1.5">
                     {WEEKDAYS.map((d, i) => {
@@ -861,7 +908,10 @@ export default function CreateMatchScreen() {
                           mode="date"
                           label="Início"
                           value={value ?? ''}
-                          onChange={onChange}
+                          onChange={(next) => {
+                            onChange(next);
+                            if (recDays.length > 0) advanceTo('time');
+                          }}
                           placeholder="Escolha a data"
                           minimumDate={today}
                           testID="rec-start"
@@ -874,6 +924,7 @@ export default function CreateMatchScreen() {
 
               {/* Horário — 2 sugestões + escolher exata */}
               <Reveal show={showTime}>
+                <View ref={anchor('time')} />
                 <MiniLabel>Que horas?</MiniLabel>
                 <View className="flex-row gap-2">
                   {TIME_PRESETS.map((t) => (
@@ -884,6 +935,7 @@ export default function CreateMatchScreen() {
                       onPress={() => {
                         setOtherTime(false);
                         setValue('time', t, { shouldValidate: true });
+                        advanceTo('duration');
                       }}
                       testID={`time-${t}`}
                     />
@@ -902,9 +954,10 @@ export default function CreateMatchScreen() {
                   <DateTimePickerField
                     mode="time"
                     value={time ?? ''}
-                    onChange={(t) =>
-                      setValue('time', t, { shouldValidate: true })
-                    }
+                    onChange={(t) => {
+                      setValue('time', t, { shouldValidate: true });
+                      advanceTo('duration');
+                    }}
                     placeholder="Escolha o horário"
                     testID="time-input"
                   />
@@ -913,6 +966,7 @@ export default function CreateMatchScreen() {
 
               {/* Duração */}
               <Reveal show={showDuration}>
+                <View ref={anchor('duration')} />
                 <MiniLabel>Quanto tempo de jogo?</MiniLabel>
                 <View className="flex-row flex-wrap gap-2">
                   {MATCH_DURATIONS.map((d) => (
@@ -920,7 +974,10 @@ export default function CreateMatchScreen() {
                       key={d}
                       label={d}
                       selected={duration === d}
-                      onPress={() => setValue('duration', d, { shouldValidate: true })}
+                      onPress={() => {
+                        setValue('duration', d, { shouldValidate: true });
+                        advanceTo('formato');
+                      }}
                       testID={`duration-${d}`}
                     />
                   ))}
@@ -930,7 +987,7 @@ export default function CreateMatchScreen() {
           </View>
 
           {/* ─────────── BLOCO 4 · Formato ─────────── */}
-          <View onLayout={onBlockLayout('formato')}>
+          <View ref={anchor('formato')}>
             <Reveal show={showFormato}>
               <Question step={4} sub="Quantos jogam de cada lado?">
                 Como vai ser a partida?
@@ -948,47 +1005,87 @@ export default function CreateMatchScreen() {
                 ))}
               </View>
               <Reveal show={!!format}>
-                <MiniLabel>O jogo vai até quantos pontos?</MiniLabel>
-                <View className="flex-row flex-wrap gap-2">
-                  {GAME_POINTS.map((p) => (
-                    <FilterChip
-                      key={p}
-                      label={`${p} pontos`}
-                      selected={gamePoints === p}
-                      onPress={() => setValue('gamePoints', p, { shouldValidate: true })}
-                      testID={`game-points-${p}`}
-                    />
-                  ))}
+                <View ref={anchor('times')} />
+                <MiniLabel>Como ficam os times?</MiniLabel>
+                <View className="flex-row gap-3">
+                  <OptionCard
+                    selected={!freeTeams}
+                    onPress={() => {
+                      setValue('freeTeams', false, { shouldValidate: true });
+                      advanceTo('gamePoints');
+                    }}
+                    title="Times fixos"
+                    desc="Sorteados ou montados no dia"
+                    testID="teams-fixed"
+                  />
+                  <OptionCard
+                    selected={freeTeams}
+                    onPress={() => {
+                      setValue('freeTeams', true, { shouldValidate: true });
+                      advanceTo('nivel');
+                    }}
+                    title="Sem times fixos"
+                    desc="Os times se formam na quadra"
+                    testID="teams-free"
+                  />
                 </View>
+                {/* With no fixed teams there is no score to play to. */}
+                {freeTeams ? null : (
+                  <View className="mt-4">
+                    <View ref={anchor('gamePoints')} />
+                    <MiniLabel>O jogo vai até quantos pontos?</MiniLabel>
+                    <View className="flex-row flex-wrap gap-2">
+                      {GAME_POINTS.map((p) => (
+                        <FilterChip
+                          key={p}
+                          label={`${p} pontos`}
+                          selected={gamePoints === p}
+                          onPress={() => {
+                            setValue('gamePoints', p, { shouldValidate: true });
+                            advanceTo('nivel');
+                          }}
+                          testID={`game-points-${p}`}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                )}
               </Reveal>
             </Reveal>
           </View>
 
           {/* ─────────── BLOCO 5 · Nível ─────────── */}
-          <View onLayout={onBlockLayout('nivel')}>
+          <View ref={anchor('nivel')}>
             <Reveal show={showNivel}>
-              <Question step={5} sub="Ajuda a juntar gente do mesmo ritmo.">
+              <Question step={5}>
                 Qual o nível?
               </Question>
               <View className="flex-row gap-2">
                 <FilterChip
                   label="Iniciante"
                   selected={level === 'INICIANTE'}
-                  onPress={() => setValue('level', 'INICIANTE', { shouldValidate: true })}
+                  onPress={() => {
+                    setValue('level', 'INICIANTE', { shouldValidate: true });
+                    advanceTo('valor');
+                  }}
                   testID="level-INICIANTE"
                 />
                 <FilterChip
                   label="Intermediário"
                   selected={level === 'INTERMEDIARIO'}
-                  onPress={() =>
-                    setValue('level', 'INTERMEDIARIO', { shouldValidate: true })
-                  }
+                  onPress={() => {
+                    setValue('level', 'INTERMEDIARIO', { shouldValidate: true });
+                    advanceTo('valor');
+                  }}
                   testID="level-INTERMEDIARIO"
                 />
                 <FilterChip
                   label="Avançado"
                   selected={level === 'AVANCADO'}
-                  onPress={() => setValue('level', 'AVANCADO', { shouldValidate: true })}
+                  onPress={() => {
+                    setValue('level', 'AVANCADO', { shouldValidate: true });
+                    advanceTo('valor');
+                  }}
                   testID="level-AVANCADO"
                 />
               </View>
@@ -1004,7 +1101,7 @@ export default function CreateMatchScreen() {
           </View>
 
           {/* ─────────── BLOCO 6 · Valor ─────────── */}
-          <View onLayout={onBlockLayout('valor')}>
+          <View ref={anchor('valor')}>
             <Reveal show={showValor}>
               <Question
                 step={6}
@@ -1074,15 +1171,18 @@ export default function CreateMatchScreen() {
           </View>
 
           {/* ─────────── BLOCO 7 · Privacidade ─────────── */}
-          <View onLayout={onBlockLayout('privacidade')}>
+          <View ref={anchor('privacidade')}>
             <Reveal show={showPrivacidade}>
-              <Question step={7} sub="Quem pode entrar nessa partida?">
+              <Question step={7}>
                 Quem pode participar?
               </Question>
               <View className="flex-row gap-3">
                 <OptionCard
                   selected={privacy === 'open'}
-                  onPress={() => setValue('privacy', 'open', { shouldValidate: true })}
+                  onPress={() => {
+                    setValue('privacy', 'open', { shouldValidate: true });
+                    advanceTo('end');
+                  }}
                   icon={
                     <Users
                       size={20}
@@ -1095,7 +1195,10 @@ export default function CreateMatchScreen() {
                 />
                 <OptionCard
                   selected={privacy === 'private'}
-                  onPress={() => setValue('privacy', 'private', { shouldValidate: true })}
+                  onPress={() => {
+                    setValue('privacy', 'private', { shouldValidate: true });
+                    advanceTo('end');
+                  }}
                   icon={
                     <Lock
                       size={20}
@@ -1111,36 +1214,25 @@ export default function CreateMatchScreen() {
                 <View className="gap-2">
                   <OptionCard
                     selected={inviteMode === 'code'}
-                    onPress={() =>
-                      setValue('inviteMode', 'code', { shouldValidate: true })
-                    }
+                    onPress={() => {
+                      setValue('inviteMode', 'code', { shouldValidate: true });
+                      advanceTo('end');
+                    }}
                     title="Código de convite"
                     desc="Quem tiver o código pode entrar"
                     testID="invite-code"
                   />
                   <OptionCard
                     selected={inviteMode === 'guests'}
-                    onPress={() =>
-                      setValue('inviteMode', 'guests', { shouldValidate: true })
-                    }
+                    onPress={() => {
+                      setValue('inviteMode', 'guests', { shouldValidate: true });
+                      advanceTo('end');
+                    }}
                     title="Somente convidados"
                     desc="Só quem você chamar direto"
                     testID="invite-guests"
                   />
                 </View>
-                <Reveal show={inviteMode === 'code'}>
-                  <View className="flex-row items-center justify-between rounded-chip bg-surface-dark px-4 py-3">
-                    <Text className="font-num text-text-on-dark" style={{ fontSize: 18, letterSpacing: 3 }}>
-                      QDR-7K2P
-                    </Text>
-                    <View className="flex-row items-center gap-1.5">
-                      <Copy size={15} color={colors.accentLight} />
-                      <Text className="font-body-bold text-caption text-accent-light">
-                        Copiar
-                      </Text>
-                    </View>
-                  </View>
-                </Reveal>
               </Reveal>
             </Reveal>
           </View>

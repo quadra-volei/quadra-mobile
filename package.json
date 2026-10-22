@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "main": "index.ts",
   "dependencies": {
-    "@expo-google-fonts/baloo-2": "^0.4.2",
     "@expo-google-fonts/dm-mono": "^0.4.2",
     "@expo-google-fonts/dm-sans": "^0.4.2",
     "@expo-google-fonts/russo-one": "^0.4.1",
@@ -14,13 +13,16 @@
     "@react-native-firebase/app": "26.4.0",
     "@react-native-firebase/auth": "26.4.0",
     "@react-native-google-signin/google-signin": "^16.1.5",
+    "@sentry/react-native": "~7.11.0",
     "@tanstack/react-query": "^5.101.0",
     "expo": "~56.0.9",
+    "expo-asset": "~56.0.25",
     "expo-blur": "~56.0.3",
     "expo-dev-client": "~56.0.19",
     "expo-file-system": "~56.0.11",
     "expo-font": "~56.0.6",
     "expo-image": "~56.0.10",
+    "expo-image-manipulator": "~56.0.26",
     "expo-image-picker": "~56.0.18",
     "expo-linear-gradient": "~56.0.4",
     "expo-linking": "~56.0.13",
@@ -79,7 +81,7 @@
       "\\.(css)$": "<rootDir>/tests/__mocks__/styleMock.js"
     },
     "transformIgnorePatterns": [
-      "node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@tanstack|zustand|msw|nativewind|test-renderer))"
+      "node_modules/(?!(.pnpm|react-native|@react-native|@react-native-community|expo|@expo|@expo-google-fonts|react-navigation|@react-navigation|@tanstack|zustand|msw|nativewind|test-renderer|@sentry/react-native|@sentry/core|@sentry/react|@sentry-internal))"
     ],
     "setupFilesAfterEnv": [
       "<rootDir>/tests/setup.ts"

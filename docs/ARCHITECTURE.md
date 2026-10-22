@@ -46,6 +46,12 @@ app/profile/card · ranking · settings · edit · notifications · feedback
 - **Local UI state → `useState`.** Form inputs go through React Hook Form + Zod.
 - The translation between API shapes and screen models lives in one place per area (for
   matches: `src/features/matches/api/matchesApi.ts`).
+- **Freshness** (other players change things too): the app coming back to the foreground is
+  TanStack's "focus" (`focusManager` + `AppState` in `app/_layout.tsx`), so stale queries
+  re-read on return and polling pauses in the background. Início, Explorar and the match
+  screen re-read when shown again (`useRefreshOnFocus`) and on a pull (`usePullToRefresh`,
+  `src/hooks/useRefresh.ts`); the Rede feed has its own pull. The match screen also re-reads
+  every 10 s while in view and the match is ongoing (`useMatchDetail(id, code, { live })`).
 
 ## Auth
 

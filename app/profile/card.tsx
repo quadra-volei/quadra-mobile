@@ -1,4 +1,3 @@
-import * as ImagePicker from "expo-image-picker";
 import * as Sharing from "expo-sharing";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
@@ -8,7 +7,6 @@ import { Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from "r
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 
-import { QuadraLogo } from "@/components/icons/QuadraLogo";
 import { PlayerCard } from "@/components/domain/PlayerCard";
 import { Button } from "@/components/ui/Button";
 import { PressableScale } from "@/components/ui/PressableScale";
@@ -17,7 +15,8 @@ import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { useSaveCardStyle } from "@/features/profile/api/saveCardStyle";
 import { CARD_TITLES, cardTitleCode } from "@/features/profile/card/cardTitles";
 import type { MyProfile } from "@/features/profile/types/profile";
-import { CARD_FINISHES, CARD_FINISH_ORDER, CARD_SCREEN } from "@/theme/cardFinish";
+import { ActionsSummary } from "@/components/domain/ActionsSummary";
+import { CARD_FINISHES, CARD_FINISH_ORDER, CARD_SCREEN, CARD_TIERS, CARD_TIER_ORDER, cardTier } from "@/theme/cardFinish";
 import { colors } from "@/theme/colors";
 
 const TABS = ["Acabamento", "Título", "Estatísticas"] as const;
@@ -55,8 +54,19 @@ function ToolButton({ label, icon, onPress, disabled, testID }: { label: string;
 
 type Save = ReturnType<typeof useSaveCardStyle>;
 
-function FinishPicker({ profile, save, onPickPhoto }: { profile: MyProfile; save: Save; onPickPhoto: () => void }) {
-  const saving = save.isPending && !!save.variables?.photoUri;
+// Which tier the level gives and when the next one comes (placeholders, see CARD_TIERS).
+function TierNote({ level }: { level: number }) {
+  const tier = cardTier(level);
+  const next = CARD_TIER_ORDER[CARD_TIER_ORDER.indexOf(tier) + 1];
+  return (
+    <Text className="font-body text-caption text-white/60 my-4">
+      {`Carta ${CARD_TIERS[tier].name} no nível ${level}.`}
+      {next ? ` No nível ${CARD_TIERS[next].from} ela vira ${CARD_TIERS[next].name}.` : ""}
+    </Text>
+  );
+}
+
+function FinishPicker({ profile, save }: { profile: MyProfile; save: Save }) {
   const current = profile.cardStyle;
   return (
     <>
@@ -74,32 +84,14 @@ function FinishPicker({ profile, save, onPickPhoto }: { profile: MyProfile; save
               className={`flex-1 rounded-chip border p-2 ${equipped ? "border-accent-light" : "border-white/15"}`}
               style={{ backgroundColor: CARD_SCREEN.bg }}
             >
-              <LinearGradient
-                colors={t.swatch}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{ height: 56, borderRadius: t.shape === "rounded" ? 14 : 7, alignItems: "center", justifyContent: "center" }}
-              >
-                <QuadraLogo size={30} blockColor={t.wordmark} />
-              </LinearGradient>
-              <Text className="font-body-bold text-caption text-text-on-dark mt-2">{t.name}</Text>
+              {/* Text only: the card above already shows the finish (owner's 4th review, item 11). */}
+              <Text className="font-body-bold text-caption text-text-on-dark">{t.name}</Text>
               <Text className="font-mono text-mono text-white/60 mt-1">{equipped ? "EQUIPADO" : "EXPERIMENTAR"}</Text>
             </PressableScale>
           );
         })}
       </View>
-      <Text className="font-body text-caption text-white/60 my-4">Escolha o visual que combina com você.</Text>
-      <PressableScale
-        accessibilityRole="button"
-        onPress={onPickPhoto}
-        disabled={saving}
-        className="items-center rounded-chip border border-dashed border-white/30 py-3"
-        testID="pick-card-photo"
-      >
-        <Text className="font-body-bold text-caption text-text-on-dark">
-          {saving ? "Enviando foto…" : "Trocar foto da carta"}
-        </Text>
-      </PressableScale>
+      <TierNote level={profile.level} />
     </>
   );
 }
@@ -127,9 +119,6 @@ function TitlePicker({ profile, save }: { profile: MyProfile; save: Save }) {
           </PressableScale>
         );
       })}
-      <Text className="font-body text-caption text-white/60 my-3">
-        Títulos de identidade. Eles não representam uma classificação técnica.
-      </Text>
     </>
   );
 }
@@ -137,29 +126,32 @@ function TitlePicker({ profile, save }: { profile: MyProfile; save: Save }) {
 export function StatsList({ profile }: { profile: MyProfile }) {
   const r = profile.record;
   const rows: [string, string, number][] = [
-    ["Partidas", "Partidas concluídas em quadra", r.matches],
-    ["Vitórias", "Partidas em que o time venceu", r.wins],
-    ["Derrotas", "Partidas em que o time perdeu", r.losses],
-    ["Empates", "Partidas encerradas empatadas", r.draws],
-    ["MVPs", "Vezes eleito o melhor da partida", r.mvps],
+    ["Partidas", "", r.matches],
+    ["Vitórias", "", r.wins],
+    ["Derrotas", "", r.losses],
+    ["Empates", "", r.draws],
+    ["MVPs", "", r.mvps],
+    // The only rule a player cannot guess: how points are earned.
     ["Pontos", "Presença +10, vitória +15, MVP +25", profile.points],
   ];
   return (
     <>
-      <Text className="font-body text-caption text-white/60 mb-3">
-        Só partidas concluídas e registradas compõem a carta.
-      </Text>
+      {/* The recorded actions behind ATK, DEF, BLK and ACE (API DECISIONS #85). */}
+      <View className="rounded-chip border border-white/15 bg-white/5 px-3 py-3 mb-2">
+        <Text className="font-body-bold text-body text-text-on-dark mb-2">Em quadra</Text>
+        <ActionsSummary actions={profile.actions} tone="dark" testID="card-actions" />
+      </View>
       {rows.map(([label, hint, value]) => (
         <View key={label} className="flex-row items-center justify-between rounded-chip border border-white/15 bg-white/5 px-3 py-3 mb-2">
           <View className="flex-1">
             <Text className="font-body-bold text-body text-text-on-dark">{label}</Text>
-            <Text className="font-body text-caption text-white/60 mt-1">{hint}</Text>
+            {hint ? <Text className="font-body text-caption text-white/60 mt-1">{hint}</Text> : null}
           </View>
           <Text className="font-num text-h3 text-text-on-dark">{value}</Text>
         </View>
       ))}
       <Text className="font-body text-caption text-white/60 my-3">
-        O nível representa experiência no app. Acabamentos e títulos não dão pontos nem vantagem no sorteio.
+        Acabamentos e títulos não dão pontos nem vantagem no sorteio.
       </Text>
     </>
   );
@@ -201,21 +193,10 @@ function CardBody({ profile }: { profile: MyProfile }) {
     profile,
     finish: style.finish,
     title: cardTitleCode(style.title, profile.position),
-    photoUrl: style.photoUrl ?? profile.avatarUrl,
+    // The card always shows the profile photo (changed only in Editar perfil).
+    photoUrl: profile.avatarUrl,
     flipped,
     onFlip: flip,
-  };
-
-  const pickPhoto = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.85,
-    });
-    if (!result.canceled && result.assets[0]) {
-      save.mutate({ finish: style.finish, title: style.title, photoUri: result.assets[0].uri });
-    }
   };
 
   return (
@@ -223,10 +204,6 @@ function CardBody({ profile }: { profile: MyProfile }) {
       <View className="items-center mt-2 mb-4">
         <PlayerCard {...cardProps} width={Math.min(screenWidth - 80, 300)} faceRefs={faceRefs} testID="player-card" />
       </View>
-      <Text className="font-body text-caption text-white/60 text-center mb-3">
-        Arraste para inclinar · toque para virar
-      </Text>
-
       <View className="flex-row gap-2 mb-4">
         <ToolButton
           label={flipped ? "Ver frente" : "Ver verso"}
@@ -276,7 +253,7 @@ function CardBody({ profile }: { profile: MyProfile }) {
       </View>
 
       {tab === "Acabamento" ? (
-        <FinishPicker profile={profile} save={save} onPickPhoto={pickPhoto} />
+        <FinishPicker profile={profile} save={save} />
       ) : tab === "Título" ? (
         <TitlePicker profile={profile} save={save} />
       ) : (
@@ -287,10 +264,7 @@ function CardBody({ profile }: { profile: MyProfile }) {
         <View className="flex-1 items-center justify-center px-5" style={{ backgroundColor: CARD_SCREEN.bg }}>
           <Text className="font-mono text-mono text-white/60 tracking-widest mb-4">SUA CARTA</Text>
           <PlayerCard {...cardProps} width={Math.min(screenWidth - 40, 380)} testID="player-card-inspect" />
-          <Text className="font-body text-caption text-white/60 text-center my-4">
-            Mova a carta para explorar a luz.
-          </Text>
-          <View className="flex-row gap-2 self-stretch">
+          <View className="flex-row gap-2 self-stretch mt-6">
             <ToolButton label="Virar" icon={<RefreshCw size={14} color={colors.textOnDark} />} onPress={flip} />
             <ToolButton label="Concluir" icon={<Check size={14} color={colors.textOnDark} />} onPress={() => setInspecting(false)} />
           </View>

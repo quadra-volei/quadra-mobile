@@ -25,7 +25,8 @@ jest.mock('react-native-safe-area-context', () => {
 jest.mock('lucide-react-native', () => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
-  return { ChevronLeft: (props: any) => ReactLocal.createElement(View, props) };
+  const Icon = (props: any) => ReactLocal.createElement(View, props);
+  return { ChevronLeft: Icon, Trophy: Icon };
 });
 
 jest.mock('@/components/ui/Button', () => {
@@ -96,6 +97,8 @@ function game(overrides: Partial<LiveGame>): LiveGame {
   return {
     matchName: 'Racha de Quinta',
     isOrganizer: true,
+    free: false,
+    startedAt: null,
     teams,
     phase: 'NOT_STARTED',
     bestOf: null,
@@ -231,10 +234,12 @@ describe('S14 — live scoreboard', () => {
 });
 
 describe('game over', () => {
-  it('names the winner and leads to the MVP vote', async () => {
+  it('marks the winner in the list (no sentence repeating it) and leads to the MVP vote', async () => {
     await show({ phase: 'ENDED', winnerTeamId: 'team-2' });
 
-    expect(screen.getByText('Time 2 venceu')).toBeTruthy();
+    expect(screen.getByText('Partida encerrada')).toBeTruthy();
+    expect(screen.queryByText('Time 2 venceu')).toBeNull();
+    expect(screen.getByText('Time 2')).toBeTruthy();
     await press('go-mvp-vote');
     expect(mockReplace).toHaveBeenCalledWith({
       pathname: '/matches/[id]/mvp-vote',

@@ -176,6 +176,19 @@ const mockNearby: QueryState & { refetch: jest.Mock; lastParams: unknown } = {
   lastParams: undefined,
 };
 
+// The screen re-reads queries through the query client (pull to refresh).
+const mockRefetchQueries = jest.fn(async () => undefined);
+jest.mock('@tanstack/react-query', () => ({
+  ...jest.requireActual('@tanstack/react-query'),
+  useQueryClient: () => ({ refetchQueries: mockRefetchQueries }),
+}));
+
+// The preview map's arenas: none here (the map's own tests cover the pins).
+jest.mock('@/features/explore/api/venues', () => ({
+  ...jest.requireActual('@/features/explore/api/venues'),
+  useNearbyVenues: () => ({ data: { venues: [], hasMore: false } }),
+}));
+
 jest.mock('@/features/matches/api/getNearby', () => ({
   useNearbyMatches: (params: unknown) => {
     mockNearby.lastParams = params;
@@ -221,10 +234,22 @@ function resetNearby() {
 
 beforeEach(() => {
   mockPush.mockClear();
+  mockRefetchQueries.mockClear();
   resetNearby();
 });
 
 describe('S6 — Explore screen', () => {
+  // The tab stays mounted: a pull re-reads the nearby matches (spots, new games).
+  it('re-reads the nearby matches on a pull', async () => {
+    const { container } = await render(<ExploreScreen />);
+    // The scroll view carries the RefreshControl; a pull calls its onRefresh.
+    const [scroll] = container.queryAll((node) => Boolean(node.props.refreshControl));
+    await act(async () => {
+      await scroll!.props.refreshControl.props.onRefresh();
+    });
+    expect(mockRefetchQueries).toHaveBeenCalledWith({ queryKey: ['matches', 'nearby'], type: 'active' });
+  });
+
   // ----------------------------------------------------------------- header
   /**
    * Covers: S6 — Explore
@@ -410,7 +435,13 @@ describe('S6 — Explore screen', () => {
     await render(<ExploreScreen />);
 
     await press(screen.getByLabelText('Filtros'));
-    await press(screen.getByText('Até 2 km'));
+    // The distance is a slider now: from "any" (50) down to 2 km, step by step.
+    expect(screen.getByText('Qualquer distância')).toBeTruthy();
+    const slider = screen.getByLabelText('Distância máxima');
+    for (let i = 0; i < 48; i++) {
+      await fireEvent(slider, 'accessibilityAction', { nativeEvent: { actionName: 'decrement' } });
+    }
+    expect(screen.getByText('Até 2 km')).toBeTruthy();
     await press(screen.getByText('Ver 1 partida'));
 
     expect(screen.getByText('Quadra do Parque')).toBeTruthy();
