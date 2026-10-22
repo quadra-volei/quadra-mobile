@@ -4,7 +4,7 @@
  * `fetch` stubbed at the transport.
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { renderHook, waitFor } from '@testing-library/react-native';
+import { act, renderHook, waitFor } from '@testing-library/react-native';
 import React from 'react';
 
 jest.mock('expo-secure-store', () =>
@@ -13,7 +13,8 @@ jest.mock('expo-secure-store', () =>
 
 import * as SecureStore from 'expo-secure-store';
 
-import { useRecentMatches } from '@/features/profile/api/getRecentMatches';
+import { groupByMonth, useMatchHistory, useRecentMatches } from '@/features/profile/api/getRecentMatches';
+import type { RecentMatch } from '@/features/profile/types/profile';
 import { useGroupRanking } from '@/features/ranking/api/getGroupRanking';
 import { saveTokens } from '@/lib/auth/tokenStorage';
 import { useAuthStore } from '@/stores/auth';
@@ -87,9 +88,65 @@ describe('useRecentMatches', () => {
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
     expect(requestedUrl()).toContain('/api/v1/profiles/me/match-history?page=1&pageSize=5');
-    expect(result.current.data).toEqual([
-      { id: 'm1', name: 'Racha de Quinta', playedAt: entry.matchDateTime, format: '4X4', result: 'VITORIA', setScore: '2-1', actionsLine: '' },
-      { id: 'm2', name: 'Racha de Quinta', playedAt: entry.matchDateTime, format: '6X6', result: 'EMPATE', setScore: '', actionsLine: '' },
+    expect(result.current.data?.items).toEqual([
+      { id: 'm1', name: 'Racha de Quinta', playedAt: entry.matchDateTime, format: '4X4', result: 'VITORIA', setScore: '2-1', actionsLine: '', isMvp: false },
+      { id: 'm2', name: 'Racha de Quinta', playedAt: entry.matchDateTime, format: '6X6', result: 'EMPATE', setScore: '', actionsLine: '', isMvp: false },
+    ]);
+  });
+
+  it('keeps the MVP flag and the total, so the profile knows there is more', async () => {
+    fetchMock.mockResolvedValueOnce(
+      respond(200, {
+        items: [{ matchId: 'm1', matchName: 'Racha', matchDateTime: '2026-06-18T22:30:00Z', outcome: 'Win', wasMvp: true, format: '6X6', setsWon: 1, setsLost: 0 }],
+        totalCount: 12,
+        hasNextPage: true,
+      }),
+    );
+
+    const { result } = await renderHook(() => useRecentMatches(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(result.current.data?.items[0]?.isMvp).toBe(true);
+    expect(result.current.data?.total).toBe(12);
+  });
+});
+
+describe('useMatchHistory', () => {
+  it('pages through the whole history, 20 at a time, until the API says there is no more', async () => {
+    const row = (id: string) => ({ matchId: id, matchName: id, matchDateTime: '2026-06-18T22:30:00Z', outcome: 'Loss', format: null, setsWon: null, setsLost: null });
+    fetchMock
+      .mockResolvedValueOnce(respond(200, { items: [row('m1')], totalCount: 2, hasNextPage: true }))
+      .mockResolvedValueOnce(respond(200, { items: [row('m2')], totalCount: 2, hasNextPage: false }));
+
+    const { result } = await renderHook(() => useMatchHistory(), { wrapper });
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    expect(requestedUrl()).toContain('/api/v1/profiles/me/match-history?page=1&pageSize=20');
+    expect(result.current.hasNextPage).toBe(true);
+
+    await act(() => result.current.fetchNextPage());
+    await waitFor(() => expect(result.current.data?.pages).toHaveLength(2));
+    expect((fetchMock.mock.calls as [string][])[1]?.[0]).toContain('page=2&pageSize=20');
+    expect(result.current.hasNextPage).toBe(false);
+  });
+});
+
+describe('groupByMonth', () => {
+  const match = (id: string, playedAt: string): RecentMatch => ({
+    id, name: id, playedAt, format: '6X6', result: 'VITORIA', setScore: '', actionsLine: '', isMvp: false,
+  });
+
+  it('splits newest-first matches into months, keeping their order', () => {
+    const months = groupByMonth([
+      match('a', '2026-10-20T12:00:00'),
+      match('b', '2026-10-02T12:00:00'),
+      match('c', '2026-09-28T12:00:00'),
+      match('d', '2025-12-10T12:00:00'),
+    ]);
+
+    expect(months.map((m) => [m.title, m.data.map((x) => x.id)])).toEqual([
+      ['OUTUBRO 2026', ['a', 'b']],
+      ['SETEMBRO 2026', ['c']],
+      ['DEZEMBRO 2025', ['d']],
     ]);
   });
 });
