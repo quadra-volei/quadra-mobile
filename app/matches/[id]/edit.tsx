@@ -10,13 +10,14 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { CoverPicker } from '@/components/domain/CoverPicker';
 import { Button } from '@/components/ui/Button';
+import { dialog } from '@/components/ui/Dialog';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { DateTimePickerField } from '@/components/ui/DateTimePickerField';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { SearchField } from '@/components/ui/SearchField';
 import { StepperField } from '@/components/ui/StepperField';
 import { TextField } from '@/components/ui/TextField';
-import { useEditMatch, useMatchEditDefaults } from '@/features/matches/api/editMatch';
+import { useCancelMatch, useEditMatch, useMatchEditDefaults } from '@/features/matches/api/editMatch';
 import {
   newPlaceSessionToken,
   placeLabel,
@@ -95,6 +96,7 @@ function EditMatchForm({
 }) {
   const insets = useSafeAreaInsets();
   const editMatch = useEditMatch(id);
+  const cancelMatch = useCancelMatch(id);
   const today = useMemo(() => {
     const d = new Date();
     d.setHours(0, 0, 0, 0);
@@ -146,6 +148,27 @@ function EditMatchForm({
 
   const onSubmit = (values: EditMatchInput) =>
     editMatch.mutate({ ...values, coverUri }, { onSuccess: () => router.back() });
+
+  const onEndGroup = () =>
+    dialog.alert(
+      'Encerrar a pelada fixa?',
+      'Este jogo é cancelado e nenhum outro é marcado. O ranking do grupo fica como está.',
+      [
+        { text: 'Voltar', style: 'cancel' },
+        {
+          text: 'Encerrar pelada',
+          style: 'destructive',
+          onPress: () =>
+            cancelMatch.mutate(
+              { endGroup: true },
+              {
+                onSuccess: () => router.back(),
+                onError: (error) => dialog.alert('Não deu para encerrar', error.message),
+              },
+            ),
+        },
+      ],
+    );
 
   const locationError =
     formState.errors.location?.message ?? formState.errors.latitude?.message;
@@ -408,6 +431,20 @@ function EditMatchForm({
               Salvar alterações
             </Button>
           </View>
+
+          {/* Cancelling one game keeps the group going; only this ends it (API DECISIONS #89). */}
+          {isRecurring ? (
+            <View className="mt-3">
+              <Button
+                variant="outline"
+                onPress={onEndGroup}
+                loading={cancelMatch.isPending}
+                testID="end-group"
+              >
+                Encerrar pelada fixa
+              </Button>
+            </View>
+          ) : null}
         </ScrollView>
       </SafeAreaView>
     </View>

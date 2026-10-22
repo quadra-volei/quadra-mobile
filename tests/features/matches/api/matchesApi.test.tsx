@@ -628,6 +628,11 @@ describe('edit and cancel', () => {
     fetchMock.mockResolvedValueOnce(respond(204));
     expect((await runMutation(() => useCancelMatch(MATCH_ID), undefined)).status).toBe('fulfilled');
     expect(call().method).toBe('DELETE');
+    expect(call().url).not.toContain('endGroup');
+
+    fetchMock.mockResolvedValueOnce(respond(204));
+    await runMutation(() => useCancelMatch(MATCH_ID), { endGroup: true });
+    expect(call(1).url).toContain(`/api/v1/matches/${MATCH_ID}?endGroup=true`);
 
     fetchMock.mockResolvedValueOnce(respond(409, {}));
     expect(rejectionMessage(await runMutation(() => useCancelMatch(MATCH_ID), undefined))).toBe(
