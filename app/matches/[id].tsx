@@ -282,7 +282,9 @@ export default function MatchDetailScreen() {
   const onCancelMatch = () => {
     dialog.alert(
       'Cancelar a partida?',
-      'Ela sai do mapa e das listas. Quem confirmou vai ver que foi cancelada.',
+      match?.recurring
+        ? 'Só este jogo é cancelado. O próximo da pelada já fica marcado e todos confirmam de novo.'
+        : 'Ela sai do mapa e das listas. Quem confirmou vai ver que foi cancelada.',
       [
         { text: 'Voltar', style: 'cancel' },
         {

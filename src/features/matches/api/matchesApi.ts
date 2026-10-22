@@ -506,8 +506,9 @@ export function putMatch(id: string, body: ApiUpdateMatch): Promise<ApiMatch> {
 }
 
 /** Cancels the match (kept as Cancelled by the API). */
-export function deleteMatch(id: string): Promise<unknown> {
-  return authorizedApiClient<unknown>(`${MATCHES_PATH}/${id}`, { method: 'DELETE' });
+export function deleteMatch(id: string, endGroup = false): Promise<unknown> {
+  const query = endGroup ? '?endGroup=true' : '';
+  return authorizedApiClient<unknown>(`${MATCHES_PATH}/${id}${query}`, { method: 'DELETE' });
 }
 
 export function fetchMatchDetail(id: string, inviteCode?: string): Promise<ApiMatchDetail> {
