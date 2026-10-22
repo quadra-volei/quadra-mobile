@@ -217,15 +217,14 @@ describe('useUpdateProfile (edit profile)', () => {
    *  is the login identity and is not part of the profile.
    */
   it('PUTs the edited fields, keeping modality, level and the current photo', async () => {
-    fetchMock.mockImplementation(async (url: string, init: RequestInit) => {
-      // No photo storage in this environment: the picked photo is not uploaded.
-      if (url.endsWith('/photo/upload-url')) return respond(503);
-      return init.method === 'PUT'
+    fetchMock.mockImplementation(async (_url: string, init: RequestInit) =>
+      init.method === 'PUT'
         ? respond(200, { ...apiProfile, handle: 'renan_d', position: 'LIB' })
-        : respond(200, apiProfile);
-    });
+        : respond(200, apiProfile),
+    );
+    const noNewPhoto = { ...editInput, avatarUri: undefined };
 
-    const settled = await runMutation(useUpdateProfile, editInput);
+    const settled = await runMutation(useUpdateProfile, noNewPhoto);
 
     expect(putCall().body).toEqual({
       firstName: 'Renan',
@@ -239,8 +238,24 @@ describe('useUpdateProfile (edit profile)', () => {
     });
     expect(settled).toEqual({
       status: 'fulfilled',
-      value: { profile: { ...editInput, id: USER_ID } },
+      value: { profile: { ...noNewPhoto, id: USER_ID } },
     });
+  });
+
+  /**
+   * Covers: owner's 4th review, item 15 — a picked photo that cannot be stored
+   * (no photo storage: 503) fails the save with a message to try again; it is
+   * never reported as saved with the old photo (DECISIONS #170).
+   */
+  it('fails, without saving, when the picked photo cannot be uploaded', async () => {
+    fetchMock.mockImplementation(async (url: string) =>
+      url.endsWith('/photo/upload-url') ? respond(503) : respond(200, apiProfile),
+    );
+
+    const settled = await runMutation(useUpdateProfile, { ...editInput, avatarUri: 'file:///picked.jpg' });
+
+    expect(settled.status).toBe('rejected');
+    expect(calls().some((c) => c.method === 'PUT')).toBe(false);
   });
 });
 

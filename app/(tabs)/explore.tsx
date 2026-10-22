@@ -15,6 +15,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { ExploreFilterSheet } from "@/components/domain/ExploreFilterSheet";
 import { MatchCard } from "@/components/domain/MatchCard";
+import { MATCH_PIN_ANCHOR, MatchPin, VenuePin, venuePinKey } from "@/components/domain/MapPins";
+import { matchIdsAtVenues, useNearbyVenues, type NearbyVenue } from "@/features/explore/api/venues";
 import { Button } from "@/components/ui/Button";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
@@ -126,40 +128,55 @@ function FiltersButton({
       >
         Filtros
       </Text>
-      {on ? (
-        <View className="h-5 min-w-[20px] px-1 rounded-pill bg-accent items-center justify-center">
-          <Text className="font-body-bold text-caption text-text-primary">
-            {active}
-          </Text>
-        </View>
-      ) : null}
+      {/* The badge's room is always there, so turning a filter on never
+          resizes the button (owner's 4th review, item 4). */}
+      <View
+        className="h-5 min-w-[20px] px-1 rounded-pill bg-accent items-center justify-center"
+        style={{ opacity: on ? 1 : 0 }}
+        testID="explore-filters-badge"
+      >
+        <Text className="font-body-bold text-caption text-text-primary">
+          {on ? active : 0}
+        </Text>
+      </View>
     </PressableScale>
   );
 }
 
 /**
  * Static mini map (Android lite mode: a bitmap, cheap inside a scroll list)
- * with a pin per visible match, framed around the search centre and the
- * nearest results. Taps go to the card around it, never into the map.
+ * drawn like the full map (owner's 4th review, item 1): arenas with the number
+ * of the filtered games there, and a drop pin per filtered game away from an
+ * arena. Framed around the search centre and the nearest results. Taps go to
+ * the card around it, never into the map.
  */
 function MiniMap({
   center,
   matches,
+  venues,
 }: {
   center: { lat: number; lon: number };
   matches: NearbyMatch[];
+  venues: NearbyVenue[];
 }) {
-  const pins = matches.slice(0, 20);
-  const span = pins.reduce(
-    (max, m) =>
-      Math.max(max, Math.abs(m.lat - center.lat), Math.abs(m.lon - center.lon)),
+  const shown = new Set(matches.map((m) => m.id));
+  const atVenues = matchIdsAtVenues(venues);
+  const loose = matches.filter((m) => !atVenues.has(m.id)).slice(0, 20);
+  // Arenas with a filtered game first, then the closest others; the count follows the filters.
+  const arenas = venues
+    .map((v) => ({ venue: v, games: v.matches.filter((m) => shown.has(m.id)).length }))
+    .sort((a, b) => b.games - a.games || a.venue.distanceKm - b.venue.distanceKm)
+    .slice(0, 20);
+  const span = [...loose, ...arenas.filter((a) => a.games > 0).map((a) => a.venue)].reduce(
+    (max, p) => Math.max(max, Math.abs(p.lat - center.lat), Math.abs(p.lon - center.lon)),
     0,
   );
-  const delta = Math.max(span * 2.4, 0.03);
+  // Rounded so a filter change that keeps the same frame does not remount the map.
+  const delta = Math.round(Math.max(span * 2.4, 0.03) * 100) / 100;
   return (
     <View pointerEvents="none" className="h-36" testID="explore-mini-map">
       <MapView
-        key={`${center.lat},${center.lon},${delta},${pins.length}`}
+        key={`${center.lat},${center.lon},${delta}`}
         liteMode
         customMapStyle={MAP_STYLE}
         style={{ flex: 1 }}
@@ -170,12 +187,25 @@ function MiniMap({
           longitudeDelta: delta,
         }}
       >
-        {pins.map((m) => (
+        {arenas.map(({ venue, games }) => (
           <Marker
-            key={m.id}
+            key={venuePinKey(venue, games, false)}
+            coordinate={{ latitude: venue.lat, longitude: venue.lon }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false}
+          >
+            <VenuePin venue={venue} games={games} />
+          </Marker>
+        ))}
+        {loose.map((m) => (
+          <Marker
+            key={`${m.id}:${m.capacity - m.confirmed}`}
             coordinate={{ latitude: m.lat, longitude: m.lon }}
-            pinColor={colors.primary}
-          />
+            anchor={MATCH_PIN_ANCHOR}
+            tracksViewChanges={false}
+          >
+            <MatchPin openSlots={m.capacity - m.confirmed} />
+          </Marker>
         ))}
       </MapView>
     </View>
@@ -197,6 +227,8 @@ function ResultsArea({
     ? { ...DEFAULT_GEO, lat: coords.latitude, lon: coords.longitude }
     : DEFAULT_GEO;
   const { data, isPending, isError, refetch } = useNearbyMatches(geo);
+  // The arenas around, for the preview map (optional: none while loading or on error).
+  const venuesQuery = useNearbyVenues({ lat: geo.lat, lon: geo.lon, radiusKm: 10 }, isMapAvailable());
 
   const results = useMemo(
     () => applyFilters(data ?? [], filters),
@@ -252,7 +284,9 @@ function ResultsArea({
         accessibilityRole="button"
         accessibilityLabel="Abrir mapa de partidas"
       >
-        {isMapAvailable() ? <MiniMap center={geo} matches={results} /> : null}
+        {isMapAvailable() ? (
+          <MiniMap center={geo} matches={results} venues={venuesQuery.data?.venues ?? []} />
+        ) : null}
         <View className="p-3 flex-row items-center gap-3">
           <View className="h-10 w-10 rounded-chip bg-primary items-center justify-center">
             <MapPin size={20} color={colors.textOnDark} />

@@ -47,9 +47,6 @@ Not built yet:
 - **Full match history** ("Ver tudo" on recent matches is inert).
 - **Summary with rotating teams** names each game's winner but not the team it beat (the
   summary keeps no teams per game; backend limit).
-- **Map: arenas by type** (sand courts, regular courts, parks) with simple filters: needs the
-  Google place type stored with each arena (API). Owner's review of 2026-10-21, item 13.
-- **Map: blue arrows on the first open** (same review): not reproduced yet; check on a device.
 - **iOS**: only the Android test APK has been built.
 
 ## Out of the MVP

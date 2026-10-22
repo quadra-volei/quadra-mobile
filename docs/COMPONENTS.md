@@ -438,6 +438,13 @@ More UI primitives will live here:
 - **Used in**: S8 Profile ("Seu progresso"), S8b "Sua carta" (below the card, dark)
 - **Notes**: The five recorded actions (CRT · BLK · ACE · SAL · AST, `PLAYER_ACTIONS`): the total in `font-num` and the average per match below ("1,5"; "—" when never recorded), plus how many matches had a sheet. With no sheet yet, one neutral line instead of zeros (#168).
 
+### `MapPins` (`VenuePin`, `MatchPin`)
+- **Path**: `src/components/domain/MapPins.tsx`
+- **Category**: domain
+- **Props**: `VenuePin { venue: NearbyVenue; games: number; selected?: boolean; testID? }`, `MatchPin { openSlots: number; testID? }`; helpers `venuePinKey`, `venueActivityFor`, `pinColorFor`, `MATCH_PIN_ANCHOR`, `MATCH_PIN_CENTER_OFFSET`
+- **Used in**: S17 map (`app/explore/map.tsx`), S6 Explore preview map
+- **Notes**: Plain views and text only, so Android draws the marker bitmap complete with `tracksViewChanges={false}` (#171); put `venuePinKey(...)` in the Marker `key` so a change of look mounts a new marker.
+
 ### `MatchHistoryRow`
 - **Path**: `src/components/domain/MatchHistoryRow.tsx`
 - **Category**: domain

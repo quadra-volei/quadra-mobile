@@ -163,10 +163,11 @@ async function shrinkPhoto(localUri: string): Promise<string> {
  * Uploads a picked photo (`POST /profiles/me/photo/upload-url`, then a PUT of
  * the file straight to the storage) and returns the object key to save on the
  * profile. Every caller (profile, post, match cover) goes through here, so the
- * photo is shrunk here first. Null when this environment has no photo storage
- * (503): the profile is then saved with the photo it already had.
+ * photo is shrunk here first. An environment with no photo storage (503) is an
+ * error like any other: the caller must never report a photo as saved when it
+ * was not (DECISIONS #170).
  */
-export async function uploadProfilePhoto(pickedUri: string): Promise<string | null> {
+export async function uploadProfilePhoto(pickedUri: string): Promise<string> {
   let localUri: string;
   try {
     localUri = await shrinkPhoto(pickedUri);
@@ -182,7 +183,7 @@ export async function uploadProfilePhoto(pickedUri: string): Promise<string | nu
     });
   } catch (error) {
     if (error instanceof ApiError && error.status === 503) {
-      return null;
+      throw new Error('O envio de fotos está indisponível no momento. Tente de novo mais tarde.');
     }
     if (error instanceof ApiError && error.status !== 401) {
       throw new Error(`Não foi possível preparar o envio da foto (erro ${error.status}).`);

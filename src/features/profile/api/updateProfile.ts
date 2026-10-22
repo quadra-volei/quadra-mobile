@@ -9,6 +9,7 @@ import {
   uploadProfilePhoto,
 } from '@/features/profile/api/profileApi';
 import type { EditProfileInput } from '@/features/profile/schema/editProfile';
+import { ApiError } from '@/lib/api/client';
 
 export type UpdateProfileResult = {
   profile: { id: string } & EditProfileInput;
@@ -18,8 +19,9 @@ export type UpdateProfileResult = {
  * Saves the edit-profile form (S10) with `PUT /api/v1/profiles/me`.
  *
  * The phone is never sent: it is the login identity and the profile endpoint has
- * no phone field. `avatarUri` is uploaded first when photo storage is on; without
- * it the current photo is kept.
+ * no phone field. A picked `avatarUri` is uploaded first; if the upload fails the
+ * save fails too (nothing is reported as saved that was not), and the user can
+ * try again. With no new photo the current one is kept.
  *
  * Rejects with a pt-BR message ready for display — e.g. when the `@handle` is
  * already taken (409).
@@ -30,7 +32,6 @@ async function updateProfile(
   try {
     // The PUT replaces the photo reference, so the current one is sent back.
     const current = await fetchMyProfile();
-    // A newly picked photo is uploaded first; without photo storage the current one stays.
     const uploadedKey = input.avatarUri ? await uploadProfilePhoto(input.avatarUri) : null;
     const saved = await putMyProfile({
       firstName: input.firstName,
@@ -45,6 +46,10 @@ async function updateProfile(
     });
     return { profile: { ...input, id: saved.userId, handle: saved.handle ?? input.handle } };
   } catch (error) {
+    // The API checks the uploaded file (size, content filter) on save: a 400 then is the photo.
+    if (input.avatarUri && error instanceof ApiError && error.status === 400) {
+      throw new Error('Essa foto não pôde ser usada. Tente outra imagem.');
+    }
     throw toProfileError(error);
   }
 }
@@ -53,9 +58,11 @@ export function useUpdateProfile() {
   const queryClient = useQueryClient();
   return useMutation<UpdateProfileResult, Error, EditProfileInput>({
     mutationFn: updateProfile,
-    onSuccess: () => {
+    onSuccess: (_result, input) => {
       // Refresh the cached profile so the settings summary reflects the edit.
       void queryClient.invalidateQueries({ queryKey: myProfileQueryKey });
+      // A new photo shows wherever the player appears (rosters, feed, ranking…).
+      if (input.avatarUri) void queryClient.invalidateQueries();
     },
   });
 }
