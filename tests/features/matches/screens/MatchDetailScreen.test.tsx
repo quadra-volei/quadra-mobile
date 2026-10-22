@@ -138,6 +138,8 @@ jest.mock('expo-router', () => ({
     push: (...args: any[]) => mockPush(...args),
   },
   useLocalSearchParams: () => mockParams,
+  useIsFocused: () => true,
+  useFocusEffect: () => {},
 }));
 
 // react-native core Share — spied on the barrel export at runtime (the screen
@@ -342,6 +344,17 @@ describe('S12 — Match Detail screen', () => {
 
     expect(screen.getByTestId('match-detail-skeleton')).toBeTruthy();
     expect(screen.queryByText('Racha de Domingo')).toBeNull();
+  });
+
+  // Someone else changes the match (guests, start): a pull shows it.
+  it('re-reads the match on a pull', async () => {
+    const { container } = await render(<MatchDetailScreen />);
+    // The scroll view carries the RefreshControl; a pull calls its onRefresh.
+    const [scroll] = container.queryAll((node) => Boolean(node.props.refreshControl));
+    await act(async () => {
+      await scroll!.props.refreshControl.props.onRefresh();
+    });
+    expect(mockDetail.refetch).toHaveBeenCalledTimes(1);
   });
 
   /**

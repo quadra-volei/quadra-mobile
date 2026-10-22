@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
 import {
   Banknote,
   Calendar,
@@ -17,7 +17,7 @@ import {
 } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Linking, Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { Linking, Pressable, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -48,6 +48,7 @@ import type {
   MatchDetail,
   PlayerPosition,
 } from '@/features/matches/types/matchDetail';
+import { usePullToRefresh, useRefreshOnFocus } from '@/hooks/useRefresh';
 import { inviteLink } from '@/lib/inviteLink';
 import { useAuthStore } from '@/stores/auth';
 import { colors, COVER_SCRIM, COVER_SCRIM_LOCATIONS } from '@/theme/colors';
@@ -229,7 +230,11 @@ export default function MatchDetailScreen() {
 
   // An invite link brings the code of a private match (app/p/[id].tsx).
   const linkCode = c?.trim().toUpperCase() || undefined;
-  const matchQuery = useMatchDetail(matchId, linkCode);
+  // In view: the match re-reads itself, when shown again and on a pull.
+  const focused = useIsFocused();
+  const matchQuery = useMatchDetail(matchId, linkCode, { live: focused });
+  useRefreshOnFocus(matchQuery.refetch);
+  const pull = usePullToRefresh(matchQuery.refetch);
   const deviceCoords = useDeviceCoords();
   const confirmPresence = useConfirmPresence(matchId);
   const declinePresence = useDeclinePresence(matchId);
@@ -366,6 +371,13 @@ export default function MatchDetailScreen() {
       <ScrollView
         contentContainerStyle={{ paddingBottom: insets.bottom + 148 }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={pull.refreshing}
+            onRefresh={pull.onRefresh}
+            progressViewOffset={insets.top}
+          />
+        }
       >
         {/* ── Court-image hero (bleeds under the status bar) ── */}
         <CourtImage
