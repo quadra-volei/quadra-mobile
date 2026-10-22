@@ -48,6 +48,13 @@ export type VenueDetails = { title: string; address: string };
 
 export type NearbyVenuesParams = { lat: number; lon: number; radiusKm: number };
 
+/**
+ * The arenas Explore's preview and the map's first look ask for around the user
+ * (one cached query for both). The API only looks up new arenas on Google for a
+ * radius up to 10 km (API DECISIONS #82), so this stays there.
+ */
+export const NEARBY_VENUES_KM = 10;
+
 async function getNearbyVenues(params: NearbyVenuesParams): Promise<NearbyVenues> {
   const { items, hasMore } = await authorizedApiClient<{ items: ApiNearbyVenue[]; hasMore?: boolean }>(
     `/api/v1/venues/nearby?lat=${params.lat}&lon=${params.lon}&radiusKm=${params.radiusKm}`,

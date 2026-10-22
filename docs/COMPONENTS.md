@@ -438,12 +438,12 @@ More UI primitives will live here:
 - **Used in**: S8 Profile ("Seu progresso"), S8b "Sua carta" (below the card, dark)
 - **Notes**: The five recorded actions (CRT · BLK · ACE · SAL · AST, `PLAYER_ACTIONS`): the total in `font-num` and the average per match below ("1,5"; "—" when never recorded), plus how many matches had a sheet. With no sheet yet, one neutral line instead of zeros (#168).
 
-### `MapPins` (`VenuePin`, `MatchPin`)
+### `MapPins` (`venuePinImage`, `matchPinImage`, `clusterImage`)
 - **Path**: `src/components/domain/MapPins.tsx`
 - **Category**: domain
-- **Props**: `VenuePin { venue: NearbyVenue; games: number; selected?: boolean; testID? }`, `MatchPin { openSlots: number; testID? }`; helpers `venuePinKey`, `venueActivityFor`, `pinColorFor`, `MATCH_PIN_ANCHOR`, `MATCH_PIN_CENTER_OFFSET`
+- **API**: `venuePinImage(venue, games)`, `matchPinImage(openSlots)` and `clusterImage(games, places)` return the image for a Marker's `image` prop; `VENUE_HALO` (selected arena ring), `venueActivityFor`, `MATCH_PIN_ANCHOR`, `MATCH_PIN_CENTER_OFFSET`, `CLUSTER_ANCHOR`. Grouping itself is `clusterPoints` in `src/features/explore/lib/cluster.ts` (#177)
 - **Used in**: S17 map (`app/explore/map.tsx`), S6 Explore preview map
-- **Notes**: Plain views and text only, so Android draws the marker bitmap complete with `tracksViewChanges={false}` (#171); put `venuePinKey(...)` in the Marker `key` so a change of look mounts a new marker.
+- **Notes**: Pins are images in `assets/map-pins` (only `@3x`, drawn from `scripts/map-pins.html`), never views inside a Marker (#176). A new look is a new image: regenerate the PNGs from the HTML and add the `require` here. Arena pins are 48 dp squares centred on the point; drops are 35 × 42 dp with the tip on the point.
 
 ### `MatchHistoryRow`
 - **Path**: `src/components/domain/MatchHistoryRow.tsx`

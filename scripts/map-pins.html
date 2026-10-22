@@ -1,0 +1,84 @@
+<!doctype html>
+<!--
+  Source of the map's pin images (assets/map-pins/*@3x.png, DECISIONS #176).
+  Android draws an image marker from one shared bitmap; a view marker is drawn
+  into its own bitmap, and was cut off when drawn before its children laid out.
+  To regenerate: open this file in Chrome (Playwright) and save each
+  `[data-pin]` element as `assets/map-pins/<data-pin>@3x.png` with a transparent
+  background. Sizes are in dp times 3, the same shapes MapPins.tsx used to draw.
+-->
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&family=Russo+One&display=block" rel="stylesheet">
+<style>
+  :root { --navy: #0A0A3C; --lime: #AADD00; --green: #16A34A; --red: #DC2626; --amber: #F59E0B; --muted: #62628A; }
+  body { margin: 0; padding: 12px; display: flex; flex-wrap: wrap; gap: 12px; background: #ccd; }
+  [data-pin] { position: relative; flex: none; }
+  .venue { width: 144px; height: 144px; }
+  .circle { position: absolute; left: 21px; top: 21px; width: 102px; height: 102px; box-sizing: border-box; border-radius: 50%;
+            border: 6px solid var(--navy); background: #fff; display: flex; align-items: center; justify-content: center; }
+  .live .circle { border-color: var(--red); }
+  .games .circle { background: var(--green); }
+  .emoji { font-family: 'Noto Color Emoji'; font-size: 45px; line-height: 1; }
+  .count { font-family: 'Russo One'; font-size: 45px; line-height: 1; color: #fff; }
+  .badge { position: absolute; right: 0; top: 0; width: 60px; height: 60px; box-sizing: border-box; border-radius: 50%;
+           border: 6px solid var(--navy); background: #fff; display: flex; align-items: center; justify-content: center; }
+  .badge .emoji { font-size: 30px; }
+  .halo { width: 144px; height: 144px; }
+  .halo::after { content: ''; position: absolute; left: 9px; top: 9px; width: 126px; height: 126px; box-sizing: border-box;
+                 border-radius: 50%; border: 9px solid var(--lime); }
+  /* A game away from any arena: a drop with a hard navy shadow (35 x 42 dp). */
+  .drop { width: 105px; height: 126px; }
+  .drop i { position: absolute; width: 96px; height: 96px; box-sizing: border-box; border-radius: 48px 48px 0 48px; transform: rotate(45deg); }
+  .drop .shadow { left: 9px; top: 9px; background: var(--navy); }
+  .drop .head { left: 0; top: 0; border: 6px solid var(--navy); display: flex; align-items: center; justify-content: center; }
+  .drop .head::after { content: ''; width: 30px; height: 30px; border-radius: 50%; background: var(--navy); }
+  /* A group of nearby places (47 x 47 dp): a 44 dp disc with a hard navy shadow,
+     green with the games inside, white with the number of places when none has a game. */
+  .cluster { width: 141px; height: 141px; }
+  .cluster i { position: absolute; width: 132px; height: 132px; box-sizing: border-box; border-radius: 50%; }
+  .cluster .shadow { left: 9px; top: 9px; background: var(--navy); }
+  .cluster .disc { left: 0; top: 0; border: 9px solid var(--navy); background: #fff; display: flex; align-items: center; justify-content: center;
+                   font-family: 'Russo One'; font-style: normal; font-size: 51px; line-height: 1; color: var(--navy); }
+  .cluster.games .disc { background: var(--green); color: #fff; }
+  .cluster .disc.n3 { font-size: 45px; }
+  .cluster .disc.n4 { font-size: 39px; }
+</style>
+</head>
+<body>
+<script>
+  const KINDS = { court: '🏐', sand: '🏖️', park: '🌳' };
+  const add = (name, cls, html) => {
+    const el = document.createElement('div');
+    el.dataset.pin = name;
+    el.className = cls;
+    el.innerHTML = html;
+    document.body.appendChild(el);
+  };
+  for (const [kind, emoji] of Object.entries(KINDS)) {
+    add(`venue-${kind}`, 'venue', `<div class="circle"><span class="emoji">${emoji}</span></div>`);
+    for (const live of [false, true]) {
+      for (const n of ['1', '2', '3', '4', '5', '6', '7', '8', '9', '9+']) {
+        const name = `venue-${kind}-${n === '9+' ? '10' : n}${live ? '-live' : ''}`;
+        add(name, `venue games${live ? ' live' : ''}`,
+          `<div class="circle"><span class="count">${n}</span></div><div class="badge"><span class="emoji">${emoji}</span></div>`);
+      }
+    }
+  }
+  add('venue-halo', 'halo', '');
+  // Counts 1–9, then buckets like Google's cluster renderer (10+, 20+, 50+, 100+).
+  for (const games of [true, false]) {
+    for (const n of ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '20', '50', '100']) {
+      if (!games && n === '1') continue;
+      const text = Number(n) >= 10 ? `${n}+` : n;
+      add(`cluster-${games ? 'games' : 'places'}-${n}`, `cluster${games ? ' games' : ''}`,
+        `<i class="shadow"></i><i class="disc n${text.length}">${text}</i>`);
+    }
+  }
+  for (const [name, color] of [['open', 'var(--lime)'], ['last', 'var(--amber)'], ['full', 'var(--muted)']]) {
+    add(`match-${name}`, 'drop', `<i class="shadow"></i><i class="head" style="background:${color}"></i>`);
+  }
+</script>
+</body>
+</html>

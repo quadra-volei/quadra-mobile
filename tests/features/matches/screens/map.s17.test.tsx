@@ -8,7 +8,7 @@
  *  3. Permission denied -> explanation with "Abrir configurações"; pressing it
  *     calls Linking.openSettings().
  *  4. One pin renders per match returned within the radius.
- *  5. Pins are color-coded by slot availability (pinToneFor helper + in-screen).
+ *  5. Pins are color-coded by slot availability (matchPinImage helper + in-screen).
  *  6. Tapping a pin shows a bottom preview card (MatchCard) with the summary.
  *  7. Tapping the preview card navigates to the match detail (S12).
  *  8. Back control returns to S6 Explore (router.back).
@@ -21,8 +21,8 @@
  * never the native map canvas. Read hook is mocked at the boundary; no MSW.
  */
 import React from 'react';
-import { Linking, Platform, StyleSheet } from 'react-native';
-import { colors } from '@/theme/colors';
+import { Linking, Platform } from 'react-native';
+import { VENUE_HALO, clusterImage, matchPinImage, venuePinImage } from '@/components/domain/MapPins';
 
 // --- Native / module mocks -------------------------------------------------
 
@@ -90,6 +90,7 @@ jest.mock('react-native-maps', () => {
 const mockGetForeground = jest.fn();
 const mockRequestForeground = jest.fn();
 const mockGetPosition = jest.fn();
+const mockGetLastKnown = jest.fn();
 
 jest.mock('expo-location', () => ({
   PermissionStatus: {
@@ -101,6 +102,7 @@ jest.mock('expo-location', () => ({
   requestForegroundPermissionsAsync: (...args: any[]) =>
     mockRequestForeground(...args),
   getCurrentPositionAsync: (...args: any[]) => mockGetPosition(...args),
+  getLastKnownPositionAsync: (...args: any[]) => mockGetLastKnown(...args),
 }));
 
 // expo-router: spyable router.push / router.back.
@@ -205,7 +207,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-
 
 import MapScreen, {
   PIN_ANCHOR,
-  pinToneFor,
+  areaToFetch,
   nextVenueWithGames,
   searchAreaFor,
   venueActivityFor,
@@ -236,6 +238,8 @@ function resetMocks() {
   mockGetPosition
     .mockReset()
     .mockResolvedValue({ coords: { latitude: -23.56, longitude: -46.64 } });
+  // No recent fix by default: the map waits for the GPS one.
+  mockGetLastKnown.mockReset().mockResolvedValue(null);
 
   mockVenues.data = [];
   mockNearby.data = NEARBY_FIXTURE;
@@ -261,32 +265,59 @@ describe('PIN_ANCHOR', () => {
   });
 });
 
-describe('pinToneFor (pure pin color helper)', () => {
+describe('matchPinImage (pure pin image helper)', () => {
   /**
    * Covers: S17 — Map of Nearby Matches
-   * Criterion: "Pins are color-coded by slot availability using DESIGN_SYSTEM
-   *  tokens" — the pure mapping, tested without the native map.
+   * Criterion: "Pins are color-coded by slot availability": lime with spots,
+   * amber on the last one, grey when full — one image each (DECISIONS #176).
    */
-  it('maps 2+ open slots to the lime "vagas abertas" token', () => {
-    expect(pinToneFor(2)).toBe('bg-accent');
-    expect(pinToneFor(5)).toBe('bg-accent');
+  it('picks one image for 2+ open slots, another for the last, another when full', () => {
+    expect(matchPinImage(5)).toBe(matchPinImage(2));
+    expect(matchPinImage(1)).not.toBe(matchPinImage(2));
+    expect(matchPinImage(-3)).toBe(matchPinImage(0));
+    expect(matchPinImage(0)).not.toBe(matchPinImage(1));
+    expect(matchPinImage(0)).not.toBe(matchPinImage(2));
+  });
+});
+
+describe('venuePinImage', () => {
+  const v = (kind: NearbyVenue['kind'], live = false): NearbyVenue => ({
+    placeId: 'p',
+    lat: 0,
+    lon: 0,
+    distanceKm: 0,
+    kind,
+    matches: [{ id: 'm', name: 'Jogo', startsAt: '2026-10-22T22:00:00Z', live }],
   });
 
-  /**
-   * Covers: S17 — Map of Nearby Matches
-   * Criterion: "Pins are color-coded by slot availability" — última vaga.
-   */
-  it('maps exactly 1 open slot to the amber "última vaga" token', () => {
-    expect(pinToneFor(1)).toBe('bg-warning');
+  it('has one image per kind, count (up to 9+) and live state', () => {
+    expect(venuePinImage(v('Court'), 0)).not.toBe(venuePinImage(v('Sand'), 0));
+    expect(venuePinImage(v('Court'), 1)).not.toBe(venuePinImage(v('Court'), 0));
+    expect(venuePinImage(v('Court'), 2)).not.toBe(venuePinImage(v('Court'), 1));
+    expect(venuePinImage(v('Court'), 14)).toBe(venuePinImage(v('Court'), 10));
+    expect(venuePinImage(v('Court', true), 1)).not.toBe(venuePinImage(v('Court'), 1));
+  });
+});
+
+describe('areaToFetch', () => {
+  const view = (lat: number, lon: number, radiusKm: number) => ({ lat, lon, radiusKm, tooWide: false });
+
+  it('keeps the loaded area while it covers the view', () => {
+    const loaded = { lat: -23.56, lon: -46.64, radiusKm: 50 };
+    expect(areaToFetch(loaded, view(-23.6, -46.6, 5), 15, 50)).toBe(loaded);
   });
 
-  /**
-   * Covers: S17 — Map of Nearby Matches
-   * Criterion: "Pins are color-coded by slot availability" — lotada.
-   */
-  it('maps 0 or negative open slots to the grey "lotada" token', () => {
-    expect(pinToneFor(0)).toBe('bg-text-muted');
-    expect(pinToneFor(-3)).toBe('bg-text-muted');
+  it('loads the view plus half its size once the view leaves the loaded area', () => {
+    const loaded = { lat: -23.56, lon: -46.64, radiusKm: 10 };
+    expect(areaToFetch(loaded, view(-22.9, -43.2, 8), 5, 50)).toEqual({ lat: -22.9, lon: -43.2, radiusKm: 12 });
+    expect(areaToFetch(loaded, view(-22.9, -43.2, 2), 5, 50).radiusKm).toBe(5);
+    expect(areaToFetch(loaded, view(-22.9, -43.2, 40), 5, 50).radiusKm).toBe(50);
+  });
+
+  it('loads a much closer view again when the loaded area was capped', () => {
+    const loaded = { lat: -23.56, lon: -46.64, radiusKm: 40 };
+    expect(areaToFetch(loaded, view(-23.56, -46.64, 25), 5, 50, true)).toBe(loaded);
+    expect(areaToFetch(loaded, view(-23.56, -46.64, 8), 5, 10, true)).toEqual({ lat: -23.56, lon: -46.64, radiusKm: 10 });
   });
 });
 
@@ -398,12 +429,11 @@ describe('S17 — Map of Nearby Matches', () => {
     await renderScreen();
     await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
 
-    // Plain views with inline colors (no SVG, no tracking: DECISIONS #171).
-    const fill = (id: string) =>
-      StyleSheet.flatten(screen.getByTestId(`${id}-pin-head`).props.style).backgroundColor;
-    expect(fill('map-pin-near-open')).toBe(colors.accent);
-    expect(fill('map-pin-near-last')).toBe(colors.warning);
-    expect(fill('map-pin-near-full')).toBe(colors.textMuted);
+    // Image markers (DECISIONS #176).
+    const image = (id: string) => screen.getByTestId(id).props.image;
+    expect(image('map-pin-near-open')).toBe(matchPinImage(4));
+    expect(image('map-pin-near-last')).toBe(matchPinImage(1));
+    expect(image('map-pin-near-full')).toBe(matchPinImage(0));
   });
 
   // ---------------------------------------------------------- preview + nav
@@ -463,7 +493,33 @@ describe('S17 — Map of Nearby Matches', () => {
       });
     });
 
-    expect(mockNearby.lastParams).toEqual({ lat: -19.92, lon: -43.94, radiusKm: 23 });
+    // A 23 km view outside the 50 km Explore already loaded: the view plus half.
+    expect(mockNearby.lastParams).toEqual({ lat: -19.92, lon: -43.94, radiusKm: 35 });
+  });
+
+  it('opens with the same search Explore made, and keeps it while the view stays inside', async () => {
+    await renderScreen();
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
+    expect(mockNearby.lastParams).toEqual({ lat: -23.56, lon: -46.64, radiusKm: 50 });
+
+    await act(async () => {
+      screen.getByTestId('map-view').props.onRegionChangeComplete({
+        latitude: -23.6,
+        longitude: -46.6,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      });
+    });
+    expect(mockNearby.lastParams).toEqual({ lat: -23.56, lon: -46.64, radiusKm: 50 });
+  });
+
+  it('opens at once with a recent position fix, without waiting for the GPS', async () => {
+    mockGetLastKnown.mockResolvedValue({ coords: { latitude: -23.5612, longitude: -46.6398 } });
+    await renderScreen();
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
+    expect(mockGetPosition).not.toHaveBeenCalled();
+    // Rounded like Explore's search, so both share the cached result.
+    expect(mockNearby.lastParams).toEqual({ lat: -23.561, lon: -46.64, radiusKm: 50 });
   });
 
   it('caps the search radius and flags a view that is too wide', () => {
@@ -538,10 +594,13 @@ describe('S17 — Map of Nearby Matches', () => {
 // red with one being played now; its games leave their own pins and go in its card.
 
 describe('Arenas on the map', () => {
+  // Each arena ~1 km east of the one made before it: far enough apart that the
+  // map does not group them (DECISIONS #177).
+  let made = 0;
   const venue = (placeId: string, matches: NearbyVenue['matches']): NearbyVenue => ({
     placeId,
     lat: -23.56,
-    lon: -46.64,
+    lon: -46.64 + 0.01 * made++,
     distanceKm: 0.5,
     kind: 'Court',
     matches,
@@ -556,13 +615,66 @@ describe('Arenas on the map', () => {
     await renderScreen();
     await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
 
-    expect(screen.getByTestId('map-venue-quiet')).toBeTruthy();
-    expect(screen.queryByTestId('map-venue-quiet-today')).toBeNull();
-    expect(screen.getByTestId('map-venue-today-today')).toBeTruthy();
-    expect(screen.getByTestId('map-venue-live-live')).toBeTruthy();
+    const image = (id: string) => screen.getByTestId(`map-venue-${id}`).props.image;
+    const [quiet, today, live] = mockVenues.data;
+    expect(image('quiet')).toBe(venuePinImage(quiet!, 0));
+    expect(image('today')).toBe(venuePinImage(today!, 1));
+    expect(image('live')).toBe(venuePinImage(live!, 1));
+    expect(image('live')).not.toBe(image('today'));
     // The game at the "today" arena is no longer its own pin; the others are.
     expect(screen.queryByTestId('map-pin-near-open')).toBeNull();
     expect(screen.getByTestId('map-pin-near-last')).toBeTruthy();
+  });
+
+  it('shows arenas without games only close in, or when a kind is picked', async () => {
+    mockVenues.data = [
+      venue('quiet', []),
+      venue('today', [{ id: 'near-open', name: 'Arena Sky Beach', startsAt: '2026-10-21T22:00:00Z', live: false }]),
+    ];
+    await renderScreen();
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
+    expect(screen.getByTestId('map-venue-quiet')).toBeTruthy();
+
+    // Zoomed out to ~20 km: only the arena with a game stays.
+    await act(async () => {
+      screen.getByTestId('map-view').props.onRegionChangeComplete({
+        latitude: -23.56,
+        longitude: -46.64,
+        latitudeDelta: 0.36,
+        longitudeDelta: 0.36,
+      });
+    });
+    expect(screen.queryByTestId('map-venue-quiet')).toBeNull();
+    expect(screen.getByTestId('map-venue-today')).toBeTruthy();
+
+    // Picking a kind brings it back: 1 km apart at this zoom, both in one green group.
+    await press(screen.getByTestId('map-filter-Court'));
+    expect(screen.queryByTestId('map-venue-quiet')).toBeNull();
+    expect(screen.getByTestId('map-cluster-v:today').props.image).toBe(clusterImage(1, 2));
+  });
+
+  it('groups pins that would overlap and shows them apart close in', async () => {
+    mockVenues.data = [
+      { ...venue('a', [{ id: 'x1', name: 'Jogo', startsAt: '2026-10-21T22:00:00Z', live: false }]), lon: -46.64 },
+      { ...venue('b', []), lon: -46.6401 },
+    ];
+    await renderScreen();
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
+    // ~10 m apart on a 5 km wide map: one group, green with the 1 game.
+    expect(screen.queryByTestId('map-venue-a')).toBeNull();
+    expect(screen.getByTestId('map-cluster-v:a').props.image).toBe(clusterImage(1, 2));
+
+    await act(async () => {
+      screen.getByTestId('map-view').props.onRegionChangeComplete({
+        latitude: -23.56,
+        longitude: -46.64,
+        latitudeDelta: 0.005,
+        longitudeDelta: 0.005,
+      });
+    });
+    expect(screen.queryByTestId('map-cluster-v:a')).toBeNull();
+    expect(screen.getByTestId('map-venue-a')).toBeTruthy();
+    expect(screen.getByTestId('map-venue-b')).toBeTruthy();
   });
 
   it('opens the arena card with its name from Google and its games', async () => {
@@ -573,8 +685,10 @@ describe('Arenas on the map', () => {
     await renderScreen();
     await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
 
+    expect(screen.queryByTestId('map-venue-halo')).toBeNull();
     await press(screen.getByTestId('map-venue-today'));
     expect(screen.getByTestId('map-venue-card')).toBeTruthy();
+    expect(screen.getByTestId('map-venue-halo').props.image).toBe(VENUE_HALO);
     expect(screen.getByText('Arena Copacabana')).toBeTruthy();
     await press(screen.getByTestId('map-venue-match-near-open'));
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/matches/[id]', params: { id: 'near-open' } });

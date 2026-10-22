@@ -22,15 +22,18 @@ import { CourtImage } from '@/components/ui/CourtImage';
 import { Tag } from '@/components/ui/Tag';
 import { MatchCard } from '@/components/domain/MatchCard';
 import {
+  CLUSTER_ANCHOR,
   MATCH_PIN_ANCHOR,
   MATCH_PIN_CENTER_OFFSET,
-  MatchPin,
-  VenuePin,
+  VENUE_HALO,
+  clusterImage,
+  matchPinImage,
   venueActivityFor as activityOf,
-  venuePinKey,
+  venuePinImage,
   type VenueActivity,
 } from '@/components/domain/MapPins';
 import {
+  NEARBY_VENUES_KM,
   matchIdsAtVenues,
   useNearbyVenues,
   useVenueDetails,
@@ -38,8 +41,10 @@ import {
   type NearbyVenue,
   type VenueKind,
 } from '@/features/explore/api/venues';
+import { clusterPoints, type MapPoint } from '@/features/explore/lib/cluster';
 import { useNearbyMatches } from '@/features/matches/api/getNearby';
 import { distanceKm } from '@/features/matches/lib/distanceKm';
+import { readDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
 import { splitVenue } from '@/features/matches/lib/venueName';
 import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
@@ -48,23 +53,29 @@ import type { NearbyMatch } from '@/features/matches/types/match';
 import { HARD_SHADOW, colors } from '@/theme/colors';
 import { MAP_STYLE } from '@/theme/mapStyle';
 
-// Fallback map center (São Paulo) used only to seed the nearby query before the
-// device location resolves.
+// Fallback map center (São Paulo), for a device with no position fix.
 const DEFAULT_CENTER = { latitude: -23.5605, longitude: -46.6433 };
 const REGION_DELTA = { latitudeDelta: 0.05, longitudeDelta: 0.05 };
-const NEARBY_RADIUS_KM = 5;
 // The backend refuses a larger radius.
 // ponytail: zoomed out past ~100 km across, the user is asked to zoom in; raise
 // the backend cap (or cluster server-side) if country-wide browsing matters.
 const MAX_RADIUS_KM = 50;
 const KM_PER_DEGREE = 111;
+// Games are searched like Explore does (the whole 50 km at once), so the map
+// opens from Explore's cache; arenas like Explore's preview (NEARBY_VENUES_KM).
+const MATCHES_MIN_KM = 15;
+const VENUES_MIN_KM = 5;
+// The API looks up new arenas on Google only up to this radius (API DECISIONS #82).
+const VENUES_DISCOVERY_KM = NEARBY_VENUES_KM;
 
 type SearchArea = { lat: number; lon: number; radiusKm: number; tooWide: boolean };
+type Area = { lat: number; lon: number; radiusKm: number };
+/** What a pin on the map stands for. */
+type PinItem = { type: 'venue'; venue: NearbyVenue } | { type: 'match'; match: NearbyMatch };
 
 /**
- * The search that covers what the map is showing: its centre and the radius to
- * its farthest edge. Rounded (centre ~1 km, radius whole km) so small pans
- * reuse the same query.
+ * What the map is showing: its centre and the radius to its farthest edge,
+ * capped at what the API accepts. Rounded (centre ~1 km, radius whole km).
  */
 export function searchAreaFor(region: Region): SearchArea {
   const halfHeightKm = (region.latitudeDelta / 2) * KM_PER_DEGREE;
@@ -72,33 +83,44 @@ export function searchAreaFor(region: Region): SearchArea {
     (region.longitudeDelta / 2) *
     KM_PER_DEGREE *
     Math.cos((region.latitude * Math.PI) / 180);
-  const needed = Math.ceil(Math.max(halfHeightKm, halfWidthKm));
+  const needed = Math.max(1, Math.ceil(Math.max(halfHeightKm, halfWidthKm)));
   return {
     lat: Math.round(region.latitude * 100) / 100,
     lon: Math.round(region.longitude * 100) / 100,
-    radiusKm: Math.min(Math.max(needed, NEARBY_RADIUS_KM), MAX_RADIUS_KM),
+    radiusKm: Math.min(needed, MAX_RADIUS_KM),
     tooWide: needed > MAX_RADIUS_KM,
   };
 }
 
-type PermissionState = 'undetermined' | 'granted' | 'denied';
-
-/** NativeWind class for the marker wrapper, color-coded by slot availability. */
-export type PinTone = 'bg-accent' | 'bg-warning' | 'bg-text-muted';
-
 /**
- * Maps a match's open-slot count to its pin color token (the only encoding SCOPE
- * S17 allows). Exported as a pure helper so it can be unit-tested without the
- * native map. `openSlots = capacity - confirmed`.
- * - `>= 2` → lime (vagas abertas)
- * - `=== 1` → amber (última vaga)
- * - `<= 0` → grey (lotada)
+ * The area to load for what the map shows (DECISIONS #176): the loaded one
+ * while it still covers the view, so panning and zooming inside it cost no
+ * request; else the view plus half its size around it, between `minKm` and
+ * `maxKm`. `dense`: the loaded area hit the API's cap (closest results only),
+ * so zooming well into it loads the view again.
  */
-export function pinToneFor(openSlots: number): PinTone {
-  if (openSlots <= 0) return 'bg-text-muted';
-  if (openSlots === 1) return 'bg-warning';
-  return 'bg-accent';
+export function areaToFetch(
+  loaded: Area,
+  view: SearchArea,
+  minKm: number,
+  maxKm: number,
+  dense = false,
+): Area {
+  const fromCentre = distanceKm(
+    { latitude: loaded.lat, longitude: loaded.lon },
+    { latitude: view.lat, longitude: view.lon },
+  );
+  const covered = fromCentre + view.radiusKm <= loaded.radiusKm;
+  const zoomedIn = view.radiusKm * 2 < loaded.radiusKm;
+  if (covered && !(dense && zoomedIn)) return loaded;
+  return {
+    lat: view.lat,
+    lon: view.lon,
+    radiusKm: Math.min(Math.max(Math.ceil(view.radiusKm * 1.5), minKm), maxKm),
+  };
 }
+
+type PermissionState = 'undetermined' | 'granted' | 'denied';
 
 /** Puts a game pin's tip, not the middle of its view, on the coordinate. */
 export const PIN_ANCHOR = MATCH_PIN_ANCHOR;
@@ -110,9 +132,9 @@ export function venueActivityFor(venue: NearbyVenue): VenueActivity {
 // The map's own filters (owner's 4th review, items 7 and 8): a distance from the
 // user and the kinds of place. MAX_KM is "any distance".
 const MAX_KM = 50;
-// ponytail: past this many pins the map gets slow; the closest are drawn and the
-// user is told to move the map for the others. Cluster if dense cities need it.
-const MAX_PINS = 60;
+// Arenas without a game show only this close in (view radius), or when a kind
+// of place is picked: further out they hid the few pins with games (#176).
+const EMPTY_ARENAS_KM = 6;
 
 /**
  * The closest other arena with games, from `from`: where the arena sheet's
@@ -335,29 +357,34 @@ export default function MapScreen() {
   const [maxKm, setMaxKm] = useState(MAX_KM);
   const [kinds, setKinds] = useState<VenueKind[]>([]);
   const [distanceOpen, setDistanceOpen] = useState(false);
+  // The map fills the screen: its size and region say how close pins sit on screen.
+  const screen = useWindowDimensions();
+  const [region, setRegion] = useState<Region | null>(null);
 
-  // Set once the user moves the map: the search then follows what is on screen
-  // (a match in another city shows up when the map is taken there).
-  const [searchArea, setSearchArea] = useState<SearchArea | null>(null);
+  // What the map shows, once it has moved, and the areas loaded for it: the
+  // search follows the screen (a match in another city shows up when the map
+  // is taken there) but only leaves an area the map no longer fits in.
+  const [view, setView] = useState<SearchArea | null>(null);
+  const [matchArea, setMatchArea] = useState<Area | null>(null);
+  const [venueArea, setVenueArea] = useState<Area | null>(null);
 
-  const area = {
-    lat: searchArea?.lat ?? (userLocation ?? DEFAULT_CENTER).latitude,
-    lon: searchArea?.lon ?? (userLocation ?? DEFAULT_CENTER).longitude,
-    radiusKm: searchArea?.radiusKm ?? NEARBY_RADIUS_KM,
-  };
-  const nearby = useNearbyMatches(area);
+  // Until the map moves, the same queries as Explore (its cache answers them).
+  const center = userLocation ?? DEFAULT_CENTER;
+  const matchesArea = matchArea ?? { lat: center.latitude, lon: center.longitude, radiusKm: MAX_RADIUS_KM };
+  const venuesArea = venueArea ?? { lat: center.latitude, lon: center.longitude, radiusKm: NEARBY_VENUES_KM };
+  const located = !checkingPermission && !resolvingLocation;
+  const nearby = useNearbyMatches(matchesArea, located);
   // Arenas are extra: until they load (or if they fail) the map shows only the games.
-  const venuesQuery = useNearbyVenues(area, isMapAvailable());
+  const venuesQuery = useNearbyVenues(venuesArea, located && isMapAvailable());
   const venueDetails = useVenueDetails(selectedVenueId);
 
   async function resolveLocation() {
     setResolvingLocation(true);
     try {
-      const position = await Location.getCurrentPositionAsync();
-      setUserLocation({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-      });
+      // A recent fix answers at once; only without one is the GPS waited for.
+      setUserLocation(await readDeviceCoords());
+    } catch {
+      // No fix: the map opens on the default centre.
     } finally {
       setResolvingLocation(false);
     }
@@ -434,11 +461,12 @@ export default function MapScreen() {
 
   // --- Granted: loading / error / map ----------------------------------------
 
-  if (resolvingLocation || nearby.isPending) {
+  // The map shows as soon as the position is known; the pins come in as they load.
+  if (resolvingLocation) {
     return <MapSkeleton />;
   }
 
-  if (nearby.isError) {
+  if (nearby.isError && !nearby.data) {
     return (
       <StateContainer>
         <Text className="font-body-semibold text-body-bold text-text-primary text-center mb-6">
@@ -453,23 +481,56 @@ export default function MapScreen() {
     );
   }
 
-  const matches: NearbyMatch[] = nearby.data;
-  const center = userLocation ?? DEFAULT_CENTER;
+  const matches: NearbyMatch[] = nearby.data ?? [];
   // The map's filters: within maxKm of the user, of the picked kinds. A game away
   // from any arena is not a kind of place, so picking kinds hides it.
   const within = (lat: number, lon: number) =>
     maxKm >= MAX_KM || distanceKm(center, { latitude: lat, longitude: lon }) <= maxKm;
   const allVenues: NearbyVenue[] = venuesQuery.data?.venues ?? [];
   const shownVenues = allVenues.filter((v) => within(v.lat, v.lon) && (kinds.length === 0 || kinds.includes(v.kind)));
-  const venues = shownVenues.slice(0, MAX_PINS);
+  // Arenas with games always; the others only close in or when a kind is picked.
+  const closeIn = (view?.radiusKm ?? 0) <= EMPTY_ARENAS_KM || kinds.length > 0;
+  const withGames = shownVenues.filter((v) => v.matches.length > 0);
+  const empty = closeIn ? shownVenues.filter((v) => v.matches.length === 0) : [];
+  const venues = [...withGames, ...empty];
   // A game at an arena is listed inside the arena's card instead of having its own pin.
   const atVenues = matchIdsAtVenues(allVenues);
   const looseMatches = kinds.length > 0 ? [] : matches.filter((m) => !atVenues.has(m.id) && within(m.lat, m.lon));
   const shownGames = venues.reduce((n, v) => n + v.matches.length, 0) + looseMatches.length;
-  const morePlaces = shownVenues.length > MAX_PINS || (venuesQuery.data?.hasMore ?? false);
+  const morePlaces = closeIn && (venuesQuery.data?.hasMore ?? false);
+  // Pins that would overlap become one group (DECISIONS #177).
+  const clusters = clusterPoints<PinItem>(
+    [
+      ...venues.map((venue) => ({
+        id: `v:${venue.placeId}`,
+        lat: venue.lat,
+        lon: venue.lon,
+        games: venue.matches.length,
+        item: { type: 'venue' as const, venue },
+      })),
+      ...looseMatches.map((match) => ({
+        id: `m:${match.id}`,
+        lat: match.lat,
+        lon: match.lon,
+        games: 1,
+        item: { type: 'match' as const, match },
+      })),
+    ],
+    { ...(region ?? REGION_DELTA), width: screen.width, height: screen.height },
+  );
+  // A tap on a group zooms the map onto its places, which then show apart.
+  const openCluster = (points: MapPoint<PinItem>[]) =>
+    mapRef.current?.fitToCoordinates(
+      points.map((p) => ({ latitude: p.lat, longitude: p.lon })),
+      { edgePadding: { top: 200, right: 64, bottom: 240, left: 64 }, animated: true },
+    );
   const filtersOn = maxKm < MAX_KM || kinds.length > 0;
   const selected = matches.find((m) => m.id === selectedMatchId) ?? null;
-  const selectedVenue = venues.find((v) => v.placeId === selectedVenueId) ?? null;
+  const selectedVenue = allVenues.find((v) => v.placeId === selectedVenueId) ?? null;
+  // The ring only around a pin of its own, not around a group it fell into.
+  const haloVenue = clusters.some((c) => c.points.length === 1 && c.id === `v:${selectedVenueId}`)
+    ? selectedVenue
+    : null;
   const toggleKind = (kind: VenueKind) =>
     setKinds((prev) => (prev.includes(kind) ? prev.filter((k) => k !== kind) : [...prev, kind]));
 
@@ -525,15 +586,21 @@ export default function MapScreen() {
         // initialRegion, not region: a controlled region snaps the map back to
         // the centre on every re-render (e.g. when a pin is selected).
         initialRegion={{ ...center, ...REGION_DELTA }}
-        onRegionChangeComplete={(region) => {
-          const next = searchAreaFor(region);
-          setSearchArea((prev) =>
-            prev?.lat === next.lat &&
-            prev.lon === next.lon &&
-            prev.radiusKm === next.radiusKm &&
-            prev.tooWide === next.tooWide
-              ? prev
-              : next,
+        onRegionChangeComplete={(shown) => {
+          const next = searchAreaFor(shown);
+          setRegion(shown);
+          setView(next);
+          setMatchArea(areaToFetch(matchesArea, next, MATCHES_MIN_KM, MAX_RADIUS_KM));
+          // Close in, arenas are loaded within the radius the API discovers new
+          // ones for; zooming into a wider or capped load loads the view again.
+          setVenueArea(
+            areaToFetch(
+              venuesArea,
+              next,
+              VENUES_MIN_KM,
+              next.radiusKm <= VENUES_DISCOVERY_KM ? VENUES_DISCOVERY_KM : MAX_RADIUS_KM,
+              (venuesQuery.data?.hasMore ?? false) || venuesArea.radiusKm > VENUES_DISCOVERY_KM,
+            ),
           );
         }}
         // The native toolbar (Android) would sit over the summary card.
@@ -547,36 +614,42 @@ export default function MapScreen() {
           }
         }}
       >
-        {venues.map((venue) => {
-          const activity = venueActivityFor(venue);
-          const isSelected = venue.placeId === selectedVenueId;
-          return (
-            <Marker
-              // The look is in the key: a change mounts a new marker (no tracking, DECISIONS #171).
-              key={venuePinKey(venue, venue.matches.length, isSelected)}
-              coordinate={{ latitude: venue.lat, longitude: venue.lon }}
-              onPress={() => {
-                setSelectedMatchId(null);
-                setSelectedVenueId(venue.placeId);
-              }}
-              testID={`map-venue-${venue.placeId}`}
-              anchor={{ x: 0.5, y: 0.5 }}
-              tracksViewChanges={false}
-            >
-              <VenuePin
-                venue={venue}
-                games={venue.matches.length}
-                selected={isSelected}
-                testID={activity === 'none' ? undefined : `map-venue-${venue.placeId}-${activity}`}
+        {/* Pins are images (DECISIONS #176): a new look is a new image on the same marker. */}
+        {clusters.map((cluster) => {
+          if (cluster.points.length > 1) {
+            return (
+              <Marker
+                key={cluster.id}
+                coordinate={{ latitude: cluster.lat, longitude: cluster.lon }}
+                onPress={() => openCluster(cluster.points)}
+                testID={`map-cluster-${cluster.id}`}
+                anchor={CLUSTER_ANCHOR}
+                image={clusterImage(cluster.games, cluster.points.length)}
               />
-            </Marker>
-          );
-        })}
-        {looseMatches.map((match) => {
-          const openSlots = match.capacity - match.confirmed;
+            );
+          }
+          const { item } = cluster.points[0]!;
+          if (item.type === 'venue') {
+            const { venue } = item;
+            return (
+              <Marker
+                key={cluster.id}
+                coordinate={{ latitude: venue.lat, longitude: venue.lon }}
+                onPress={() => {
+                  setSelectedMatchId(null);
+                  setSelectedVenueId(venue.placeId);
+                }}
+                testID={`map-venue-${venue.placeId}`}
+                anchor={{ x: 0.5, y: 0.5 }}
+                image={venuePinImage(venue, venue.matches.length)}
+                zIndex={venue.placeId === selectedVenueId ? 2 : 0}
+              />
+            );
+          }
+          const { match } = item;
           return (
             <Marker
-              key={`${match.id}:${pinToneFor(openSlots)}`}
+              key={cluster.id}
               coordinate={{ latitude: match.lat, longitude: match.lon }}
               onPress={() => {
                 setSelectedVenueId(null);
@@ -585,12 +658,21 @@ export default function MapScreen() {
               testID={`map-pin-${match.id}`}
               anchor={MATCH_PIN_ANCHOR}
               centerOffset={MATCH_PIN_CENTER_OFFSET}
-              tracksViewChanges={false}
-            >
-              <MatchPin openSlots={openSlots} testID={`map-pin-${match.id}-pin`} />
-            </Marker>
+              image={matchPinImage(match.capacity - match.confirmed)}
+            />
           );
         })}
+        {/* The selected arena's lime ring, under its pin and over the others. */}
+        {haloVenue ? (
+          <Marker
+            key="selected-halo"
+            coordinate={{ latitude: haloVenue.lat, longitude: haloVenue.lon }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            image={VENUE_HALO}
+            zIndex={1}
+            testID="map-venue-halo"
+          />
+        ) : null}
       </MapView>
 
       {/* Floating top bar: back + title/count pill, and the recenter button.
@@ -681,7 +763,7 @@ export default function MapScreen() {
         ) : null}
 
         {/* More places than drawn: say so; moving or zooming the map brings the others. */}
-        {morePlaces && !searchArea?.tooWide ? (
+        {morePlaces && !view?.tooWide ? (
           <View pointerEvents="none" className="items-center px-4 pt-3">
             <View className="bg-white rounded-pill px-4 py-2 shadow-card" testID="map-more-places">
               <Text className="font-body text-caption text-text-primary text-center">
@@ -692,15 +774,15 @@ export default function MapScreen() {
         ) : null}
 
         {/* Empty notice — granted but no matches in radius */}
-        {(shownGames === 0 || searchArea?.tooWide) && (
+        {((shownGames === 0 && !nearby.isPending) || view?.tooWide) && (
           <View pointerEvents="none" className="items-center px-4 pt-3">
             <View className="bg-white rounded-pill px-6 py-3 shadow-card">
               <Text className="font-body text-body text-text-primary text-center">
-                {searchArea?.tooWide
+                {view?.tooWide
                   ? 'Aproxime o mapa para ver as partidas desta área'
                   : filtersOn
                     ? 'Nenhuma partida com esses filtros'
-                    : searchArea
+                    : view
                       ? 'Nenhuma partida nesta área'
                       : 'Nenhuma partida perto de você ainda'}
               </Text>
