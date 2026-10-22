@@ -17,6 +17,7 @@ import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { useRecentMatches } from "@/features/profile/api/getRecentMatches";
 import { useGroupRanking } from "@/features/ranking/api/getGroupRanking";
 import type { RankingRow } from "@/features/ranking/types/ranking";
+import { ActionsSummary } from "@/components/domain/ActionsSummary";
 import { useAuthStore } from "@/stores/auth";
 import { colors } from "@/theme/colors";
 import { DEFAULT_AVATAR } from "@/theme/defaultAvatars";
@@ -126,7 +127,7 @@ function StatCell({ label, value }: { label: string; value: number }) {
   );
 }
 
-// ── "Seu progresso" card (GERAL box + ACE/BLK/ATA/DEF grid + card CTA + Level/XP) ──
+// ── "Seu progresso" card (GERAL box + ACE/BLK/ATK/DEF grid + recorded actions + card CTA + Level/XP) ──
 function ProgressSection() {
   const { data, isPending, isError, refetch } = useMyProfile();
 
@@ -163,10 +164,15 @@ function ProgressSection() {
             <StatCell label="BLK" value={data.blk} />
           </View>
           <View className="flex-row gap-2">
-            <StatCell label="ATA" value={data.ata} />
+            <StatCell label="ATK" value={data.atk} />
             <StatCell label="DEF" value={data.def} />
           </View>
         </View>
+      </View>
+
+      {/* What the ratings come from: the recorded actions (API DECISIONS #85). */}
+      <View className="mt-4 border-t border-line pt-3">
+        <ActionsSummary actions={data.actions} testID="profile-actions" />
       </View>
 
       {/* Ver sua carta → player card (S8b) */}

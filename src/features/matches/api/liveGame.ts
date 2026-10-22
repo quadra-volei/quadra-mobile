@@ -9,6 +9,7 @@ import {
   postEndSet,
   postNextSet,
   postPoint,
+  postStartFreeGame,
   postStartGame,
   toTeams,
 } from '@/features/matches/api/gameApi';
@@ -36,6 +37,8 @@ export type LiveGameData = {
   scoreboard: ApiScoreboard | null;
   /** The match's game points, shown before the scoreboard exists. */
   gamePoints?: number | null;
+  /** The match has no fixed teams (API DECISIONS #86). */
+  freeTeams?: boolean;
 };
 
 /**
@@ -50,6 +53,13 @@ export type GamePhase = 'NOT_STARTED' | 'PLAYING' | 'PICK_NEXT' | 'ENDED';
 export type LiveGame = {
   matchName: string;
   isOrganizer: boolean;
+  /**
+   * No fixed teams: no pair, no score — PLAYING from start until the organizer
+   * ends it (API DECISIONS #86).
+   */
+  free: boolean;
+  /** ISO start of the whole game (the free game's clock). */
+  startedAt: string | null;
   teams: Team[];
   phase: GamePhase;
   /** Best of 3 or 5 on games from before the single game; null for a single game. */
@@ -77,6 +87,8 @@ export function toLiveGame(data: LiveGameData): LiveGame {
   const base = {
     matchName: data.matchName,
     isOrganizer: data.isOrganizer,
+    free: scoreboard ? scoreboard.format === 'Free' : data.freeTeams === true,
+    startedAt: scoreboard?.startedAt ?? null,
     teams,
     bestOf: scoreboard?.format === 'BestOf5' ? (5 as const) : scoreboard?.format === 'BestOf3' ? (3 as const) : null,
     pointsToWin: scoreboard?.format === 'BestOf3' || scoreboard?.format === 'BestOf5' ? null : (scoreboard?.pointsToWin ?? data.gamePoints ?? 25),
@@ -104,6 +116,9 @@ export function toLiveGame(data: LiveGameData): LiveGame {
 
   if (scoreboard.state === 'Ended') {
     return { ...shared, phase: 'ENDED', setNumber: scoreboard.currentSetNumber };
+  }
+  if (scoreboard.format === 'Free') {
+    return { ...shared, phase: 'PLAYING', setNumber: 0 };
   }
   if (scoreboard.awaitingNextSet) {
     return { ...shared, phase: 'PICK_NEXT', setNumber: scoreboard.currentSetNumber + 1 };
@@ -137,6 +152,7 @@ async function loadLiveGame(matchId: string): Promise<LiveGameData> {
     teams: toTeams(apiTeams, match.players),
     scoreboard,
     gamePoints: detail.match.gamePoints ?? null,
+    freeTeams: detail.match.freeTeams ?? false,
   };
 }
 
@@ -212,6 +228,11 @@ export function useStartSet(matchId: string) {
     }
     return postNextSet(matchId, teamAId, teamBId);
   }, START_ERRORS);
+}
+
+/** Starts a match without fixed teams (organizer): no teams to build, no pair to pick. */
+export function useStartFreeGame(matchId: string) {
+  return useGameMutation<void>(matchId, () => postStartFreeGame(matchId), START_ERRORS);
 }
 
 /** The API refuses the game until 15 minutes before the match time (`422`). */

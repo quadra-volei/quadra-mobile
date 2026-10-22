@@ -4,6 +4,7 @@
 // payloads into them.
 // No `any`.
 
+import type { PlayerActionKey } from '@/features/matches/lib/playerActions';
 import type { MatchFormat } from '@/features/matches/types/match';
 import type { CardTitleCode } from '@/features/profile/card/cardTitles';
 import type { Position } from '@/features/profile/schema/onboarding';
@@ -23,16 +24,16 @@ export type MyProfile = {
   /** GERAL overall score (Russo One number). */
   overall: number;
   /**
-   * Per-skill ratings shown in the "Seu progresso" 2×2 grid (ace/blk/ata/def)
-   * and the full 6-stat grid on the player card (adds srv/rec). Russo One
-   * numbers.
+   * Per-skill ratings (ACE, BLK, ATK, DEF) shown in "Seu progresso" and on the
+   * card. They start from the declared level and position and move with the
+   * recorded actions (API DECISIONS #85). Russo One numbers.
    */
   ace: number;
   blk: number;
-  ata: number;
+  atk: number;
   def: number;
-  srv: number;
-  rec: number;
+  /** The recorded actions over all matches: volume and average per match. */
+  actions: ProfileActions;
   /** Level number from accumulated points ("Level 15"). */
   level: number;
   /** Points earned since the current level started. */
@@ -67,8 +68,20 @@ export type MyProfile = {
   position?: Position;
 };
 
-/** Outcome of a played match (EMPATE: the game was ended level, with no winner). */
-export type MatchResult = 'VITORIA' | 'DERROTA' | 'EMPATE';
+/**
+ * The player's recorded actions: `matches` with a stats sheet, and per action
+ * the total and the average per match where it was recorded (null: never).
+ */
+export type ProfileActions = {
+  matches: number;
+  byAction: Record<PlayerActionKey, { total: number; perMatch: number | null }>;
+};
+
+/**
+ * Outcome of a played match (EMPATE: the game was ended level, with no winner;
+ * SEM_PLACAR: no fixed teams, nobody wins — API DECISIONS #86).
+ */
+export type MatchResult = 'VITORIA' | 'DERROTA' | 'EMPATE' | 'SEM_PLACAR';
 
 /**
  * One read-only row of the user's recent match history.
@@ -83,4 +96,6 @@ export type RecentMatch = {
   result: MatchResult;
   /** Set score, e.g. "3-1" | "1-3". */
   setScore: string;
+  /** "8 CRT · 3 SAL": the player's recorded actions in the match; empty with no sheet. */
+  actionsLine: string;
 };

@@ -187,6 +187,7 @@ function participantFixture(over: Partial<MatchDetail> = {}): MatchDetail {
     myParticipationType: 'REGULAR',
     myStatus: 'PENDENTE',
     teamConfig: { teamCount: 2, perTeam: 6, drawMode: 'MANUAL' },
+    freeTeams: false,
     ...over,
   };
 }
@@ -267,6 +268,11 @@ jest.mock('@/features/matches/api/editMatch', () => ({
     mutate: mockCancelMatch.mutate,
     isPending: mockCancelMatch.isPending,
   }),
+}));
+
+const mockStartFree = { isPending: false, mutate: jest.fn() };
+jest.mock('@/features/matches/api/liveGame', () => ({
+  useStartFreeGame: () => mockStartFree,
 }));
 
 jest.mock('@/features/matches/api/addGuest', () => ({

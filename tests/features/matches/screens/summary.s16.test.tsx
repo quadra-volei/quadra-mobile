@@ -12,7 +12,7 @@
 
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react-native';
 
 import type { MatchSummary } from '@/features/matches/api/getMatchSummary';
 
@@ -35,6 +35,8 @@ jest.mock('lucide-react-native', () => {
     Goal: stub('goal'),
     Lock: stub('lock'),
     Zap: stub('zap'),
+    Handshake: stub('handshake'),
+    BarChart3: stub('bar-chart'),
     Plus: stub('plus'),
     Minus: stub('minus'),
   };
@@ -139,7 +141,9 @@ function winFixture(over: Partial<MatchSummary> = {}): MatchSummary {
       { id: 'o5', name: 'Manu Castro', handle: 'manu_pon', position: 'PON', avatarUrl: undefined, votes: 2 },
     ],
     maxVotes: 5,
-    myPerformance: { xpGained: 24, points: 16, blocks: 2, defenses: 6, aces: 1 },
+    myPerformance: { xpGained: 24, actions: { kills: 16, blocks: 2, aces: 1, digs: 6, assists: 0 } },
+    free: false,
+    sheet: [],
     ...over,
   };
 }
@@ -302,9 +306,10 @@ describe('S16 — Match Summary', () => {
    * Covers: S16 — Match Summary
    * Criterion: "'Venue · date' line renders with a MapPin icon (text-muted)."
    */
-  it('renders the venue · date line with a MapPin icon', async () => {
+  it('highlights the arena name over its address and date, with a MapPin icon', async () => {
     await renderScreen();
-    expect(screen.getByText('Arena Pinheiros · 10 jun 2026')).toBeTruthy();
+    expect(screen.getByText('Arena Pinheiros')).toBeTruthy();
+    expect(screen.getByText('10 jun 2026')).toBeTruthy();
     expect(screen.getByTestId('icon-map-pin')).toBeTruthy();
   });
 
@@ -312,10 +317,11 @@ describe('S16 — Match Summary', () => {
    * Covers: owner's review 2026-10-21, item 1 — every score names its team: who
    * won, the games won per team (winner highlighted) and each game's winner.
    */
-  it('names the winner and shows the games won per team', async () => {
+  it('shows the games won per team with the winner marked, no "venceu" sentence', async () => {
     await renderScreen();
 
-    expect(screen.getByTestId('summary-winner')).toHaveTextContent('Time 1 venceu');
+    expect(screen.queryByTestId('summary-winner')).toBeNull();
+    expect(screen.queryByText(/venceu/)).toBeNull();
     const winner = screen.getByTestId('summary-team-t1');
     expect(winner.props.className).toContain('border-accent');
     expect(screen.getByTestId('summary-team-t2').props.className).not.toContain('border-accent');
@@ -326,8 +332,10 @@ describe('S16 — Match Summary', () => {
     await renderScreen();
 
     expect(screen.getByText('Jogo 2')).toBeTruthy();
-    expect(screen.getByText('Time 2 venceu')).toBeTruthy();
-    expect(screen.getAllByText('Time 1 venceu').length).toBeGreaterThanOrEqual(3);
+    // Short names in the compact rows: "Time 2" → "2".
+    const games = within(screen.getByTestId('summary-games'));
+    expect(games.getAllByText('2').length).toBeGreaterThanOrEqual(1);
+    expect(games.getAllByText('1').length).toBeGreaterThanOrEqual(3);
     expect(screen.getByText('25–23')).toBeTruthy();
   });
 
@@ -438,26 +446,32 @@ describe('S16 — Match Summary', () => {
    * Criterion: "'MEU DESEMPENHO' block shows the XP-gained card and the
    *  Pontos/Blocks/Defesas/Aces stat tiles, fed by summary.myPerformance."
    */
-  it('renders the MEU DESEMPENHO block with the XP-gained card and stat tiles', async () => {
+  it('renders the MEU DESEMPENHO block with the points card and the five recorded actions', async () => {
     await renderScreen();
 
     expect(screen.getByTestId('summary-performance')).toBeTruthy();
     expect(screen.getByText('Meu desempenho')).toBeTruthy();
 
-    // XP-gained card
-    expect(screen.getByText('XP ganho nesta partida')).toBeTruthy();
-    expect(screen.getByText('Some ao seu progresso de nível')).toBeTruthy();
+    // Points card
+    expect(screen.getByText('Pontos nesta partida')).toBeTruthy();
     expect(textOf(screen.getByTestId('summary-xp'))).toBe('+24');
 
-    // 2×2 stat tiles: Pontos / Blocks / Defesas / Aces with their values
-    expect(screen.getByText('Pontos')).toBeTruthy();
-    expect(screen.getByText('Blocks')).toBeTruthy();
-    expect(screen.getByText('Defesas')).toBeTruthy();
-    expect(screen.getByText('Aces')).toBeTruthy();
-    expect(textOf(screen.getByTestId('summary-stat-points'))).toContain('16');
+    // The five actions (API DECISIONS #84), in the app's order
+    for (const label of ['Cortadas', 'Blocks', 'Aces', 'Salvadas', 'Assistências']) {
+      expect(screen.getByText(label)).toBeTruthy();
+    }
+    expect(textOf(screen.getByTestId('summary-stat-kills'))).toContain('16');
     expect(textOf(screen.getByTestId('summary-stat-blocks'))).toContain('2');
-    expect(textOf(screen.getByTestId('summary-stat-defenses'))).toContain('6');
+    expect(textOf(screen.getByTestId('summary-stat-digs'))).toContain('6');
     expect(textOf(screen.getByTestId('summary-stat-aces'))).toContain('1');
+  });
+
+  it('shows dashes, not zeros, when nothing was recorded for the player', async () => {
+    wins({ myPerformance: { xpGained: 10, actions: null } });
+    await renderScreen();
+
+    expect(textOf(screen.getByTestId('summary-stat-kills'))).toContain('—');
+    expect(screen.getByText('Nenhuma ação registrada para você nesta partida.')).toBeTruthy();
   });
 
   /**

@@ -7,7 +7,7 @@ import { Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from "r
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 
-import { CardLogo, PlayerCard } from "@/components/domain/PlayerCard";
+import { PlayerCard } from "@/components/domain/PlayerCard";
 import { Button } from "@/components/ui/Button";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
@@ -15,6 +15,7 @@ import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { useSaveCardStyle } from "@/features/profile/api/saveCardStyle";
 import { CARD_TITLES, cardTitleCode } from "@/features/profile/card/cardTitles";
 import type { MyProfile } from "@/features/profile/types/profile";
+import { ActionsSummary } from "@/components/domain/ActionsSummary";
 import { CARD_FINISHES, CARD_FINISH_ORDER, CARD_SCREEN, CARD_TIERS, CARD_TIER_ORDER, cardTier } from "@/theme/cardFinish";
 import { colors } from "@/theme/colors";
 
@@ -83,15 +84,8 @@ function FinishPicker({ profile, save }: { profile: MyProfile; save: Save }) {
               className={`flex-1 rounded-chip border p-2 ${equipped ? "border-accent-light" : "border-white/15"}`}
               style={{ backgroundColor: CARD_SCREEN.bg }}
             >
-              <LinearGradient
-                colors={t.swatch}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{ height: 56, borderRadius: t.shape === "rounded" ? 14 : 7, alignItems: "center", justifyContent: "center" }}
-              >
-                <CardLogo height={12} />
-              </LinearGradient>
-              <Text className="font-body-bold text-caption text-text-on-dark mt-2">{t.name}</Text>
+              {/* Text only: the card above already shows the finish (owner's 4th review, item 11). */}
+              <Text className="font-body-bold text-caption text-text-on-dark">{t.name}</Text>
               <Text className="font-mono text-mono text-white/60 mt-1">{equipped ? "EQUIPADO" : "EXPERIMENTAR"}</Text>
             </PressableScale>
           );
@@ -142,6 +136,11 @@ export function StatsList({ profile }: { profile: MyProfile }) {
   ];
   return (
     <>
+      {/* The recorded actions behind ATK, DEF, BLK and ACE (API DECISIONS #85). */}
+      <View className="rounded-chip border border-white/15 bg-white/5 px-3 py-3 mb-2">
+        <Text className="font-body-bold text-body text-text-on-dark mb-2">Em quadra</Text>
+        <ActionsSummary actions={profile.actions} tone="dark" testID="card-actions" />
+      </View>
       {rows.map(([label, hint, value]) => (
         <View key={label} className="flex-row items-center justify-between rounded-chip border border-white/15 bg-white/5 px-3 py-3 mb-2">
           <View className="flex-1">

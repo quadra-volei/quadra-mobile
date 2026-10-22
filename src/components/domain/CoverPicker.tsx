@@ -14,8 +14,8 @@ export type CoverPickerProps = {
 
 /**
  * Rectangular match-cover banner used by S11 (distinct from the circular
- * `Avatar`). Without a cover: a navy `HERO_GRADIENT` block with a "CAPA DA
- * PARTIDA" eyebrow and a dashed "Adicionar capa" frame. With one: the photo
+ * `Avatar`). Without a cover: a navy `HERO_GRADIENT` block with a dashed
+ * "Adicionar capa" frame (no eyebrow: owner's 4th review, item 20). With one: the photo
  * alone, with a small pencil in the corner to change it. The consuming screen
  * runs `expo-image-picker` on press.
  */
@@ -48,11 +48,6 @@ export function CoverPicker({ uri, onPress, testID }: CoverPickerProps) {
             end={{ x: 1, y: 1 }}
             style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0 }}
           />
-
-          {/* Eyebrow (top-right). */}
-          <Text className="absolute right-4 top-3 font-body-bold text-eyebrow text-text-on-dark uppercase">
-            Capa da partida
-          </Text>
 
           {/* Dashed frame + pencil + "Adicionar capa" affordance. */}
           <View className="flex-1 items-center justify-center p-4">

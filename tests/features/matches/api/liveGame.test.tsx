@@ -272,7 +272,7 @@ describe('teams and live game', () => {
     expect(bodyOf('POST /teams/draft')).toEqual({ teamCount: 3, perTeam: 2, mode: 'Random' });
     expect(settled.status).toBe('fulfilled');
     const teams = settled.status === 'fulfilled' ? settled.value.teams : [];
-    expect(teams.map((team) => team.name)).toEqual(['Time 1', 'Time 2', 'Time 3']);
+    expect(teams.map((team) => team.name)).toEqual(['Time Azul', 'Time Limão', 'Time Laranja']);
     expect(teams[1]?.players.map((member) => member.name)).toEqual(['Jogador', 'Zé']);
   });
 
@@ -493,10 +493,10 @@ describe('MVP and summary', () => {
       name: 'Racha de Quinta',
       venue: 'Arena Central',
       format: '4X4',
-      winnerName: 'Team B',
+      winnerName: 'Time Limão',
       standings: [
-        { id: 'team-b', name: 'Team B', wins: 2, mine: true, winner: true, colorIndex: 1 },
-        { id: 'team-a', name: 'Team A', wins: 1, mine: false, winner: false, colorIndex: 0 },
+        { id: 'team-b', name: 'Time Limão', wins: 2, mine: true, winner: true, colorIndex: 1 },
+        { id: 'team-a', name: 'Time Azul', wins: 1, mine: false, winner: false, colorIndex: 0 },
       ],
       games: [
         { number: 1, winner: { id: 'team-a' }, points: [25, 20] },

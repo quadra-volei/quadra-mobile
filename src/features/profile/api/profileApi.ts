@@ -60,6 +60,20 @@ export type ApiProfile = {
   shareActivity?: boolean | null;
   /** How the player dressed their card (API DECISIONS #65). */
   cardStyle?: ApiCardStyle | null;
+  /** Recorded actions over the history (API DECISIONS #85); absent on an older API. */
+  actions?: ApiActions | null;
+};
+
+type ApiActionSummary = { total: number; perMatch: number | null };
+
+/** Matches with a stats sheet, and per action the total and the average per match. */
+export type ApiActions = {
+  matches: number;
+  kills: ApiActionSummary;
+  blocks: ApiActionSummary;
+  aces: ApiActionSummary;
+  digs: ApiActionSummary;
+  assists: ApiActionSummary;
 };
 
 /** `cardStyle` on the profile and the `PUT /profiles/me/card-style` response. */
@@ -149,10 +163,11 @@ async function shrinkPhoto(localUri: string): Promise<string> {
  * Uploads a picked photo (`POST /profiles/me/photo/upload-url`, then a PUT of
  * the file straight to the storage) and returns the object key to save on the
  * profile. Every caller (profile, post, match cover) goes through here, so the
- * photo is shrunk here first. Null when this environment has no photo storage
- * (503): the profile is then saved with the photo it already had.
+ * photo is shrunk here first. An environment with no photo storage (503) is an
+ * error like any other: the caller must never report a photo as saved when it
+ * was not (DECISIONS #170).
  */
-export async function uploadProfilePhoto(pickedUri: string): Promise<string | null> {
+export async function uploadProfilePhoto(pickedUri: string): Promise<string> {
   let localUri: string;
   try {
     localUri = await shrinkPhoto(pickedUri);
@@ -168,7 +183,7 @@ export async function uploadProfilePhoto(pickedUri: string): Promise<string | nu
     });
   } catch (error) {
     if (error instanceof ApiError && error.status === 503) {
-      return null;
+      throw new Error('O envio de fotos está indisponível no momento. Tente de novo mais tarde.');
     }
     if (error instanceof ApiError && error.status !== 401) {
       throw new Error(`Não foi possível preparar o envio da foto (erro ${error.status}).`);

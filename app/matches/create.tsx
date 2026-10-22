@@ -282,6 +282,7 @@ function CreatedView({ match }: { match: CreatedMatch }) {
 
         <View className="mt-3 flex-row flex-wrap gap-2">
           <RecapPill>{input.format}</RecapPill>
+          {input.freeTeams ? <RecapPill>Sem times fixos</RecapPill> : null}
           <RecapPill>{LEVEL_LABEL[input.level]}</RecapPill>
           <RecapPill>{TYPE_LABEL[input.type]}</RecapPill>
         </View>
@@ -397,6 +398,7 @@ export default function CreateMatchScreen() {
       time: '',
       duration: '1h30',
       gamePoints: DEFAULT_GAME_POINTS,
+      freeTeams: false,
       players: 0,
       price: 25,
       priceMonthly: 80,
@@ -417,6 +419,7 @@ export default function CreateMatchScreen() {
     duration,
     format,
     gamePoints,
+    freeTeams,
     level,
     privacy,
     inviteMode,
@@ -487,7 +490,7 @@ export default function CreateMatchScreen() {
   const pickFormat = (f: MatchFormat) => {
     setValue('format', f, { shouldValidate: true });
     setValue('players', SUGGESTED_PLAYERS[f], { shouldValidate: true });
-    advanceTo('gamePoints');
+    advanceTo('times');
   };
 
   const toggleDay = (i: number) => {
@@ -1002,22 +1005,51 @@ export default function CreateMatchScreen() {
                 ))}
               </View>
               <Reveal show={!!format}>
-                <View ref={anchor('gamePoints')} />
-                <MiniLabel>O jogo vai até quantos pontos?</MiniLabel>
-                <View className="flex-row flex-wrap gap-2">
-                  {GAME_POINTS.map((p) => (
-                    <FilterChip
-                      key={p}
-                      label={`${p} pontos`}
-                      selected={gamePoints === p}
-                      onPress={() => {
-                        setValue('gamePoints', p, { shouldValidate: true });
-                        advanceTo('nivel');
-                      }}
-                      testID={`game-points-${p}`}
-                    />
-                  ))}
+                <View ref={anchor('times')} />
+                <MiniLabel>Como ficam os times?</MiniLabel>
+                <View className="flex-row gap-3">
+                  <OptionCard
+                    selected={!freeTeams}
+                    onPress={() => {
+                      setValue('freeTeams', false, { shouldValidate: true });
+                      advanceTo('gamePoints');
+                    }}
+                    title="Times fixos"
+                    desc="Sorteados ou montados no dia"
+                    testID="teams-fixed"
+                  />
+                  <OptionCard
+                    selected={freeTeams}
+                    onPress={() => {
+                      setValue('freeTeams', true, { shouldValidate: true });
+                      advanceTo('nivel');
+                    }}
+                    title="Sem times fixos"
+                    desc="Os times se formam na quadra"
+                    testID="teams-free"
+                  />
                 </View>
+                {/* With no fixed teams there is no score to play to. */}
+                {freeTeams ? null : (
+                  <View className="mt-4">
+                    <View ref={anchor('gamePoints')} />
+                    <MiniLabel>O jogo vai até quantos pontos?</MiniLabel>
+                    <View className="flex-row flex-wrap gap-2">
+                      {GAME_POINTS.map((p) => (
+                        <FilterChip
+                          key={p}
+                          label={`${p} pontos`}
+                          selected={gamePoints === p}
+                          onPress={() => {
+                            setValue('gamePoints', p, { shouldValidate: true });
+                            advanceTo('nivel');
+                          }}
+                          testID={`game-points-${p}`}
+                        />
+                      ))}
+                    </View>
+                  </View>
+                )}
               </Reveal>
             </Reveal>
           </View>

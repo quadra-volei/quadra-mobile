@@ -5,7 +5,7 @@ import { authorizedApiClient } from '@/lib/api/authorizedClient';
 /**
  * Arenas on the map (DECISIONS #145, API DECISIONS #82): the backend finds them on Google Places
  * and keeps only their id and coordinates; the name comes from `GET /places/{id}` when one is
- * tapped. Every arena is "basic" for now.
+ * tapped. Each has a kind (court, sand, park: API DECISIONS #87) the map filters by.
  */
 type ApiVenueMatch = { id: string; name: string; dateTime: string; live: boolean };
 type ApiNearbyVenue = {
@@ -14,7 +14,20 @@ type ApiNearbyVenue = {
   longitude: number;
   distanceKm: number;
   matches: ApiVenueMatch[];
+  /** Absent on an API from before kinds: a court. */
+  kind?: VenueKind;
 };
+
+export type VenueKind = 'Court' | 'Sand' | 'Park';
+
+/** The kinds of place, in the order the map's filter lists them, with how they show on pins and chips. */
+export const VENUE_KINDS: { kind: VenueKind; label: string; emoji: string }[] = [
+  { kind: 'Court', label: 'Quadras', emoji: '🏐' },
+  { kind: 'Sand', label: 'Areia', emoji: '🏖️' },
+  { kind: 'Park', label: 'Parques', emoji: '🌳' },
+];
+
+export const VENUE_KIND_EMOJI: Record<VenueKind, string> = { Court: '🏐', Sand: '🏖️', Park: '🌳' };
 
 /** A public game at the arena today, or one being played now. */
 export type VenueMatch = { id: string; name: string; startsAt: string; live: boolean };
@@ -25,23 +38,31 @@ export type NearbyVenue = {
   lon: number;
   distanceKm: number;
   matches: VenueMatch[];
+  kind: VenueKind;
 };
+
+/** The arenas of an area; `hasMore` when the API kept only the closest ones. */
+export type NearbyVenues = { venues: NearbyVenue[]; hasMore: boolean };
 
 export type VenueDetails = { title: string; address: string };
 
 export type NearbyVenuesParams = { lat: number; lon: number; radiusKm: number };
 
-async function getNearbyVenues(params: NearbyVenuesParams): Promise<NearbyVenue[]> {
-  const { items } = await authorizedApiClient<{ items: ApiNearbyVenue[] }>(
+async function getNearbyVenues(params: NearbyVenuesParams): Promise<NearbyVenues> {
+  const { items, hasMore } = await authorizedApiClient<{ items: ApiNearbyVenue[]; hasMore?: boolean }>(
     `/api/v1/venues/nearby?lat=${params.lat}&lon=${params.lon}&radiusKm=${params.radiusKm}`,
   );
-  return items.map((v) => ({
-    placeId: v.placeId,
-    lat: v.latitude,
-    lon: v.longitude,
-    distanceKm: v.distanceKm,
-    matches: v.matches.map((m) => ({ id: m.id, name: m.name, startsAt: m.dateTime, live: m.live })),
-  }));
+  return {
+    hasMore: hasMore ?? false,
+    venues: items.map((v) => ({
+      placeId: v.placeId,
+      lat: v.latitude,
+      lon: v.longitude,
+      distanceKm: v.distanceKm,
+      kind: v.kind ?? 'Court',
+      matches: v.matches.map((m) => ({ id: m.id, name: m.name, startsAt: m.dateTime, live: m.live })),
+    })),
+  };
 }
 
 /**
@@ -82,7 +103,7 @@ export function matchIdsAtVenues(venues: NearbyVenue[]): Set<string> {
  */
 export async function findArenaAt(coords: { latitude: number; longitude: number }): Promise<VenueDetails | null> {
   try {
-    const [closest] = (await getNearbyVenues({ lat: coords.latitude, lon: coords.longitude, radiusKm: 0.2 }))
+    const [closest] = (await getNearbyVenues({ lat: coords.latitude, lon: coords.longitude, radiusKm: 0.2 })).venues
       .filter((v) => v.distanceKm <= 0.1)
       .sort((a, b) => a.distanceKm - b.distanceKm);
     if (!closest) return null;

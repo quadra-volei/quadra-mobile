@@ -183,6 +183,12 @@ jest.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({ refetchQueries: mockRefetchQueries }),
 }));
 
+// The preview map's arenas: none here (the map's own tests cover the pins).
+jest.mock('@/features/explore/api/venues', () => ({
+  ...jest.requireActual('@/features/explore/api/venues'),
+  useNearbyVenues: () => ({ data: { venues: [], hasMore: false } }),
+}));
+
 jest.mock('@/features/matches/api/getNearby', () => ({
   useNearbyMatches: (params: unknown) => {
     mockNearby.lastParams = params;

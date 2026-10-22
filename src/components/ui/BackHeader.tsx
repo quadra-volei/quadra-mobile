@@ -1,8 +1,9 @@
 import { router } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
+import { ChevronLeft, X } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { Text, View } from "react-native";
 
+import { IconButton } from "@/components/ui/IconButton";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { colors } from "@/theme/colors";
@@ -17,6 +18,13 @@ type BackHeaderProps = {
   right?: ReactNode;
   /** Forwarded to `ScreenHeader` — reports total header height for content offset. */
   onHeight?: (height: number) => void;
+  /**
+   * Lay the title out like the tab headers (Início, Explorar): same left edge
+   * and the same row height, with a close button in the right cluster instead
+   * of the back chevron before the title. For screens opened from a tab
+   * header's icons (Configurações).
+   */
+  asTab?: boolean;
 };
 
 /**
@@ -29,9 +37,28 @@ export function BackHeader({
   tint = "light",
   right,
   onHeight,
+  asTab = false,
 }: BackHeaderProps) {
   const iconColor = tint === "dark" ? colors.textOnDark : colors.surfaceDark;
   const titleColor = tint === "dark" ? "text-text-on-dark" : "text-text-primary";
+
+  if (asTab) {
+    return (
+      <ScreenHeader tint={tint} onHeight={onHeight}>
+        <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
+          <Text numberOfLines={1} className={`shrink font-display text-h1 uppercase ${titleColor}`}>
+            {title}
+          </Text>
+          <View className="flex-row items-center gap-3">
+            {right}
+            <IconButton label="Fechar" onPress={() => router.back()}>
+              <X size={20} color={colors.surfaceDark} />
+            </IconButton>
+          </View>
+        </View>
+      </ScreenHeader>
+    );
+  }
 
   return (
     <ScreenHeader tint={tint} onHeight={onHeight}>

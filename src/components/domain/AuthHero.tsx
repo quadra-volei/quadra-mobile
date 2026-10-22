@@ -13,6 +13,9 @@ const LOCKUP_DELAY = 0;
 const HEADLINE_DELAY = 60;
 const SUBTITLE_DELAY = 120;
 
+// The lockup, 20% under the 64 it was (the CTA keeps its size and touch area).
+const LOCKUP_HEIGHT = 51;
+
 /**
  * The "O JOGO COMEÇA AQUI." background of the sign-in flow: navy-to-blue
  * gradient, the lockup, the headline and the subtitle. The login shows it with
@@ -41,16 +44,17 @@ export function AuthHero({
         <View className="flex-1 justify-center">
           {lockup ? (
             <Animated.View style={lockupStyle}>
-              <QuadraWordmark variant="blue" height={64} testID="login-wordmark" />
+              <QuadraWordmark variant="blue" height={LOCKUP_HEIGHT} testID="login-wordmark" />
             </Animated.View>
           ) : (
             // Same height as the lockup, so the headline does not move.
-            <View style={{ height: 64 }} />
+            <View style={{ height: LOCKUP_HEIGHT }} />
           )}
 
-          {/* Intro set 1.5× the screen defaults (Johny, 2026-10-21). */}
+          {/* Intro set 1.5× the screen defaults (Johny, 2026-10-21), then the whole
+              set 20% smaller (owner's 4th review, item 12; DECISIONS #172). */}
           <Animated.Text
-            className="font-display text-[54px] text-text-on-dark uppercase mt-12 leading-[57px]"
+            className="font-display text-[43px] text-text-on-dark uppercase mt-[38px] leading-[46px]"
             style={headlineStyle}
           >
             O JOGO{'\n'}COMEÇA{'\n'}
@@ -58,7 +62,7 @@ export function AuthHero({
           </Animated.Text>
 
           <Animated.Text
-            className="font-body-semibold text-[22px] leading-[32px] text-text-on-dark mt-6"
+            className="font-body-semibold text-[18px] leading-[26px] text-text-on-dark mt-[19px]"
             style={subtitleStyle}
           >
             Encontre partidas de vôlei perto de você, monte seu time e suba no ranking.

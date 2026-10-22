@@ -1,9 +1,8 @@
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import { ArrowRight, ChevronLeft, Clock, LandPlot, LocateFixed, MapPin, Users, Volleyball } from 'lucide-react-native';
+import { ArrowRight, ChevronLeft, Clock, LocateFixed, MapPin, Users } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Linking,
   Pressable,
@@ -16,15 +15,28 @@ import MapView, { Marker, type Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
+import { FilterChip } from '@/components/ui/FilterChip';
+import { Slider } from '@/components/ui/Slider';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { CourtImage } from '@/components/ui/CourtImage';
 import { Tag } from '@/components/ui/Tag';
 import { MatchCard } from '@/components/domain/MatchCard';
 import {
+  MATCH_PIN_ANCHOR,
+  MATCH_PIN_CENTER_OFFSET,
+  MatchPin,
+  VenuePin,
+  venueActivityFor as activityOf,
+  venuePinKey,
+  type VenueActivity,
+} from '@/components/domain/MapPins';
+import {
   matchIdsAtVenues,
   useNearbyVenues,
   useVenueDetails,
+  VENUE_KINDS,
   type NearbyVenue,
+  type VenueKind,
 } from '@/features/explore/api/venues';
 import { useNearbyMatches } from '@/features/matches/api/getNearby';
 import { distanceKm } from '@/features/matches/lib/distanceKm';
@@ -88,37 +100,19 @@ export function pinToneFor(openSlots: number): PinTone {
   return 'bg-accent';
 }
 
-// The pin is a square with three round corners turned 45°, so the sharp corner
-// points down. Head and shadow share the shape; the shadow is a navy copy
-// shifted like HARD_SHADOW (a boxShadow would turn with the shape and is cut
-// off when Android draws the marker as an image).
-const PIN_SHAPE = 'absolute h-8 w-8 rotate-45 rounded-full rounded-br-none';
-const PIN_HEAD = 32; // h-8
-const PIN_SHADOW = 3;
-// How far down the turned corner reaches: half the side plus half the diagonal.
-const PIN_TIP_Y = PIN_HEAD / 2 + PIN_HEAD * Math.SQRT1_2;
-const PIN_WIDTH = PIN_HEAD + PIN_SHADOW;
-const PIN_HEIGHT = Math.ceil(PIN_TIP_Y) + PIN_SHADOW;
-/** Puts the tip, not the middle of the view, on the coordinate. */
-export const PIN_ANCHOR = {
-  x: PIN_HEAD / 2 / PIN_WIDTH,
-  y: PIN_TIP_Y / PIN_HEIGHT,
-};
-// Apple Maps ignores `anchor`: it shifts the view from its centre instead.
-const PIN_CENTER_OFFSET = {
-  x: PIN_WIDTH / 2 - PIN_HEAD / 2,
-  y: PIN_HEIGHT / 2 - PIN_TIP_Y,
-};
-
-/** How an arena pin looks: plain, or with a green badge counting its games (red ring while one is played). */
-export type VenueActivity = 'none' | 'today' | 'live';
+/** Puts a game pin's tip, not the middle of its view, on the coordinate. */
+export const PIN_ANCHOR = MATCH_PIN_ANCHOR;
 
 export function venueActivityFor(venue: NearbyVenue): VenueActivity {
-  if (venue.matches.some((m) => m.live)) return 'live';
-  return venue.matches.length > 0 ? 'today' : 'none';
+  return activityOf(venue.matches);
 }
 
-const VENUE_PIN = 32; // h-8 w-8, round: an arena reads differently from a game's drop pin
+// The map's own filters (owner's 4th review, items 7 and 8): a distance from the
+// user and the kinds of place. MAX_KM is "any distance".
+const MAX_KM = 50;
+// ponytail: past this many pins the map gets slow; the closest are drawn and the
+// user is told to move the map for the others. Cluster if dense cities need it.
+const MAX_PINS = 60;
 
 /**
  * The closest other arena with games, from `from`: where the arena sheet's
@@ -139,22 +133,6 @@ function formatKm(km: number): string {
   return `${km.toFixed(1).replace('.', ',')} km`;
 }
 
-/**
- * Custom marker views are drawn into a bitmap on Android. While a new set of
- * pins mounts the map keeps redrawing them (`tracksViewChanges`), then stops,
- * so a pin is never left as Google's default red marker or a blank, and the
- * map does not redraw every pin on every frame.
- */
-function useMarkerTracking(key: string): boolean {
-  const [tracking, setTracking] = useState(true);
-  useEffect(() => {
-    setTracking(true);
-    const timer = setTimeout(() => setTracking(false), 700);
-    return () => clearTimeout(timer);
-  }, [key]);
-  return tracking;
-}
-
 type VenueSheetItem = { kind: 'game'; id: string } | { kind: 'next'; venue: NearbyVenue };
 
 /**
@@ -173,7 +151,8 @@ function VenueSheet({
   onNextVenue,
 }: {
   venue: NearbyVenue;
-  title: string;
+  /** Undefined while the name loads from Google: a skeleton holds its place. */
+  title?: string;
   address?: string;
   matchesById: Map<string, NearbyMatch>;
   next: NearbyVenue | null;
@@ -190,14 +169,32 @@ function VenueSheet({
   const nextKm = next
     ? distanceKm({ latitude: venue.lat, longitude: venue.lon }, { latitude: next.lat, longitude: next.lon })
     : 0;
+  const kind = VENUE_KINDS.find((k) => k.kind === venue.kind);
+  // Swiping past the last game lands on "Outra arena" and goes there.
+  const onSwipeEnd = (x: number) => {
+    const item = items[Math.round(x / (cardWidth + 12))];
+    if (item?.kind === 'next') onNextVenue(item.venue);
+  };
 
   return (
     <View className="bg-white rounded-card border-2 border-surface-dark pt-4 pb-4" style={HARD_SHADOW} testID="map-venue-card">
       <View className="px-4 flex-row items-start gap-3">
         <View className="flex-1">
-          <Text numberOfLines={1} className="font-body-bold text-h3 text-text-primary">
-            {title}
-          </Text>
+          {kind ? (
+            <Text className="font-mono text-mono text-text-muted uppercase" testID="map-venue-kind">
+              {kind.emoji} {kind.label}
+            </Text>
+          ) : null}
+          {title === undefined ? (
+            <View className="gap-1 py-1" testID="map-venue-title-loading">
+              <SkeletonBlock className="h-5 w-44" />
+              <SkeletonBlock className="h-3 w-56" />
+            </View>
+          ) : (
+            <Text numberOfLines={1} className="font-body-bold text-h3 text-text-primary" testID="map-venue-title">
+              {title}
+            </Text>
+          )}
           {address ? (
             <Text numberOfLines={1} className="mt-0.5 font-body text-caption text-text-muted">
               {address}
@@ -223,6 +220,7 @@ function VenueSheet({
           showsHorizontalScrollIndicator={false}
           snapToInterval={cardWidth + 12}
           decelerationRate="fast"
+          onMomentumScrollEnd={(e) => onSwipeEnd(e.nativeEvent.contentOffset.x)}
           contentContainerStyle={{ paddingHorizontal: 16, gap: 12, marginTop: 12 }}
           renderItem={({ item }) => {
             if (item.kind === 'next') {
@@ -297,7 +295,22 @@ function toPermissionState(status: Location.PermissionStatus): PermissionState {
   return 'undetermined';
 }
 
-/** Full-screen centered container for the permission / loading / error states. */
+/** The map's shape while it loads: the map area and the top bar's places. */
+function MapSkeleton() {
+  return (
+    <View className="flex-1 bg-bg-light" testID="map-skeleton">
+      <SkeletonBlock className="absolute inset-0 rounded-none" />
+      <SafeAreaView edges={['top']} className="flex-row items-center gap-3 px-4 pt-2">
+        <View className="h-12 w-12 rounded-full bg-white" />
+        <View className="h-9 w-40 rounded-pill bg-white" />
+        <View className="flex-1" />
+        <View className="h-12 w-12 rounded-full bg-white" />
+      </SafeAreaView>
+    </View>
+  );
+}
+
+/** Full-screen centered container for the permission / error states. */
 function StateContainer({ children }: { children: React.ReactNode }) {
   return (
     <SafeAreaView
@@ -319,6 +332,9 @@ export default function MapScreen() {
   const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
   const mapRef = useRef<MapView>(null);
+  const [maxKm, setMaxKm] = useState(MAX_KM);
+  const [kinds, setKinds] = useState<VenueKind[]>([]);
+  const [distanceOpen, setDistanceOpen] = useState(false);
 
   // Set once the user moves the map: the search then follows what is on screen
   // (a match in another city shows up when the map is taken there).
@@ -333,13 +349,6 @@ export default function MapScreen() {
   // Arenas are extra: until they load (or if they fail) the map shows only the games.
   const venuesQuery = useNearbyVenues(area, isMapAvailable());
   const venueDetails = useVenueDetails(selectedVenueId);
-  // Pins redraw while their set changes (useMarkerTracking).
-  const tracking = useMarkerTracking(
-    [
-      ...(venuesQuery.data ?? []).map((v) => `${v.placeId}:${v.matches.length}`),
-      ...(nearby.data ?? []).map((m) => `${m.id}:${m.confirmed}`),
-    ].join(','),
-  );
 
   async function resolveLocation() {
     setResolvingLocation(true);
@@ -380,12 +389,9 @@ export default function MapScreen() {
 
   // --- Permission gates -------------------------------------------------------
 
+  // The map's own skeleton from the first frame, also while the permission is checked.
   if (checkingPermission) {
-    return (
-      <StateContainer>
-        <ActivityIndicator color={colors.primary} />
-      </StateContainer>
-    );
+    return <MapSkeleton />;
   }
 
   if (permission === 'undetermined') {
@@ -429,17 +435,7 @@ export default function MapScreen() {
   // --- Granted: loading / error / map ----------------------------------------
 
   if (resolvingLocation || nearby.isPending) {
-    return (
-      <View className="flex-1 bg-bg-light" testID="map-skeleton">
-        <SkeletonBlock className="absolute inset-0 rounded-none" />
-        <SafeAreaView edges={['top']} className="flex-row items-center gap-3 px-4 pt-2">
-          <View className="h-12 w-12 rounded-full bg-white" />
-          <View className="h-9 w-40 rounded-pill bg-white" />
-          <View className="flex-1" />
-          <View className="h-12 w-12 rounded-full bg-white" />
-        </SafeAreaView>
-      </View>
-    );
+    return <MapSkeleton />;
   }
 
   if (nearby.isError) {
@@ -458,13 +454,24 @@ export default function MapScreen() {
   }
 
   const matches: NearbyMatch[] = nearby.data;
-  const venues: NearbyVenue[] = venuesQuery.data ?? [];
+  const center = userLocation ?? DEFAULT_CENTER;
+  // The map's filters: within maxKm of the user, of the picked kinds. A game away
+  // from any arena is not a kind of place, so picking kinds hides it.
+  const within = (lat: number, lon: number) =>
+    maxKm >= MAX_KM || distanceKm(center, { latitude: lat, longitude: lon }) <= maxKm;
+  const allVenues: NearbyVenue[] = venuesQuery.data?.venues ?? [];
+  const shownVenues = allVenues.filter((v) => within(v.lat, v.lon) && (kinds.length === 0 || kinds.includes(v.kind)));
+  const venues = shownVenues.slice(0, MAX_PINS);
   // A game at an arena is listed inside the arena's card instead of having its own pin.
-  const atVenues = matchIdsAtVenues(venues);
-  const looseMatches = matches.filter((m) => !atVenues.has(m.id));
+  const atVenues = matchIdsAtVenues(allVenues);
+  const looseMatches = kinds.length > 0 ? [] : matches.filter((m) => !atVenues.has(m.id) && within(m.lat, m.lon));
+  const shownGames = venues.reduce((n, v) => n + v.matches.length, 0) + looseMatches.length;
+  const morePlaces = shownVenues.length > MAX_PINS || (venuesQuery.data?.hasMore ?? false);
+  const filtersOn = maxKm < MAX_KM || kinds.length > 0;
   const selected = matches.find((m) => m.id === selectedMatchId) ?? null;
   const selectedVenue = venues.find((v) => v.placeId === selectedVenueId) ?? null;
-  const center = userLocation ?? DEFAULT_CENTER;
+  const toggleKind = (kind: VenueKind) =>
+    setKinds((prev) => (prev.includes(kind) ? prev.filter((k) => k !== kind) : [...prev, kind]));
 
   function goMatch(id: string) {
     router.push({ pathname: '/matches/[id]', params: { id } });
@@ -542,9 +549,11 @@ export default function MapScreen() {
       >
         {venues.map((venue) => {
           const activity = venueActivityFor(venue);
+          const isSelected = venue.placeId === selectedVenueId;
           return (
             <Marker
-              key={venue.placeId}
+              // The look is in the key: a change mounts a new marker (no tracking, DECISIONS #171).
+              key={venuePinKey(venue, venue.matches.length, isSelected)}
               coordinate={{ latitude: venue.lat, longitude: venue.lon }}
               onPress={() => {
                 setSelectedMatchId(null);
@@ -552,31 +561,14 @@ export default function MapScreen() {
               }}
               testID={`map-venue-${venue.placeId}`}
               anchor={{ x: 0.5, y: 0.5 }}
-              tracksViewChanges={tracking}
+              tracksViewChanges={false}
             >
-              <View style={{ width: VENUE_PIN + 12, height: VENUE_PIN + 12 }} className="items-center justify-center">
-                {/* Colors inline: a refetch can change them, and a toggled className is
-                    not applied reliably (DECISIONS #87). */}
-                <View
-                  className="h-8 w-8 rounded-full items-center justify-center border-2 border-surface-dark bg-white"
-                  style={{
-                    backgroundColor: activity === 'none' ? colors.textOnDark : colors.success,
-                    borderColor: activity === 'live' ? colors.danger : colors.surfaceDark,
-                  }}
-                >
-                  <LandPlot size={16} color={activity === 'none' ? colors.surfaceDark : colors.textOnDark} />
-                </View>
-                {activity !== 'none' && (
-                  <View
-                    testID={`map-venue-${venue.placeId}-${activity}`}
-                    className="absolute top-0 right-0 h-5 min-w-5 px-1 rounded-full items-center justify-center border-2 border-surface-dark bg-white"
-                  >
-                    <Text className="font-num text-success" style={{ fontSize: 10, lineHeight: 12 }}>
-                      {venue.matches.length}
-                    </Text>
-                  </View>
-                )}
-              </View>
+              <VenuePin
+                venue={venue}
+                games={venue.matches.length}
+                selected={isSelected}
+                testID={activity === 'none' ? undefined : `map-venue-${venue.placeId}-${activity}`}
+              />
             </Marker>
           );
         })}
@@ -584,29 +576,18 @@ export default function MapScreen() {
           const openSlots = match.capacity - match.confirmed;
           return (
             <Marker
-              key={match.id}
+              key={`${match.id}:${pinToneFor(openSlots)}`}
               coordinate={{ latitude: match.lat, longitude: match.lon }}
               onPress={() => {
                 setSelectedVenueId(null);
                 setSelectedMatchId(match.id);
               }}
               testID={`map-pin-${match.id}`}
-              anchor={PIN_ANCHOR}
-              centerOffset={PIN_CENTER_OFFSET}
-              tracksViewChanges={tracking}
+              anchor={MATCH_PIN_ANCHOR}
+              centerOffset={MATCH_PIN_CENTER_OFFSET}
+              tracksViewChanges={false}
             >
-              <View style={{ width: PIN_WIDTH, height: PIN_HEIGHT }}>
-                <View
-                  className={`${PIN_SHAPE} left-[3px] top-[3px] bg-surface-dark`}
-                />
-                <View
-                  className={`${PIN_SHAPE} items-center justify-center border-2 border-surface-dark ${pinToneFor(openSlots)}`}
-                >
-                  <View className="-rotate-45">
-                    <Volleyball size={16} color={colors.surfaceDark} />
-                  </View>
-                </View>
-              </View>
+              <MatchPin openSlots={openSlots} testID={`map-pin-${match.id}-pin`} />
             </Marker>
           );
         })}
@@ -626,7 +607,7 @@ export default function MapScreen() {
           <View className="flex-1 items-start" pointerEvents="none">
             <View className="rounded-pill bg-white px-4 py-2 shadow-card">
               <Text numberOfLines={1} className="font-body-bold text-caption text-text-primary">
-                {matches.length === 1 ? '1 partida por perto' : `${matches.length} partidas por perto`}
+                {shownGames === 1 ? '1 partida por perto' : `${shownGames} partidas por perto`}
               </Text>
             </View>
           </View>
@@ -644,16 +625,84 @@ export default function MapScreen() {
           </Pressable>
         </View>
 
+        {/* The map's filters: distance (slider) and kind of place, with a way to clear them. */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerClassName="px-4 gap-2 pt-3 pb-1"
+          testID="map-filters"
+        >
+          <FilterChip
+            label={maxKm >= MAX_KM ? 'Distância' : `Até ${maxKm} km`}
+            selected={distanceOpen || maxKm < MAX_KM}
+            onPress={() => setDistanceOpen((open) => !open)}
+            testID="map-filter-distance"
+          />
+          {VENUE_KINDS.map(({ kind, label, emoji }) => (
+            <FilterChip
+              key={kind}
+              label={`${emoji} ${label}`}
+              selected={kinds.includes(kind)}
+              onPress={() => toggleKind(kind)}
+              testID={`map-filter-${kind}`}
+            />
+          ))}
+          {filtersOn ? (
+            <FilterChip
+              label="Limpar"
+              selected={false}
+              onPress={() => {
+                setMaxKm(MAX_KM);
+                setKinds([]);
+                setDistanceOpen(false);
+              }}
+              testID="map-filter-clear"
+            />
+          ) : null}
+        </ScrollView>
+        {distanceOpen ? (
+          <View className="mx-4 mt-2 rounded-card border-2 border-surface-dark bg-white px-4 py-3" style={HARD_SHADOW} testID="map-distance-panel">
+            <View className="flex-row items-center justify-between mb-2">
+              <Text className="font-body-bold text-caption text-text-primary">Distância de você</Text>
+              <Text className="font-num text-body text-primary" testID="map-distance-value">
+                {maxKm >= MAX_KM ? 'Qualquer' : `${maxKm} km`}
+              </Text>
+            </View>
+            <Slider
+              value={maxKm}
+              min={1}
+              max={MAX_KM}
+              onChange={setMaxKm}
+              accessibilityLabel="Distância máxima"
+              valueText={(km) => (km >= MAX_KM ? 'qualquer distância' : `até ${km} quilômetros`)}
+              testID="map-distance-slider"
+            />
+          </View>
+        ) : null}
+
+        {/* More places than drawn: say so; moving or zooming the map brings the others. */}
+        {morePlaces && !searchArea?.tooWide ? (
+          <View pointerEvents="none" className="items-center px-4 pt-3">
+            <View className="bg-white rounded-pill px-4 py-2 shadow-card" testID="map-more-places">
+              <Text className="font-body text-caption text-text-primary text-center">
+                Há mais locais nesta área. Aproxime ou mova o mapa para ver.
+              </Text>
+            </View>
+          </View>
+        ) : null}
+
         {/* Empty notice — granted but no matches in radius */}
-        {(matches.length === 0 || searchArea?.tooWide) && (
+        {(shownGames === 0 || searchArea?.tooWide) && (
           <View pointerEvents="none" className="items-center px-4 pt-3">
             <View className="bg-white rounded-pill px-6 py-3 shadow-card">
               <Text className="font-body text-body text-text-primary text-center">
                 {searchArea?.tooWide
                   ? 'Aproxime o mapa para ver as partidas desta área'
-                  : searchArea
-                    ? 'Nenhuma partida nesta área'
-                    : 'Nenhuma partida perto de você ainda'}
+                  : filtersOn
+                    ? 'Nenhuma partida com esses filtros'
+                    : searchArea
+                      ? 'Nenhuma partida nesta área'
+                      : 'Nenhuma partida perto de você ainda'}
               </Text>
             </View>
           </View>
@@ -665,11 +714,12 @@ export default function MapScreen() {
         <SafeAreaView edges={['bottom']} className="absolute bottom-0 left-0 right-0">
           <View className="px-4 pb-4">
             <VenueSheet
+              key={selectedVenue.placeId}
               venue={selectedVenue}
-              title={venueDetails.data?.title ?? 'Arena'}
+              title={venueDetails.isPending ? undefined : (venueDetails.data?.title ?? 'Arena')}
               address={venueDetails.data?.address}
               matchesById={new Map(matches.map((m) => [m.id, m]))}
-              next={nextVenueWithGames(selectedVenue, venues)}
+              next={nextVenueWithGames(selectedVenue, shownVenues)}
               onOpenMatch={goMatch}
               onNextVenue={(next) => {
                 setSelectedVenueId(next.placeId);

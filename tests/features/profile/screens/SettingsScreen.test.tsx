@@ -88,6 +88,7 @@ jest.mock('lucide-react-native', () => {
     Bell: stub('bell'),
     Check: stub('check'),
     ChevronLeft: stub('chevron-left'),
+    X: stub('x'),
     ChevronRight: stub('chevron-right'),
     Download: stub('download'),
     FileText: stub('file-text'),
@@ -151,10 +152,9 @@ const PROFILE_FIXTURE: MyProfile = {
   overall: 68,
   ace: 30,
   blk: 25,
-  ata: 20,
+  atk: 20,
   def: 30,
-  srv: 27,
-  rec: 24,
+  actions: { matches: 0, byAction: { kills: { total: 0, perMatch: null }, blocks: { total: 0, perMatch: null }, aces: { total: 0, perMatch: null }, digs: { total: 0, perMatch: null }, assists: { total: 0, perMatch: null } } },
   level: 15,
   xp: 2450,
   xpToNext: 5000,
@@ -251,10 +251,10 @@ describe('S10 — Settings list screen', () => {
    * Criterion: "List header shows a back affordance and the 'CONFIGURAÇÕES'
    *  display title (uppercase, font-display)."
    */
-  it('renders the header with a back affordance and the CONFIGURAÇÕES display title', async () => {
+  it('renders the header like the tabs (title on the left, Fechar on the right) with the CONFIGURAÇÕES display title', async () => {
     await renderScreen();
 
-    const back = screen.getByLabelText('Voltar');
+    const back = screen.getByLabelText('Fechar');
     expect(back).toBeTruthy();
     fireEvent.press(back);
     expect(mockBack).toHaveBeenCalledTimes(1);

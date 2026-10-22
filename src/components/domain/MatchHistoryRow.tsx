@@ -15,6 +15,7 @@ const RESULT_LABEL: Record<RecentMatch['result'], string> = {
   VITORIA: 'VITÓRIA',
   DERROTA: 'DERROTA',
   EMPATE: 'EMPATE',
+  SEM_PLACAR: 'SEM PLACAR',
 };
 
 // Win → success (green), Loss → danger (red). NativeWind tokens, no inline hex.
@@ -22,6 +23,7 @@ const RESULT_CLASS: Record<RecentMatch['result'], string> = {
   VITORIA: 'text-success',
   DERROTA: 'text-danger',
   EMPATE: 'text-text-muted',
+  SEM_PLACAR: 'text-text-muted',
 };
 
 /**
@@ -58,7 +60,7 @@ function formatPlayedAt(iso: string): string {
  * fetches. No hardcoded hex — the icon colors come from `src/theme/colors.ts`.
  */
 export function MatchHistoryRow({ match, onPress, testID }: MatchHistoryRowProps) {
-  const subtitle = `${formatPlayedAt(match.playedAt)} · ${match.format}`;
+  const subtitle = [formatPlayedAt(match.playedAt), match.format, match.actionsLine].filter(Boolean).join(' · ');
 
   return (
     <PressableScale

@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 
+import { PLAYER_ACTIONS, type PlayerActionKey } from '@/features/matches/lib/playerActions';
 import type { MatchResult, RecentMatch } from '@/features/profile/types/profile';
 import { authorizedApiClient } from '@/lib/api/authorizedClient';
 
@@ -14,18 +15,28 @@ type ApiMatchHistoryEntry = {
   matchId: string;
   matchName: string;
   matchDateTime: string;
-  outcome: 'Win' | 'Loss' | 'Draw';
+  outcome: 'Win' | 'Loss' | 'Draw' | 'NoResult';
   /** Null on matches recorded before the format / set score were tracked. */
   format: string | null;
   setsWon: number | null;
   setsLost: number | null;
+  /** The player's recorded actions (API DECISIONS #85); null = no sheet, a null action = not recorded. */
+  actions?: Partial<Record<PlayerActionKey, number | null>> | null;
 };
 
 const RESULT: Record<ApiMatchHistoryEntry['outcome'], MatchResult> = {
   Win: 'VITORIA',
   Loss: 'DERROTA',
   Draw: 'EMPATE',
+  NoResult: 'SEM_PLACAR',
 };
+
+/** "8 CRT · 3 SAL": the recorded actions above zero, in the app's order. */
+function toActionsLine(actions: ApiMatchHistoryEntry['actions']): string {
+  return PLAYER_ACTIONS.filter(({ key }) => (actions?.[key] ?? 0) > 0)
+    .map(({ key, short }) => `${actions?.[key]} ${short}`)
+    .join(' · ');
+}
 
 const FORMATS: readonly string[] = ['2X2', '4X4', '6X6'];
 
@@ -44,6 +55,7 @@ export function toRecentMatch(entry: ApiMatchHistoryEntry): RecentMatch {
       entry.setsWon != null && entry.setsLost != null
         ? `${entry.setsWon}-${entry.setsLost}`
         : '',
+    actionsLine: toActionsLine(entry.actions),
   };
 }
 

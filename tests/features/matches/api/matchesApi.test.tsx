@@ -86,6 +86,7 @@ const payload: CreateMatchPayload = {
   time: '19h30',
   duration: '1h30',
   gamePoints: 21,
+  freeTeams: false,
   format: '4X4',
   players: 8,
   level: 'AVANCADO',

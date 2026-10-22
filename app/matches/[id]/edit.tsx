@@ -120,6 +120,7 @@ function EditMatchForm({
   const level = watch('level');
   const duration = watch('duration');
   const gamePoints = watch('gamePoints');
+  const freeTeams = watch('freeTeams');
 
   const pickCover = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -302,17 +303,24 @@ function EditMatchForm({
                 />
               ))}
             </View>
-            <View className="mb-3 flex-row flex-wrap gap-2">
-              {GAME_POINTS.map((p) => (
-                <FilterChip
-                  key={p}
-                  label={`Até ${p} pontos`}
-                  selected={gamePoints === p}
-                  onPress={() => setValue('gamePoints', p)}
-                  testID={`edit-game-points-${p}`}
-                />
-              ))}
+            <View className="mb-3 flex-row gap-2">
+              <FilterChip label="Times fixos" selected={!freeTeams} onPress={() => setValue('freeTeams', false)} testID="edit-teams-fixed" />
+              <FilterChip label="Sem times fixos" selected={freeTeams} onPress={() => setValue('freeTeams', true)} testID="edit-teams-free" />
             </View>
+            {/* With no fixed teams there is no score to play to. */}
+            {freeTeams ? null : (
+              <View className="mb-3 flex-row flex-wrap gap-2">
+                {GAME_POINTS.map((p) => (
+                  <FilterChip
+                    key={p}
+                    label={`Até ${p} pontos`}
+                    selected={gamePoints === p}
+                    onPress={() => setValue('gamePoints', p)}
+                    testID={`edit-game-points-${p}`}
+                  />
+                ))}
+              </View>
+            )}
             <Controller
               control={control}
               name="players"

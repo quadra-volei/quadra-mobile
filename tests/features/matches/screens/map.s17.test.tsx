@@ -21,7 +21,8 @@
  * never the native map canvas. Read hook is mocked at the boundary; no MSW.
  */
 import React from 'react';
-import { Linking, Platform } from 'react-native';
+import { Linking, Platform, StyleSheet } from 'react-native';
+import { colors } from '@/theme/colors';
 
 // --- Native / module mocks -------------------------------------------------
 
@@ -194,7 +195,7 @@ const mockVenues: { data: NearbyVenue[] } = { data: [] };
 
 jest.mock('@/features/explore/api/venues', () => ({
   ...jest.requireActual('@/features/explore/api/venues'),
-  useNearbyVenues: () => ({ data: mockVenues.data }),
+  useNearbyVenues: () => ({ data: { venues: mockVenues.data, hasMore: false } }),
   useVenueDetails: (placeId: string | null) => ({
     data: placeId ? { title: 'Arena Copacabana', address: 'Av. Atlântica, Rio' } : undefined,
   }),
@@ -225,20 +226,6 @@ async function press(element: Parameters<typeof fireEvent.press>[0]) {
   });
 }
 
-/** Reads the color-coded className off a pin's head (the bordered shape). */
-function pinWrapperClass(testID: string): string {
-  const pin = screen.getByTestId(testID);
-  const stack: any[] = [...pin.children];
-  while (stack.length) {
-    const node = stack.shift();
-    if (node && typeof node !== 'string') {
-      const cn = node.props?.className;
-      if (typeof cn === 'string' && cn.includes('border-2')) return cn;
-      stack.push(...node.children);
-    }
-  }
-  return '';
-}
 
 function resetMocks() {
   mockPush.mockClear();
@@ -411,9 +398,12 @@ describe('S17 — Map of Nearby Matches', () => {
     await renderScreen();
     await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
 
-    expect(pinWrapperClass('map-pin-near-open')).toContain('bg-accent');
-    expect(pinWrapperClass('map-pin-near-last')).toContain('bg-warning');
-    expect(pinWrapperClass('map-pin-near-full')).toContain('bg-text-muted');
+    // Plain views with inline colors (no SVG, no tracking: DECISIONS #171).
+    const fill = (id: string) =>
+      StyleSheet.flatten(screen.getByTestId(`${id}-pin-head`).props.style).backgroundColor;
+    expect(fill('map-pin-near-open')).toBe(colors.accent);
+    expect(fill('map-pin-near-last')).toBe(colors.warning);
+    expect(fill('map-pin-near-full')).toBe(colors.textMuted);
   });
 
   // ---------------------------------------------------------- preview + nav
@@ -553,6 +543,7 @@ describe('Arenas on the map', () => {
     lat: -23.56,
     lon: -46.64,
     distanceKm: 0.5,
+    kind: 'Court',
     matches,
   });
 

@@ -113,6 +113,8 @@ export const createMatchSchema = z
     // ── Bloco 4 · formato ──
     format: z.enum(MATCH_FORMATS),
     gamePoints: z.number().int().min(5).max(50),
+    // No fixed teams: one list of players, started and ended with no score (API DECISIONS #86).
+    freeTeams: z.boolean(),
     players: z.number().int().min(2, 'Mínimo de 2 jogadores'),
     // ── Bloco 5 · nível ──
     level: z.enum(LEVELS),

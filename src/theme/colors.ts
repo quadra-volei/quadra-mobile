@@ -15,6 +15,7 @@ export const colors = {
   line: 'rgba(10,10,60,0.10)', // line (fill of a disabled button)
   success: '#16A34A', // success (trend-up arrow)
   danger: '#DC2626', // danger (trend-down arrow)
+  warning: '#F59E0B', // warning (last-spot pin on the map)
 } as const;
 
 // The hard offset shadow of buttons and selection cards (DESIGN_SYSTEM

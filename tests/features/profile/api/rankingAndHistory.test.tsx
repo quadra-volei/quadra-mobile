@@ -88,8 +88,8 @@ describe('useRecentMatches', () => {
 
     expect(requestedUrl()).toContain('/api/v1/profiles/me/match-history?page=1&pageSize=5');
     expect(result.current.data).toEqual([
-      { id: 'm1', name: 'Racha de Quinta', playedAt: entry.matchDateTime, format: '4X4', result: 'VITORIA', setScore: '2-1' },
-      { id: 'm2', name: 'Racha de Quinta', playedAt: entry.matchDateTime, format: '6X6', result: 'EMPATE', setScore: '' },
+      { id: 'm1', name: 'Racha de Quinta', playedAt: entry.matchDateTime, format: '4X4', result: 'VITORIA', setScore: '2-1', actionsLine: '' },
+      { id: 'm2', name: 'Racha de Quinta', playedAt: entry.matchDateTime, format: '6X6', result: 'EMPATE', setScore: '', actionsLine: '' },
     ]);
   });
 });
