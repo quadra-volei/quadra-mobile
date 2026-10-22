@@ -8,6 +8,7 @@ import type {
   PresencePlayer,
 } from '@/features/matches/types/matchDetail';
 import type { Team } from '@/features/matches/types/team';
+import { teamName } from '@/features/matches/lib/teamColors';
 import { ApiError } from '@/lib/api/client';
 import { authorizedApiClient } from '@/lib/api/authorizedClient';
 
@@ -138,16 +139,16 @@ export async function putTeamMember(
 }
 
 /**
- * Backend teams → the app's `Team`, in the backend's order ("Team A" first):
- * numbered from 1, named "Time N", with each member resolved against the match
- * roster (`players`, which includes the guests).
+ * Backend teams → the app's `Team`, in the backend's (palette) order: numbered
+ * from 1, named by place ("Time Azul", "Time Limão"…: `teamName`), with each
+ * member resolved against the match roster (`players`, which includes the guests).
  */
 export function toTeams(apiTeams: ApiTeam[], players: PresencePlayer[]): Team[] {
   const byId = new Map(players.map((player) => [player.id, player]));
   return apiTeams.map((team, index) => ({
     id: team.id,
     number: index + 1,
-    name: `Time ${index + 1}`,
+    name: teamName(index),
     players: team.members.map(
       (member) =>
         byId.get(member.playerId) ?? {

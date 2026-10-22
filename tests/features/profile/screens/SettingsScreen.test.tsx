@@ -88,6 +88,7 @@ jest.mock('lucide-react-native', () => {
     Bell: stub('bell'),
     Check: stub('check'),
     ChevronLeft: stub('chevron-left'),
+    X: stub('x'),
     ChevronRight: stub('chevron-right'),
     Download: stub('download'),
     FileText: stub('file-text'),
@@ -250,10 +251,10 @@ describe('S10 — Settings list screen', () => {
    * Criterion: "List header shows a back affordance and the 'CONFIGURAÇÕES'
    *  display title (uppercase, font-display)."
    */
-  it('renders the header with a back affordance and the CONFIGURAÇÕES display title', async () => {
+  it('renders the header like the tabs (title on the left, Fechar on the right) with the CONFIGURAÇÕES display title', async () => {
     await renderScreen();
 
-    const back = screen.getByLabelText('Voltar');
+    const back = screen.getByLabelText('Fechar');
     expect(back).toBeTruthy();
     fireEvent.press(back);
     expect(mockBack).toHaveBeenCalledTimes(1);

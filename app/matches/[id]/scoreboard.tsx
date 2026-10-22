@@ -537,7 +537,8 @@ function GameOver({ matchId, game }: { matchId: string; game: LiveGame }) {
         className="mt-2 mb-6 text-center font-display text-display text-text-on-dark uppercase"
         testID="game-over-winner"
       >
-        {winner ? `${winner.name} venceu` : 'Partida encerrada'}
+        {/* The winner shows in the list below (trophy, lime ring): no sentence repeating it. */}
+        Partida encerrada
       </Text>
 
       <View className="mb-8 self-stretch gap-2" testID="game-over-sets">

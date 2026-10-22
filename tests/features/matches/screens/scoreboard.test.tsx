@@ -234,10 +234,12 @@ describe('S14 — live scoreboard', () => {
 });
 
 describe('game over', () => {
-  it('names the winner and leads to the MVP vote', async () => {
+  it('marks the winner in the list (no sentence repeating it) and leads to the MVP vote', async () => {
     await show({ phase: 'ENDED', winnerTeamId: 'team-2' });
 
-    expect(screen.getByText('Time 2 venceu')).toBeTruthy();
+    expect(screen.getByText('Partida encerrada')).toBeTruthy();
+    expect(screen.queryByText('Time 2 venceu')).toBeNull();
+    expect(screen.getByText('Time 2')).toBeTruthy();
     await press('go-mvp-vote');
     expect(mockReplace).toHaveBeenCalledWith({
       pathname: '/matches/[id]/mvp-vote',

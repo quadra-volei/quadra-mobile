@@ -196,7 +196,7 @@ function Material({
  * never recolored by the finish or the light, on its own navy plate in the top
  * corner, clear of the frame, so it reads over any photo.
  */
-export function CardLogo({ height }: { height: number }) {
+function CardLogo({ height }: { height: number }) {
   return (
     <View
       className="self-start bg-surface-dark"

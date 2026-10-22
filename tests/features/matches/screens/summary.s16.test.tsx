@@ -12,7 +12,7 @@
 
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react-native';
 
 import type { MatchSummary } from '@/features/matches/api/getMatchSummary';
 
@@ -306,9 +306,10 @@ describe('S16 — Match Summary', () => {
    * Covers: S16 — Match Summary
    * Criterion: "'Venue · date' line renders with a MapPin icon (text-muted)."
    */
-  it('renders the venue · date line with a MapPin icon', async () => {
+  it('highlights the arena name over its address and date, with a MapPin icon', async () => {
     await renderScreen();
-    expect(screen.getByText('Arena Pinheiros · 10 jun 2026')).toBeTruthy();
+    expect(screen.getByText('Arena Pinheiros')).toBeTruthy();
+    expect(screen.getByText('10 jun 2026')).toBeTruthy();
     expect(screen.getByTestId('icon-map-pin')).toBeTruthy();
   });
 
@@ -316,10 +317,11 @@ describe('S16 — Match Summary', () => {
    * Covers: owner's review 2026-10-21, item 1 — every score names its team: who
    * won, the games won per team (winner highlighted) and each game's winner.
    */
-  it('names the winner and shows the games won per team', async () => {
+  it('shows the games won per team with the winner marked, no "venceu" sentence', async () => {
     await renderScreen();
 
-    expect(screen.getByTestId('summary-winner')).toHaveTextContent('Time 1 venceu');
+    expect(screen.queryByTestId('summary-winner')).toBeNull();
+    expect(screen.queryByText(/venceu/)).toBeNull();
     const winner = screen.getByTestId('summary-team-t1');
     expect(winner.props.className).toContain('border-accent');
     expect(screen.getByTestId('summary-team-t2').props.className).not.toContain('border-accent');
@@ -330,8 +332,10 @@ describe('S16 — Match Summary', () => {
     await renderScreen();
 
     expect(screen.getByText('Jogo 2')).toBeTruthy();
-    expect(screen.getByText('Time 2 venceu')).toBeTruthy();
-    expect(screen.getAllByText('Time 1 venceu').length).toBeGreaterThanOrEqual(3);
+    // Short names in the compact rows: "Time 2" → "2".
+    const games = within(screen.getByTestId('summary-games'));
+    expect(games.getAllByText('2').length).toBeGreaterThanOrEqual(1);
+    expect(games.getAllByText('1').length).toBeGreaterThanOrEqual(3);
     expect(screen.getByText('25–23')).toBeTruthy();
   });
 

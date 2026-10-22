@@ -21,7 +21,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
-import { getTeamBgColor } from '@/features/matches/lib/teamColors';
+import { getTeamBgColor, shortTeamName } from '@/features/matches/lib/teamColors';
+import { splitVenue } from '@/features/matches/lib/venueName';
 import { PLAYER_ACTIONS, type PlayerActionKey } from '@/features/matches/lib/playerActions';
 import {
   matchSummaryQueryKey,
@@ -163,21 +164,19 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
               {summary.name}
             </Text>
 
-            <View className="flex-row items-center gap-1 mt-2">
-              <MapPin size={14} color={colors.textOnDark} />
-              <Text className="font-body text-caption text-white/70">
-                {summary.venue} · {summary.dateLabel}
+            {/* The arena's name stands out; its address and the date are secondary
+                (owner's 4th review, item 17). */}
+            <View className="items-center mt-3" testID="summary-venue">
+              <View className="flex-row items-center gap-1">
+                <MapPin size={16} color={colors.accent} />
+                <Text className="font-body-bold text-body-bold text-text-on-dark" numberOfLines={1}>
+                  {splitVenue(summary.venue).name}
+                </Text>
+              </View>
+              <Text className="font-body text-caption text-white/70 text-center mt-0.5" numberOfLines={2}>
+                {[splitVenue(summary.venue).address, summary.dateLabel].filter(Boolean).join(' · ')}
               </Text>
             </View>
-
-            {summary.winnerName ? (
-              <Text
-                className="font-body-extrabold text-h3 text-accent mt-4 text-center"
-                testID="summary-winner"
-              >
-                {summary.winnerName} venceu
-              </Text>
-            ) : null}
           </View>
 
           {/* ── Games won per team, the winner highlighted (none without fixed teams) ── */}
@@ -220,9 +219,11 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
                   {game.winner ? (
                     <View className={`h-2 w-2 rounded-full ${getTeamBgColor(game.winner.colorIndex)}`} />
                   ) : null}
-                  <Text className="flex-1 font-body text-caption text-text-on-dark" numberOfLines={1}>
-                    {game.winner ? `${game.winner.name} venceu` : 'Empate'}
+                  {/* The winner by its color and short name; the score says the rest. */}
+                  <Text className="flex-1 font-body-semibold text-caption text-text-on-dark" numberOfLines={1}>
+                    {game.winner ? shortTeamName(game.winner.name) : 'Empate'}
                   </Text>
+                  {game.winner ? <Trophy size={12} color={colors.accent} /> : null}
                   <Text className="font-num text-caption text-text-on-dark">
                     {game.points[0]}–{game.points[1]}
                   </Text>

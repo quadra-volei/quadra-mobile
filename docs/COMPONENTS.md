@@ -220,10 +220,10 @@ Each entry follows this structure:
 ### `BackHeader`
 - **Path**: `src/components/ui/BackHeader.tsx`
 - **Purpose**: Standard header for pushed stack screens.
-- **Props**: `{ title: string; tint?: 'light' | 'dark'; right?: ReactNode; onHeight?: (height: number) => void }`
+- **Props**: `{ title: string; tint?: 'light' | 'dark'; right?: ReactNode; onHeight?: (height: number) => void; asTab?: boolean }` (`asTab`: title laid out like the tab headers, "Fechar" on the right instead of the back chevron — #172)
 - **Example**:
   ```tsx
-  <BackHeader title="Configurações" onHeight={setHeaderHeight} />
+  <BackHeader title="Configurações" onHeight={setHeaderHeight} asTab />
   ```
 - **Notes**: Bare `ChevronLeft` back affordance (`accessibilityLabel="Voltar"`, `router.back()`, 48dp touch target) + `font-display text-h1 uppercase` title + optional `right` cluster, composed over `ScreenHeader`.
 

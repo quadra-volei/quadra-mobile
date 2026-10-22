@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 import { ArrowRight, ChevronLeft, Clock, LocateFixed, MapPin, Users } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Linking,
   Pressable,
@@ -152,7 +151,8 @@ function VenueSheet({
   onNextVenue,
 }: {
   venue: NearbyVenue;
-  title: string;
+  /** Undefined while the name loads from Google: a skeleton holds its place. */
+  title?: string;
   address?: string;
   matchesById: Map<string, NearbyMatch>;
   next: NearbyVenue | null;
@@ -185,9 +185,16 @@ function VenueSheet({
               {kind.emoji} {kind.label}
             </Text>
           ) : null}
-          <Text numberOfLines={1} className="font-body-bold text-h3 text-text-primary" testID="map-venue-title">
-            {title}
-          </Text>
+          {title === undefined ? (
+            <View className="gap-1 py-1" testID="map-venue-title-loading">
+              <SkeletonBlock className="h-5 w-44" />
+              <SkeletonBlock className="h-3 w-56" />
+            </View>
+          ) : (
+            <Text numberOfLines={1} className="font-body-bold text-h3 text-text-primary" testID="map-venue-title">
+              {title}
+            </Text>
+          )}
           {address ? (
             <Text numberOfLines={1} className="mt-0.5 font-body text-caption text-text-muted">
               {address}
@@ -288,7 +295,22 @@ function toPermissionState(status: Location.PermissionStatus): PermissionState {
   return 'undetermined';
 }
 
-/** Full-screen centered container for the permission / loading / error states. */
+/** The map's shape while it loads: the map area and the top bar's places. */
+function MapSkeleton() {
+  return (
+    <View className="flex-1 bg-bg-light" testID="map-skeleton">
+      <SkeletonBlock className="absolute inset-0 rounded-none" />
+      <SafeAreaView edges={['top']} className="flex-row items-center gap-3 px-4 pt-2">
+        <View className="h-12 w-12 rounded-full bg-white" />
+        <View className="h-9 w-40 rounded-pill bg-white" />
+        <View className="flex-1" />
+        <View className="h-12 w-12 rounded-full bg-white" />
+      </SafeAreaView>
+    </View>
+  );
+}
+
+/** Full-screen centered container for the permission / error states. */
 function StateContainer({ children }: { children: React.ReactNode }) {
   return (
     <SafeAreaView
@@ -367,12 +389,9 @@ export default function MapScreen() {
 
   // --- Permission gates -------------------------------------------------------
 
+  // The map's own skeleton from the first frame, also while the permission is checked.
   if (checkingPermission) {
-    return (
-      <StateContainer>
-        <ActivityIndicator color={colors.primary} />
-      </StateContainer>
-    );
+    return <MapSkeleton />;
   }
 
   if (permission === 'undetermined') {
@@ -416,17 +435,7 @@ export default function MapScreen() {
   // --- Granted: loading / error / map ----------------------------------------
 
   if (resolvingLocation || nearby.isPending) {
-    return (
-      <View className="flex-1 bg-bg-light" testID="map-skeleton">
-        <SkeletonBlock className="absolute inset-0 rounded-none" />
-        <SafeAreaView edges={['top']} className="flex-row items-center gap-3 px-4 pt-2">
-          <View className="h-12 w-12 rounded-full bg-white" />
-          <View className="h-9 w-40 rounded-pill bg-white" />
-          <View className="flex-1" />
-          <View className="h-12 w-12 rounded-full bg-white" />
-        </SafeAreaView>
-      </View>
-    );
+    return <MapSkeleton />;
   }
 
   if (nearby.isError) {
@@ -707,7 +716,7 @@ export default function MapScreen() {
             <VenueSheet
               key={selectedVenue.placeId}
               venue={selectedVenue}
-              title={venueDetails.data?.title ?? 'Arena'}
+              title={venueDetails.isPending ? undefined : (venueDetails.data?.title ?? 'Arena')}
               address={venueDetails.data?.address}
               matchesById={new Map(matches.map((m) => [m.id, m]))}
               next={nextVenueWithGames(selectedVenue, shownVenues)}

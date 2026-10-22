@@ -9,6 +9,7 @@ import {
 import { fetchMatchDetail, toMatchDetail } from '@/features/matches/api/matchesApi';
 import type { MatchPlayer } from '@/features/matches/api/useMVPVote';
 import { matchPoints, type PlayerActions } from '@/features/matches/lib/playerActions';
+import { teamName } from '@/features/matches/lib/teamColors';
 import { MATCHES_PATH } from '@/features/matches/api/matchesApi';
 import { authorizedApiClient } from '@/lib/api/authorizedClient';
 import { useAuthStore } from '@/stores/auth';
@@ -142,7 +143,8 @@ async function getMatchSummary(matchId: string): Promise<MatchSummary> {
   // Teams come sorted by name, the same order the scoreboard colors them in.
   const teams: SummaryTeam[] = summary.teams.map((team, colorIndex) => ({
     id: team.teamId,
-    name: team.name,
+    // By place, like the live game (older teams were "Team A"…).
+    name: teamName(colorIndex),
     wins: summary.sets.filter((set) => set.winnerTeamId === team.teamId).length,
     colorIndex,
     mine: team.teamId === myTeamId,

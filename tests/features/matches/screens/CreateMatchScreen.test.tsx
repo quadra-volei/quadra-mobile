@@ -348,7 +348,8 @@ describe('S11 — Create-match (formulário vivo)', () => {
   // ----------------------------------------------------------------- cover
   it('renders the cover placeholder with CAPA DA PARTIDA and Adicionar capa', async () => {
     await renderScreen();
-    expect(screen.getByText('Capa da partida')).toBeTruthy();
+    expect(screen.queryByText('Capa da partida')).toBeNull();
+    expect(screen.getByText('Adicionar capa')).toBeTruthy();
     expect(screen.getByText('Adicionar capa')).toBeTruthy();
     expect(screen.queryByTestId('cover-picker-image')).toBeNull();
   });
