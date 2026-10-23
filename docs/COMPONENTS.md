@@ -438,6 +438,13 @@ More UI primitives will live here:
 - **Used in**: S8 Profile ("Seu progresso"), S8b "Sua carta" (below the card, dark)
 - **Notes**: The five recorded actions (CRT · BLK · ACE · SAL · AST, `PLAYER_ACTIONS`): the total in `font-num` and the average per match below ("1,5"; "—" when never recorded), plus how many matches had a sheet. With no sheet yet, one neutral line instead of zeros (#168).
 
+### `MapListSheet`
+- **Path**: `src/components/domain/MapListSheet.tsx`
+- **Category**: domain
+- **Props**: `{ arenas: MapArena[]; games: NearbyMatch[]; arenaCount: number; gameCount: number; onOpenArena: (arena: MapArena) => void; onOpenMatch: (id: string) => void }`; also exports `areaCountLabel` and `listRows`
+- **Used in**: S17 map (`app/explore/map.tsx`), while no pin is open
+- **Notes**: The list under the map (#180): a panel dragged up from the bottom (peek, half, full) with its own Reanimated + Gesture Handler pan on the handle (no bottom-sheet package). Collapsed it shows the area count; open, arenas (no name: a Google lookup costs, done only on open) and `MatchCard`s, closest first. Provisional layout until the designer's.
+
 ### `MapPins` (`venuePinImage`, `matchPinImage`, `clusterImage`)
 - **Path**: `src/components/domain/MapPins.tsx`
 - **Category**: domain

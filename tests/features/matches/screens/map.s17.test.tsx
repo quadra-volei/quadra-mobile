@@ -26,6 +26,12 @@ import { VENUE_HALO, clusterImage, matchPinImage, venueActivityFor, venuePinImag
 
 // --- Native / module mocks -------------------------------------------------
 
+// The list panel's drag (#180) -> inert: the tests open it with a tap on its handle.
+jest.mock('react-native-gesture-handler', () => {
+  const chain: any = new Proxy({}, { get: () => () => chain });
+  return { GestureDetector: ({ children }: any) => children, Gesture: { Pan: () => chain } };
+});
+
 // LinearGradient -> View (used by the dark MatchCard cover + primary Button).
 jest.mock('expo-linear-gradient', () => {
   const ReactLocal = require('react');
@@ -194,7 +200,12 @@ jest.mock('@/features/matches/api/getNearby', () => ({
 import type { ArenaGame, MapArena } from '@/features/explore/api/mapItems';
 
 const mockVenues: { data: MapArena[] } = { data: [] };
-const mockItems: { lastParams: unknown } = { lastParams: undefined };
+const mockItems: { lastParams: unknown; fetching: boolean; arenaCount: number; gameCount: number } = {
+  lastParams: undefined,
+  fetching: false,
+  arenaCount: 0,
+  gameCount: 0,
+};
 
 // The map's one request: like the API, a game listed under an arena is not a loose game.
 jest.mock('@/features/explore/api/mapItems', () => ({
@@ -206,10 +217,11 @@ jest.mock('@/features/explore/api/mapItems', () => ({
       data: mockNearby.data && {
         arenas: mockVenues.data,
         games: mockNearby.data.filter((m) => !atArenas.has(m.id)),
-        arenaCount: mockVenues.data.length,
-        gameCount: 0,
+        arenaCount: mockItems.arenaCount,
+        gameCount: mockItems.gameCount,
         truncated: false,
       },
+      isFetching: mockItems.fetching,
       isPending: mockNearby.isPending,
       isError: mockNearby.isError,
       refetch: mockNearby.refetch,
@@ -228,6 +240,7 @@ jest.mock('@/features/explore/api/venues', () => ({
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import MapScreen, { PIN_ANCHOR, nextVenueWithGames, searchAreaFor } from '../../../../app/explore/map';
+import { areaCountLabel, listRows } from '@/components/domain/MapListSheet';
 
 // --- Helpers ---------------------------------------------------------------
 
@@ -259,6 +272,9 @@ function resetMocks() {
 
   mockVenues.data = [];
   mockItems.lastParams = undefined;
+  mockItems.fetching = false;
+  mockItems.arenaCount = 0;
+  mockItems.gameCount = 0;
   mockNearby.data = NEARBY_FIXTURE;
   mockNearby.isPending = false;
   mockNearby.isError = false;
@@ -717,5 +733,61 @@ describe('Arenas on the map', () => {
     expect(venueActivityFor(venue('a', []))).toBe('none');
     expect(venueActivityFor(venue('a', [g('m')]))).toBe('today');
     expect(venueActivityFor(venue('a', [g('m'), g('n', 'n', true)]))).toBe('live');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The list under the map (DECISIONS #180, D8): a panel dragged up from the bottom that
+// counts the area and lists its arenas and games, closest first.
+
+describe('The list under the map', () => {
+  const arena = (id: string, distanceKm: number, gamesCount = 0): MapArena => ({
+    id,
+    placeId: `p-${id}`,
+    lat: -23.56,
+    lon: -46.6 + distanceKm / 100,
+    distanceKm,
+    kind: 'Sand',
+    gamesCount,
+    live: false,
+    games: [],
+  });
+
+  it('counts arenas and games with singulars', () => {
+    expect(areaCountLabel(12, 7)).toBe('12 arenas · 7 jogos nesta área');
+    expect(areaCountLabel(1, 1)).toBe('1 arena · 1 jogo nesta área');
+  });
+
+  it('lists arenas and games together, closest first', () => {
+    const rows = listRows([arena('far', 5), arena('close', 0.3)], NEARBY_FIXTURE);
+    expect(rows.map((r) => (r.type === 'arena' ? r.arena.id : r.match.id))).toEqual([
+      'close', 'near-open', 'near-last', 'near-full', 'far',
+    ]);
+  });
+
+  it('shows the whole area count collapsed, and the list once opened', async () => {
+    mockVenues.data = [arena('sand', 0.3, 2)];
+    mockItems.arenaCount = 4;
+    mockItems.gameCount = 9;
+    await renderScreen();
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
+
+    expect(screen.getByTestId('map-list-count').props.children).toBe('4 arenas · 9 jogos nesta área');
+    expect(screen.queryByTestId('map-list-game-near-open')).toBeNull();
+
+    await press(screen.getByTestId('map-list-handle'));
+    await press(screen.getByTestId('map-list-game-near-open'));
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/matches/[id]', params: { id: 'near-open' } });
+
+    await press(screen.getByTestId('map-list-arena-sand'));
+    expect(screen.getByTestId('map-venue-card')).toBeTruthy();
+    expect(screen.queryByTestId('map-list-sheet')).toBeNull();
+  });
+
+  it('shows three dots in the top pill while a new area loads', async () => {
+    mockItems.fetching = true;
+    await renderScreen();
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
+    expect(screen.getByText('•••')).toBeTruthy();
   });
 });
