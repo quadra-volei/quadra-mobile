@@ -21,6 +21,7 @@ import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { CourtImage } from '@/components/ui/CourtImage';
 import { Tag } from '@/components/ui/Tag';
 import { MatchCard } from '@/components/domain/MatchCard';
+import { MapListSheet } from '@/components/domain/MapListSheet';
 import {
   CLUSTER_ANCHOR,
   MATCH_PIN_ANCHOR,
@@ -650,9 +651,18 @@ export default function MapScreen() {
         <View pointerEvents="box-none" className="flex-row items-center gap-3 px-4 pt-2">
           {backButton('h-12 w-12 border-2 border-surface-dark bg-white')}
           <View className="flex-1 items-start" pointerEvents="none">
-            <View className="rounded-pill bg-white px-4 py-2 shadow-card">
-              <Text numberOfLines={1} className="font-body-bold text-caption text-text-primary">
-                {shownGames === 1 ? '1 partida por perto' : `${shownGames} partidas por perto`}
+            <View className="rounded-pill bg-white px-4 py-2 shadow-card" testID="map-count-pill">
+              <Text
+                numberOfLines={1}
+                className="font-body-bold text-caption text-text-primary"
+                accessibilityLabel={items.isFetching ? 'Carregando esta área' : undefined}
+              >
+                {/* While a new area loads, three dots like the references (#180). */}
+                {items.isFetching
+                  ? '•••'
+                  : shownGames === 1
+                    ? '1 partida por perto'
+                    : `${shownGames} partidas por perto`}
               </Text>
             </View>
           </View>
@@ -753,6 +763,25 @@ export default function MapScreen() {
           </View>
         )}
       </SafeAreaView>
+
+      {/* The list of the area in a panel dragged up from the bottom (#180), while no pin is open. */}
+      {!selectedVenue && !selected && !view?.tooWide ? (
+        <MapListSheet
+          arenas={venues}
+          games={looseMatches}
+          // The server's counts cover the whole area; with a distance or kind filter, what is shown.
+          arenaCount={filtersOn ? venues.length : (items.data?.arenaCount ?? venues.length)}
+          gameCount={filtersOn ? shownGames : (items.data?.gameCount ?? shownGames)}
+          onOpenArena={(arena) => {
+            setSelectedVenueId(arena.id);
+            mapRef.current?.animateCamera?.(
+              { center: { latitude: arena.lat, longitude: arena.lon } },
+              { duration: 450 },
+            );
+          }}
+          onOpenMatch={goMatch}
+        />
+      ) : null}
 
       {/* Arena sheet — name from Google on tap, and its upcoming games to swipe */}
       {selectedVenue && (
