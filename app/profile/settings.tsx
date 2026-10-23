@@ -27,6 +27,7 @@ import { ToggleField } from '@/components/ui/ToggleField';
 import { BackHeader } from '@/components/ui/BackHeader';
 import { useSetActivitySharing } from '@/features/activity/api/activityApi';
 import { useDeleteAccount, useExportAccount } from '@/features/auth/api/account';
+import { useAdminAccess } from '@/features/curation/api/curation';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import { positionLabel } from '@/features/profile/schema/onboarding';
 import { logout } from '@/lib/auth/logout';
@@ -227,6 +228,7 @@ export default function SettingsScreen() {
   const [headerHeight, setHeaderHeight] = useState(0);
 
   const exportAccount = useExportAccount();
+  const admin = useAdminAccess();
   const deleteAccount = useDeleteAccount();
 
   const onLogout = () => {
@@ -369,6 +371,21 @@ export default function SettingsScreen() {
               onPress={() => router.push('/profile/blocked')}
             />
           </View>
+
+          {/* EQUIPE — only for the team's accounts; the API checks it on every call (#181) */}
+          {admin.data ? (
+            <>
+              <SectionLabel>Equipe</SectionLabel>
+              <View className="mx-4 bg-white rounded-card shadow-card overflow-hidden">
+                <SettingsRow
+                  icon={<MapPin size={24} color={colors.surfaceDark} />}
+                  title="Curadoria de arenas"
+                  subtitle="Aprovar os lugares que aparecem no mapa"
+                  onPress={() => router.push('/profile/curation')}
+                />
+              </View>
+            </>
+          ) : null}
 
           {/* SUPORTE */}
           <SectionLabel>Suporte</SectionLabel>

@@ -194,6 +194,12 @@ jest.mock('@/features/auth/api/account', () => ({
   useDeleteAccount: () => ({ mutate: mockDelete, isPending: false }),
 }));
 
+// Whether the account is on the team (arena curation, #181): no by default.
+const mockAdmin: { data: boolean | undefined } = { data: false };
+jest.mock('@/features/curation/api/curation', () => ({
+  useAdminAccess: () => ({ data: mockAdmin.data }),
+}));
+
 jest.mock('@/features/profile/api/getMyProfile', () => ({
   useMyProfile: () => ({
     data: mockProfile.data,
@@ -530,6 +536,20 @@ describe('S10 — Settings list screen', () => {
 
     fireEvent.press(screen.getByText('Jogadores bloqueados'));
     expect(mockPush).toHaveBeenCalledWith('/profile/blocked');
+  });
+
+  it('hides arena curation from players', async () => {
+    await renderScreen();
+    expect(screen.getByText('Jogadores bloqueados')).toBeTruthy();
+    expect(screen.queryByText('Curadoria de arenas')).toBeNull();
+  });
+
+  it('shows arena curation to the team, and opens it', async () => {
+    mockAdmin.data = true;
+    await renderScreen();
+    fireEvent.press(screen.getByText('Curadoria de arenas'));
+    expect(mockPush).toHaveBeenCalledWith('/profile/curation');
+    mockAdmin.data = false;
   });
 
   it('opens the Terms and the Privacy Policy pages', async () => {
