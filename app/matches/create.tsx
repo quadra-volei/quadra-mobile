@@ -45,7 +45,7 @@ import MapView, { Marker } from 'react-native-maps';
 import { isMapAvailable } from '@/features/matches/lib/isMapAvailable';
 import { useDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
 import { splitVenue } from '@/features/matches/lib/venueName';
-import { findArenaAt } from '@/features/explore/api/venues';
+import { confirmArenaAt } from '@/features/matches/lib/confirmArena';
 import { formatPriceLabel } from '@/features/matches/api/matchesApi';
 import {
   resolveMatchStartsAt,
@@ -524,17 +524,13 @@ export default function CreateMatchScreen() {
     setPlacePicked(true);
     setLocation(label);
     setValue('location', label, { shouldValidate: true });
+    setValue('placeId', place.id);
+    setValue('arenaId', undefined);
     const coords = await resolvePlace(place, placeSession);
     setValue('latitude', coords?.latitude);
     setValue('longitude', coords?.longitude);
     advanceTo('tipo');
-    // A plain address on top of a mapped arena takes the arena's name.
-    const arena = coords ? await findArenaAt(coords) : null;
-    if (arena && arena.title !== place.title) {
-      const arenaLabel = `${arena.title} · ${arena.address}`;
-      setLocation(arenaLabel);
-      setValue('location', arenaLabel, { shouldValidate: true });
-    }
+    if (coords) await confirmArenaAt(coords, place.id, (arenaId) => setValue('arenaId', arenaId));
   };
 
   const onSubmit = (formValues: CreateMatchInput) => {
@@ -650,6 +646,8 @@ export default function CreateMatchScreen() {
                   setPlacePicked(false);
                   setValue('latitude', undefined);
                   setValue('longitude', undefined);
+                  setValue('placeId', undefined);
+                  setValue('arenaId', undefined);
                 }}
                 testID="match-location"
               />
