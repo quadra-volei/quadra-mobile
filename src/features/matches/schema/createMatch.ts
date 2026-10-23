@@ -98,6 +98,9 @@ export const createMatchSchema = z
     // Set when the location was picked from the address search; absent for free text.
     latitude: z.number().optional(),
     longitude: z.number().optional(),
+    // The picked Google place, and the arena the organizer confirmed there (API DECISIONS #92).
+    placeId: z.string().optional(),
+    arenaId: z.string().optional(),
     // ── Bloco 3 · tipo + agenda ──
     type: z.enum(MATCH_TYPES),
     // OneOff scheduling

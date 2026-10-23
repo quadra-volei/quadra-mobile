@@ -11,6 +11,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CoverPicker } from '@/components/domain/CoverPicker';
 import { Button } from '@/components/ui/Button';
 import { dialog } from '@/components/ui/Dialog';
+import { confirmArenaAt } from '@/features/matches/lib/confirmArena';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { DateTimePickerField } from '@/components/ui/DateTimePickerField';
 import { FilterChip } from '@/components/ui/FilterChip';
@@ -139,10 +140,13 @@ function EditMatchForm({
     setPlacePicked(true);
     setLocation(label);
     setValue('location', label, { shouldValidate: true });
+    setValue('placeId', place.id);
+    setValue('arenaId', undefined);
     const coords = await resolvePlace(place, placeSession);
     if (coords) {
       setValue('latitude', coords.latitude, { shouldValidate: true });
       setValue('longitude', coords.longitude, { shouldValidate: true });
+      await confirmArenaAt(coords, place.id, (arenaId) => setValue('arenaId', arenaId));
     }
   };
 

@@ -14,6 +14,9 @@ export const editMatchSchema = z.object({
   location: z.string().trim().min(1, 'Informe o local').max(300),
   latitude: z.number({ message: 'Escolha um endereço da lista' }),
   longitude: z.number({ message: 'Escolha um endereço da lista' }),
+  // Set only when a place is picked again: neither sent keeps the arena (API DECISIONS #92).
+  placeId: z.string().optional(),
+  arenaId: z.string().optional(),
   date: z.string().refine(isValidBrDate, 'Escolha a data'),
   time: z.string().regex(/^\d{1,2}h\d{2}$/, 'Escolha um horário'),
   duration: z.enum(MATCH_DURATIONS),

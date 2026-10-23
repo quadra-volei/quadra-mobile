@@ -145,6 +145,10 @@ export type ApiCreateMatch = {
   recurrenceDays: number[] | null;
   /** Storage key of the uploaded cover (`uploadProfilePhoto`), or null. */
   coverObjectKey: string | null;
+  /** The picked Google place: links the game when it is one of an arena's entries. */
+  placeId: string | null;
+  /** The arena the organizer confirmed ("É no …?"). */
+  arenaId: string | null;
 };
 
 export type Coords = { latitude: number; longitude: number };
@@ -252,6 +256,8 @@ export function toApiCreateMatch(
       ? input.recDays.map((day) => (day === 0 ? 7 : day)).sort((a, b) => a - b)
       : null,
     coverObjectKey,
+    placeId: input.placeId ?? null,
+    arenaId: input.arenaId ?? null,
   };
 }
 
@@ -443,6 +449,9 @@ export type ApiUpdateMatch = {
   freeTeams: boolean;
   priceMonthly: number | null;
   coverObjectKey: string | null;
+  /** Null for both keeps the arena, unless the game moved (API DECISIONS #92). */
+  placeId: string | null;
+  arenaId: string | null;
 };
 
 /** The edit form → `PUT /matches/{id}`. As at creation, every slot is a regular slot. */
@@ -468,6 +477,8 @@ export function toApiUpdateMatch(
     freeTeams: input.freeTeams,
     priceMonthly: input.priceMonthly > 0 ? input.priceMonthly : null,
     coverObjectKey,
+    placeId: input.placeId ?? null,
+    arenaId: input.arenaId ?? null,
   };
 }
 

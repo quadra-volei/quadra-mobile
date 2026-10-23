@@ -103,18 +103,26 @@ export function matchIdsAtVenues(venues: NearbyVenue[]): Set<string> {
   return new Set(venues.flatMap((v) => v.matches.map((m) => m.id)));
 }
 
+type ApiNearbyArena = { id: string; placeId: string | null; distanceMeters: number; kind: VenueKind; linked: boolean };
+
 /**
- * The known arena at a picked spot (within 100 m, the same distance the API uses to put
- * games under an arena), with its name and address. Null when there is none or on any
- * error: the typed or picked address is still a valid location.
+ * The approved arena to ask about for a place picked in the match form ("É no …?", API DECISIONS
+ * #92), with its name. Null when the place is itself one of an arena's entries (the API links the
+ * game on its own), when no approved arena is within 100 m, or on any error: the place alone is
+ * still a valid location. The name is only shown, never saved (Google's terms).
  */
-export async function findArenaAt(coords: { latitude: number; longitude: number }): Promise<VenueDetails | null> {
+export async function findArenaToConfirm(
+  coords: { latitude: number; longitude: number },
+  placeId?: string,
+): Promise<{ id: string; name: string } | null> {
   try {
-    const [closest] = (await getNearbyVenues({ lat: coords.latitude, lon: coords.longitude, radiusKm: 0.2 })).venues
-      .filter((v) => v.distanceKm <= 0.1)
-      .sort((a, b) => a.distanceKm - b.distanceKm);
-    if (!closest) return null;
-    return await authorizedApiClient<VenueDetails>(`/api/v1/places/${encodeURIComponent(closest.placeId)}`);
+    const query = new URLSearchParams({ lat: String(coords.latitude), lon: String(coords.longitude) });
+    if (placeId) query.set('placeId', placeId);
+    const { items } = await authorizedApiClient<{ items: ApiNearbyArena[] }>(`/api/v1/arenas/near?${query}`);
+    const [first] = items;
+    if (!first || first.linked || !first.placeId) return null;
+    const details = await authorizedApiClient<VenueDetails>(`/api/v1/places/${encodeURIComponent(first.placeId)}`);
+    return { id: first.id, name: details.title };
   } catch {
     return null;
   }

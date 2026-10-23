@@ -219,6 +219,14 @@ jest.mock('@/features/matches/lib/useDeviceCoords', () => ({
   useDeviceCoords: () => null,
 }));
 
+// "É no …?" after a pick: the test decides whether an arena is offered and confirmed.
+const mockArenaAnswer: { arenaId: string | null } = { arenaId: null };
+jest.mock('@/features/matches/lib/confirmArena', () => ({
+  confirmArenaAt: async (_coords: unknown, _placeId: string, onConfirm: (id: string) => void) => {
+    if (mockArenaAnswer.arenaId) onConfirm(mockArenaAnswer.arenaId);
+  },
+}));
+
 jest.mock('@/features/matches/api/createMatch', () => ({
   useCreateMatch: () => ({
     mutate: mockCreate.mutate,
@@ -606,6 +614,27 @@ describe('S11 — LOCAL address search', () => {
       location: 'Arena Sky Beach · Pinheiros · São Paulo',
       latitude: -23.56,
       longitude: -46.69,
+      placeId: 'osm:W123',
+    });
+    expect(submitted().arenaId).toBeUndefined();
+  });
+
+  it('a "Sim" to the arena question sends that arena and keeps the picked address', async () => {
+    mockPlaces.data = [arena];
+    mockPlaces.coords = { latitude: -23.56, longitude: -46.69 };
+    mockArenaAnswer.arenaId = 'arena-1';
+    await renderScreen();
+    await completeOneOffFlow();
+
+    await type('match-location', 'arena sky');
+    await press('place-osm:W123');
+    await press('create-submit');
+    mockArenaAnswer.arenaId = null;
+
+    expect(submitted()).toMatchObject({
+      location: 'Arena Sky Beach · Pinheiros · São Paulo',
+      placeId: 'osm:W123',
+      arenaId: 'arena-1',
     });
   });
 
@@ -625,5 +654,7 @@ describe('S11 — LOCAL address search', () => {
     expect(sent.location).toBe('Quadra do meu prédio');
     expect(sent.latitude).toBeUndefined();
     expect(sent.longitude).toBeUndefined();
+    expect(sent.placeId).toBeUndefined();
+    expect(sent.arenaId).toBeUndefined();
   });
 });
