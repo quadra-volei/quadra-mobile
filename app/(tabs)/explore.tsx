@@ -24,11 +24,11 @@ import {
 } from "@/components/domain/MapPins";
 import { clusterPoints } from "@/features/explore/lib/cluster";
 import {
-  NEARBY_VENUES_KM,
-  matchIdsAtVenues,
-  useNearbyVenues,
-  type NearbyVenue,
-} from "@/features/explore/api/venues";
+  initialMapBox,
+  useMapItems,
+  type MapArena,
+  type MapItems,
+} from "@/features/explore/api/mapItems";
 import { Button } from "@/components/ui/Button";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
@@ -165,34 +165,31 @@ const MINI_MAP_HEIGHT = 144; // h-36
 /**
  * Static mini map (Android lite mode: a bitmap, cheap inside a scroll list)
  * drawn like the full map (owner's 4th review, item 1), but only where there
- * is a game: arenas with the number of the filtered games there, and a drop
- * per filtered game away from an arena. Arenas without games are left to the
- * full map; at this scale they were a cloud of dots. Always framed NEARBY_KM
- * around the search centre. Taps go to the card around it, never into the map.
+ * is a game: arenas with the number of their games, and a drop per filtered
+ * game with no arena. Arenas without games are left to the full map; at this
+ * scale they were a cloud of dots. Always framed NEARBY_KM around the search
+ * centre. Taps go to the card around it, never into the map.
  */
 function MiniMap({
   center,
   matches,
-  venues,
+  items,
 }: {
   center: { lat: number; lon: number };
   matches: NearbyMatch[];
-  venues: NearbyVenue[];
+  /** The full map's first request (its cache): which games have no arena (API DECISIONS #93). */
+  items: MapItems | undefined;
 }) {
-  const shown = new Set(matches.map((m) => m.id));
-  const atVenues = matchIdsAtVenues(venues);
-  const loose = matches.filter((m) => !atVenues.has(m.id)).slice(0, MINI_MAP_PINS);
-  const arenas = venues
-    .map((v) => ({ venue: v, games: v.matches.filter((m) => shown.has(m.id)).length }))
-    .filter((a) => a.games > 0)
-    .slice(0, MINI_MAP_PINS);
+  const noArena = new Set(items?.games.map((g) => g.id));
+  const loose = matches.filter((m) => noArena.has(m.id)).slice(0, MINI_MAP_PINS);
+  const arenas = (items?.arenas ?? []).filter((a) => a.gamesCount > 0).slice(0, MINI_MAP_PINS);
   // Grouped like the full map (DECISIONS #177). The card is the screen minus
   // its margins wide; the map shows the frame's height and more across.
   const width = useWindowDimensions().width - 32;
-  const clusters = clusterPoints<{ venue?: NearbyVenue; games: number; match?: NearbyMatch }>(
+  const clusters = clusterPoints<{ venue?: MapArena; games: number; match?: NearbyMatch }>(
     [
-      ...arenas.map(({ venue, games }) => ({
-        id: `v:${venue.placeId}`, lat: venue.lat, lon: venue.lon, games, item: { venue, games },
+      ...arenas.map((venue) => ({
+        id: `v:${venue.id}`, lat: venue.lat, lon: venue.lon, games: venue.gamesCount, item: { venue, games: venue.gamesCount },
       })),
       ...loose.map((m) => ({ id: `m:${m.id}`, lat: m.lat, lon: m.lon, games: 1, item: { match: m, games: 1 } })),
     ],
@@ -218,12 +215,12 @@ function MiniMap({
         }}
       >
         {clusters.map((c) => {
-          const { venue, match, games } = c.points[0]!.item;
+          const { venue, match } = c.points[0]!.item;
           const [anchor, image] =
             c.points.length > 1
               ? [CLUSTER_ANCHOR, clusterImage(c.games, c.points.length)]
               : venue
-                ? [{ x: 0.5, y: 0.5 }, venuePinImage(venue, games)]
+                ? [{ x: 0.5, y: 0.5 }, venuePinImage(venue)]
                 : [MATCH_PIN_ANCHOR, matchPinImage(match ? match.capacity - match.confirmed : 0)];
           return (
             <Marker
@@ -258,9 +255,9 @@ function ResultsArea({
     : DEFAULT_GEO;
   const { data, isPending, isError, refetch } = useNearbyMatches(geo, resolved);
   // The arenas around, for the preview map (optional: none while loading or on
-  // error). Same query the full map opens with, so it opens from the cache.
-  const venuesQuery = useNearbyVenues(
-    { lat: geo.lat, lon: geo.lon, radiusKm: NEARBY_VENUES_KM },
+  // error). Same request the full map opens with, so it opens from the cache.
+  const mapItems = useMapItems(
+    { ...initialMapBox({ latitude: geo.lat, longitude: geo.lon }), kinds: [], lat: geo.lat, lon: geo.lon },
     isMapAvailable() && resolved,
   );
 
@@ -323,7 +320,7 @@ function ResultsArea({
         {!isMapAvailable() ? null : isPending ? (
           <SkeletonBlock className="h-36 rounded-none" />
         ) : (
-          <MiniMap center={geo} matches={results} venues={venuesQuery.data?.venues ?? []} />
+          <MiniMap center={geo} matches={results} items={mapItems.data} />
         )}
         <View className="p-3 flex-row items-center gap-3">
           <View className="h-10 w-10 rounded-chip bg-primary items-center justify-center">

@@ -1,6 +1,7 @@
 import type { ImageRequireSource } from 'react-native';
 
-import type { NearbyVenue, VenueKind } from '@/features/explore/api/venues';
+import type { MapArena } from '@/features/explore/api/mapItems';
+import type { VenueKind } from '@/features/explore/api/venues';
 
 /*
  * The map's pins, shared by the full map and the Explore preview so both look
@@ -18,105 +19,76 @@ import type { NearbyVenue, VenueKind } from '@/features/explore/api/venues';
 /** How an arena pin looks: plain, or green with its game count (red ring while one is played). */
 export type VenueActivity = 'none' | 'today' | 'live';
 
-export function venueActivityFor(games: NearbyVenue['matches']): VenueActivity {
-  if (games.some((m) => m.live)) return 'live';
-  return games.length > 0 ? 'today' : 'none';
+export function venueActivityFor(arena: Pick<MapArena, 'gamesCount' | 'live'>): VenueActivity {
+  if (arena.live) return 'live';
+  return arena.gamesCount > 0 ? 'today' : 'none';
 }
 
-// Index n - 1 holds the pin with n games; the last one reads "9+".
-const VENUE_PINS: Record<VenueKind, { none: ImageRequireSource; today: ImageRequireSource[]; live: ImageRequireSource[] }> = {
+// Index n - 1 holds the pin with n games; the last one reads "5+" (DECISIONS #179).
+const VENUE_PINS: Record<VenueKind, { none: ImageRequireSource; games: ImageRequireSource[]; live: ImageRequireSource[] }> = {
   Court: {
     none: require('../../../assets/map-pins/venue-court.png'),
-    today: [
+    games: [
       require('../../../assets/map-pins/venue-court-1.png'),
       require('../../../assets/map-pins/venue-court-2.png'),
       require('../../../assets/map-pins/venue-court-3.png'),
       require('../../../assets/map-pins/venue-court-4.png'),
-      require('../../../assets/map-pins/venue-court-5.png'),
-      require('../../../assets/map-pins/venue-court-6.png'),
-      require('../../../assets/map-pins/venue-court-7.png'),
-      require('../../../assets/map-pins/venue-court-8.png'),
-      require('../../../assets/map-pins/venue-court-9.png'),
-      require('../../../assets/map-pins/venue-court-10.png'),
+      require('../../../assets/map-pins/venue-court-5plus.png'),
     ],
     live: [
       require('../../../assets/map-pins/venue-court-1-live.png'),
       require('../../../assets/map-pins/venue-court-2-live.png'),
       require('../../../assets/map-pins/venue-court-3-live.png'),
       require('../../../assets/map-pins/venue-court-4-live.png'),
-      require('../../../assets/map-pins/venue-court-5-live.png'),
-      require('../../../assets/map-pins/venue-court-6-live.png'),
-      require('../../../assets/map-pins/venue-court-7-live.png'),
-      require('../../../assets/map-pins/venue-court-8-live.png'),
-      require('../../../assets/map-pins/venue-court-9-live.png'),
-      require('../../../assets/map-pins/venue-court-10-live.png'),
+      require('../../../assets/map-pins/venue-court-5plus-live.png'),
     ],
   },
   Sand: {
     none: require('../../../assets/map-pins/venue-sand.png'),
-    today: [
+    games: [
       require('../../../assets/map-pins/venue-sand-1.png'),
       require('../../../assets/map-pins/venue-sand-2.png'),
       require('../../../assets/map-pins/venue-sand-3.png'),
       require('../../../assets/map-pins/venue-sand-4.png'),
-      require('../../../assets/map-pins/venue-sand-5.png'),
-      require('../../../assets/map-pins/venue-sand-6.png'),
-      require('../../../assets/map-pins/venue-sand-7.png'),
-      require('../../../assets/map-pins/venue-sand-8.png'),
-      require('../../../assets/map-pins/venue-sand-9.png'),
-      require('../../../assets/map-pins/venue-sand-10.png'),
+      require('../../../assets/map-pins/venue-sand-5plus.png'),
     ],
     live: [
       require('../../../assets/map-pins/venue-sand-1-live.png'),
       require('../../../assets/map-pins/venue-sand-2-live.png'),
       require('../../../assets/map-pins/venue-sand-3-live.png'),
       require('../../../assets/map-pins/venue-sand-4-live.png'),
-      require('../../../assets/map-pins/venue-sand-5-live.png'),
-      require('../../../assets/map-pins/venue-sand-6-live.png'),
-      require('../../../assets/map-pins/venue-sand-7-live.png'),
-      require('../../../assets/map-pins/venue-sand-8-live.png'),
-      require('../../../assets/map-pins/venue-sand-9-live.png'),
-      require('../../../assets/map-pins/venue-sand-10-live.png'),
+      require('../../../assets/map-pins/venue-sand-5plus-live.png'),
     ],
   },
   Park: {
     none: require('../../../assets/map-pins/venue-park.png'),
-    today: [
+    games: [
       require('../../../assets/map-pins/venue-park-1.png'),
       require('../../../assets/map-pins/venue-park-2.png'),
       require('../../../assets/map-pins/venue-park-3.png'),
       require('../../../assets/map-pins/venue-park-4.png'),
-      require('../../../assets/map-pins/venue-park-5.png'),
-      require('../../../assets/map-pins/venue-park-6.png'),
-      require('../../../assets/map-pins/venue-park-7.png'),
-      require('../../../assets/map-pins/venue-park-8.png'),
-      require('../../../assets/map-pins/venue-park-9.png'),
-      require('../../../assets/map-pins/venue-park-10.png'),
+      require('../../../assets/map-pins/venue-park-5plus.png'),
     ],
     live: [
       require('../../../assets/map-pins/venue-park-1-live.png'),
       require('../../../assets/map-pins/venue-park-2-live.png'),
       require('../../../assets/map-pins/venue-park-3-live.png'),
       require('../../../assets/map-pins/venue-park-4-live.png'),
-      require('../../../assets/map-pins/venue-park-5-live.png'),
-      require('../../../assets/map-pins/venue-park-6-live.png'),
-      require('../../../assets/map-pins/venue-park-7-live.png'),
-      require('../../../assets/map-pins/venue-park-8-live.png'),
-      require('../../../assets/map-pins/venue-park-9-live.png'),
-      require('../../../assets/map-pins/venue-park-10-live.png'),
+      require('../../../assets/map-pins/venue-park-5plus-live.png'),
     ],
-  },};
+  },
+};
 
 /**
- * An arena: green with the number of games (9+) and its kind (🏐 court, 🏖️ sand,
- * 🌳 park) in a corner badge, red ring while one is played; white with its kind
- * when it has none. 48 dp square, centred on the coordinate.
+ * An arena: green with the number of its games (1–4, then 5+) and its kind (🏐 court, 🏖️ sand,
+ * 🌳 park) in a corner badge, red ring while one is played; white with its kind when it has none.
+ * 48 dp square, centred on the coordinate.
  */
-export function venuePinImage(venue: NearbyVenue, games: number): ImageRequireSource {
-  const pins = VENUE_PINS[venue.kind] ?? VENUE_PINS.Court;
-  if (games <= 0) return pins.none;
-  const set = venueActivityFor(venue.matches) === 'live' ? pins.live : pins.today;
-  return set[Math.min(games, set.length) - 1] ?? pins.none;
+export function venuePinImage(arena: Pick<MapArena, 'kind' | 'gamesCount' | 'live'>): ImageRequireSource {
+  const pins = VENUE_PINS[arena.kind] ?? VENUE_PINS.Court;
+  if (arena.gamesCount <= 0) return pins.none;
+  const set = arena.live ? pins.live : pins.games;
+  return set[Math.min(arena.gamesCount, set.length) - 1] ?? pins.none;
 }
 
 /** The lime ring drawn under the selected arena (same 48 dp box, same centre). */
@@ -147,11 +119,10 @@ export function matchPinImage(openSlots: number): ImageRequireSource {
   return MATCH_PINS.open;
 }
 
-// A group of nearby places (DECISIONS #177): green with its games, white with
-// its places when none has a game. 1–9, then 10+, 20+, 50+, 100+.
+// A group of nearby places (DECISIONS #177, #179): its number is how many places it holds
+// (arenas and games with no arena); green when any of them has a game. 2–9, then 10+, 20+, 50+, 100+.
 const CLUSTER_PINS: { games: Record<number, ImageRequireSource>; places: Record<number, ImageRequireSource> } = {
   games: {
-    1: require('../../../assets/map-pins/cluster-games-1.png'),
     2: require('../../../assets/map-pins/cluster-games-2.png'),
     3: require('../../../assets/map-pins/cluster-games-3.png'),
     4: require('../../../assets/map-pins/cluster-games-4.png'),
@@ -183,11 +154,10 @@ const CLUSTER_PINS: { games: Record<number, ImageRequireSource>; places: Record<
 
 const CLUSTER_BUCKETS = [100, 50, 20, 10];
 
-/** The image of a group: its games when it has any, else its number of places. */
+/** The image of a group: the number of places in it, green when one of them has a game. */
 export function clusterImage(games: number, places: number): ImageRequireSource {
-  const n = games > 0 ? games : places;
-  const key = n < 10 ? Math.max(n, 1) : CLUSTER_BUCKETS.find((b) => n >= b)!;
-  return games > 0 ? CLUSTER_PINS.games[key]! : (CLUSTER_PINS.places[key] ?? CLUSTER_PINS.places[2]!);
+  const key = places < 10 ? Math.max(places, 2) : CLUSTER_BUCKETS.find((b) => places >= b)!;
+  return games > 0 ? CLUSTER_PINS.games[key]! : CLUSTER_PINS.places[key]!;
 }
 
 /** A 44 dp disc with a 3 dp shadow: the disc's centre on the point. */

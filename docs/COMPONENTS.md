@@ -441,7 +441,7 @@ More UI primitives will live here:
 ### `MapPins` (`venuePinImage`, `matchPinImage`, `clusterImage`)
 - **Path**: `src/components/domain/MapPins.tsx`
 - **Category**: domain
-- **API**: `venuePinImage(venue, games)`, `matchPinImage(openSlots)` and `clusterImage(games, places)` return the image for a Marker's `image` prop; `VENUE_HALO` (selected arena ring), `venueActivityFor`, `MATCH_PIN_ANCHOR`, `MATCH_PIN_CENTER_OFFSET`, `CLUSTER_ANCHOR`. Grouping itself is `clusterPoints` in `src/features/explore/lib/cluster.ts` (#177)
+- **API**: `venuePinImage(arena)` (badge 1–4, then 5+; red ring when `live`), `matchPinImage(openSlots)` and `clusterImage(games, places)` (the number is the places in the group, green when one has a game, #179) return the image for a Marker's `image` prop; `VENUE_HALO` (selected arena ring), `venueActivityFor`, `MATCH_PIN_ANCHOR`, `MATCH_PIN_CENTER_OFFSET`, `CLUSTER_ANCHOR`. Grouping itself is `clusterPoints` in `src/features/explore/lib/cluster.ts` (`supercluster`, #177, #179)
 - **Used in**: S17 map (`app/explore/map.tsx`), S6 Explore preview map
 - **Notes**: Pins are images in `assets/map-pins` (only `@3x`, drawn from `scripts/map-pins.html`), never views inside a Marker (#176). A new look is a new image: regenerate the PNGs from the HTML and add the `require` here. Arena pins are 48 dp squares centred on the point; drops are 35 × 42 dp with the tip on the point.
 

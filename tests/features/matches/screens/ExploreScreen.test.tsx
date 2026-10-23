@@ -184,9 +184,9 @@ jest.mock('@tanstack/react-query', () => ({
 }));
 
 // The preview map's arenas: none here (the map's own tests cover the pins).
-jest.mock('@/features/explore/api/venues', () => ({
-  ...jest.requireActual('@/features/explore/api/venues'),
-  useNearbyVenues: () => ({ data: { venues: [], hasMore: false } }),
+jest.mock('@/features/explore/api/mapItems', () => ({
+  ...jest.requireActual('@/features/explore/api/mapItems'),
+  useMapItems: () => ({ data: { arenas: [], games: [], arenaCount: 0, gameCount: 0, truncated: false } }),
 }));
 
 jest.mock('@/features/matches/api/getNearby', () => ({
