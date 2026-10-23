@@ -59,18 +59,19 @@
   for (const [kind, emoji] of Object.entries(KINDS)) {
     add(`venue-${kind}`, 'venue', `<div class="circle"><span class="emoji">${emoji}</span></div>`);
     for (const live of [false, true]) {
-      for (const n of ['1', '2', '3', '4', '5', '6', '7', '8', '9', '9+']) {
-        const name = `venue-${kind}-${n === '9+' ? '10' : n}${live ? '-live' : ''}`;
+      // The arena's games (DECISIONS #179): 1–4, then 5+.
+      for (const n of ['1', '2', '3', '4', '5+']) {
+        const name = `venue-${kind}-${n === '5+' ? '5plus' : n}${live ? '-live' : ''}`;
         add(name, `venue games${live ? ' live' : ''}`,
           `<div class="circle"><span class="count">${n}</span></div><div class="badge"><span class="emoji">${emoji}</span></div>`);
       }
     }
   }
   add('venue-halo', 'halo', '');
-  // Counts 1–9, then buckets like Google's cluster renderer (10+, 20+, 50+, 100+).
+  // Places in the group (DECISIONS #179): 2–9, then buckets like Google's cluster renderer
+  // (10+, 20+, 50+, 100+); green when one of them has a game.
   for (const games of [true, false]) {
-    for (const n of ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '20', '50', '100']) {
-      if (!games && n === '1') continue;
+    for (const n of ['2', '3', '4', '5', '6', '7', '8', '9', '10', '20', '50', '100']) {
       const text = Number(n) >= 10 ? `${n}+` : n;
       add(`cluster-${games ? 'games' : 'places'}-${n}`, `cluster${games ? ' games' : ''}`,
         `<i class="shadow"></i><i class="disc n${text.length}">${text}</i>`);
