@@ -15,9 +15,9 @@ State of the MVP on the `dev` branch, as of 2026-10-06. Reasons for each choice 
 | S5 Home | `app/(tabs)/index.tsx` | My next confirmed game (one card), my other upcoming matches; "Atividade dos amigos" (up to 5, "Ver tudo" opens `app/activity.tsx`; hidden while following nobody); empty state with the hero (plus the friends' activity when there is some). Nearby matches are only in Explorar. Central "+" in the tab bar opens "Criar partida" / "Criar publicação" |
 | S6 Explore | `app/(tabs)/explore.tsx` | Search, "Filtros" sheet (sort, when, distance, format, level, price, open spots) plus quick chips, mini map of the results (always 15 km around the user, only places with games), results grid/list starting at 15 km (DECISIONS #176) |
 | S7 Network | `app/(tabs)/network.tsx`, `app/network/new.tsx`, `app/network/[id].tsx`, `app/network/search.tsx`, `app/players/[id].tsx` | Feed in two tabs, "Para você" and "Seguindo" (who I follow): posts with text, one photo and a tied match, invite card with "Participar", the card of a match its organizer shared ("criou a partida"), likes, comments, delete my own, report someone else's post or block its author. New post with text, one photo and either an upcoming open match of mine or one of my last 5 finished. Another player's profile with follow and their card (front and back). Search players by @ |
-| S8 Profile | `app/(tabs)/profile.tsx`, `app/profile/history.tsx` | Progress card, recent matches (last 5, MVP badge; "Ver tudo" with more than 5 opens the full history by month, DECISIONS #174), friends season ranking preview |
+| S8 Profile | `app/(tabs)/profile.tsx`, `app/profile/history.tsx` | Progress card, recent matches (last 5, MVP badge; "Ver tudo" with more than 5 opens the full history by month, DECISIONS #174), network season ranking preview |
 | S8b Sua carta | `app/profile/card.tsx` | Collectible card with front and back, tilt by drag or by tilting the phone, holographic light and flip; look by level tier (Clássica 1–9, Prisma 10–19, Holográfica 20+, placeholder art); finish and title saved on the account; shows the profile photo; enlarged view; PNG export of the face shown |
-| S9 Ranking | `app/profile/ranking.tsx` | Season ranking (this month): Amigos · Grupos · Geral, position chips, group chips, podium and list open the player, my line with the games I miss (DECISIONS #117) |
+| S9 Ranking | `app/profile/ranking.tsx` | Season ranking: Rede · Grupos · Geral, position and group chips, month arrows with last months' champion, podium, "my standing" card (rank, who to pass, weekly arrow, points by reason), list ordered by points / MVPs / wins whose rows open in place, "Como pontuar" legend, pull to refresh (DECISIONS #117, #184) |
 | S10 Settings | `app/profile/settings.tsx`, `edit.tsx`, `notifications.tsx`, `feedback.tsx`, `blocked.tsx`, `app/notifications.tsx` | Edit profile with photo upload or one of the 10 Quadra avatars, theme (light / dark / auto), notification switches (saved on the API), notifications list behind the bell with unread badge, push on the phone (needs Firebase in EAS), "Mostrar minhas atividades" switch, blocked players, feedback form, export my data, delete account, logout |
 | S11 Create match | `app/matches/create.tsx` | Address search with free text fallback, recurrence, privacy (open / code / guests), optional cover photo (shown on the S12 hero) |
 | S12 Match detail | `app/matches/[id].tsx` | Presence, join, waiting list, guests, invite code; the organizer's "Compartilhar na Rede", "Editar" and "Cancelar" (Detalhes tab; "Encerrar pelada fixa" on the edit screen); a cancelled match says so; says when confirmations open; main button follows the game |
@@ -40,7 +40,7 @@ Waiting on configuration (no code):
 Neutral placeholders, because the backend has no such data yet:
 
 - "—" for an action nobody recorded (stats sheet, "Meu desempenho", profile averages): not zero (#167).
-- Ranking trend arrows and level dots on rosters (absent)
+- Level dots on rosters (absent)
 
 Not built yet:
 

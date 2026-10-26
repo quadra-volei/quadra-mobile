@@ -1,13 +1,15 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { Bell } from 'lucide-react-native';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Crown } from 'lucide-react-native';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { PositionTag } from '@/components/domain/PositionPicker';
 import { RankingRow } from '@/components/domain/RankingRow';
 import { Avatar } from '@/components/ui/Avatar';
 import { BackHeader } from '@/components/ui/BackHeader';
+import { Button } from '@/components/ui/Button';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
@@ -16,28 +18,89 @@ import { POSITIONS, positionLabel, type Position } from '@/features/profile/sche
 import {
   useRanking,
   useRankingGroups,
+  type Ranking,
   type RankingScope,
+  type RankingSort,
 } from '@/features/ranking/api/getGroupRanking';
-import type { RankingRow as RankingRowData } from '@/features/ranking/types/ranking';
+import type { PointsBreakdown, RankingRow as RankingRowData } from '@/features/ranking/types/ranking';
 import { colors, HERO_GRADIENT } from '@/theme/colors';
 import { ICON_HIT_SLOP } from '@/theme/layout';
-
-function noop() {}
+import { MOTION } from '@/theme/motion';
 
 function openPlayer(id: string) {
   router.push(`/players/${id}`);
 }
 
 const SCOPES: { scope: RankingScope; label: string }[] = [
-  { scope: 'friends', label: 'Amigos' },
+  { scope: 'friends', label: 'Rede' },
   { scope: 'group', label: 'Grupos' },
   { scope: 'general', label: 'Geral' },
 ];
 
+const SORTS: { sort: RankingSort; label: string }[] = [
+  { sort: 'points', label: 'Pontos' },
+  { sort: 'mvps', label: 'MVPs' },
+  { sort: 'wins', label: 'Vitórias' },
+];
+
 const EMPTY_MESSAGE: Record<RankingScope, string> = {
-  friends: 'Ninguém que você segue pontuou neste mês. Jogos recorrentes contam pontos.',
+  friends: 'Ninguém da sua rede pontuou neste mês. Jogos recorrentes contam pontos.',
   group: 'Ninguém pontuou neste grupo neste mês',
   general: 'Ninguém tem jogos suficientes neste mês ainda',
+};
+
+// The point rules of quadra-api DECISIONS #95, shown as the screen's legend.
+const RULES: { points: string; label: string; detail: string; mvp?: boolean }[] = [
+  { points: '+10', label: 'Presença', detail: 'por partida' },
+  { points: '+8', label: 'Jogo ganho', detail: 'até 3 por partida' },
+  { points: '+4', label: 'Voto de MVP', detail: 'por voto recebido', mvp: true },
+  { points: '+20', label: 'MVP do dia', detail: 'com 3+ votos', mvp: true },
+];
+
+// The breakdown bar takes the palette in its order (blue, lime, orange); MVP,
+// the main signal, gets the lime highlight.
+const BREAKDOWN: { key: keyof PointsBreakdown; label: string; fill: string }[] = [
+  { key: 'attendance', label: 'Presença', fill: 'bg-primary' },
+  { key: 'mvp', label: 'MVP', fill: 'bg-accent' },
+  { key: 'wins', label: 'Vitórias', fill: 'bg-tertiary' },
+];
+
+// The ledger starts in July 2026 (the first recurring games); the arrows never go before it.
+const FIRST_SEASON = '2026-07';
+
+/** `yyyy-MM` of a date, in Brasília time. */
+function monthOf(date: Date): string {
+  const [, month, year] = date
+    .toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+    .split('/');
+  return `${year}-${month}`;
+}
+
+function shiftMonth(season: string, by: number): string {
+  const [year, month] = season.split('-').map(Number);
+  const d = new Date(Date.UTC(year!, month! - 1 + by, 1));
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+}
+
+function monthName(season: string): string {
+  const [year, month] = season.split('-').map(Number);
+  return new Date(Date.UTC(year!, month! - 1, 15)).toLocaleDateString('pt-BR', {
+    month: 'long',
+    timeZone: 'UTC',
+  });
+}
+
+/** The number a row shows under the chosen order. */
+function scoreFor(row: RankingRowData, sort: RankingSort): number {
+  if (sort === 'mvps') return row.mvps ?? 0;
+  if (sort === 'wins') return row.wins ?? 0;
+  return row.score;
+}
+
+const UNIT: Record<RankingSort, { short: string; long: string; one: string }> = {
+  points: { short: 'pts', long: 'pontos', one: 'ponto' },
+  mvps: { short: 'MVP', long: 'MVPs', one: 'MVP' },
+  wins: { short: 'vit.', long: 'jogos ganhos', one: 'jogo ganho' },
 };
 
 /** A filter group: an eyebrow saying what it controls, then its chips. */
@@ -62,30 +125,41 @@ function ChipRow({ label, children }: { label: string; children: React.ReactNode
 }
 
 /**
- * Amigos · Grupos · Geral: which ranking, the main choice, so a segmented
- * control on navy (the active one lime) instead of one more chip row. Selected
- * colors inline, never a toggled className (DECISIONS #87).
+ * A segmented control on navy (the active one lime): Rede · Grupos · Geral and
+ * the list order. Selected colors inline, never a toggled className (DECISIONS #87).
  */
-function ScopeSwitch({ value, onChange }: { value: RankingScope; onChange: (scope: RankingScope) => void }) {
+function Segmented<T extends string>({
+  options,
+  value,
+  onChange,
+  testID,
+  compact,
+}: {
+  options: { key: T; label: string }[];
+  value: T;
+  onChange: (key: T) => void;
+  testID: string;
+  compact?: boolean;
+}) {
   return (
-    <View className="mx-4 flex-row rounded-pill bg-surface-dark p-1" testID="ranking-scope">
-      {SCOPES.map((s) => {
-        const selected = value === s.scope;
+    <View className="flex-row rounded-pill bg-surface-dark p-1" testID={testID}>
+      {options.map((o) => {
+        const selected = value === o.key;
         return (
           <Pressable
-            key={s.scope}
-            onPress={() => onChange(s.scope)}
+            key={o.key}
+            onPress={() => onChange(o.key)}
             accessibilityRole="button"
             accessibilityState={{ selected }}
-            testID={`ranking-scope-${s.scope}`}
-            className="h-10 flex-1 items-center justify-center rounded-pill"
+            testID={`${testID}-${o.key}`}
+            className={`${compact ? 'h-8 px-3' : 'h-10 flex-1'} items-center justify-center rounded-pill`}
             style={selected ? { backgroundColor: colors.accent } : undefined}
           >
             <Text
-              className="font-body-bold text-body-bold text-white/70"
+              className={`font-body-bold ${compact ? 'text-caption' : 'text-body-bold'} text-white/70`}
               style={selected ? { color: colors.surfaceDark } : undefined}
             >
-              {s.label}
+              {o.label}
             </Text>
           </Pressable>
         );
@@ -125,169 +199,416 @@ const PEDESTAL: Record<1 | 2 | 3, { box: string; label: string; height: string }
   3: { box: 'bg-tertiary', label: 'text-surface-dark', height: 'h-12' },
 };
 
-// ── Top-3 podium on the navy hero (2º left, 1º center and tallest, 3º right) ──
+// ── Top-3 podium (2º left, 1º center and tallest, 3º right) ──
 function PodiumColumn({
   row,
   place,
+  sort,
+  champion,
 }: {
   row: RankingRowData | undefined;
   place: 1 | 2 | 3;
+  sort: RankingSort;
+  champion: boolean;
 }) {
   if (!row) return <View className="items-center w-24" />;
 
   const pedestal = PEDESTAL[place];
+  const score = scoreFor(row, sort);
 
   return (
-    <Pressable
-      className="items-center w-24"
-      accessibilityRole="button"
-      accessibilityLabel={`${row.position}º, ${row.name}, ${row.score} pontos`}
-      onPress={() => openPlayer(row.playerId)}
-    >
-      <Avatar uri={row.photoUrl} name={row.name} size="lg" level={row.level} />
-      <Text
-        numberOfLines={1}
-        className="font-body-semibold text-body-bold text-text-on-dark mt-2 text-center"
+    <Animated.View entering={FadeInDown.delay(place * 80).duration(260)}>
+      <Pressable
+        className="items-center w-24"
+        accessibilityRole="button"
+        accessibilityLabel={`${row.position}º, ${row.name}, ${score} ${UNIT[sort].long}`}
+        onPress={() => openPlayer(row.playerId)}
       >
-        {row.name}
-      </Text>
-      <Text className="font-num text-accent text-body">{row.score} pts</Text>
-      <View
-        className={`w-24 mt-2 items-center justify-center rounded-t-card border-2 border-b-0 border-surface-dark ${pedestal.box} ${pedestal.height}`}
-      >
-        <Text className={`font-num ${pedestal.label}`} style={{ fontSize: place === 1 ? 32 : 22 }}>
-          {row.position}º
+        {champion ? <Crown size={22} color={colors.accent} /> : <View className="h-6" />}
+        <Avatar uri={row.photoUrl} name={row.name} size="lg" level={row.level} />
+        <Text
+          numberOfLines={1}
+          className="font-body-semibold text-body-bold text-text-on-dark mt-2 text-center"
+        >
+          {row.name}
+          {row.isMe ? ' · você' : ''}
         </Text>
-      </View>
-    </Pressable>
+        <Text className="font-num text-accent text-body">
+          {score} {UNIT[sort].short}
+        </Text>
+        <View
+          className={`w-24 mt-2 items-center justify-center rounded-t-card border-2 border-b-0 border-surface-dark ${pedestal.box} ${pedestal.height}`}
+        >
+          <Text className={`font-num ${pedestal.label}`} style={{ fontSize: place === 1 ? 32 : 22 }}>
+            {row.position}º
+          </Text>
+        </View>
+      </Pressable>
+    </Animated.View>
   );
 }
 
-function Podium({ top, season }: { top: RankingRowData[]; season: string }) {
+/** The navy hero: the season with its arrows, then the podium (or the empty / error state). */
+function Hero({
+  season,
+  isCurrent,
+  canGoBack,
+  onShift,
+  sort,
+  children,
+  top,
+}: {
+  season: string;
+  isCurrent: boolean;
+  canGoBack: boolean;
+  onShift: (by: number) => void;
+  sort: RankingSort;
+  children?: React.ReactNode;
+  top: RankingRowData[];
+}) {
+  const champion = !isCurrent && top.length > 0;
   return (
     <View className="mx-4 overflow-hidden rounded-card" testID="ranking-podium">
       <LinearGradient
         colors={HERO_GRADIENT}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={{ paddingTop: 16 }}
+        style={{ paddingTop: 12, paddingBottom: children ? 8 : 0 }}
       >
-        <Text
-          className="px-4 font-body-bold text-eyebrow text-accent uppercase text-center"
-          style={{ letterSpacing: 1.5 }}
-        >
-          {season}
-        </Text>
-        <View className="flex-row items-end justify-center gap-3 px-4 mt-4">
-          <PodiumColumn row={top[1]} place={2} />
-          <PodiumColumn row={top[0]} place={1} />
-          <PodiumColumn row={top[2]} place={3} />
+        <View className="flex-row items-center justify-between px-3">
+          <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel="Mês anterior"
+            disabled={!canGoBack}
+            hitSlop={ICON_HIT_SLOP}
+            onPress={() => onShift(-1)}
+            testID="ranking-season-prev"
+            style={{ opacity: canGoBack ? 1 : 0.3 }}
+          >
+            <ChevronLeft size={24} color={colors.textOnDark} />
+          </PressableScale>
+          <View className="items-center">
+            <Text
+              className="font-body-bold text-eyebrow text-accent uppercase"
+              style={{ letterSpacing: 1.5 }}
+              testID="ranking-season"
+            >
+              {champion ? `Campeão de ${monthName(season)}` : `Temporada de ${monthName(season)}`}
+            </Text>
+            <Text className="font-body text-caption text-white/70 mt-1">
+              {isCurrent ? 'Zera no dia 1º do próximo mês' : 'Temporada encerrada'}
+            </Text>
+          </View>
+          <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel="Próximo mês"
+            disabled={isCurrent}
+            hitSlop={ICON_HIT_SLOP}
+            onPress={() => onShift(1)}
+            testID="ranking-season-next"
+            style={{ opacity: isCurrent ? 0.3 : 1 }}
+          >
+            <ChevronRight size={24} color={colors.textOnDark} />
+          </PressableScale>
         </View>
+        {children ?? (
+          <View className="flex-row items-end justify-center gap-3 px-4 mt-3">
+            <PodiumColumn row={top[1]} place={2} sort={sort} champion={false} />
+            <PodiumColumn row={top[0]} place={1} sort={sort} champion={champion} />
+            <PodiumColumn row={top[2]} place={3} sort={sort} champion={false} />
+          </View>
+        )}
       </LinearGradient>
+    </View>
+  );
+}
+
+/** A stacked bar of where the points came from, with its legend. */
+function BreakdownBar({ breakdown, total }: { breakdown: PointsBreakdown; total: number }) {
+  const parts = BREAKDOWN.filter((b) => breakdown[b.key] > 0);
+  return (
+    <View testID="ranking-breakdown">
+      <View className="h-3 rounded-pill bg-bg-light-alt overflow-hidden flex-row">
+        {parts.map((b) => (
+          <View
+            key={b.key}
+            className={`h-3 ${b.fill}`}
+            style={{ width: `${total > 0 ? (breakdown[b.key] / total) * 100 : 0}%` }}
+          />
+        ))}
+      </View>
+      <View className="flex-row flex-wrap gap-x-4 gap-y-1 mt-2">
+        {BREAKDOWN.map((b) => (
+          <View key={b.key} className="flex-row items-center gap-1">
+            <View className={`w-2 h-2 rounded-full ${b.fill}`} />
+            <Text className="font-body text-caption text-text-muted">
+              {b.label} <Text className="font-num text-text-primary">{breakdown[b.key]}</Text>
+            </Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** A small stat: a Russo number over its label. */
+function Stat({ value, label }: { value: number | string; label: string }) {
+  return (
+    <View className="flex-1 items-center rounded-chip bg-bg-light py-2">
+      <Text className="font-num text-primary text-body">{value}</Text>
+      <Text className="font-body text-caption text-text-muted">{label}</Text>
+    </View>
+  );
+}
+
+function Stats({ row }: { row: RankingRowData }) {
+  return (
+    <View className="flex-row gap-2">
+      <Stat value={row.matches ?? 0} label="partidas" />
+      <Stat value={row.wins ?? 0} label="jogos ganhos" />
+      <Stat value={row.votes ?? 0} label="votos MVP" />
+      <Stat value={row.mvps ?? 0} label="MVPs" />
+    </View>
+  );
+}
+
+/** My standing: rank, points, the arrow, who to pass and where my points came from. */
+function MyStanding({ data, sort, isCurrent }: { data: Ranking; sort: RankingSort; isCurrent: boolean }) {
+  const me = data.me;
+  if (!me) {
+    return (
+      <View className="mx-4 mt-4 rounded-card bg-white shadow-card p-4" testID="ranking-me">
+        <Text className="font-body-bold text-body-bold text-text-primary">
+          {isCurrent ? 'Você ainda não pontuou neste mês' : 'Você não pontuou neste mês'}
+        </Text>
+        <Text className="font-body text-caption text-text-muted mt-1">
+          Jogue uma partida recorrente para entrar no ranking.
+        </Text>
+      </View>
+    );
+  }
+
+  const mine = scoreFor(me, sort);
+  const target = data.nextUp;
+  const gap = target ? scoreFor(target, sort) - mine : 0;
+  const missing = me.position == null ? Math.max(data.minMatches - (me.matches ?? 0), 1) : 0;
+
+  return (
+    <Animated.View
+      entering={FadeIn.duration(MOTION.fadeIn)}
+      className="mx-4 mt-4 rounded-card bg-white shadow-card p-4"
+      testID="ranking-me"
+    >
+      <View className="flex-row items-center">
+        <View className="items-center w-24">
+          <Text className="font-num text-primary" style={{ fontSize: 32 }}>
+            {me.position != null ? `${me.position}º` : '–'}
+          </Text>
+          <Text numberOfLines={1} className="font-body text-caption text-text-muted">sua posição</Text>
+        </View>
+        <View className="flex-1 ml-3">
+          <Text className="font-body-bold text-body-bold text-text-primary">
+            {mine} {mine === 1 ? UNIT[sort].one : UNIT[sort].long}
+          </Text>
+          <Text className="font-body text-caption text-text-muted mt-1" testID="ranking-me-goal">
+            {!isCurrent
+              ? me.position != null
+                ? `Temporada encerrada: você terminou em ${me.position}º`
+                : 'Temporada encerrada'
+              : missing > 0
+              ? `Jogue mais ${missing} ${missing === 1 ? 'partida' : 'partidas'} neste mês para entrar no ranking`
+              : me.position === 1
+                ? 'Você lidera! Continue jogando para segurar o topo.'
+                : target
+                  ? `Faltam ${gap + 1} ${UNIT[sort].short} para passar ${target.name}`
+                  : 'Continue jogando para subir.'}
+          </Text>
+          {me.trend && me.trend.direction !== 'flat' ? (
+            <Text
+              className="font-body-bold text-caption mt-1"
+              style={{ color: me.trend.direction === 'up' ? colors.success : colors.danger }}
+            >
+              {me.trend.direction === 'up' ? '▲ subiu' : '▼ caiu'} {me.trend.delta}{' '}
+              {me.trend.delta === 1 ? 'posição' : 'posições'} na semana
+            </Text>
+          ) : null}
+        </View>
+      </View>
+      {me.breakdown && me.score > 0 ? (
+        <View className="mt-4">
+          <BreakdownBar breakdown={me.breakdown} total={me.score} />
+        </View>
+      ) : null}
+    </Animated.View>
+  );
+}
+
+/** How points are earned, always in sight (quadra-api DECISIONS #95). */
+function PointsLegend() {
+  return (
+    <View className="mx-4 mt-4" testID="ranking-legend">
+      <Text className="font-display text-h2 text-text-primary uppercase">Como pontuar</Text>
+      <Text className="font-body text-caption text-text-muted mt-1">
+        Só partidas recorrentes contam. O MVP, votado por quem jogou, é o que mais vale.
+      </Text>
+      <View className="flex-row gap-2 mt-3">
+        {RULES.map((r) => (
+          <View
+            key={r.label}
+            className={`flex-1 rounded-chip px-2 py-3 items-center ${r.mvp ? 'bg-accent/20 border-2 border-accent' : 'bg-white shadow-card'}`}
+          >
+            <Text className="font-num text-primary" style={{ fontSize: 20 }}>
+              {r.points}
+            </Text>
+            <Text className="font-body-bold text-caption text-text-primary text-center mt-1">{r.label}</Text>
+            <Text className="font-body text-caption text-text-muted text-center">{r.detail}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
+/** A list row that opens in place: stats, where the points came from, "Ver perfil". */
+function ExpandableRow({
+  row,
+  sort,
+  open,
+  onToggle,
+  divider,
+}: {
+  row: RankingRowData;
+  sort: RankingSort;
+  open: boolean;
+  onToggle: () => void;
+  divider: boolean;
+}) {
+  const Chevron = open ? ChevronUp : ChevronDown;
+  return (
+    <View>
+      {divider ? <View className="h-px bg-line mx-4" /> : null}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ expanded: open }}
+        onPress={onToggle}
+        testID={`ranking-row-${row.playerId}`}
+        className={`flex-row items-center ${row.isMe ? 'bg-primary/10 rounded-card' : ''}`}
+      >
+        <View className="flex-1">
+          <RankingRow
+            row={{ ...row, score: scoreFor(row, sort) }}
+            isMe={Boolean(row.isMe)}
+            scoreUnit={UNIT[sort].long}
+            highlight={false}
+          />
+        </View>
+        <View className="pr-3">
+          <Chevron size={18} color={colors.textMuted} />
+        </View>
+      </Pressable>
+      {open ? (
+        <Animated.View entering={FadeIn.duration(MOTION.fadeIn)} className="px-4 pb-4 gap-3" testID="ranking-row-detail">
+          <Stats row={row} />
+          {row.breakdown && row.score > 0 ? <BreakdownBar breakdown={row.breakdown} total={row.score} /> : null}
+          <Button variant="outline" onPress={() => openPlayer(row.playerId)} testID="ranking-row-profile">
+            Ver perfil
+          </Button>
+        </Animated.View>
+      ) : null}
     </View>
   );
 }
 
 function RankingSkeleton() {
   return (
-    <View className="mt-2">
-      <View className="flex-row items-end justify-center gap-3 px-4">
-        <SkeletonBlock className="w-24 h-32" />
-        <SkeletonBlock className="w-24 h-44" />
-        <SkeletonBlock className="w-24 h-28" />
-      </View>
-      <View className="mx-4 mt-6 gap-2">
-        <SkeletonBlock className="h-16" />
-        <SkeletonBlock className="h-16" />
-        <SkeletonBlock className="h-16" />
-      </View>
+    <View className="mt-4 gap-2 mx-4">
+      <SkeletonBlock className="h-24" />
+      <SkeletonBlock className="h-16" />
+      <SkeletonBlock className="h-16" />
     </View>
   );
 }
 
-function seasonName(seasonStart: string): string {
-  return new Date(seasonStart).toLocaleDateString('pt-BR', {
-    month: 'long',
-    timeZone: 'America/Sao_Paulo',
-  });
-}
-
 /**
- * Season ranking (quadra-api DECISIONS #63): Amigos · Grupos · Geral, filtered
- * by court position. `?scope=group&groupId=` opens a group directly (match detail).
+ * Season ranking (quadra-api DECISIONS #63, #95): Rede · Grupos · Geral, any
+ * month since the first season, filtered by court position and ordered by
+ * points, MVPs or games won. `?scope=group&groupId=` opens a group directly.
  */
 export default function RankingScreen() {
   const params = useLocalSearchParams<{ scope?: RankingScope; groupId?: string }>();
   const [scope, setScope] = useState<RankingScope>(params.scope ?? 'friends');
   const [pickedGroupId, setGroupId] = useState<string | undefined>(params.groupId);
   const [position, setPosition] = useState<Position | undefined>();
+  const [sort, setSort] = useState<RankingSort>('points');
+  const currentSeason = monthOf(new Date());
+  const [season, setSeason] = useState(currentSeason);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const groups = useRankingGroups();
   const groupId = pickedGroupId ?? groups.data?.[0]?.id;
+  const isCurrent = season === currentSeason;
   const ranking = useRanking({
     scope,
     groupId: scope === 'group' ? groupId : undefined,
     position,
+    season: isCurrent ? undefined : season,
+    sort,
   });
 
   const [headerHeight, setHeaderHeight] = useState(0);
 
   const data = ranking.data;
   const top = data?.rows.slice(0, 3) ?? [];
-  const rest = data?.rows.slice(3) ?? [];
-  const me = data?.me;
-  const meListed = me != null && data?.rows.some((r) => r.playerId === me.playerId);
   const noGroups = scope === 'group' && groups.isSuccess && groups.data.length === 0;
 
-  let body: React.ReactNode;
+  let heroBody: React.ReactNode = undefined;
   if (noGroups) {
-    body = <StateMessage message="Jogue uma partida recorrente para ter o ranking do grupo" />;
+    heroBody = <StateMessage message="Jogue uma partida recorrente para ter o ranking do grupo" tone="dark" />;
   } else if (ranking.isPending) {
-    body = <RankingSkeleton />;
+    heroBody = (
+      <View className="flex-row items-end justify-center gap-3 px-4 mt-3 pb-2">
+        <SkeletonBlock className="w-24 h-32" />
+        <SkeletonBlock className="w-24 h-44" />
+        <SkeletonBlock className="w-24 h-28" />
+      </View>
+    );
   } else if (ranking.isError) {
-    body = (
+    heroBody = (
       <StateMessage
         message="Não foi possível carregar o ranking"
         actionLabel="Tentar novamente"
         onAction={() => ranking.refetch()}
+        tone="dark"
       />
     );
   } else if (data!.rows.length === 0) {
-    body = <StateMessage message={EMPTY_MESSAGE[scope]} />;
-  } else {
-    body = (
-      <>
-        <Podium
-          top={top}
-          season={`Temporada de ${seasonName(data!.seasonStart)}${
-            scope === 'general' ? ` · mínimo de ${data!.minMatches} jogos` : ''
-          }`}
-        />
-        {rest.length > 0 ? (
-          <View className="mx-4 mt-6 bg-white rounded-card shadow-card overflow-hidden">
-            {rest.map((row, i) => (
-              <Pressable
-                key={row.playerId}
-                accessibilityRole="button"
-                onPress={() => openPlayer(row.playerId)}
-              >
-                {i > 0 ? <View className="h-px bg-line mx-4" /> : null}
-                <RankingRow row={row} isMe={Boolean(row.isMe)} />
-              </Pressable>
-            ))}
-          </View>
-        ) : null}
-      </>
-    );
+    heroBody = <StateMessage message={EMPTY_MESSAGE[scope]} tone="dark" />;
   }
+
+  const toggle = (id: string) => setOpenId((current) => (current === id ? null : id));
 
   return (
     <View className="flex-1 bg-bg-light">
       <ScrollView
         contentContainerClassName="pb-10"
         contentContainerStyle={{ paddingTop: headerHeight + 8 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={ranking.isRefetching}
+            onRefresh={() => ranking.refetch()}
+            progressViewOffset={headerHeight}
+            colors={[colors.primary]}
+          />
+        }
       >
-        <ScopeSwitch value={scope} onChange={setScope} />
+        <View className="mx-4">
+          <Segmented
+            options={SCOPES.map((s) => ({ key: s.scope, label: s.label }))}
+            value={scope}
+            onChange={setScope}
+            testID="ranking-scope"
+          />
+        </View>
 
         {scope === 'group' && groups.data && groups.data.length > 0 ? (
           <ChipRow label="Grupo">
@@ -318,37 +639,65 @@ export default function RankingScreen() {
           ))}
         </ChipRow>
 
-        <View className="mt-5">{body}</View>
+        <View className="mt-5">
+          <Hero
+            season={season}
+            isCurrent={isCurrent}
+            canGoBack={season > FIRST_SEASON}
+            onShift={(by) => {
+              setOpenId(null);
+              setSeason((s) => shiftMonth(s, by));
+            }}
+            sort={sort}
+            top={top}
+          >
+            {heroBody}
+          </Hero>
+        </View>
 
-        {me && !meListed ? (
+        {ranking.isPending && !noGroups ? <RankingSkeleton /> : null}
+
+        {data && !noGroups ? <MyStanding data={data} sort={sort} isCurrent={isCurrent} /> : null}
+
+        {data && !noGroups && data.rows.length > 0 ? (
           <View className="mx-4 mt-6">
-            <View className="bg-white rounded-card shadow-card overflow-hidden">
-              <RankingRow row={me} isMe />
+            <View className="flex-row items-center justify-between">
+              <Text className="font-display text-h2 text-text-primary uppercase">Classificação</Text>
+              <Segmented
+                options={SORTS.map((s) => ({ key: s.sort, label: s.label }))}
+                value={sort}
+                onChange={setSort}
+                testID="ranking-sort"
+                compact
+              />
             </View>
-            {me.position == null && data ? (
-              <Text className="font-body text-caption text-text-muted mt-2 text-center">
-                Jogue mais {Math.max(data.minMatches - (me.matches ?? 0), 1)} jogo(s) neste mês
-                para entrar no ranking
-              </Text>
-            ) : null}
+            <Text className="font-body text-caption text-text-muted mt-1">
+              {scope === 'general' ? `Mínimo de ${data.minMatches} partidas no mês · ` : ''}
+              Toque num jogador para ver os números
+            </Text>
+            <Animated.View
+              key={`${scope}-${season}-${sort}-${position ?? 'all'}`}
+              entering={FadeIn.duration(MOTION.fadeIn)}
+              className="mt-3 bg-white rounded-card shadow-card overflow-hidden"
+            >
+              {data.rows.map((row, i) => (
+                <ExpandableRow
+                  key={row.playerId}
+                  row={row}
+                  sort={sort}
+                  open={openId === row.playerId}
+                  onToggle={() => toggle(row.playerId)}
+                  divider={i > 0}
+                />
+              ))}
+            </Animated.View>
           </View>
         ) : null}
+
+        {!noGroups ? <PointsLegend /> : null}
       </ScrollView>
 
-      <BackHeader
-        title="Ranking"
-        right={
-          <PressableScale
-            accessibilityRole="button"
-            accessibilityLabel="Notificações"
-            hitSlop={ICON_HIT_SLOP}
-            onPress={noop}
-          >
-            <Bell size={24} color={colors.surfaceDark} />
-          </PressableScale>
-        }
-        onHeight={setHeaderHeight}
-      />
+      <BackHeader title="Ranking" onHeight={setHeaderHeight} />
     </View>
   );
 }

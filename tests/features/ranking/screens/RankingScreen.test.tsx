@@ -57,6 +57,9 @@ jest.mock('lucide-react-native', () => {
     ArrowUp: stub('arrow-up'),
     ArrowDown: stub('arrow-down'),
     Minus: stub('minus'),
+    ChevronRight: stub('chevron-right'),
+    ChevronUp: stub('chevron-up'),
+    Crown: stub('crown'),
   };
   const fallback = (props: any) => require('react').createElement(require('react-native').View, props);
   return new Proxy(icons, { get: (target, key: string) => (key in target ? target[key] : fallback) });
@@ -116,10 +119,12 @@ const ROWS: RankingRow[] = [
 const RANKING: Ranking = {
   rows: ROWS,
   me: ROWS[3] ?? null,
+  nextUp: ROWS[2] ?? null,
   groupName: null,
   groupId: null,
   minMatches: 1,
   seasonStart: '2026-10-01T03:00:00Z',
+  seasonEnd: '2026-11-01T03:00:00Z',
 };
 
 const mockState: {
@@ -138,6 +143,7 @@ jest.mock('@/features/ranking/api/getGroupRanking', () => ({
       data: mockState.data,
       isPending: mockState.isPending,
       isError: mockState.isError,
+      isRefetching: false,
       refetch: mockState.refetch,
     };
   },
@@ -150,6 +156,19 @@ import RankingScreen from '../../../../app/profile/ranking';
 
 const lastParams = () => mockState.params[mockState.params.length - 1];
 
+// Only Date is faked: "today" is 20 November 2026, so the current season is November.
+beforeAll(() => {
+  jest.useFakeTimers({
+    now: new Date('2026-11-20T15:00:00Z'),
+    doNotFake: [
+      'nextTick', 'setImmediate', 'clearImmediate', 'setTimeout', 'clearTimeout', 'setInterval',
+      'clearInterval', 'queueMicrotask', 'requestAnimationFrame', 'cancelAnimationFrame',
+      'requestIdleCallback', 'cancelIdleCallback', 'hrtime', 'performance',
+    ],
+  });
+});
+afterAll(() => jest.useRealTimers());
+
 beforeEach(() => {
   mockPush.mockClear();
   mockSearchParams.current = {};
@@ -157,23 +176,36 @@ beforeEach(() => {
   mockState.refetch.mockClear();
 });
 
-describe('Ranking screen (season, DECISIONS #63)', () => {
-  it('opens on the friends scope with every position and shows the season', async () => {
+describe('Ranking screen (season, DECISIONS #63, API #95)', () => {
+  it('opens on the network scope, current season, every position, ordered by points', async () => {
     await render(<RankingScreen />);
 
-    expect(lastParams()).toEqual({ scope: 'friends', groupId: undefined, position: undefined });
-    expect(screen.getByText('Temporada de outubro')).toBeTruthy();
-    expect(screen.getByText('Érica')).toBeTruthy();
-    expect(screen.getByText(/Renan Dias/)).toBeTruthy();
+    expect(lastParams()).toEqual({ scope: 'friends', groupId: undefined, position: undefined, season: undefined, sort: 'points' });
+    expect(screen.getByText('Temporada de novembro')).toBeTruthy();
+    expect(screen.getByText('Rede')).toBeTruthy();
+    expect(screen.getAllByText(/Érica/).length).toBeGreaterThan(0);
   });
 
-  it('switches to general and filters by position', async () => {
+  it('switches to general, filters by position and orders by MVPs', async () => {
     await render(<RankingScreen />);
 
     await fireEvent.press(screen.getByText('Geral'));
     await fireEvent.press(screen.getByText('Levantador'));
+    await fireEvent.press(screen.getByTestId('ranking-sort-mvps'));
 
-    expect(lastParams()).toEqual({ scope: 'general', groupId: undefined, position: 'LEV' });
+    expect(lastParams()).toMatchObject({ scope: 'general', position: 'LEV', sort: 'mvps' });
+  });
+
+  it('goes back to last month, which shows its champion', async () => {
+    await render(<RankingScreen />);
+
+    await fireEvent.press(screen.getByTestId('ranking-season-prev'));
+
+    expect(lastParams()).toMatchObject({ season: '2026-10' });
+    expect(screen.getByText('Campeão de outubro')).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('ranking-season-next'));
+    expect(lastParams()).toMatchObject({ season: undefined });
   });
 
   it('picks the most recent group in the group scope and lets the player change it', async () => {
@@ -197,30 +229,53 @@ describe('Ranking screen (season, DECISIONS #63)', () => {
     expect(lastParams()).toMatchObject({ scope: 'group', groupId: 'g9' });
   });
 
-  it('opens the player profile from the podium and the list', async () => {
+  it('opens a profile from the podium, and a list row opens in place first', async () => {
     await render(<RankingScreen />);
 
     await fireEvent.press(screen.getByLabelText('1º, Érica, 81 pontos'));
-    await fireEvent.press(screen.getByText('Duda Reis'));
+    expect(mockPush).toHaveBeenLastCalledWith('/players/p-erica');
 
-    expect(mockPush).toHaveBeenNthCalledWith(1, '/players/p-erica');
-    expect(mockPush).toHaveBeenNthCalledWith(2, '/players/p-duda');
+    await fireEvent.press(screen.getByTestId('ranking-row-p-duda'));
+    expect(screen.getByTestId('ranking-row-detail')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('ranking-row-profile'));
+    expect(mockPush).toHaveBeenLastCalledWith('/players/p-duda');
   });
 
-  it('shows my line and how many games I miss when I do not qualify yet', async () => {
-    const me = row(null, 'me', 'Renan Dias', 35, { matches: 1, isMe: true });
+  it('tells me who to pass next, with my points split by reason', async () => {
+    const me = row(4, 'me', 'Renan Dias', 68, {
+      isMe: true,
+      breakdown: { attendance: 30, wins: 16, mvp: 22 },
+      trend: { direction: 'up', delta: 2 },
+    });
+    mockState.data = { ...RANKING, me };
+    await render(<RankingScreen />);
+
+    expect(screen.getByTestId('ranking-me-goal').props.children).toBe('Faltam 7 pts para passar Manu');
+    expect(screen.getByText(/subiu 2/)).toBeTruthy();
+    expect(screen.getByTestId('ranking-breakdown')).toBeTruthy();
+  });
+
+  it('says how many matches I miss when I do not qualify yet', async () => {
+    const me = row(null, 'me', 'Renan Dias', 30, { matches: 1, isMe: true });
     mockState.data = { ...RANKING, rows: ROWS.filter((r) => r.playerId !== 'me'), me, minMatches: 3 };
     await render(<RankingScreen />);
 
-    expect(screen.getByText(/Renan Dias/)).toBeTruthy();
-    expect(screen.getByText(/Jogue mais 2 jogo\(s\) neste mês/)).toBeTruthy();
+    expect(screen.getByText(/Jogue mais 2 partidas neste mês/)).toBeTruthy();
+  });
+
+  it('always shows how points are earned', async () => {
+    await render(<RankingScreen />);
+
+    expect(screen.getByText('Como pontuar')).toBeTruthy();
+    expect(screen.getByText('MVP do dia')).toBeTruthy();
+    expect(screen.getByText('+20')).toBeTruthy();
   });
 
   it('shows the scope empty message', async () => {
     mockState.data = { ...RANKING, rows: [], me: null };
     await render(<RankingScreen />);
 
-    expect(screen.getByText(/Ninguém que você segue pontuou neste mês/)).toBeTruthy();
+    expect(screen.getByText(/Ninguém da sua rede pontuou neste mês/)).toBeTruthy();
   });
 
   it('retries after an error', async () => {

@@ -15,7 +15,7 @@ jest.mock('@/components/domain/BellWithBadge', () => ({
  *    Vitória/Derrota colored success/danger, set score); tapping a row navigates
  *    to the S16 summary (/matches/[id]/summary) with its id. A "Ver tudo" button
  *    is present but inert (no full-history screen in MVP).
- *  - The dark "Ranking da temporada · amigos" card renders rows from
+ *  - The dark "Ranking da temporada · sua rede" card renders rows from
  *    useGroupRanking({ preview: true }) (position, avatar, name, subtitle, score);
  *    the current user's row is highlighted with "· você".
  *  - "Ver tudo" on the ranking section navigates to S9 (/profile/ranking).
@@ -41,7 +41,7 @@ import React from 'react';
 
 // --- Native / module mocks ------------------------------------------------
 
-// LinearGradient -> View that forwards props (dark "Ranking da temporada · amigos" card).
+// LinearGradient -> View that forwards props (dark "Ranking da temporada · sua rede" card).
 jest.mock('expo-linear-gradient', () => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
@@ -460,14 +460,14 @@ describe('S8 — Profile screen', () => {
   // --------------------------------------------------- Ranking semanal section
   /**
    * Covers: S8 — Profile
-   * Criterion: "The dark 'Ranking da temporada · amigos' card renders ranking rows from
+   * Criterion: "The dark 'Ranking da temporada · sua rede' card renders ranking rows from
    *  useGroupRanking({ preview: true }) with position, avatar, name, subtitle,
    *  score; the current user's row is highlighted with '· você'."
    */
   it('renders the ranking preview rows with position, avatar, name, subtitle and score', async () => {
     await render(<ProfileScreen />);
 
-    expect(screen.getByText('Ranking da temporada · amigos')).toBeTruthy();
+    expect(screen.getByText('Ranking da temporada · sua rede')).toBeTruthy();
 
     // the hook was asked for the preview list
     expect(mockRanking.lastParams).toEqual({ preview: true });
@@ -489,7 +489,7 @@ describe('S8 — Profile screen', () => {
 
   /**
    * Covers: S8 — Profile (prototype parity)
-   * Criterion: the section is titled "Meus amigos" over the "Ranking da temporada · amigos"
+   * Criterion: the section is titled "Meus amigos" over the "Ranking da temporada · sua rede"
    *  card, and avatars (header + ranking rows) carry a tier-colored level badge.
    */
   it('renders the "Meus amigos" title and level badges on the avatars', async () => {
@@ -497,7 +497,7 @@ describe('S8 — Profile screen', () => {
 
     // Outer section title + inner card label.
     expect(screen.getByText('Meus amigos')).toBeTruthy();
-    expect(screen.getByText('Ranking da temporada · amigos')).toBeTruthy();
+    expect(screen.getByText('Ranking da temporada · sua rede')).toBeTruthy();
 
     // Header avatar (level 15) + the three ranking rows (20/18/12) each show a badge.
     expect(

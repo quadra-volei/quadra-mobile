@@ -32,6 +32,7 @@ import {
   type MatchSummary,
   type SheetRow,
 } from '@/features/matches/api/getMatchSummary';
+import { useMatchPoints } from '@/features/ranking/api/getGroupRanking';
 import { useAuthStore } from '@/stores/auth';
 import { colors } from '@/theme/colors';
 
@@ -231,6 +232,8 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
               ))}
             </View>
           ) : null}
+
+          <RankingPointsCard matchId={matchId} />
 
           {/* ── Mais votado ── */}
           {hasVoting ? (
@@ -475,6 +478,37 @@ function SummaryError({ matchId, message }: { matchId: string; message?: string 
           </Button>
         </View>
       </SafeAreaView>
+    </View>
+  );
+}
+
+/** "+46 pts no ranking": what this match gave me (quadra-api DECISIONS #95); nothing for one-offs. */
+function RankingPointsCard({ matchId }: { matchId: string }) {
+  const { data } = useMatchPoints(matchId);
+  if (!data) return null;
+  const parts = [
+    `Presença ${data.attendancePoints}`,
+    data.winPoints > 0 ? `${data.gamesWon} ${data.gamesWon === 1 ? 'jogo ganho' : 'jogos ganhos'} ${data.winPoints}` : null,
+    data.mvpPoints > 0 ? `${data.mvp ? 'MVP + ' : ''}${data.votes} ${data.votes === 1 ? 'voto' : 'votos'} ${data.mvpPoints}` : null,
+  ].filter(Boolean);
+  return (
+    <View className="px-4 mt-6" testID="summary-ranking-points">
+      <View className="p-4 rounded-card border-2 border-accent bg-white/5">
+        <Text className="font-body-bold text-eyebrow text-accent uppercase">Ranking do grupo</Text>
+        <Text className="font-num text-text-on-dark mt-1" style={{ fontSize: 32 }}>
+          +{data.points} <Text className="font-body text-body text-white/70">pts</Text>
+        </Text>
+        <Text className="font-body text-caption text-white/70">{parts.join(' · ')}</Text>
+        <View className="mt-3">
+          <Button
+            variant="outlineLime"
+            onPress={() => router.push({ pathname: '/profile/ranking', params: { scope: 'group', groupId: data.groupId } })}
+            testID="summary-ranking-open"
+          >
+            Ver ranking do grupo
+          </Button>
+        </View>
+      </View>
     </View>
   );
 }

@@ -307,7 +307,7 @@ function RankingSection() {
     // title is "Meus amigos"; this brightLime label names the card's content.
     <View className="mx-4 mt-2 rounded-card overflow-hidden bg-surface-dark p-4">
       <Text className="font-body-bold text-caption text-accent-light mb-3">
-        Ranking da temporada · amigos
+        Ranking da temporada · sua rede
       </Text>
       {data.length === 0 ? (
         <StateMessage
