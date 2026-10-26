@@ -80,8 +80,9 @@ const VENUE_PINS: Record<VenueKind, { none: ImageRequireSource; games: ImageRequ
 };
 
 /**
- * An arena: green with the number of its games (1–4, then 5+) and its kind (🏐 court, 🏖️ sand,
- * 🌳 park) in a corner badge, red ring while one is played; white with its kind when it has none.
+ * An arena: green with the number of its games (1–4, then 5+) and its kind's icon (ball for a
+ * court, palm tree for sand, tree for a park) in a corner badge, red ring while one is played;
+ * white with its kind's icon when it has none.
  * 48 dp square, centred on the coordinate.
  */
 export function venuePinImage(arena: Pick<MapArena, 'kind' | 'gamesCount' | 'live'>): ImageRequireSource {

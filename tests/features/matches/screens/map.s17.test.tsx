@@ -74,15 +74,24 @@ jest.mock('lucide-react-native', () => {
 
 // react-native-maps -> View stubs. Marker is a Pressable so fireEvent.press
 // triggers its onPress (pin selection) without a native map.
+// The camera calls the screen makes through the map's ref.
+const mockMapMethods = {
+  animateToRegion: jest.fn(),
+  animateCamera: jest.fn(),
+  fitToCoordinates: jest.fn(),
+};
+
 jest.mock('react-native-maps', () => {
   const ReactLocal = require('react');
   const { View, Pressable } = require('react-native');
-  const MapView = ({ children, ...props }: any) =>
-    ReactLocal.createElement(
+  const MapView = ({ children, ref, ...props }: any) => {
+    ReactLocal.useImperativeHandle(ref, () => mockMapMethods);
+    return ReactLocal.createElement(
       View,
       { ...props, testID: props.testID ?? 'map-view' },
       children,
     );
+  };
   const Marker = ({ children, onPress, testID, ...props }: any) =>
     ReactLocal.createElement(
       Pressable,
@@ -279,6 +288,7 @@ function resetMocks() {
   mockNearby.isPending = false;
   mockNearby.isError = false;
   mockNearby.refetch.mockClear();
+  Object.values(mockMapMethods).forEach((fn) => fn.mockClear());
   mockNearby.lastParams = undefined;
 
   jest.spyOn(Linking, 'openSettings').mockResolvedValue(undefined);
@@ -680,6 +690,12 @@ describe('Arenas on the map', () => {
     // numbered by its 3 places and green because they have games (D5).
     expect(screen.queryByTestId('map-venue-a')).toBeNull();
     expect(screen.getByTestId('map-cluster-m:near-open').props.image).toBe(clusterImage(1, 3));
+    // Places this close open just past the grouping, not at building level (fitting them did).
+    await press(screen.getByTestId('map-cluster-m:near-open'));
+    expect(mockMapMethods.fitToCoordinates).not.toHaveBeenCalled();
+    expect(mockMapMethods.animateToRegion).toHaveBeenCalledWith(
+      expect.objectContaining({ latitudeDelta: 0.015, longitudeDelta: 0.015 }),
+    );
 
     await act(async () => {
       screen.getByTestId('map-view').props.onRegionChangeComplete({
@@ -781,6 +797,11 @@ describe('The list under the map', () => {
 
     await press(screen.getByTestId('map-list-arena-sand'));
     expect(screen.getByTestId('map-venue-card')).toBeTruthy();
+    // Centred at a street zoom, whatever zoom the map had.
+    expect(mockMapMethods.animateToRegion).toHaveBeenCalledWith(
+      { latitude: -23.56, longitude: -46.597, latitudeDelta: 0.015, longitudeDelta: 0.015 },
+      450,
+    );
     expect(screen.queryByTestId('map-list-sheet')).toBeNull();
   });
 

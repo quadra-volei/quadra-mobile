@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react-native';
 import { Text } from 'react-native';
 
 import { PressableScale } from '@/components/ui/PressableScale';
@@ -9,6 +10,8 @@ export type FilterChipProps = {
   onPress: () => void;
   /** When true the chip is inert (no-op press, muted style, a11y disabled). */
   disabled?: boolean;
+  /** Drawn before the label, in the label's color. */
+  icon?: LucideIcon;
   testID?: string;
 };
 
@@ -34,6 +37,7 @@ export function FilterChip({
   selected,
   onPress,
   disabled,
+  icon: Icon,
   testID,
 }: FilterChipProps) {
   const fill = disabled ? colors.bgLightAlt : selected ? colors.primary : undefined;
@@ -55,9 +59,10 @@ export function FilterChip({
       testID={testID}
       accessibilityRole="button"
       accessibilityState={{ selected, disabled: Boolean(disabled) }}
-      className="h-11 px-5 rounded-pill items-center justify-center bg-white border-2 border-line"
+      className="h-11 px-5 rounded-pill flex-row items-center justify-center gap-2 bg-white border-2 border-line"
       style={look}
     >
+      {Icon ? <Icon size={18} color={labelColor ?? colors.surfaceDark} /> : null}
       <Text
         testID={testID ? `${testID}-label` : undefined}
         className="font-body-bold text-h2 text-text-primary"

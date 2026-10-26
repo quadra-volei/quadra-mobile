@@ -205,6 +205,8 @@ function MiniMap({
       <MapView
         key={`${center.lat},${center.lon}`}
         liteMode
+        // Lite mode shows Google's "directions / open in Maps" buttons over the card otherwise.
+        toolbarEnabled={false}
         customMapStyle={MAP_STYLE}
         style={{ flex: 1 }}
         initialRegion={{
