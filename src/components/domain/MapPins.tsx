@@ -80,9 +80,9 @@ const VENUE_PINS: Record<VenueKind, { none: ImageRequireSource; games: ImageRequ
 };
 
 /**
- * An arena: green with the number of its games (1–4, then 5+) and its kind's icon (ball for a
- * court, palm tree for sand, tree for a park) in a corner badge, red ring while one is played;
- * white with its kind's icon when it has none.
+ * An arena: white with its kind's icon (ball for a court, palm tree for sand, tree for a park),
+ * and the number of its games (1–4, then 5+) in a green corner badge when it has any; red ring
+ * while one is played.
  * 48 dp square, centred on the coordinate.
  */
 export function venuePinImage(arena: Pick<MapArena, 'kind' | 'gamesCount' | 'live'>): ImageRequireSource {
@@ -95,35 +95,11 @@ export function venuePinImage(arena: Pick<MapArena, 'kind' | 'gamesCount' | 'liv
 /** The lime ring drawn under the selected arena (same 48 dp box, same centre). */
 export const VENUE_HALO: ImageRequireSource = require('../../../assets/map-pins/venue-halo.png');
 
-// A game away from any arena: a drop (square with three round corners turned
-// 45°, sharp corner down) with a navy shadow shifted like HARD_SHADOW.
-const PIN_HEAD = 32;
-const PIN_SHADOW = 3;
-const PIN_TIP_Y = PIN_HEAD / 2 + PIN_HEAD * Math.SQRT1_2;
-const PIN_WIDTH = PIN_HEAD + PIN_SHADOW;
-const PIN_HEIGHT = Math.ceil(PIN_TIP_Y) + PIN_SHADOW;
-/** Puts the tip, not the middle of the image, on the coordinate. */
-export const MATCH_PIN_ANCHOR = { x: PIN_HEAD / 2 / PIN_WIDTH, y: PIN_TIP_Y / PIN_HEIGHT };
-/** Apple Maps ignores `anchor`: it shifts the image from its centre instead. */
-export const MATCH_PIN_CENTER_OFFSET = { x: PIN_WIDTH / 2 - PIN_HEAD / 2, y: PIN_HEIGHT / 2 - PIN_TIP_Y };
-
-const MATCH_PINS = {
-  open: require('../../../assets/map-pins/match-open.png') as ImageRequireSource,
-  last: require('../../../assets/map-pins/match-last.png') as ImageRequireSource,
-  full: require('../../../assets/map-pins/match-full.png') as ImageRequireSource,
-};
-
-/** Drop fill by open slots: lime with spots, amber on the last one, grey when full. */
-export function matchPinImage(openSlots: number): ImageRequireSource {
-  if (openSlots <= 0) return MATCH_PINS.full;
-  if (openSlots === 1) return MATCH_PINS.last;
-  return MATCH_PINS.open;
-}
-
-// A group of nearby places (DECISIONS #177, #179): its number is how many places it holds
-// (arenas and games with no arena); green when any of them has a game. 2–9, then 10+, 20+, 50+, 100+.
+// Numbers are games, icons are places (designer, DECISIONS #183). Green: the games in a group, or
+// "1" for a game with no arena. White: the places in a group with no game. 1–9, then 10+, 20+, 50+, 100+.
 const CLUSTER_PINS: { games: Record<number, ImageRequireSource>; places: Record<number, ImageRequireSource> } = {
   games: {
+    1: require('../../../assets/map-pins/cluster-games-1.png'),
     2: require('../../../assets/map-pins/cluster-games-2.png'),
     3: require('../../../assets/map-pins/cluster-games-3.png'),
     4: require('../../../assets/map-pins/cluster-games-4.png'),
@@ -155,11 +131,15 @@ const CLUSTER_PINS: { games: Record<number, ImageRequireSource>; places: Record<
 
 const CLUSTER_BUCKETS = [100, 50, 20, 10];
 
-/** The image of a group: the number of places in it, green when one of them has a game. */
+const bucket = (n: number, min: number) => (n < 10 ? Math.max(n, min) : CLUSTER_BUCKETS.find((b) => n >= b)!);
+
+/** The image of a group: green with its games, or white with its places when none has a game. */
 export function clusterImage(games: number, places: number): ImageRequireSource {
-  const key = places < 10 ? Math.max(places, 2) : CLUSTER_BUCKETS.find((b) => places >= b)!;
-  return games > 0 ? CLUSTER_PINS.games[key]! : CLUSTER_PINS.places[key]!;
+  return games > 0 ? CLUSTER_PINS.games[bucket(games, 1)]! : CLUSTER_PINS.places[bucket(places, 2)]!;
 }
 
-/** A 44 dp disc with a 3 dp shadow: the disc's centre on the point. */
+/** A game away from any arena: the green disc with "1", like a group with one game. */
+export const MATCH_PIN: ImageRequireSource = CLUSTER_PINS.games[1]!;
+
+/** A 44 dp disc with a 3 dp shadow: the disc's centre on the point (groups and games with no arena). */
 export const CLUSTER_ANCHOR = { x: 22 / 47, y: 22 / 47 };

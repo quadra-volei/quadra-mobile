@@ -24,11 +24,9 @@ import { MatchCard } from '@/components/domain/MatchCard';
 import { MapListSheet } from '@/components/domain/MapListSheet';
 import {
   CLUSTER_ANCHOR,
-  MATCH_PIN_ANCHOR,
-  MATCH_PIN_CENTER_OFFSET,
   VENUE_HALO,
   clusterImage,
-  matchPinImage,
+  MATCH_PIN,
   venuePinImage,
 } from '@/components/domain/MapPins';
 import {
@@ -96,9 +94,6 @@ export function searchAreaFor(region: Region): SearchArea {
 }
 
 type PermissionState = 'undetermined' | 'granted' | 'denied';
-
-/** Puts a game pin's tip, not the middle of its view, on the coordinate. */
-export const PIN_ANCHOR = MATCH_PIN_ANCHOR;
 
 // The map's own filters (owner's 4th review, items 7 and 8): a distance from the
 // user and the kinds of place. MAX_KM is "any distance".
@@ -650,9 +645,8 @@ export default function MapScreen() {
               testID={`map-pin-${match.id}`}
               // Over an arena on the same spot (a game not linked to it), or the arena takes the tap.
               zIndex={1}
-              anchor={MATCH_PIN_ANCHOR}
-              centerOffset={MATCH_PIN_CENTER_OFFSET}
-              image={matchPinImage(match.capacity - match.confirmed)}
+              anchor={CLUSTER_ANCHOR}
+              image={MATCH_PIN}
             />
           );
         })}

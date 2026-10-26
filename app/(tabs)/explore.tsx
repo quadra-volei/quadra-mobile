@@ -17,9 +17,8 @@ import { ExploreFilterSheet } from "@/components/domain/ExploreFilterSheet";
 import { MatchCard } from "@/components/domain/MatchCard";
 import {
   CLUSTER_ANCHOR,
-  MATCH_PIN_ANCHOR,
   clusterImage,
-  matchPinImage,
+  MATCH_PIN,
   venuePinImage,
 } from "@/components/domain/MapPins";
 import { clusterPoints } from "@/features/explore/lib/cluster";
@@ -223,7 +222,7 @@ function MiniMap({
               ? [CLUSTER_ANCHOR, clusterImage(c.games, c.points.length)]
               : venue
                 ? [{ x: 0.5, y: 0.5 }, venuePinImage(venue)]
-                : [MATCH_PIN_ANCHOR, matchPinImage(match ? match.capacity - match.confirmed : 0)];
+                : [CLUSTER_ANCHOR, MATCH_PIN];
           return (
             <Marker
               key={c.id}

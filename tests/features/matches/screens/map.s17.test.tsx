@@ -8,7 +8,7 @@
  *  3. Permission denied -> explanation with "Abrir configurações"; pressing it
  *     calls Linking.openSettings().
  *  4. One pin renders per match returned within the radius.
- *  5. Pins are color-coded by slot availability (matchPinImage helper + in-screen).
+ *  5. A game with no arena is the green "1" disc (MATCH_PIN, DECISIONS #183).
  *  6. Tapping a pin shows a bottom preview card (MatchCard) with the summary.
  *  7. Tapping the preview card navigates to the match detail (S12).
  *  8. Back control returns to S6 Explore (router.back).
@@ -22,7 +22,7 @@
  */
 import React from 'react';
 import { Linking, Platform } from 'react-native';
-import { VENUE_HALO, clusterImage, matchPinImage, venueActivityFor, venuePinImage } from '@/components/domain/MapPins';
+import { MATCH_PIN, VENUE_HALO, clusterImage, venueActivityFor, venuePinImage } from '@/components/domain/MapPins';
 
 // --- Native / module mocks -------------------------------------------------
 
@@ -248,7 +248,7 @@ jest.mock('@/features/explore/api/venues', () => ({
 
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
-import MapScreen, { PIN_ANCHOR, nextVenueWithGames, searchAreaFor } from '../../../../app/explore/map';
+import MapScreen, { nextVenueWithGames, searchAreaFor } from '../../../../app/explore/map';
 import { areaCountLabel, listRows } from '@/components/domain/MapListSheet';
 
 // --- Helpers ---------------------------------------------------------------
@@ -300,26 +300,9 @@ beforeEach(() => {
 
 // ---------------------------------------------------------------------------
 
-describe('PIN_ANCHOR', () => {
-  it('sits on the tip: at the head centre across, near the bottom edge down', () => {
-    // 32px head, 3px shadow: a 35 x 42 view with the tip at (16, 16 + 32 / √2).
-    expect(PIN_ANCHOR.x).toBeCloseTo(16 / 35);
-    expect(PIN_ANCHOR.y).toBeCloseTo(38.627 / 42, 3);
-  });
-});
-
-describe('matchPinImage (pure pin image helper)', () => {
-  /**
-   * Covers: S17 — Map of Nearby Matches
-   * Criterion: "Pins are color-coded by slot availability": lime with spots,
-   * amber on the last one, grey when full — one image each (DECISIONS #176).
-   */
-  it('picks one image for 2+ open slots, another for the last, another when full', () => {
-    expect(matchPinImage(5)).toBe(matchPinImage(2));
-    expect(matchPinImage(1)).not.toBe(matchPinImage(2));
-    expect(matchPinImage(-3)).toBe(matchPinImage(0));
-    expect(matchPinImage(0)).not.toBe(matchPinImage(1));
-    expect(matchPinImage(0)).not.toBe(matchPinImage(2));
+describe('MATCH_PIN', () => {
+  it('is the green disc of a group with one game: numbers are games (DECISIONS #183)', () => {
+    expect(MATCH_PIN).toBe(clusterImage(1, 1));
   });
 });
 
@@ -337,10 +320,11 @@ describe('venuePinImage', () => {
 });
 
 describe('clusterImage', () => {
-  it('counts the places in the group, green when one has a game (D5)', () => {
-    expect(clusterImage(0, 3)).not.toBe(clusterImage(1, 3));
-    expect(clusterImage(7, 3)).toBe(clusterImage(1, 3));
-    expect(clusterImage(1, 3)).not.toBe(clusterImage(1, 4));
+  it('counts the games in green, or the places in white when none has a game (DECISIONS #183)', () => {
+    expect(clusterImage(0, 3)).not.toBe(clusterImage(3, 3));
+    expect(clusterImage(3, 2)).toBe(clusterImage(3, 9));
+    expect(clusterImage(1, 3)).not.toBe(clusterImage(2, 3));
+    expect(clusterImage(14, 3)).toBe(clusterImage(10, 3));
     expect(clusterImage(0, 14)).toBe(clusterImage(0, 10));
   });
 });
@@ -455,9 +439,9 @@ describe('S17 — Map of Nearby Matches', () => {
 
     // Image markers (DECISIONS #176).
     const image = (id: string) => screen.getByTestId(id).props.image;
-    expect(image('map-pin-near-open')).toBe(matchPinImage(4));
-    expect(image('map-pin-near-last')).toBe(matchPinImage(1));
-    expect(image('map-pin-near-full')).toBe(matchPinImage(0));
+    expect(image('map-pin-near-open')).toBe(MATCH_PIN);
+    expect(image('map-pin-near-last')).toBe(MATCH_PIN);
+    expect(image('map-pin-near-full')).toBe(MATCH_PIN);
   });
 
   // ---------------------------------------------------------- preview + nav
@@ -687,9 +671,9 @@ describe('Arenas on the map', () => {
     await renderScreen();
     await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
     // ~10 m apart on a 5 km wide map: one group with the game 350 m away (near-open),
-    // numbered by its 3 places and green because they have games (D5).
+    // green with its 2 games: the arena's and the loose one (DECISIONS #183).
     expect(screen.queryByTestId('map-venue-a')).toBeNull();
-    expect(screen.getByTestId('map-cluster-m:near-open').props.image).toBe(clusterImage(1, 3));
+    expect(screen.getByTestId('map-cluster-m:near-open').props.image).toBe(clusterImage(2, 3));
     // Places this close open just past the grouping, not at building level (fitting them did).
     await press(screen.getByTestId('map-cluster-m:near-open'));
     expect(mockMapMethods.fitToCoordinates).not.toHaveBeenCalled();
