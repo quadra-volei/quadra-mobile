@@ -51,6 +51,32 @@ export function useMarkRead() {
   });
 }
 
+/**
+ * Clears one notification from the list (`DELETE /api/v1/notifications/{id}`), or all of them with
+ * `id` undefined (`DELETE /api/v1/notifications`, API DECISIONS #96). The list drops them at once
+ * (a swipe must not wait for the server) and comes back if the call fails.
+ */
+export function useDeleteNotification() {
+  const queryClient = useQueryClient();
+  return useMutation<void, Error, string | undefined, { previous?: AppNotification[] }>({
+    mutationFn: (id) =>
+      authorizedApiClient<void>(id ? `/api/v1/notifications/${id}` : '/api/v1/notifications', { method: 'DELETE' }),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: listKey });
+      const previous = queryClient.getQueryData<AppNotification[]>(listKey);
+      queryClient.setQueryData<AppNotification[]>(listKey, (items) => (id ? items?.filter((n) => n.id !== id) : []));
+      return { previous };
+    },
+    onError: (_error, _id, context) => {
+      if (context?.previous) queryClient.setQueryData(listKey, context.previous);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: listKey });
+      queryClient.invalidateQueries({ queryKey: unreadKey });
+    },
+  });
+}
+
 /** The three switches of Configurações → Notificações, so the server knows what to push. */
 export function useSaveNotificationPreferences() {
   return useMutation<NotificationPreferences, Error, NotificationPreferences>({
