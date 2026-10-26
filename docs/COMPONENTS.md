@@ -445,12 +445,12 @@ More UI primitives will live here:
 - **Used in**: S17 map (`app/explore/map.tsx`), while no pin is open
 - **Notes**: The list under the map (#180): a panel dragged up from the bottom (peek, half, full) with its own Reanimated + Gesture Handler pan on the handle (no bottom-sheet package). Collapsed it shows the area count; open, arenas (no name: a Google lookup costs, done only on open) and `MatchCard`s, closest first. Provisional layout until the designer's.
 
-### `MapPins` (`venuePinImage`, `matchPinImage`, `clusterImage`)
+### `MapPins` (`venuePinImage`, `clusterImage`, `MATCH_PIN`)
 - **Path**: `src/components/domain/MapPins.tsx`
 - **Category**: domain
-- **API**: `venuePinImage(arena)` (badge 1–4, then 5+; red ring when `live`), `matchPinImage(openSlots)` and `clusterImage(games, places)` (the number is the places in the group, green when one has a game, #179) return the image for a Marker's `image` prop; `VENUE_HALO` (selected arena ring), `venueActivityFor`, `MATCH_PIN_ANCHOR`, `MATCH_PIN_CENTER_OFFSET`, `CLUSTER_ANCHOR`. Grouping itself is `clusterPoints` in `src/features/explore/lib/cluster.ts` (`supercluster`, #177, #179)
+- **API**: `venuePinImage(arena)` (kind icon in the circle, games 1–4 then 5+ in a green badge; red ring when `live`) and `clusterImage(games, places)` (green with the games in the group, white with the places when none has a game, #183) return the image for a Marker's `image` prop; `MATCH_PIN` (a game with no arena: the green "1" disc), `VENUE_HALO` (selected arena ring), `venueActivityFor`, `CLUSTER_ANCHOR` (groups and games with no arena). Grouping itself is `clusterPoints` in `src/features/explore/lib/cluster.ts` (`supercluster`, #177, #179)
 - **Used in**: S17 map (`app/explore/map.tsx`), S6 Explore preview map
-- **Notes**: Pins are images in `assets/map-pins` (only `@3x`, drawn from `scripts/map-pins.html`), never views inside a Marker (#176). A new look is a new image: regenerate the PNGs from the HTML and add the `require` here. Arena pins are 48 dp squares centred on the point; drops are 35 × 42 dp with the tip on the point.
+- **Notes**: Pins are images in `assets/map-pins` (only `@3x`, drawn from `scripts/map-pins.html`), never views inside a Marker (#176). A new look is a new image: regenerate the PNGs from the HTML and add the `require` here. Arena pins are 48 dp squares centred on the point; discs (groups, games with no arena) are 47 dp with the disc centre on the point. Numbers are games, icons are places (#183).
 
 ### `MatchHistoryRow`
 - **Path**: `src/components/domain/MatchHistoryRow.tsx`

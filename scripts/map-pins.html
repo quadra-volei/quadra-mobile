@@ -19,23 +19,16 @@
   .circle { position: absolute; left: 21px; top: 21px; width: 102px; height: 102px; box-sizing: border-box; border-radius: 50%;
             border: 6px solid var(--navy); background: #fff; display: flex; align-items: center; justify-content: center; }
   .live .circle { border-color: var(--red); }
-  .games .circle { background: var(--green); }
   .icon { width: 54px; height: 54px; display: block; }
-  .count { font-family: 'Russo One'; font-size: 45px; line-height: 1; color: #fff; }
+  .count { font-family: 'Russo One'; font-size: 30px; line-height: 1; color: #fff; }
+  .count.n2 { font-size: 24px; }
   .badge { position: absolute; right: 0; top: 0; width: 60px; height: 60px; box-sizing: border-box; border-radius: 50%;
-           border: 6px solid var(--navy); background: #fff; display: flex; align-items: center; justify-content: center; }
-  .badge .icon { width: 33px; height: 33px; }
+           border: 6px solid var(--navy); background: var(--green); display: flex; align-items: center; justify-content: center; }
   .halo { width: 144px; height: 144px; }
   .halo::after { content: ''; position: absolute; left: 9px; top: 9px; width: 126px; height: 126px; box-sizing: border-box;
                  border-radius: 50%; border: 9px solid var(--lime); }
-  /* A game away from any arena: a drop with a hard navy shadow (35 x 42 dp). */
-  .drop { width: 105px; height: 126px; }
-  .drop i { position: absolute; width: 96px; height: 96px; box-sizing: border-box; border-radius: 48px 48px 0 48px; transform: rotate(45deg); }
-  .drop .shadow { left: 9px; top: 9px; background: var(--navy); }
-  .drop .head { left: 0; top: 0; border: 6px solid var(--navy); display: flex; align-items: center; justify-content: center; }
-  .drop .head::after { content: ''; width: 30px; height: 30px; border-radius: 50%; background: var(--navy); }
-  /* A group of nearby places (47 x 47 dp): a 44 dp disc with a hard navy shadow,
-     green with the games inside, white with the number of places when none has a game. */
+  /* A group of nearby places, or a game with no arena (47 x 47 dp): a 44 dp disc with a hard navy
+     shadow, green with the number of games, white with the number of places when none has a game. */
   .cluster { width: 141px; height: 141px; }
   .cluster i { position: absolute; width: 132px; height: 132px; box-sizing: border-box; border-radius: 50%; }
   .cluster .shadow { left: 9px; top: 9px; background: var(--navy); }
@@ -67,26 +60,23 @@
   for (const [kind, paths] of Object.entries(KINDS)) {
     add(`venue-${kind}`, 'venue', `<div class="circle">${icon(paths)}</div>`);
     for (const live of [false, true]) {
-      // The arena's games (DECISIONS #179): 1–4, then 5+.
+      // The place in the big circle, its games (1–4, then 5+) in the small green one (DECISIONS #183).
       for (const n of ['1', '2', '3', '4', '5+']) {
         const name = `venue-${kind}-${n === '5+' ? '5plus' : n}${live ? '-live' : ''}`;
         add(name, `venue games${live ? ' live' : ''}`,
-          `<div class="circle"><span class="count">${n}</span></div><div class="badge">${icon(paths)}</div>`);
+          `<div class="circle">${icon(paths)}</div><div class="badge"><span class="count n${n.length}">${n}</span></div>`);
       }
     }
   }
   add('venue-halo', 'halo', '');
-  // Places in the group (DECISIONS #179): 2–9, then buckets like Google's cluster renderer
-  // (10+, 20+, 50+, 100+); green when one of them has a game.
+  // Green: the games in a group, or "1" for a game with no arena (DECISIONS #183). White: the
+  // places in a group with no game. 1–9, then buckets like Google's cluster renderer (10+, 20+, 50+, 100+).
   for (const games of [true, false]) {
-    for (const n of ['2', '3', '4', '5', '6', '7', '8', '9', '10', '20', '50', '100']) {
+    for (const n of [...(games ? ['1'] : []), '2', '3', '4', '5', '6', '7', '8', '9', '10', '20', '50', '100']) {
       const text = Number(n) >= 10 ? `${n}+` : n;
       add(`cluster-${games ? 'games' : 'places'}-${n}`, `cluster${games ? ' games' : ''}`,
         `<i class="shadow"></i><i class="disc n${text.length}">${text}</i>`);
     }
-  }
-  for (const [name, color] of [['open', 'var(--lime)'], ['last', 'var(--amber)'], ['full', 'var(--muted)']]) {
-    add(`match-${name}`, 'drop', `<i class="shadow"></i><i class="head" style="background:${color}"></i>`);
   }
 </script>
 </body>
