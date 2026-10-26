@@ -41,7 +41,7 @@ import {
   type MapBox,
 } from '@/features/explore/api/mapItems';
 import { useVenueDetails, VENUE_KINDS, type VenueKind } from '@/features/explore/api/venues';
-import { clusterPoints, type MapPoint } from '@/features/explore/lib/cluster';
+import { NO_CLUSTER_DELTA, clusterPoints, type MapPoint } from '@/features/explore/lib/cluster';
 import { useNearbyMatches } from '@/features/matches/api/getNearby';
 import { distanceKm } from '@/features/matches/lib/distanceKm';
 import { readDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
@@ -106,6 +106,9 @@ const MAX_KM = 50;
 // Arenas without a game show only this close in (view radius), or when a kind
 // of place is picked: further out they hid the few pins with games (#176).
 const EMPTY_ARENAS_KM = 6;
+// Just closer than the grouping goes (NO_CLUSTER_DELTA): where a group of places on one spot
+// opens to, and the zoom an arena picked in the list or the "next arena" card is shown at.
+const CLOSE_SPAN = NO_CLUSTER_DELTA * 0.75;
 
 /**
  * The closest other arena with games, from `from`: where the arena sheet's
@@ -179,9 +182,12 @@ function VenueSheet({
       <View className="px-4 flex-row items-start gap-3">
         <View className="flex-1">
           {kind ? (
-            <Text className="font-mono text-mono text-text-muted uppercase" testID="map-venue-kind">
-              {kind.emoji} {kind.label}
-            </Text>
+            <View className="flex-row items-center gap-1">
+              <kind.Icon size={14} color={colors.textMuted} />
+              <Text className="font-mono text-mono text-text-muted uppercase" testID="map-venue-kind">
+                {kind.label}
+              </Text>
+            </View>
           ) : null}
           {title === undefined ? (
             <View className="gap-1 py-1" testID="map-venue-title-loading">
@@ -450,7 +456,7 @@ export default function MapScreen() {
           Não foi possível carregar as partidas por perto.
         </Text>
         <View className="w-full">
-          <Button variant="ghost" onPress={() => nearby.refetch()}>
+          <Button variant="ghost" onPress={() => query.refetch()}>
             Tentar novamente
           </Button>
         </View>
@@ -473,6 +479,7 @@ export default function MapScreen() {
   const looseMatches = kinds.length > 0 ? [] : matches.filter((m) => within(m.lat, m.lon));
   const shownGames = venues.reduce((n, v) => n + v.gamesCount, 0) + looseMatches.length;
   const morePlaces = items.data?.truncated ?? false;
+  const countLabel = shownGames === 1 ? '1 partida por perto' : `${shownGames} partidas por perto`;
   // Pins that would overlap become one group (DECISIONS #177).
   const clusters = clusterPoints<PinItem>(
     [
@@ -493,12 +500,26 @@ export default function MapScreen() {
     ],
     { ...(region ?? REGION_DELTA), width: screen.width, height: screen.height },
   );
-  // A tap on a group zooms the map onto its places, which then show apart.
-  const openCluster = (points: MapPoint<PinItem>[]) =>
+  // A tap on a group zooms the map onto its places, which then show apart. Places (nearly) on
+  // the same spot only get as close as the grouping stops: fitting them went to building level.
+  const openCluster = (points: MapPoint<PinItem>[]) => {
+    const lats = points.map((p) => p.lat);
+    const lons = points.map((p) => p.lon);
+    const [south, north, west, east] = [Math.min(...lats), Math.max(...lats), Math.min(...lons), Math.max(...lons)];
+    if (Math.max(north - south, east - west) < CLOSE_SPAN) {
+      mapRef.current?.animateToRegion({
+        latitude: (south + north) / 2,
+        longitude: (west + east) / 2,
+        latitudeDelta: CLOSE_SPAN,
+        longitudeDelta: CLOSE_SPAN,
+      });
+      return;
+    }
     mapRef.current?.fitToCoordinates(
       points.map((p) => ({ latitude: p.lat, longitude: p.lon })),
       { edgePadding: { top: 200, right: 64, bottom: 240, left: 64 }, animated: true },
     );
+  };
   const filtersOn = maxKm < MAX_KM || kinds.length > 0;
   const selected = matches.find((m) => m.id === selectedMatchId) ?? null;
   // The ring only around a pin of its own, not around a group it fell into.
@@ -507,6 +528,13 @@ export default function MapScreen() {
     : null;
   const toggleKind = (kind: VenueKind) =>
     setKinds((prev) => (prev.includes(kind) ? prev.filter((k) => k !== kind) : [...prev, kind]));
+
+  // Centred at a street zoom: moving only the centre kept whatever zoom the map had.
+  const showArena = (arena: MapArena) =>
+    mapRef.current?.animateToRegion(
+      { latitude: arena.lat, longitude: arena.lon, latitudeDelta: CLOSE_SPAN, longitudeDelta: CLOSE_SPAN },
+      450,
+    );
 
   function goMatch(id: string) {
     router.push({ pathname: '/matches/[id]', params: { id } });
@@ -620,6 +648,8 @@ export default function MapScreen() {
                 setSelectedMatchId(match.id);
               }}
               testID={`map-pin-${match.id}`}
+              // Over an arena on the same spot (a game not linked to it), or the arena takes the tap.
+              zIndex={1}
               anchor={MATCH_PIN_ANCHOR}
               centerOffset={MATCH_PIN_CENTER_OFFSET}
               image={matchPinImage(match.capacity - match.confirmed)}
@@ -655,14 +685,10 @@ export default function MapScreen() {
               <Text
                 numberOfLines={1}
                 className="font-body-bold text-caption text-text-primary"
-                accessibilityLabel={items.isFetching ? 'Carregando esta área' : undefined}
+                accessibilityLabel={items.isFetching ? 'Carregando esta área' : countLabel}
               >
                 {/* While a new area loads, three dots like the references (#180). */}
-                {items.isFetching
-                  ? '•••'
-                  : shownGames === 1
-                    ? '1 partida por perto'
-                    : `${shownGames} partidas por perto`}
+                {items.isFetching ? '•••' : countLabel}
               </Text>
             </View>
           </View>
@@ -693,10 +719,11 @@ export default function MapScreen() {
             onPress={() => setDistanceOpen((open) => !open)}
             testID="map-filter-distance"
           />
-          {VENUE_KINDS.map(({ kind, label, emoji }) => (
+          {VENUE_KINDS.map(({ kind, label, Icon }) => (
             <FilterChip
               key={kind}
-              label={`${emoji} ${label}`}
+              label={label}
+              icon={Icon}
               selected={kinds.includes(kind)}
               onPress={() => toggleKind(kind)}
               testID={`map-filter-${kind}`}
@@ -774,10 +801,7 @@ export default function MapScreen() {
           gameCount={filtersOn ? shownGames : (items.data?.gameCount ?? shownGames)}
           onOpenArena={(arena) => {
             setSelectedVenueId(arena.id);
-            mapRef.current?.animateCamera?.(
-              { center: { latitude: arena.lat, longitude: arena.lon } },
-              { duration: 450 },
-            );
+            showArena(arena);
           }}
           onOpenMatch={goMatch}
         />
@@ -799,10 +823,7 @@ export default function MapScreen() {
               onOpenMatch={goMatch}
               onNextVenue={(next) => {
                 setSelectedVenueId(next.id);
-                mapRef.current?.animateCamera?.(
-                  { center: { latitude: next.lat, longitude: next.lon } },
-                  { duration: 450 },
-                );
+                showArena(next);
               }}
             />
           </View>

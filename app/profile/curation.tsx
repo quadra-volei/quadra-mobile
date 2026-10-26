@@ -68,9 +68,12 @@ function CandidateRow({ candidate, onPress }: { candidate: Candidate; onPress: (
       testID={`curation-row-${candidate.placeId}`}
       className="rounded-card border-2 border-surface-dark bg-white px-4 py-3"
     >
-      <Text className="font-mono text-mono text-text-muted uppercase">
-        {kind.emoji} {kind.label} · {candidate.distanceKm.toFixed(1).replace('.', ',')} km
-      </Text>
+      <View className="flex-row items-center gap-1">
+        <kind.Icon size={14} color={colors.textMuted} />
+        <Text className="font-mono text-mono text-text-muted uppercase">
+          {kind.label} · {candidate.distanceKm.toFixed(1).replace('.', ',')} km
+        </Text>
+      </View>
       <Text className="mt-1 font-body-bold text-body text-text-primary">
         {candidate.gamesNearby > 0
           ? candidate.gamesNearby === 1
@@ -117,7 +120,7 @@ function CandidateCard({
   const askSameArena = () =>
     dialog.alert('É a mesma arena que…', 'Uma entrada ou duplicata de uma arena já aprovada.', [
       ...close.map(({ arena, km }) => ({
-        text: `${kindOf(arena.kind).emoji} ${kindOf(arena.kind).label} a ${meters(km)}`,
+        text: `${kindOf(arena.kind).label} a ${meters(km)}`,
         onPress: () => onDecide({ arenaId: arena.id }, kind),
       })),
       { text: 'Cancelar', style: 'cancel' as const },
@@ -164,7 +167,8 @@ function CandidateCard({
         {VENUE_KINDS.map((k) => (
           <FilterChip
             key={k.kind}
-            label={`${k.emoji} ${k.label}`}
+            label={k.label}
+            icon={k.Icon}
             selected={kind === k.kind}
             onPress={() => setKind(k.kind)}
             testID={`curation-kind-${k.kind}`}

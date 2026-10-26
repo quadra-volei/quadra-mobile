@@ -8,6 +8,7 @@ import type { MapArena } from '@/features/explore/api/mapItems';
 import { VENUE_KINDS } from '@/features/explore/api/venues';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
 import type { NearbyMatch } from '@/features/matches/types/match';
+import { colors } from '@/theme/colors';
 
 /*
  * The list under the map (DECISIONS #180, D8): what the map shows, as a list in a panel dragged
@@ -42,7 +43,12 @@ export function listRows(arenas: MapArena[], games: NearbyMatch[]): Row[] {
 function ArenaRow({ arena, onPress }: { arena: MapArena; onPress: () => void }) {
   const kind = VENUE_KINDS.find((k) => k.kind === arena.kind);
   const next = arena.games[0];
-  const games = arena.gamesCount === 1 ? '1 jogo esta semana' : `${arena.gamesCount} jogos esta semana`;
+  const games =
+    arena.gamesCount === 0
+      ? 'Nenhum jogo marcado nos próximos dias'
+      : arena.gamesCount === 1
+        ? '1 jogo esta semana'
+        : `${arena.gamesCount} jogos esta semana`;
   return (
     <Pressable
       onPress={onPress}
@@ -51,12 +57,13 @@ function ArenaRow({ arena, onPress }: { arena: MapArena; onPress: () => void }) 
       testID={`map-list-arena-${arena.id}`}
       className="rounded-card border-2 border-surface-dark bg-white px-4 py-3"
     >
-      <Text className="font-mono text-mono text-text-muted uppercase">
-        {kind ? `${kind.emoji} ${kind.label}` : 'Arena'} · {arena.distanceKm.toFixed(1).replace('.', ',')} km
-      </Text>
-      <Text className="mt-1 font-body-bold text-body text-text-primary">
-        {arena.gamesCount > 0 ? games : 'Nenhum jogo marcado nos próximos dias'}
-      </Text>
+      <View className="flex-row items-center gap-1">
+        {kind ? <kind.Icon size={14} color={colors.textMuted} /> : null}
+        <Text className="font-mono text-mono text-text-muted uppercase">
+          {kind?.label ?? 'Arena'} · {arena.distanceKm.toFixed(1).replace('.', ',')} km
+        </Text>
+      </View>
+      <Text className="mt-1 font-body-bold text-body text-text-primary">{games}</Text>
       {next ? (
         <Text numberOfLines={1} className="mt-0.5 font-body text-caption text-text-muted">
           {next.live ? 'Ao vivo' : formatWhen(next.startsAt)} · {next.name}

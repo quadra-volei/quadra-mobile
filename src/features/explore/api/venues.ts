@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { TreeDeciduous, TreePalm, Volleyball, type LucideIcon } from 'lucide-react-native';
 
 import { authorizedApiClient } from '@/lib/api/authorizedClient';
 
@@ -9,11 +10,11 @@ import { authorizedApiClient } from '@/lib/api/authorizedClient';
  */
 export type VenueKind = 'Court' | 'Sand' | 'Park';
 
-/** The kinds of place, in the order the map's filter lists them, with how they show on pins and chips. */
-export const VENUE_KINDS: { kind: VenueKind; label: string; emoji: string }[] = [
-  { kind: 'Court', label: 'Quadras', emoji: '🏐' },
-  { kind: 'Sand', label: 'Areia', emoji: '🏖️' },
-  { kind: 'Park', label: 'Parques', emoji: '🌳' },
+/** The kinds of place, in the order the map's filter lists them, with the icon chips and rows draw (pins: `scripts/map-pins.html`). */
+export const VENUE_KINDS: { kind: VenueKind; label: string; Icon: LucideIcon }[] = [
+  { kind: 'Court', label: 'Quadras', Icon: Volleyball },
+  { kind: 'Sand', label: 'Areia', Icon: TreePalm },
+  { kind: 'Park', label: 'Parques', Icon: TreeDeciduous },
 ];
 
 export type VenueDetails = { title: string; address: string };
