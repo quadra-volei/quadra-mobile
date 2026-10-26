@@ -10,6 +10,8 @@ export type RankingRowProps = {
   row: RankingRowData;
   /** Derived by the screen from `useAuthStore().userId === row.playerId`. */
   isMe: boolean;
+  /** What `row.score` counts, read by screen readers; default "pontos". */
+  scoreUnit?: string;
   testID?: string;
 };
 
@@ -54,13 +56,13 @@ function trendLabel(trend: RankingRowData['trend']): string {
  * single `accessibilityLabel` announces position/name/score/trend (+ "você").
  * Receives plain data via props; never fetches.
  */
-export function RankingRow({ row, isMe, testID }: RankingRowProps) {
+export function RankingRow({ row, isMe, scoreUnit = 'pontos', testID }: RankingRowProps) {
   return (
     <View
       testID={testID}
       accessibilityLabel={`${row.position == null ? 'sem posição' : `${row.position}º`}, ${row.name}${
         isMe ? ', você' : ''
-      }, ${row.score} pontos, ${trendLabel(row.trend)}`}
+      }, ${row.score} ${scoreUnit}, ${trendLabel(row.trend)}`}
       className={`flex-row items-center px-4 py-3 ${
         isMe ? 'bg-primary/10 rounded-card' : ''
       }`}

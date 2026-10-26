@@ -1,19 +1,33 @@
-// Ranking domain types consumed by the S8 "Ranking semanal" preview card and
-// the S9 full group ranking. The hook (src/features/ranking/api/getGroupRanking.ts)
-// maps the backend F2.3 payload into this shape. No `any`.
+// Ranking domain types consumed by the profile preview card and the Ranking
+// screen. The hook (src/features/ranking/api/getGroupRanking.ts) maps the
+// backend payload (quadra-api DECISIONS #63, #95) into this shape. No `any`.
 
-/**
- * One row of the weekly group ranking.
- * `isMe` is filled by the hook; the screen also derives the highlight from
- * `useAuthStore().userId` matched against `playerId` (see S8 spec impl notes).
- */
+/** Where a player's season points came from (quadra-api DECISIONS #95). */
+export type PointsBreakdown = {
+  /** +10 per match. */
+  attendance: number;
+  /** +8 per game won (at most 3 per match). */
+  wins: number;
+  /** +4 per MVP vote received, +20 for the MVP of the day. */
+  mvp: number;
+};
+
+/** One row of a season ranking. */
 export type RankingRow = {
   /** 1-based standing position; null when the player does not qualify yet (too few games). */
   position: number | null;
   /** Short-lived photo URL. */
   photoUrl?: string;
-  /** Games played this season. */
+  /** Matches played this season. */
   matches?: number;
+  /** Games won this season. */
+  wins?: number;
+  /** MVP votes received this season. */
+  votes?: number;
+  /** Times MVP of the day this season. */
+  mvps?: number;
+  /** Season points split by reason; absent on old payloads. */
+  breakdown?: PointsBreakdown;
   /** Stable player id (matched against the auth userId for the "você" row). */
   playerId: string;
   name: string;
@@ -26,9 +40,8 @@ export type RankingRow = {
   /** The row is the signed-in user. */
   isMe?: boolean;
   /**
-   * Movement since the previous ranking period. Absent → render "—" (flat).
-   * Additive/optional so the S8 preview (which doesn't render trend) is
-   * unaffected. Not filled today: the backend keeps no ranking history.
+   * Movement against the ranking of 7 days ago in the same season. Absent → "—"
+   * (flat), also when the player was not ranked a week ago.
    */
   trend?: { direction: 'up' | 'down' | 'flat'; delta: number };
 };
