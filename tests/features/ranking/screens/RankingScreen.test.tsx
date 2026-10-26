@@ -196,14 +196,13 @@ describe('Ranking screen (season, DECISIONS #63, API #95)', () => {
     expect(lastParams()).toMatchObject({ scope: 'general', position: 'LEV', sort: 'mvps' });
   });
 
-  it('goes back to last month, which shows its champion, and never past the first season', async () => {
+  it('goes back to last month, which shows its champion', async () => {
     await render(<RankingScreen />);
 
     await fireEvent.press(screen.getByTestId('ranking-season-prev'));
 
     expect(lastParams()).toMatchObject({ season: '2026-10' });
     expect(screen.getByText('Campeão de outubro')).toBeTruthy();
-    expect(screen.getByTestId('ranking-season-prev').props.accessibilityState).toMatchObject({ disabled: true });
 
     await fireEvent.press(screen.getByTestId('ranking-season-next'));
     expect(lastParams()).toMatchObject({ season: undefined });

@@ -50,11 +50,11 @@ const EMPTY_MESSAGE: Record<RankingScope, string> = {
 };
 
 // The point rules of quadra-api DECISIONS #95, shown as the screen's legend.
-const RULES: { points: string; label: string; detail: string }[] = [
+const RULES: { points: string; label: string; detail: string; mvp?: boolean }[] = [
   { points: '+10', label: 'Presença', detail: 'por partida' },
   { points: '+8', label: 'Jogo ganho', detail: 'até 3 por partida' },
-  { points: '+4', label: 'Voto de MVP', detail: 'por voto recebido' },
-  { points: '+20', label: 'MVP do dia', detail: 'com 3+ votos' },
+  { points: '+4', label: 'Voto de MVP', detail: 'por voto recebido', mvp: true },
+  { points: '+20', label: 'MVP do dia', detail: 'com 3+ votos', mvp: true },
 ];
 
 // The breakdown bar takes the palette in its order (blue, lime, orange); MVP,
@@ -65,8 +65,8 @@ const BREAKDOWN: { key: keyof PointsBreakdown; label: string; fill: string }[] =
   { key: 'wins', label: 'Vitórias', fill: 'bg-tertiary' },
 ];
 
-// The first season of the season ranking; the arrows never go before it.
-const FIRST_SEASON = '2026-10';
+// The ledger starts in July 2026 (the first recurring games); the arrows never go before it.
+const FIRST_SEASON = '2026-07';
 
 /** `yyyy-MM` of a date, in Brasília time. */
 function monthOf(date: Date): string {
@@ -97,10 +97,10 @@ function scoreFor(row: RankingRowData, sort: RankingSort): number {
   return row.score;
 }
 
-const UNIT: Record<RankingSort, { short: string; long: string }> = {
-  points: { short: 'pts', long: 'pontos' },
-  mvps: { short: 'MVP', long: 'MVPs' },
-  wins: { short: 'vit.', long: 'jogos ganhos' },
+const UNIT: Record<RankingSort, { short: string; long: string; one: string }> = {
+  points: { short: 'pts', long: 'pontos', one: 'ponto' },
+  mvps: { short: 'MVP', long: 'MVPs', one: 'MVP' },
+  wins: { short: 'vit.', long: 'jogos ganhos', one: 'jogo ganho' },
 };
 
 /** A filter group: an eyebrow saying what it controls, then its chips. */
@@ -373,12 +373,14 @@ function Stats({ row }: { row: RankingRowData }) {
 }
 
 /** My standing: rank, points, the arrow, who to pass and where my points came from. */
-function MyStanding({ data, sort }: { data: Ranking; sort: RankingSort }) {
+function MyStanding({ data, sort, isCurrent }: { data: Ranking; sort: RankingSort; isCurrent: boolean }) {
   const me = data.me;
   if (!me) {
     return (
       <View className="mx-4 mt-4 rounded-card bg-white shadow-card p-4" testID="ranking-me">
-        <Text className="font-body-bold text-body-bold text-text-primary">Você ainda não pontuou neste mês</Text>
+        <Text className="font-body-bold text-body-bold text-text-primary">
+          {isCurrent ? 'Você ainda não pontuou neste mês' : 'Você não pontuou neste mês'}
+        </Text>
         <Text className="font-body text-caption text-text-muted mt-1">
           Jogue uma partida recorrente para entrar no ranking.
         </Text>
@@ -398,18 +400,22 @@ function MyStanding({ data, sort }: { data: Ranking; sort: RankingSort }) {
       testID="ranking-me"
     >
       <View className="flex-row items-center">
-        <View className="items-center w-16">
+        <View className="items-center w-24">
           <Text className="font-num text-primary" style={{ fontSize: 32 }}>
             {me.position != null ? `${me.position}º` : '–'}
           </Text>
-          <Text className="font-body text-caption text-text-muted">sua posição</Text>
+          <Text numberOfLines={1} className="font-body text-caption text-text-muted">sua posição</Text>
         </View>
         <View className="flex-1 ml-3">
           <Text className="font-body-bold text-body-bold text-text-primary">
-            {mine} {UNIT[sort].long}
+            {mine} {mine === 1 ? UNIT[sort].one : UNIT[sort].long}
           </Text>
           <Text className="font-body text-caption text-text-muted mt-1" testID="ranking-me-goal">
-            {missing > 0
+            {!isCurrent
+              ? me.position != null
+                ? `Temporada encerrada: você terminou em ${me.position}º`
+                : 'Temporada encerrada'
+              : missing > 0
               ? `Jogue mais ${missing} ${missing === 1 ? 'partida' : 'partidas'} neste mês para entrar no ranking`
               : me.position === 1
                 ? 'Você lidera! Continue jogando para segurar o topo.'
@@ -443,11 +449,14 @@ function PointsLegend() {
     <View className="mx-4 mt-4" testID="ranking-legend">
       <Text className="font-display text-h2 text-text-primary uppercase">Como pontuar</Text>
       <Text className="font-body text-caption text-text-muted mt-1">
-        Só partidas recorrentes contam. O MVP é votado por quem jogou.
+        Só partidas recorrentes contam. O MVP, votado por quem jogou, é o que mais vale.
       </Text>
       <View className="flex-row gap-2 mt-3">
         {RULES.map((r) => (
-          <View key={r.label} className="flex-1 rounded-chip bg-white shadow-card px-2 py-3 items-center">
+          <View
+            key={r.label}
+            className={`flex-1 rounded-chip px-2 py-3 items-center ${r.mvp ? 'bg-accent/20 border-2 border-accent' : 'bg-white shadow-card'}`}
+          >
             <Text className="font-num text-primary" style={{ fontSize: 20 }}>
               {r.points}
             </Text>
@@ -483,10 +492,15 @@ function ExpandableRow({
         accessibilityState={{ expanded: open }}
         onPress={onToggle}
         testID={`ranking-row-${row.playerId}`}
-        className="flex-row items-center"
+        className={`flex-row items-center ${row.isMe ? 'bg-primary/10 rounded-card' : ''}`}
       >
         <View className="flex-1">
-          <RankingRow row={{ ...row, score: scoreFor(row, sort) }} isMe={Boolean(row.isMe)} scoreUnit={UNIT[sort].long} />
+          <RankingRow
+            row={{ ...row, score: scoreFor(row, sort) }}
+            isMe={Boolean(row.isMe)}
+            scoreUnit={UNIT[sort].long}
+            highlight={false}
+          />
         </View>
         <View className="pr-3">
           <Chevron size={18} color={colors.textMuted} />
@@ -643,7 +657,7 @@ export default function RankingScreen() {
 
         {ranking.isPending && !noGroups ? <RankingSkeleton /> : null}
 
-        {data && !noGroups ? <MyStanding data={data} sort={sort} /> : null}
+        {data && !noGroups ? <MyStanding data={data} sort={sort} isCurrent={isCurrent} /> : null}
 
         {data && !noGroups && data.rows.length > 0 ? (
           <View className="mx-4 mt-6">

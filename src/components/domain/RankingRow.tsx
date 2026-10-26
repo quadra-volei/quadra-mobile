@@ -12,6 +12,8 @@ export type RankingRowProps = {
   isMe: boolean;
   /** What `row.score` counts, read by screen readers; default "pontos". */
   scoreUnit?: string;
+  /** Draw the "me" tint on the row itself; off when the parent tints a wider box. Default true. */
+  highlight?: boolean;
   testID?: string;
 };
 
@@ -56,7 +58,7 @@ function trendLabel(trend: RankingRowData['trend']): string {
  * single `accessibilityLabel` announces position/name/score/trend (+ "você").
  * Receives plain data via props; never fetches.
  */
-export function RankingRow({ row, isMe, scoreUnit = 'pontos', testID }: RankingRowProps) {
+export function RankingRow({ row, isMe, scoreUnit = 'pontos', highlight = true, testID }: RankingRowProps) {
   return (
     <View
       testID={testID}
@@ -64,7 +66,7 @@ export function RankingRow({ row, isMe, scoreUnit = 'pontos', testID }: RankingR
         isMe ? ', você' : ''
       }, ${row.score} ${scoreUnit}, ${trendLabel(row.trend)}`}
       className={`flex-row items-center px-4 py-3 ${
-        isMe ? 'bg-primary/10 rounded-card' : ''
+        isMe && highlight ? 'bg-primary/10 rounded-card' : ''
       }`}
     >
       <Text className="font-num text-primary text-body w-8">{row.position ?? '–'}</Text>
@@ -74,7 +76,7 @@ export function RankingRow({ row, isMe, scoreUnit = 'pontos', testID }: RankingR
           {row.name}
           {isMe ? <Text className="text-primary"> · você</Text> : null}
         </Text>
-        <Text className="font-body text-caption text-text-muted">{row.subtitle}</Text>
+        <Text numberOfLines={1} className="font-body text-caption text-text-muted">{row.subtitle}</Text>
       </View>
       <View className="items-end">
         <Text className="font-num text-primary text-body">{row.score}</Text>
