@@ -1,6 +1,13 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { postDraft, putTeamMember, toTeams } from '@/features/matches/api/gameApi';
+import {
+  type ApiTeam,
+  fetchTeams,
+  postDraft,
+  putTeamMember,
+  toTeams,
+} from '@/features/matches/api/gameApi';
+import { liveGameQueryKey } from '@/features/matches/api/liveGame';
 import { toMatchError } from '@/features/matches/api/matchesApi';
 import { ApiError } from '@/lib/api/client';
 import type { PresencePlayer } from '@/features/matches/types/matchDetail';
@@ -27,6 +34,36 @@ function toTeamsError(error: unknown, byStatus: Partial<Record<number, string>>)
   return toMatchError(error, byStatus);
 }
 
+/** Query key of the drawn teams of a match (the backend keeps them until the game). */
+export const matchTeamsQueryKey = (id: string) => ['matches', id, 'teams'] as const;
+
+/**
+ * The teams drawn for a match (`GET /matches/{id}/teams`), named from the match
+ * roster. Empty until the organizer draws them; the draw and the moves below
+ * write the backend's answer here, so the teams survive leaving the screen.
+ */
+export function useMatchTeams(
+  id: string,
+  players: PresencePlayer[],
+  options: { enabled?: boolean } = {},
+) {
+  return useQuery({
+    queryKey: matchTeamsQueryKey(id),
+    queryFn: () => fetchTeams(id),
+    select: (teams: ApiTeam[]) => toTeams(teams, players),
+    enabled: id.length > 0 && (options.enabled ?? true),
+  });
+}
+
+/** Keeps what the backend answered as the match's teams (and the game's, which shows them). */
+function useStoreTeams(id: string) {
+  const queryClient = useQueryClient();
+  return (teams: ApiTeam[]) => {
+    queryClient.setQueryData(matchTeamsQueryKey(id), teams);
+    void queryClient.invalidateQueries({ queryKey: liveGameQueryKey(id) });
+  };
+}
+
 export type DrawTeamsVariables = {
   /** The match roster (guests included), used to name the drawn players. */
   players: PresencePlayer[];
@@ -40,6 +77,7 @@ export type DrawTeamsVariables = {
  * beyond `teamCount × perTeam` sit out.
  */
 export function useDrawTeams(id: string) {
+  const storeTeams = useStoreTeams(id);
   return useMutation<DrawTeamsResponse, Error, DrawTeamsVariables>({
     mutationFn: async ({ players, request }) => {
       try {
@@ -48,6 +86,7 @@ export function useDrawTeams(id: string) {
           perTeam: request.perTeam,
           mode: request.drawMode === 'AUTO' ? 'Balanced' : 'Random',
         });
+        storeTeams(teams);
         return { teams: toTeams(teams, players) };
       } catch (error) {
         throw toTeamsError(error, { 403: 'Só quem organiza a partida pode sortear os times.' });
@@ -68,10 +107,13 @@ export type MovePlayerVariables = {
  * every team as it is now.
  */
 export function useMovePlayer(id: string) {
+  const storeTeams = useStoreTeams(id);
   return useMutation<DrawTeamsResponse, Error, MovePlayerVariables>({
     mutationFn: async ({ players, playerId, teamId }) => {
       try {
-        return { teams: toTeams(await putTeamMember(id, teamId, playerId), players) };
+        const teams = await putTeamMember(id, teamId, playerId);
+        storeTeams(teams);
+        return { teams: toTeams(teams, players) };
       } catch (error) {
         throw toTeamsError(error, {
           403: 'Só quem organiza a partida pode mexer nos times.',
