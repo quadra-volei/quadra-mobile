@@ -37,9 +37,10 @@ import { LEGAL_URLS } from '@/lib/legal';
 import { useThemeStore, type ThemePreference } from '@/stores/theme';
 import { colors } from '@/theme/colors';
 
-// App version shown on "Sobre o Quadra". Sourced as a module-local constant
-// (expo-constants/expo-application are not in the locked stack); update on bumps.
-const APP_VERSION = '1.0.0';
+import appConfig from '../../app.json';
+
+// App version shown on "Sobre o Quadra": the same `app.json` version the update check compares.
+const APP_VERSION = appConfig.expo.version;
 
 // How long the stack takes to slide back to the tabs before the tour measures the tab bar.
 const TOUR_REPLAY_DELAY_MS = 400;
