@@ -498,6 +498,9 @@ describe('S8 — Profile screen', () => {
     // Outer section title + inner card label.
     expect(screen.getByText('Meus amigos')).toBeTruthy();
     expect(screen.getByText('Ranking da temporada · sua rede')).toBeTruthy();
+    // The ranking comes before the match history (DECISIONS #186).
+    const tree = JSON.stringify(screen.toJSON());
+    expect(tree.indexOf('Meus amigos')).toBeLessThan(tree.indexOf('MINHAS PARTIDAS'));
 
     // Header avatar (level 15) + the three ranking rows (20/18/12) each show a badge.
     expect(
