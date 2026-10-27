@@ -75,6 +75,7 @@ export function toMyProfile(api: ApiProfile, phoneNumber: string | null): MyProf
     actions: toActions(api.actions),
     ...toProgress(api.stats),
     shareActivity: api.shareActivity ?? true,
+    tour: api.tour ?? null,
     record: {
       matches: api.stats.matchesPlayed,
       wins: api.stats.wins,

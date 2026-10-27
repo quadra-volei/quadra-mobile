@@ -369,9 +369,16 @@ More UI primitives will live here:
 ### `LocationPrompt`
 - **Path**: `src/components/domain/LocationPrompt.tsx`
 - **Category**: domain
-- **Props**: `{ onGranted: () => void; blurTarget?: RefObject<View | null> }`
+- **Props**: `{ onGranted: () => void; blurTarget?: RefObject<View | null>; onSettled?: () => void }`
 - **Used in**: `app/(tabs)/_layout.tsx` (over the tabs, next to `CreateSheet`)
-- **Notes**: Asks for the location permission once, only while it was never answered (DECISIONS #72, #188): a card centred on the screen over the tabs, blurred and dimmed behind it like `CreateSheet` (white card, 2px navy border, `HARD_SHADOW`, lime pin badge, wide options). The veil does not close it. Allowed: calls `onGranted` (the layout remounts the tabs so they read the position). Denied: explains what is lost, offers the phone settings, then lets the user in. Renders nothing otherwise.
+- **Notes**: Asks for the location permission once, only while it was never answered (DECISIONS #72, #188): a card centred on the screen over the tabs, blurred and dimmed behind it like `CreateSheet` (white card, 2px navy border, `HARD_SHADOW`, lime pin badge, wide options). The veil does not close it. Allowed: calls `onGranted` (the layout remounts the tabs so they read the position). Denied: explains what is lost, offers the phone settings, then lets the user in. Renders nothing otherwise. `onSettled` fires once nothing is left to ask (the first-access tour waits for it).
+
+### `TourOverlay`
+- **Path**: `src/components/domain/TourOverlay.tsx`
+- **Category**: domain
+- **Props**: none (driven by `useTourStore`, `src/features/tour/tourStore.ts`)
+- **Used in**: `app/(tabs)/_layout.tsx` (over the tabs, after `LocationPrompt`)
+- **Notes**: The first-access tour (DECISIONS #190), in a transparent `Modal`. Phase 0: a navy welcome card ("Bem-vindo ao Quadra", Começar / Agora não). Phases 1–4: the screen dimmed in navy with a round hole and a lime ring over one tab bar item, and a white card above it (2px navy border, `HARD_SHADOW`, "N de 4", title, text, Pular / Próximo, Concluir on the last). Targets mark themselves with `useTourTarget(id)` (`src/features/tour/tourTargets.ts`) on a plain `View` with `collapsable={false}`; a target not on screen skips its step. Leaving records the outcome (`useRecordTour`) and remembers it on the phone.
 
 ### `UpdateGate`
 - **Path**: `src/components/domain/UpdateGate.tsx`

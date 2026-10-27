@@ -20,6 +20,11 @@ jest.mock('@/components/domain/LocationPrompt',() => ({
   LocationPrompt: () => null,
 }));
 
+// Recording how the tour ended goes to the API (own test: TourOverlay.test.tsx).
+jest.mock('@/features/tour/api/recordTour', () => ({
+  useRecordTour: () => ({ mutate: jest.fn() }),
+}));
+
 // Blur (native) and the "+" icon -> plain Views.
 jest.mock('expo-blur', () => {
   const ReactLocal = require('react');

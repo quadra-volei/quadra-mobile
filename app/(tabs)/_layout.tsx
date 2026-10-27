@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CreateSheet } from '@/components/domain/CreateSheet';
 import { LocationPrompt } from '@/components/domain/LocationPrompt';
+import { TourOverlay } from '@/components/domain/TourOverlay';
 import { TabExploreIcon } from '@/components/icons/TabExploreIcon';
 import { TabHomeIcon } from '@/components/icons/TabHomeIcon';
 import { TabNetworkIcon } from '@/components/icons/TabNetworkIcon';
@@ -24,6 +25,9 @@ import type { TabIconProps } from '@/components/icons/tabIcon';
 import { Avatar } from '@/components/ui/Avatar';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
+import { useTourStore } from '@/features/tour/tourStore';
+import { TOUR_VERSION, type TourTargetId } from '@/features/tour/tourSteps';
+import { useTourTarget } from '@/features/tour/tourTargets';
 import { takePendingLink } from '@/lib/pendingLink';
 import { useAuthStore } from '@/stores/auth';
 import { listenToPushTaps, registerForPush } from '@/lib/push/pushNotifications';
@@ -48,15 +52,17 @@ function ProfileTabIcon({ focused, size }: TabIconProps) {
 
 // Routes shown as tabs, in bar order. The central "+" sits between the second
 // and third tab and opens the create sheet (DECISIONS #98).
+// `tourTarget`: the first-access tour highlights it (DECISIONS #190).
 const TABS: {
   name: string;
   label: string;
   Icon: ComponentType<TabIconProps>;
+  tourTarget?: TourTargetId;
 }[] = [
   { name: 'index', label: 'Início', Icon: TabHomeIcon },
-  { name: 'explore', label: 'Explorar', Icon: TabExploreIcon },
-  { name: 'network', label: 'Rede', Icon: TabNetworkIcon },
-  { name: 'profile', label: 'Perfil', Icon: ProfileTabIcon },
+  { name: 'explore', label: 'Explorar', Icon: TabExploreIcon, tourTarget: 'explore' },
+  { name: 'network', label: 'Rede', Icon: TabNetworkIcon, tourTarget: 'network' },
+  { name: 'profile', label: 'Perfil', Icon: ProfileTabIcon, tourTarget: 'profile' },
 ];
 
 function TabBarButton({
@@ -64,12 +70,15 @@ function TabBarButton({
   Icon,
   focused,
   onPress,
+  tourTarget,
 }: {
   label: string;
   Icon: ComponentType<TabIconProps>;
   focused: boolean;
   onPress: () => void;
+  tourTarget?: TourTargetId;
 }) {
+  const tourRef = useTourTarget(tourTarget);
   // A short, small bounce on tap: down a little, then back with one soft overshoot.
   const scale = useSharedValue(1);
   const bounce = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -88,11 +97,13 @@ function TabBarButton({
       className="flex-1 h-full items-center justify-center"
     >
       {/* Active / inactive icon swap fades in instead of cutting. */}
-      <Animated.View style={bounce}>
-        <Animated.View key={String(focused)} entering={FadeIn.duration(MOTION.fadeIn)}>
-          <Icon focused={focused} size={28} />
+      <View ref={tourRef} collapsable={false}>
+        <Animated.View style={bounce}>
+          <Animated.View key={String(focused)} entering={FadeIn.duration(MOTION.fadeIn)}>
+            <Icon focused={focused} size={28} />
+          </Animated.View>
         </Animated.View>
-      </Animated.View>
+      </View>
     </PressableScale>
   );
 }
@@ -115,6 +126,7 @@ const CENTER_OPEN_DELAY_MS = 150;
 // bounce has shown — opening at once hid the bar before either could be seen
 // (owner's 4th review, item 10; DECISIONS #172).
 function CenterButton({ onPress }: { onPress: () => void }) {
+  const tourRef = useTourTarget('create');
   const scale = useSharedValue(1);
   const bounce = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const [pressed, setPressed] = useState(false);
@@ -124,6 +136,7 @@ function CenterButton({ onPress }: { onPress: () => void }) {
   }, []);
 
   return (
+    <View ref={tourRef} collapsable={false}>
     <Animated.View
       // The shadow sits on this wrapper: the button itself clips (overflow-hidden).
       style={[bounce, { borderRadius: CENTER_SIZE / 2 }, pressed ? HARD_SHADOW : null]}
@@ -152,7 +165,32 @@ function CenterButton({ onPress }: { onPress: () => void }) {
         <Plus size={30} color={colors.surfaceDark} strokeWidth={2.6} />
       </Pressable>
     </Animated.View>
+    </View>
   );
+}
+
+// How long the tour waits for the push question before it opens anyway.
+const PUSH_WAIT_MS = 4000;
+
+/**
+ * Opens the first-access tour once per account and tour version: when the
+ * profile says it was never finished or skipped (API DECISIONS #97) and this
+ * phone does not remember it either. `ready` is false while a prompt is up.
+ */
+function useFirstAccessTour(ready: boolean) {
+  const { data: profile } = useMyProfile();
+  const userId = useAuthStore((s) => s.userId);
+  const seenHere = useTourStore((s) => (userId ? s.seen[userId] ?? 0 : 0));
+  const open = useTourStore((s) => s.open);
+  const opened = useRef(false);
+
+  useEffect(() => {
+    if (!ready || !profile || opened.current) return;
+    const seen = Math.max(profile.tour?.version ?? 0, seenHere);
+    if (seen >= TOUR_VERSION) return;
+    opened.current = true;
+    open();
+  }, [ready, profile, seenHere, open]);
 }
 
 // The tabs need a signed-in account with a finished profile. Any other way in
@@ -175,18 +213,32 @@ function SignedInTabs() {
   const remountTabs = useCallback(() => setTabsKey((k) => k + 1), []);
 
   // Signed in: ask for push once and open the match of a tapped push (API DECISIONS #77).
+  // The tour waits for the push question, or a few seconds when its token takes long.
+  const [pushAsked, setPushAsked] = useState(false);
   useEffect(() => {
-    void registerForPush();
-    return listenToPushTaps();
+    const waited = setTimeout(() => setPushAsked(true), PUSH_WAIT_MS);
+    void registerForPush().finally(() => setPushAsked(true));
+    const stop = listenToPushTaps();
+    return () => {
+      clearTimeout(waited);
+      stop();
+    };
   }, []);
 
   // A link opened while signed out (an invite) goes on once the user is in.
+  // That person came to see the match: the tour waits for the next opening.
+  const [cameByLink, setCameByLink] = useState(false);
   useEffect(() => {
     const link = takePendingLink();
     if (link) {
+      setCameByLink(true);
       router.push(link);
     }
   }, []);
+
+  const [locationSettled, setLocationSettled] = useState(false);
+  const settleLocation = useCallback(() => setLocationSettled(true), []);
+  useFirstAccessTour(locationSettled && pushAsked && !cameByLink);
   // Android resizes the window for the keyboard, which would lift the floating
   // bar on top of it (Explore's search) — hide the bar while typing instead.
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -304,7 +356,9 @@ function SignedInTabs() {
       />
     ) : null}
     {/* Asks for the location once, over the tabs (DECISIONS #72, #188). */}
-    <LocationPrompt blurTarget={blurTarget} onGranted={remountTabs} />
+    <LocationPrompt blurTarget={blurTarget} onGranted={remountTabs} onSettled={settleLocation} />
+    {/* The first-access tour, once nothing else is being asked (DECISIONS #190). */}
+    <TourOverlay />
     </View>
   );
 }

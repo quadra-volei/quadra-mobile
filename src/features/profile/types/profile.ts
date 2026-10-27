@@ -6,6 +6,7 @@
 
 import type { PlayerActionKey } from '@/features/matches/lib/playerActions';
 import type { MatchFormat } from '@/features/matches/types/match';
+import type { ApiTour } from '@/features/profile/api/profileApi';
 import type { CardTitleCode } from '@/features/profile/card/cardTitles';
 import type { Position } from '@/features/profile/schema/onboarding';
 import type { CardFinish } from '@/theme/cardFinish';
@@ -42,6 +43,8 @@ export type MyProfile = {
   xpToNext: number;
   /** "Mostrar minhas atividades para quem me segue". */
   shareActivity?: boolean;
+  /** How I left the first-access tour; null while never (or on an older API). */
+  tour?: ApiTour | null;
   /** Finished matches the player was recorded in, and their outcomes (back of the card). */
   record: { matches: number; wins: number; losses: number; draws: number; mvps: number };
   /** Ranking points: attendance +10, win +15, MVP +25. */

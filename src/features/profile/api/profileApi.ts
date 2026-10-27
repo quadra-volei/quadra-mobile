@@ -62,6 +62,16 @@ export type ApiProfile = {
   cardStyle?: ApiCardStyle | null;
   /** Recorded actions over the history (API DECISIONS #85); absent on an older API. */
   actions?: ApiActions | null;
+  /** Only on my own profile: how I left the first-access tour (API DECISIONS #97); null = never. */
+  tour?: ApiTour | null;
+};
+
+/** `tour` on my profile and the `PUT /profiles/me/tour` response. */
+export type ApiTour = {
+  version: number;
+  outcome: 'Completed' | 'Skipped';
+  lastStep: number;
+  endedAt: string;
 };
 
 type ApiActionSummary = { total: number; perMatch: number | null };
