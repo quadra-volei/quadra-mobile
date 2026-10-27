@@ -151,6 +151,7 @@ const mockShare = jest.fn();
 
 // --- Read/write hook mocks (mocked at the boundary) -----------------------
 import type { MatchDetail } from '@/features/matches/types/matchDetail';
+import type { Team } from '@/features/matches/types/team';
 
 const ORGANIZER_USER_ID = 'user-organizer';
 
@@ -271,8 +272,23 @@ jest.mock('@/features/matches/api/editMatch', () => ({
 }));
 
 const mockStartFree = { isPending: false, mutate: jest.fn() };
+const mockStartSet = { mutateAsync: jest.fn(async (_pair: [string, string]) => ({})) };
 jest.mock('@/features/matches/api/liveGame', () => ({
   useStartFreeGame: () => mockStartFree,
+  useStartSet: () => mockStartSet,
+}));
+
+// The organizer's drawn teams (kept on the backend) and the draw / move.
+const mockTeams: { data: Team[] | undefined; isPending: boolean } = {
+  data: [],
+  isPending: false,
+};
+const mockDraw = { mutate: jest.fn(), isPending: false };
+const mockMove = { mutate: jest.fn(), isPending: false };
+jest.mock('@/features/matches/api/drawTeams', () => ({
+  useMatchTeams: () => mockTeams,
+  useDrawTeams: () => mockDraw,
+  useMovePlayer: () => mockMove,
 }));
 
 jest.mock('@/features/matches/api/addGuest', () => ({
@@ -291,6 +307,7 @@ import {
 } from '@testing-library/react-native';
 import { Linking, Share } from 'react-native';
 
+import { dialog } from '@/components/ui/Dialog';
 import { useAuthStore } from '@/stores/auth';
 
 import MatchDetailScreen, {
@@ -314,6 +331,12 @@ beforeEach(() => {
   mockDecline.isPending = false;
   mockJoin.mutate.mockClear();
   mockJoin.isPending = false;
+  mockTeams.data = [];
+  mockTeams.isPending = false;
+  mockDraw.mutate.mockClear();
+  mockDraw.isPending = false;
+  mockStartSet.mutateAsync.mockClear();
+  mockStartFree.mutate.mockClear();
   // default: a non-organizer viewer (participant view)
   useAuthStore.setState({ userId: 'user-viewer' });
 });
@@ -878,58 +901,50 @@ describe('S12 — Match Detail screen', () => {
 
   /**
    * Covers: S12 — Match Detail
-   * Criterion: "Organizer view: the 'VOCÊ ORGANIZA' badge and the 'Convidar'
-   *  button are shown; the participant footer CTA is replaced by 'Montar os
-   *  times' (variant='grad'). No team configuration on this screen."
+   * Criterion: "Organizer view: the 'VOCÊ ORGANIZA' badge and 'Convidar'; the
+   *  teams are set up and drawn on the Confirmados tab, under the confirmed
+   *  players, and the footer's grad CTA is 'Sortear times'."
    */
-  it('renders the organizer view (badge, Convidar) with the grad footer CTA and no team config', async () => {
+  it('renders the organizer view with the team setup on the Confirmados tab', async () => {
     await renderOrganizer();
 
     expect(screen.getByText('Você organiza')).toBeTruthy();
+    // nothing about teams on the Detalhes tab
+    expect(screen.queryByTestId('teams-setup')).toBeNull();
+
     await openPlayersTab();
     expect(screen.getByTestId('invite')).toBeTruthy();
-    // teams are configured and drawn on the next screen
-    expect(screen.queryByText('Configuração dos times')).toBeNull();
-    expect(screen.queryByText('Como sortear os times')).toBeNull();
-    expect(screen.queryByTestId('team-count-2')).toBeNull();
-    expect(screen.queryByTestId('per-team-stepper')).toBeNull();
-    expect(screen.queryByTestId('draw-mode-manual')).toBeNull();
+    expect(screen.getByTestId('presence-grid')).toBeTruthy();
+    expect(screen.getByTestId('teams-setup')).toBeTruthy();
+    expect(screen.getByTestId('team-count-2')).toBeTruthy();
+    expect(screen.getByTestId('per-team-stepper')).toBeTruthy();
+    expect(screen.getByTestId('draw-mode-manual')).toBeTruthy();
 
-    // footer CTA is the organizer forward CTA, variant="grad"
-    const build = screen.getByTestId('build-teams');
-    expect(variantOf(build)).toBe('grad');
-    expect(screen.getByText('Montar os times')).toBeTruthy();
+    const drawButton = screen.getByTestId('draw-teams');
+    expect(variantOf(drawButton)).toBe('grad');
 
     // the participant footer CTAs are not present
     expect(screen.queryByTestId('confirm-presence')).toBeNull();
     expect(screen.queryByTestId('join-match')).toBeNull();
-  });
-
-  /**
-   * Covers: S12 — Match Detail
-   * Criterion: the organizer's forward CTA is "Montar os times" (variant="grad")
-   *  and no participant CTA is rendered alongside it.
-   */
-  it('renders only the grad forward CTA in the organizer footer', async () => {
-    await renderOrganizer();
-    await openPlayersTab();
-    // the only grad button on screen is build-teams; participant primaries absent
-    expect(variantOf(screen.getByTestId('build-teams'))).toBe('grad');
     expect(screen.queryByTestId('no-action')).toBeNull();
   });
 
   /**
-   * "Montar os times" works off the confirmed list, so it only shows on the
-   * Confirmados tab; the organizer's "Vou jogar" toggle shows on every tab.
+   * On the Detalhes tab the organizer's CTA is "Montar os times", which takes
+   * them to the Confirmados tab, where the teams are built.
    */
-  it('shows Montar os times only on the Confirmados tab', async () => {
+  it('Montar os times on Detalhes opens the Confirmados tab', async () => {
     await renderOrganizer({ myParticipationType: 'REGULAR', myStatus: 'PENDENTE' });
 
-    expect(screen.queryByTestId('build-teams')).toBeNull();
+    expect(screen.queryByTestId('draw-teams')).toBeNull();
     expect(screen.getByTestId('organizer-presence')).toBeTruthy();
 
-    await openPlayersTab();
-    expect(screen.getByTestId('build-teams')).toBeTruthy();
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('build-teams'));
+    });
+    expect(mockPush).not.toHaveBeenCalled();
+    expect(screen.getByTestId('teams-setup')).toBeTruthy();
+    expect(screen.getByTestId('draw-teams')).toBeTruthy();
     expect(screen.getByTestId('organizer-presence')).toBeTruthy();
   });
 
@@ -948,7 +963,7 @@ describe('S12 — Match Detail screen', () => {
     expect(screen.getByText('Vou jogar')).toBeTruthy();
     // the forward CTA is still there — an organizer who does not play still
     // builds the teams
-    expect(screen.getByTestId('build-teams')).toBeTruthy();
+    expect(screen.getByTestId('draw-teams')).toBeTruthy();
 
     await act(async () => {
       fireEvent.press(toggle);
@@ -1056,25 +1071,133 @@ describe('S12 — Match Detail screen', () => {
     expect(screen.queryByTestId('share-to-feed')).toBeNull();
   });
 
-  // ------------------------------------------------------------ S13 navigation
-  /**
-   * Covers: S12 — Match Detail
-   * Criterion: "'Montar os times' navigates to S13 (/matches/[id]/teams), where
-   *  the teams are configured and drawn."
-   */
-  it('navigates to /matches/[id]/teams from Montar os times', async () => {
+  // ------------------------------------------- teams and the start of the game
+  const LATER = '2099-01-01T22:00:00.000Z';
+  const drawnTeams: Team[] = [
+    { id: 'team-a', number: 1, name: 'Time Azul', players: [{ id: 'p1', name: 'Renan', status: 'CONFIRMADO' }] },
+    { id: 'team-b', number: 2, name: 'Time Limão', players: [{ id: 'p2', name: 'Bia', status: 'CONFIRMADO' }] },
+  ];
+
+  it('draws the teams with the settings picked on the Confirmados tab', async () => {
     await renderOrganizer();
     await openPlayersTab();
 
     await act(async () => {
-      fireEvent.press(screen.getByTestId('build-teams'));
+      fireEvent.press(screen.getByTestId('team-count-3'));
+      fireEvent.press(screen.getByTestId('draw-mode-auto'));
+    });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('draw-teams'));
     });
 
-    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(mockDraw.mutate).toHaveBeenCalledTimes(1);
+    expect(mockDraw.mutate.mock.calls[0][0].request).toEqual({
+      teamCount: 3,
+      perTeam: 4,
+      drawMode: 'AUTO',
+    });
+  });
+
+  it('does not offer the draw with fewer confirmed than teams', async () => {
+    await renderOrganizer({ players: [{ id: 'p1', name: 'Renan', status: 'CONFIRMADO' }] });
+    await openPlayersTab();
+
+    expect(screen.getByTestId('too-few-hint')).toBeTruthy();
+    expect(screen.getByTestId('draw-teams').props.accessibilityState?.disabled).toBe(true);
+  });
+
+  it('shows the drawn teams and starts a two-team game once the window is open', async () => {
+    const alert = jest.spyOn(dialog, 'alert').mockImplementation(() => {});
+    mockTeams.data = drawnTeams;
+    await renderOrganizer();
+    await openPlayersTab();
+
+    expect(screen.getByTestId('team-roster-team-a')).toBeTruthy();
+    expect(screen.getByTestId('team-roster-team-b')).toBeTruthy();
+    // who did not fit is listed
+    expect(screen.getByTestId('sitting-out')).toBeTruthy();
+    expect(screen.queryByTestId('team-count-2')).toBeNull();
+    expect(screen.queryByTestId('kickoff-waiting')).toBeNull();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('start-match'));
+    });
+    expect(alert).toHaveBeenCalledWith('Pronto para começar esta partida?', '', expect.any(Array));
+    const buttons = alert.mock.calls[0][2] as { text: string; onPress?: () => Promise<void> }[];
+    await act(async () => {
+      await buttons.find((b) => b.text === 'Sim, começar')?.onPress?.();
+    });
+
+    expect(mockStartSet.mutateAsync).toHaveBeenCalledWith(['team-a', 'team-b']);
     expect(mockPush).toHaveBeenCalledWith({
-      pathname: '/matches/[id]/teams',
+      pathname: '/matches/[id]/scoreboard',
       params: { id: 'mine-1' },
     });
+    alert.mockRestore();
+  });
+
+  /**
+   * The teams can be drawn ahead of time; the start waits for its window
+   * (15 minutes before the match time), so the footer says when it opens
+   * instead of offering a start that fails.
+   */
+  it('waits for the kickoff window after the draw, on both tabs', async () => {
+    mockTeams.data = drawnTeams;
+    await renderOrganizer({ startsAt: LATER });
+
+    const waiting = screen.getByTestId('kickoff-waiting');
+    expect(waiting.props.accessibilityState?.disabled).toBe(true);
+    expect(screen.getByText(/^Aguardando horário · libera \d\d\/\d\d às \d\dh\d\d$/)).toBeTruthy();
+    expect(screen.queryByTestId('start-match')).toBeNull();
+
+    await openPlayersTab();
+    expect(screen.getByTestId('kickoff-waiting')).toBeTruthy();
+    expect(screen.getByTestId('team-roster-team-a')).toBeTruthy();
+    expect(screen.queryByTestId('start-match')).toBeNull();
+  });
+
+  it('still draws before the window; only playing without teams waits', async () => {
+    await renderOrganizer({ startsAt: LATER });
+    await openPlayersTab();
+
+    expect(screen.getByTestId('draw-teams').props.accessibilityState?.disabled).toBe(false);
+    expect(screen.getByTestId('play-without-teams').props.accessibilityState?.disabled).toBe(true);
+    expect(screen.getByTestId('play-without-teams-waiting')).toBeTruthy();
+  });
+
+  it('Refazer sorteio brings the settings back; Manter os times keeps the draw', async () => {
+    mockTeams.data = drawnTeams;
+    await renderOrganizer();
+    await openPlayersTab();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('redraw-teams'));
+    });
+    expect(screen.getByTestId('team-count-2')).toBeTruthy();
+    expect(screen.getByTestId('draw-teams')).toBeTruthy();
+    expect(screen.queryByTestId('start-match')).toBeNull();
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('keep-teams'));
+    });
+    expect(screen.getByTestId('team-roster-team-a')).toBeTruthy();
+    expect(screen.getByTestId('start-match')).toBeTruthy();
+  });
+
+  it('a match without fixed teams also waits for the window', async () => {
+    await renderOrganizer({ freeTeams: true, startsAt: LATER });
+    expect(screen.getByTestId('kickoff-waiting')).toBeTruthy();
+    expect(screen.queryByTestId('start-free-match')).toBeNull();
+    await openPlayersTab();
+    expect(screen.queryByTestId('teams-setup')).toBeNull();
+  });
+
+  it('starts a match without fixed teams once the window is open', async () => {
+    await renderOrganizer({ freeTeams: true });
+    await act(async () => {
+      fireEvent.press(screen.getByTestId('start-free-match'));
+    });
+    expect(mockStartFree.mutate).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -1160,7 +1283,7 @@ describe('S12 — joining against the real backend', () => {
     expect(toggle.props.accessibilityState?.disabled).toBe(true);
     expect(screen.queryByText('Vou jogar')).toBeNull();
     // organizing does not depend on the window
-    expect(screen.getByTestId('build-teams')).toBeTruthy();
+    expect(screen.getByTestId('draw-teams')).toBeTruthy();
   });
 
   it('formatCountdown counts down to the opening while confirmations are not open', () => {

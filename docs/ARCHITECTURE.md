@@ -29,8 +29,8 @@ app/index.tsx                         splash + redirect
 app/(auth)/login · sms-otp · onboarding
 app/(tabs)/index · explore · network · profile
 app/matches/create
-app/matches/[id]                      detail (two tabs: Detalhes, Confirmados)
-app/matches/[id]/teams · scoreboard · mvp-vote · summary
+app/matches/[id]                      detail (two tabs: Detalhes, Confirmados + the teams)
+app/matches/[id]/scoreboard · mvp-vote · summary
 app/explore/map
 app/network/new · [id]                new post · a post's comments
 app/players/[id]                      another player's profile

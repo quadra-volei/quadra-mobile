@@ -11,6 +11,7 @@ import {
   Pencil,
   Play,
   Share2,
+  Shuffle,
   Trophy,
   XCircle,
   UserPlus,
@@ -24,6 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddGuestSheet } from '@/components/domain/AddGuestSheet';
 import { PositionTag } from '@/components/domain/PositionPicker';
 import { PresenceGrid } from '@/components/domain/PresenceGrid';
+import { TeamsSetup } from '@/components/domain/TeamsSetup';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { CourtImage } from '@/components/ui/CourtImage';
@@ -39,6 +41,8 @@ import { useStartFreeGame } from '@/features/matches/api/liveGame';
 import { distanceKm } from '@/features/matches/lib/distanceKm';
 import { splitVenue } from '@/features/matches/lib/venueName';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
+import { kickoffWaitingLabel } from '@/features/matches/lib/kickoff';
+import { useTeamsSetup } from '@/features/matches/lib/useTeamsSetup';
 import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
 import { useDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
 import {
@@ -243,6 +247,18 @@ export default function MatchDetailScreen() {
   // The screen opens on the match itself; who is going sits one tap away.
   const [tab, setTab] = useState<'details' | 'players'>('details');
 
+  // The organizer of a match with fixed teams draws them on the Confirmados
+  // tab, any time before the game; only the start waits for its window.
+  const loaded = matchQuery.data;
+  const buildsTeams = Boolean(
+    loaded &&
+      loaded.organizerId === userId &&
+      !loaded.freeTeams &&
+      !loaded.game &&
+      !loaded.cancelled,
+  );
+  const teamsSetup = useTeamsSetup(matchId, loaded, { enabled: buildsTeams });
+
   if (matchQuery.isPending) {
     return <MatchDetailSkeleton />;
   }
@@ -305,9 +321,6 @@ export default function MatchDetailScreen() {
     });
   };
 
-  const goToTeams = () => {
-    router.push({ pathname: '/matches/[id]/teams', params: { id: match.id } });
-  };
   // No fixed teams: nothing to build, the organizer starts it from here.
   const startFree = () =>
     startFreeGame.mutate(undefined, {
@@ -679,6 +692,7 @@ export default function MatchDetailScreen() {
             onAddGuest={isOrganizer ? () => setGuestSheetOpen(true) : undefined}
             testID="presence-grid"
           />
+          {buildsTeams ? <TeamsSetup setup={teamsSetup} /> : null}
         </Animated.View>
         )}
       </ScrollView>
@@ -717,18 +731,43 @@ export default function MatchDetailScreen() {
           </>
         ) : isOrganizer ? (
           <>
-            {/* Building teams works off the confirmed list, so it only shows on
-                that tab; the presence toggle below stays on every tab. A match
-                without fixed teams starts right away instead. */}
-            {match.freeTeams ? (
+            {/* The one next step: draw the teams (on the Confirmados tab, where
+                they are built), then start. The game only starts from 15 minutes
+                before the match time, so until then the button says when. The
+                presence toggle below stays on every tab. */}
+            {!teamsSetup.kickoffOpen && (match.freeTeams || !teamsSetup.configuring) ? (
+              <Button variant="primary" onPress={() => {}} disabled testID="kickoff-waiting">
+                {kickoffWaitingLabel(match.startsAt)}
+              </Button>
+            ) : match.freeTeams ? (
               <Button variant="grad" onPress={startFree} loading={startFreeGame.isPending} testID="start-free-match">
                 Começar partida
               </Button>
+            ) : !teamsSetup.configuring ? (
+              <Button
+                variant="grad"
+                onPress={teamsSetup.handleStartMatch}
+                loading={teamsSetup.isStarting}
+                testID="start-match"
+              >
+                Começar partida
+              </Button>
             ) : tab === 'players' ? (
-              <Button variant="grad" onPress={goToTeams} testID="build-teams">
+              <Button
+                variant="grad"
+                onPress={teamsSetup.handleDraw}
+                loading={teamsSetup.drawing}
+                disabled={teamsSetup.tooFew || teamsSetup.loading}
+                leftIcon={<Shuffle size={20} color={colors.surfaceDark} />}
+                testID="draw-teams"
+              >
+                Sortear times
+              </Button>
+            ) : (
+              <Button variant="grad" onPress={() => setTab('players')} testID="build-teams">
                 Montar os times
               </Button>
-            ) : null}
+            )}
             {/* Organizing is not playing: the organizer opts into the confirmed
                 grid (and back out of it) here, without losing the forward CTA
                 they need whether or not they play. */}

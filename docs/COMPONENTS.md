@@ -546,12 +546,24 @@ More UI primitives will live here:
 - **Path**: `src/components/domain/TeamRoster.tsx`
 - **Category**: domain
 - **Props**: `{ teamId: string; teamName?: string; players: PresencePlayer[]; colorIndex?: number; onPlayerPress?: (player: PresencePlayer) => void; testID?: string }` where `PresencePlayer = { id: string; name: string; avatarUrl?: string; status: PresenceStatus; position?: PlayerPosition }` (from `@/features/matches/types/matchDetail`)
-- **Used in**: S13 In-Game Teams (one card per team)
+- **Used in**: `TeamsSetup` (S13, Confirmados tab of S12; one card per team)
 - **Example**:
   ```tsx
   <TeamRoster teamId="team-1" teamName="Time 1" players={team.players} colorIndex={0} testID="team-roster-1" />
   ```
 - **Notes**: One team as a white card: a dot in the team's color (`getTeamBgColor(colorIndex)`), the name, the player count, and one row per player (`<Avatar size="sm" />`, name, position in `primary` mono text). Presentational: receives plain data via props, never fetches. S13 stacks one card per team (`gap-3`). With `onPlayerPress` each player row is a button (`roster-player-<id>`), which S13 uses to move the player to another team.
+
+### `TeamsSetup`
+- **Path**: `src/components/domain/TeamsSetup.tsx`
+- **Category**: domain
+- **Props**: `{ setup: TeamsSetup; testID?: string }` where `TeamsSetup` is what `useTeamsSetup(matchId, match, { enabled })` (`src/features/matches/lib/useTeamsSetup.ts`) returns
+- **Used in**: S12 Match detail, Confirmados tab, organizer of a match with fixed teams (DECISIONS #189)
+- **Example**:
+  ```tsx
+  const teamsSetup = useTeamsSetup(matchId, match, { enabled: buildsTeams });
+  {buildsTeams ? <TeamsSetup setup={teamsSetup} /> : null}
+  ```
+- **Notes**: The "Times" section under the presence grid. Before a draw: team count chips, players-per-team stepper, who fits or sits out, the draw mode cards and "Jogar sem times fixos" (disabled with the waiting label until the kickoff window). After it: one `TeamRoster` per team (tap a player to move them), who sat out, "Refazer sorteio" / "Manter os times". The "Sortear times" and "Começar partida" buttons are the screen's footer, driven by the same hook.
 
 <!--
 ### `PlayerAvatar`         — circular avatar with position-colored ring

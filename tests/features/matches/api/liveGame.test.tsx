@@ -22,7 +22,7 @@ jest.mock('expo-secure-store', () =>
 
 import * as SecureStore from 'expo-secure-store';
 
-import { useDrawTeams } from '@/features/matches/api/drawTeams';
+import { matchTeamsQueryKey, useDrawTeams, useMatchTeams } from '@/features/matches/api/drawTeams';
 import type { ApiScoreboard, ApiTeam } from '@/features/matches/api/gameApi';
 import { SUMMARY_NOT_READY, useMatchSummary } from '@/features/matches/api/getMatchSummary';
 import {
@@ -274,6 +274,28 @@ describe('teams and live game', () => {
     const teams = settled.status === 'fulfilled' ? settled.value.teams : [];
     expect(teams.map((team) => team.name)).toEqual(['Time Azul', 'Time Limão', 'Time Laranja']);
     expect(teams[1]?.players.map((member) => member.name)).toEqual(['Jogador', 'Zé']);
+  });
+
+  it('keeps the drawn teams: the draw writes them where the match reads them', async () => {
+    serve({ 'POST /teams/draft': { status: 200, body: { teams: apiTeams } } });
+    const roster: PresencePlayer[] = [{ id: ME, name: 'Renan', status: 'CONFIRMADO' }];
+
+    await run(() => useDrawTeams(MATCH), {
+      players: roster,
+      request: { teamCount: 3, perTeam: 2, drawMode: 'AUTO' },
+    });
+
+    expect(client.getQueryData(matchTeamsQueryKey(MATCH))).toEqual(apiTeams);
+  });
+
+  it('reads the teams drawn earlier from the backend', async () => {
+    serve({ 'GET /teams': { status: 200, body: { teams: apiTeams } } });
+    const roster: PresencePlayer[] = [{ id: ME, name: 'Renan', status: 'CONFIRMADO' }];
+
+    const { result } = await renderHook(() => useMatchTeams(MATCH, roster), { wrapper });
+
+    await waitFor(() => expect(result.current.data).toHaveLength(3));
+    expect(result.current.data?.[0]?.players.map((member) => member.name)).toEqual(['Renan']);
   });
 
   it.each([
