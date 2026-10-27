@@ -1123,7 +1123,7 @@ describe('S12 — Match Detail screen', () => {
       fireEvent.press(screen.getByTestId('start-match'));
     });
     expect(alert).toHaveBeenCalledWith('Pronto para começar esta partida?', '', expect.any(Array));
-    const buttons = alert.mock.calls[0][2] as { text: string; onPress?: () => Promise<void> }[];
+    const buttons = alert.mock.calls[0]?.[2] as { text: string; onPress?: () => Promise<void> }[];
     await act(async () => {
       await buttons.find((b) => b.text === 'Sim, começar')?.onPress?.();
     });
