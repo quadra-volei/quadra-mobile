@@ -1,5 +1,5 @@
 import { ArrowDown, ArrowUp, Minus } from 'lucide-react-native';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/ui/Avatar';
 import type { RankingRow as RankingRowData } from '@/features/ranking/types/ranking';
@@ -14,6 +14,8 @@ export type RankingRowProps = {
   scoreUnit?: string;
   /** Draw the "me" tint on the row itself; off when the parent tints a wider box. Default true. */
   highlight?: boolean;
+  /** When set, the photo and name open the player (the rest of the row stays the parent's). */
+  onPressPlayer?: () => void;
   testID?: string;
 };
 
@@ -58,7 +60,19 @@ function trendLabel(trend: RankingRowData['trend']): string {
  * single `accessibilityLabel` announces position/name/score/trend (+ "você").
  * Receives plain data via props; never fetches.
  */
-export function RankingRow({ row, isMe, scoreUnit = 'pontos', highlight = true, testID }: RankingRowProps) {
+export function RankingRow({ row, isMe, scoreUnit = 'pontos', highlight = true, onPressPlayer, testID }: RankingRowProps) {
+  const who = (
+    <>
+      <Avatar uri={row.photoUrl} name={row.name} size="sm" level={row.level} />
+      <View className="flex-1 ml-3">
+        <Text className="font-body-semibold text-body-bold text-text-primary">
+          {row.name}
+          {isMe ? <Text className="text-primary"> · você</Text> : null}
+        </Text>
+        <Text numberOfLines={1} className="font-body text-caption text-text-muted">{row.subtitle}</Text>
+      </View>
+    </>
+  );
   return (
     <View
       testID={testID}
@@ -70,14 +84,19 @@ export function RankingRow({ row, isMe, scoreUnit = 'pontos', highlight = true, 
       }`}
     >
       <Text className="font-num text-primary text-body w-8">{row.position ?? '–'}</Text>
-      <Avatar uri={row.photoUrl} name={row.name} size="sm" level={row.level} />
-      <View className="flex-1 ml-3">
-        <Text className="font-body-semibold text-body-bold text-text-primary">
-          {row.name}
-          {isMe ? <Text className="text-primary"> · você</Text> : null}
-        </Text>
-        <Text numberOfLines={1} className="font-body text-caption text-text-muted">{row.subtitle}</Text>
-      </View>
+      {onPressPlayer ? (
+        <Pressable
+          onPress={onPressPlayer}
+          accessibilityRole="link"
+          accessibilityLabel={`Ver perfil de ${row.name}`}
+          testID={testID ? `${testID}-player` : undefined}
+          className="flex-1 flex-row items-center"
+        >
+          {who}
+        </Pressable>
+      ) : (
+        who
+      )}
       <View className="items-end">
         <Text className="font-num text-primary text-body">{row.score}</Text>
         <View className="mt-1">

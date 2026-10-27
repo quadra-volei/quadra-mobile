@@ -364,7 +364,7 @@ More UI primitives will live here:
 - **Category**: domain
 - **Props**: none
 - **Used in**: the bell `IconButton` of Início, Rede and Perfil
-- **Notes**: Bell icon plus the count of unread notifications (`useUnreadCount`, re-read every minute; "9+" above nine) in a lime badge with a navy border on the button's top-right corner (DECISIONS #185). Tests mock it (it needs a QueryClient).
+- **Notes**: Bell icon plus the count of unread notifications (`useUnreadCount`, re-read every minute; "9+" above nine) in a lime badge with a navy border on the button's top-right corner (DECISIONS #187). Tests mock it (it needs a QueryClient).
 
 ### `LocationGate`
 - **Path**: `src/components/domain/LocationGate.tsx`
@@ -466,7 +466,7 @@ More UI primitives will live here:
 ### `RankingRow`
 - **Path**: `src/components/domain/RankingRow.tsx`
 - **Category**: domain
-- **Props**: `{ row: RankingRow; isMe: boolean; testID?: string }` where `RankingRow = { position: number | null; playerId: string; name: string; subtitle: string; score: number; photoUrl?: string; matches?: number; isMe?: boolean; trend?: { direction: 'up' | 'down' | 'flat'; delta: number } }` (from `@/features/ranking/types/ranking`)
+- **Props**: `{ row: RankingRow; isMe: boolean; scoreUnit?: string; highlight?: boolean; onPressPlayer?: () => void; testID?: string }` where `RankingRow` comes from `@/features/ranking/types/ranking` (position, player, score, counts, `breakdown`, `trend`). `scoreUnit` is read by screen readers ("pontos" by default); `highlight={false}` leaves the "me" tint to the parent; `onPressPlayer` makes the photo and name a link to the player while the rest of the row stays the parent's (the Ranking list toggles its detail there).
 - **Used in**: S9 Ranking (position-4+ list). Available to S8 to replace its inline preview rows later (not required yet).
 - **Example**:
   ```tsx
