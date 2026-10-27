@@ -10,8 +10,9 @@ import { CardPiecesMini } from "@/components/domain/CardPiecesMini";
 import { PlayerCard } from "@/components/domain/PlayerCard";
 import { Button } from "@/components/ui/Button";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
-import { piecesWon, seasonFinish, useSeasonPass, type SeasonPass, type SeasonReward } from "@/features/pass/api/seasonPass";
-import { PIECE_COUNT, missingPieces, pieceOfLevel } from "@/features/pass/lib/cardPieces";
+import { dialog } from "@/components/ui/Dialog";
+import { piecesWaiting, piecesWon, seasonFinish, useSeasonPass, type SeasonPass, type SeasonReward } from "@/features/pass/api/seasonPass";
+import { PIECE_COUNT, PIECE_ORDER, missingPieces, pieceOfLevel } from "@/features/pass/lib/cardPieces";
 import { dayMonth, seasonDays, seasonStatus } from "@/features/pass/lib/seasonText";
 import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { useSaveCardStyle } from "@/features/profile/api/saveCardStyle";
@@ -178,12 +179,20 @@ function LevelRow({
   );
 }
 
+// The purchase needs Google Play Billing (not built yet): until then the button
+// says so. In the closed test everyone has the paid track, so nobody sees it.
+function unlockPass() {
+  dialog.alert("A compra do passe chega em breve", "Durante o teste, o passe fica liberado para todo mundo.");
+}
+
 function PassBody({ pass, profile }: { pass: SeasonPass; profile: MyProfile }) {
   const { width: screenWidth } = useWindowDimensions();
   const [flipped, setFlipped] = useState(false);
   const save = useSaveCardStyle();
   const { checking, reveal } = useNewPiece(pass);
   const won = piecesWon(pass);
+  // Without the paid track the pieces reached stay covered, with a padlock (DECISIONS #194).
+  const waiting = piecesWaiting(pass);
   // While checking, the newest piece stays covered like a missing one.
   const missing = checking ? missingPieces(won - 1) : missingPieces(won);
   const finish = seasonFinish(pass);
@@ -214,8 +223,9 @@ function PassBody({ pass, profile }: { pass: SeasonPass; profile: MyProfile }) {
           width={Math.min(screenWidth - 120, 250)}
           pieces={missing.length === 0 && reveal == null ? undefined : {
             missing,
-            next: won < PIECE_COUNT ? pieceOfLevel(won + 1) : undefined,
+            next: pass.level < PIECE_COUNT ? pieceOfLevel(pass.level + 1) : undefined,
             reveal,
+            locked: PIECE_ORDER.slice(won, won + waiting),
           }}
           testID="season-card"
         />
@@ -224,6 +234,26 @@ function PassBody({ pass, profile }: { pass: SeasonPass; profile: MyProfile }) {
           Pedaços da carta Pioneira. Ela só existe nesta temporada; quem não completa fica com a carta incompleta.
         </Text>
       </View>
+
+      {!pass.premium && pass.status !== "Ended" ? (
+        <View className="mt-5 rounded-card border border-accent-light/40 bg-accent-light/10 p-4" testID="pass-unlock">
+          <Text className="font-body-bold text-body text-text-on-dark">
+            {waiting > 0
+              ? `Você já conquistou ${waiting} ${waiting === 1 ? "pedaço" : "pedaços"}.`
+              : "Os pedaços da carta vêm com o passe."}
+          </Text>
+          <Text className="font-body text-caption text-white/70 mt-1">
+            {waiting > 0
+              ? "Libere o passe e eles entram na sua carta na hora. Os títulos da trilha grátis continuam seus."
+              : "Seus pontos já contam: quando liberar o passe, os pedaços alcançados entram de uma vez."}
+          </Text>
+          <View className="mt-3">
+            <Button variant="grad" onPress={unlockPass} testID="pass-unlock-button">
+              Liberar o passe
+            </Button>
+          </View>
+        </View>
+      ) : null}
 
       {finish?.unlocked ? (
         <View className="mt-5">

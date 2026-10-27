@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BellWithBadge } from '@/components/domain/BellWithBadge';
 import { ActivityRow } from "@/components/domain/ActivityRow";
 import { MatchCardCompact } from "@/components/domain/MatchCardCompact";
+import { PassProgressCard } from "@/components/domain/PassProgressCard";
 import { HomeHeroArt } from "@/components/icons/HomeHeroArt";
 import { Button } from "@/components/ui/Button";
 import { PressableScale } from "@/components/ui/PressableScale";
@@ -22,6 +23,7 @@ import { countdownLabel, pickNextGame } from "@/features/matches/lib/nextGame";
 import { splitVenue } from "@/features/matches/lib/venueName";
 import type { UpcomingMatch } from "@/features/matches/types/match";
 import { useFollowState } from "@/features/network/api/postsApi";
+import { useSeasonPass } from "@/features/pass/api/seasonPass";
 import { usePullToRefresh, useRefreshOnFocus } from "@/hooks/useRefresh";
 import { useAuthStore } from "@/stores/auth";
 import { HARD_SHADOW, colors } from "@/theme/colors";
@@ -38,6 +40,9 @@ function goSettings() {
 }
 function goNotifications() {
   router.push("/notifications");
+}
+function goPass() {
+  router.push("/profile/pass");
 }
 
 function SectionHeader({
@@ -311,6 +316,21 @@ function FriendsActivitySection({
   );
 }
 
+// The season pass where the app opens every day (DECISIONS #194): hidden when no
+// season is set up, it cannot load or the season is over (the card stays in the collection).
+function PassSection() {
+  const { data, isPending } = useSeasonPass();
+  if (!isPending && (!data || data.status === "Ended")) {
+    return null;
+  }
+  return (
+    <>
+      <SectionHeader title="PASSE DA TEMPORADA" actionLabel="Ver passe" onAction={goPass} />
+      <PassProgressCard onPress={goPass} />
+    </>
+  );
+}
+
 export default function HomeScreen() {
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
@@ -350,7 +370,10 @@ export default function HomeScreen() {
         }
       >
         {empty ? (
-          <HomeHero />
+          <>
+            <HomeHero />
+            <PassSection />
+          </>
         ) : (
           <>
             {upcoming.isPending ? (
@@ -369,6 +392,7 @@ export default function HomeScreen() {
                 <NextGameCard match={nextGame} />
               </>
             ) : null}
+            <PassSection />
             <UpcomingSection query={upcoming} nextGame={nextGame} />
           </>
         )}

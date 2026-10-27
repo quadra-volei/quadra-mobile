@@ -4,16 +4,17 @@ import { Text, View } from 'react-native';
 import { CardPiecesMini } from '@/components/domain/CardPiecesMini';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
-import { piecesWon, useSeasonPass } from '@/features/pass/api/seasonPass';
+import { piecesWaiting, piecesWon, useSeasonPass } from '@/features/pass/api/seasonPass';
 import { PIECE_COUNT } from '@/features/pass/lib/cardPieces';
 import { seasonStatus } from '@/features/pass/lib/seasonText';
 import { colors } from '@/theme/colors';
 
 /**
- * The season pass on the profile tab (API DECISIONS #98): the season card's
- * outline with the pieces won, how many, the points to the next one, and the way
- * into the pass. Nothing when no season is set up or the pass cannot load: it is
- * an extra on the profile, not something to retry.
+ * The season pass on the Home (DECISIONS #194): the season card's outline with
+ * the pieces won, how many, the points to the next one, and the way into the
+ * pass. For a player without the paid track, the pieces reached show as
+ * waiting ("8 pedaços esperando por você"). Nothing when no season is set up
+ * or the pass cannot load: it is an extra, not something to retry.
  */
 export function PassProgressCard({ onPress }: { onPress: () => void }) {
   const { data: pass, isPending } = useSeasonPass();
@@ -26,15 +27,18 @@ export function PassProgressCard({ onPress }: { onPress: () => void }) {
   }
 
   const won = piecesWon(pass);
+  const waiting = piecesWaiting(pass);
   const toNext = (pass.level + 1) * pass.pointsPerLevel - pass.points;
   const line =
     pass.status === 'Upcoming'
       ? 'Seus pontos de partida montam a carta da temporada'
-      : won >= PIECE_COUNT
-        ? 'Carta completa'
-        : pass.status === 'Ended'
-          ? 'Temporada encerrada'
-          : `Faltam ${toNext} pts para o próximo pedaço`;
+      : waiting > 0
+        ? `${waiting} ${waiting === 1 ? 'pedaço esperando' : 'pedaços esperando'} por você`
+        : won >= PIECE_COUNT
+          ? 'Carta completa'
+          : pass.status === 'Ended'
+            ? 'Temporada encerrada'
+            : `Faltam ${toNext} pts para o próximo pedaço`;
 
   return (
     <PressableScale
@@ -48,10 +52,13 @@ export function PassProgressCard({ onPress }: { onPress: () => void }) {
       <View className="flex-1">
         <Text className="font-body-bold text-caption text-accent-light">{`${pass.name} · ${seasonStatus(pass)}`}</Text>
         <Text className="font-num text-h1 text-text-on-dark mt-1">{`${won} de ${PIECE_COUNT} pedaços`}</Text>
-        <Text className="font-body text-caption text-white/60 mt-1">{line}</Text>
+        <Text className={`font-body text-caption mt-1 ${waiting > 0 ? 'text-accent-light' : 'text-white/60'}`}>{line}</Text>
         <View className="mt-3 flex-row gap-1">
           {Array.from({ length: PIECE_COUNT }, (_, i) => (
-            <View key={i} className={`h-1 flex-1 rounded-full ${i < won ? 'bg-accent-light' : 'bg-white/15'}`} />
+            <View
+              key={i}
+              className={`h-1 flex-1 rounded-full ${i < won ? 'bg-accent-light' : i < won + waiting ? 'bg-accent-light/40' : 'bg-white/15'}`}
+            />
           ))}
         </View>
       </View>

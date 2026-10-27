@@ -231,12 +231,11 @@ jest.mock('@/features/profile/api/getRecentMatches', () => ({
   }),
 }));
 
-// Season pass and card collection: none unless a test sets them.
-const mockPass: { data: unknown; collection: unknown } = { data: null, collection: undefined };
+// Season pass: none unless a test sets one.
+const mockPass: { data: unknown } = { data: null };
 jest.mock('@/features/pass/api/seasonPass', () => ({
   ...jest.requireActual('@/features/pass/api/seasonPass'),
   useSeasonPass: () => ({ data: mockPass.data, isPending: false, isError: false }),
-  useCardCollection: () => ({ data: mockPass.collection }),
 }));
 
 jest.mock('@/features/ranking/api/getGroupRanking', () => ({
@@ -283,7 +282,6 @@ function resetRanking() {
 beforeEach(() => {
   mockPush.mockClear();
   mockPass.data = null;
-  mockPass.collection = undefined;
   resetProfile();
   resetRecent();
   resetRanking();
@@ -743,40 +741,32 @@ describe('S8 — Profile screen', () => {
    *  copy on mount.
    */
   // ------------------------------------------------------------- season pass
-  it('shows the season pass with the pieces won and opens it (API DECISIONS #98)', async () => {
+  it('keeps the season pass to one line in "Seu progresso" that opens it (DECISIONS #194)', async () => {
     mockPass.data = seasonPassFixture(4);
 
     await render(<ProfileScreen />);
 
-    expect(screen.getByText('4 de 12 pedaços')).toBeTruthy();
-    expect(screen.getByText('Faltam 14 pts para o próximo pedaço')).toBeTruthy();
-    fireEvent.press(screen.getByTestId('pass-card'));
-    expect(mockPush).toHaveBeenCalledWith('/profile/pass');
-  });
-
-  it('shows the card collection with the slot of the cards to come, and opens it (API DECISIONS #99)', async () => {
-    mockPass.collection = {
-      userId: 'me',
-      cards: [{
-        season: 'T1', name: 'Temporada 1', finish: 'Pioneira', startsAt: '2026-11-01T03:00:00Z', endsAt: '2027-02-01T03:00:00Z',
-        status: 'Active', pieces: 4, levels: 12, complete: false,
-      }],
-    };
-
-    await render(<ProfileScreen />);
-
-    expect(screen.getByText('MINHA COLEÇÃO')).toBeTruthy();
-    expect(screen.getByText('4 de 12 · em andamento')).toBeTruthy();
-    expect(screen.getByText('Próximas cartas')).toBeTruthy();
-    await fireEvent.press(screen.getByTestId('profile-collection-T1'));
-    expect(mockPush).toHaveBeenCalledWith('/profile/pass');
-  });
-
-  it('hides the season pass section when no season is set up', async () => {
-    await render(<ProfileScreen />);
-
-    expect(screen.queryByText('Passe da temporada')).toBeNull();
+    expect(screen.getByText('Passe T1 · 4 de 12')).toBeTruthy();
     expect(screen.queryByTestId('pass-card')).toBeNull();
+    await fireEvent.press(screen.getByTestId('profile-pass-line'));
+    expect(mockPush).toHaveBeenCalledWith('/profile/pass');
+  });
+
+  it('says how many pieces wait for a player without the paid track', async () => {
+    mockPass.data = seasonPassFixture(5, {
+      premium: false,
+      rewards: seasonPassFixture(5).rewards.map((r) => (r.track === 'Premium' ? { ...r, unlocked: false } : r)),
+    });
+
+    await render(<ProfileScreen />);
+
+    expect(screen.getByText('Passe T1 · 5 pedaços esperando')).toBeTruthy();
+  });
+
+  it('has no season pass line when no season is set up', async () => {
+    await render(<ProfileScreen />);
+
+    expect(screen.queryByTestId('profile-pass-line')).toBeNull();
   });
 
   it('fires no permission prompt and makes zero network requests on mount', async () => {

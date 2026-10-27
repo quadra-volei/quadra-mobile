@@ -82,8 +82,16 @@ jest.mock('lucide-react-native', () => {
     ArrowUp: stub('arrow-up'),
     Check: stub('check'),
     Star: stub('star'),
+    ChevronRight: stub('chevron-right'),
   };
 });
+
+// Season pass (DECISIONS #194): none unless a test sets one.
+const mockPass: { data: unknown } = { data: null };
+jest.mock('@/features/pass/api/seasonPass', () => ({
+  ...jest.requireActual('@/features/pass/api/seasonPass'),
+  useSeasonPass: () => ({ data: mockPass.data, isPending: false, isError: false }),
+}));
 
 // expo-router: spyable router.push + useFocusEffect (used by
 // useRegisterNavBlurTarget) delegated to a plain effect so the screen mounts.
@@ -217,6 +225,7 @@ jest.mock('@/features/matches/api/getUpcoming', () => ({
 
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
+import { seasonPassFixture } from '../../../support/seasonPass';
 import HomeScreen from '../../../../app/(tabs)/index';
 
 function resetUpcoming() {
@@ -235,6 +244,39 @@ beforeEach(() => {
   mockActivity.refetch.mockClear();
   mockRefetchQueries.mockClear();
   resetUpcoming();
+  mockPass.data = null;
+});
+
+describe('S5 — Home, season pass (DECISIONS #194)', () => {
+  it('shows the pass under the next game and opens it', async () => {
+    mockPass.data = seasonPassFixture(4);
+
+    await render(<HomeScreen />);
+
+    expect(screen.getByText('PASSE DA TEMPORADA')).toBeTruthy();
+    expect(screen.getByText('4 de 12 pedaços')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('pass-card'));
+    expect(mockPush).toHaveBeenCalledWith('/profile/pass');
+  });
+
+  it('tells a player without the paid track how many pieces wait for them', async () => {
+    const free = seasonPassFixture(8);
+    mockPass.data = { ...free, premium: false, rewards: free.rewards.map((r) => (r.track === 'Premium' ? { ...r, unlocked: false } : r)) };
+
+    await render(<HomeScreen />);
+
+    expect(screen.getByText('0 de 12 pedaços')).toBeTruthy();
+    expect(screen.getByText('8 pedaços esperando por você')).toBeTruthy();
+  });
+
+  it('has no pass when no season is set up or the season is over', async () => {
+    await render(<HomeScreen />);
+    expect(screen.queryByText('PASSE DA TEMPORADA')).toBeNull();
+
+    mockPass.data = seasonPassFixture(12, { status: 'Ended' });
+    await render(<HomeScreen />);
+    expect(screen.queryByText('PASSE DA TEMPORADA')).toBeNull();
+  });
 });
 
 describe('S5 — Home screen', () => {

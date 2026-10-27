@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { Settings } from "lucide-react-native";
+import { ChevronRight, Settings } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,15 +7,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BellWithBadge } from '@/components/domain/BellWithBadge';
 import { LevelBar } from "@/components/domain/LevelBar";
 import { MatchHistoryRow } from "@/components/domain/MatchHistoryRow";
-import { PassProgressCard } from "@/components/domain/PassProgressCard";
+import { CardPiecesMini } from "@/components/domain/CardPiecesMini";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { IconButton } from "@/components/ui/IconButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { CollectionCard, CollectionCardSoon } from "@/components/domain/CollectionCard";
-import { useCardCollection, useSeasonPass } from "@/features/pass/api/seasonPass";
+import { PressableScale } from "@/components/ui/PressableScale";
+import { piecesWaiting, piecesWon, useSeasonPass } from "@/features/pass/api/seasonPass";
+import { PIECE_COUNT } from "@/features/pass/lib/cardPieces";
 import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { useRecentMatches } from "@/features/profile/api/getRecentMatches";
 import { useGroupRanking } from "@/features/ranking/api/getGroupRanking";
@@ -35,11 +36,6 @@ function goCard() {
 function goPass() {
   router.push("/profile/pass");
 }
-function goCollection() {
-  router.push("/profile/collection");
-}
-
-const COLLECTION_CARD_W = 96;
 function goSettings() {
   router.push("/profile/settings");
 }
@@ -195,51 +191,33 @@ function ProgressSection() {
 
       <View className="mt-4">
         <LevelBar level={data.level} xp={data.xp} xpToNext={data.xpToNext} />
+        <PassLine />
       </View>
     </View>
   );
 }
 
-// ── Passe da temporada (hidden when no season is set up or it cannot load) ──
-function PassSection() {
-  const { data, isPending } = useSeasonPass();
-  if (!isPending && !data) {
+// One line of the season pass inside "Seu progresso" (DECISIONS #194): the pass
+// itself lives on the Home; nothing when no season is being played.
+function PassLine() {
+  const { data: pass } = useSeasonPass();
+  if (!pass || pass.status === "Ended") {
     return null;
   }
+  const won = piecesWon(pass);
+  const waiting = piecesWaiting(pass);
+  const progress = waiting > 0 ? `${waiting} ${waiting === 1 ? "pedaço esperando" : "pedaços esperando"}` : `${won} de ${PIECE_COUNT}`;
   return (
-    <>
-      <SectionTitleRow title="Passe da temporada" action={{ label: "Ver passe", onPress: goPass }} />
-      <PassProgressCard onPress={goPass} />
-    </>
-  );
-}
-
-// ── Minha coleção: a card per season, then the slot of the cards to come (API DECISIONS #99) ──
-function CollectionSection() {
-  const { data } = useCardCollection();
-  if (!data || data.cards.length === 0) {
-    return null;
-  }
-  return (
-    <>
-      {/* Typed in capitals: Android measures the display font before the uppercase transform and cuts the second word. */}
-      <SectionTitleRow title="MINHA COLEÇÃO" action={{ label: "Ver tudo", onPress: goCollection }} />
-      <View className="mx-4 mt-2 rounded-card bg-surface-dark py-4">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-4 gap-4">
-          {data.cards.map((card) => (
-            <Pressable
-              key={card.season}
-              accessibilityRole="button"
-              onPress={card.status === "Ended" ? goCollection : goPass}
-              testID={`profile-collection-${card.season}`}
-            >
-              <CollectionCard card={card} width={COLLECTION_CARD_W} />
-            </Pressable>
-          ))}
-          <CollectionCardSoon width={COLLECTION_CARD_W} />
-        </ScrollView>
-      </View>
-    </>
+    <PressableScale
+      accessibilityRole="button"
+      onPress={goPass}
+      testID="profile-pass-line"
+      className="mt-3 flex-row items-center gap-3 rounded-chip bg-surface-dark px-3 py-2"
+    >
+      <CardPiecesMini collected={won} width={18} />
+      <Text className="flex-1 font-body-bold text-caption text-text-on-dark">{`Passe ${pass.season} · ${progress}`}</Text>
+      <ChevronRight size={16} color={colors.textOnDark} />
+    </PressableScale>
   );
 }
 
@@ -411,12 +389,6 @@ export default function ProfileScreen() {
           <View className="mt-2">
             <ProgressSection />
           </View>
-
-          {/* Season pass: the season card in pieces (API DECISIONS #98) */}
-          <PassSection />
-
-          {/* The season cards collected, complete or not (API DECISIONS #99) */}
-          <CollectionSection />
 
           {/* Meus amigos → season ranking preview card, before the history (DECISIONS #186) */}
           <SectionTitleRow title="Meus amigos" />

@@ -1,3 +1,4 @@
+import { Lock } from 'lucide-react-native';
 import { type RefObject, useEffect } from 'react';
 import { Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -86,6 +87,8 @@ export type CardPieces = {
   next?: number;
   /** A piece just won: its cover is drawn once more and fades away. */
   reveal?: number;
+  /** Missing pieces already reached, held by the paid track: a padlock instead of the level. */
+  locked?: readonly number[];
 };
 
 export type PlayerCardProps = {
@@ -272,6 +275,13 @@ function PieceCovers({ t, k, pieces, side }: { t: CardFinishTokens; k: number; p
       {side === 'front'
         ? pieces.missing.map((p) => {
             const c = pieceCenter(p);
+            if (pieces.locked?.includes(p)) {
+              return (
+                <View key={p} className="absolute" style={{ left: (c.x - 9) * k, top: (c.y - 9) * k }}>
+                  <Lock size={18 * k} color={PIECE_COVER.next} />
+                </View>
+              );
+            }
             return (
               <Text
                 key={p}

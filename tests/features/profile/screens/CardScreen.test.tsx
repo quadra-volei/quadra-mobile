@@ -54,12 +54,18 @@ jest.mock('expo-router', () => ({
   router: { back: (...args: any[]) => mockBack(...args), push: (...args: any[]) => mockPush(...args) },
 }));
 
-// Season pass: null (no season) unless a test sets one.
-const mockPass: { data: unknown } = { data: null };
+// Season pass and card collection: none unless a test sets them.
+const mockPass: { data: unknown; cards: unknown[] } = { data: null, cards: [] };
 jest.mock('@/features/pass/api/seasonPass', () => ({
   ...jest.requireActual('@/features/pass/api/seasonPass'),
   useSeasonPass: () => ({ data: mockPass.data, isPending: false, isError: false }),
+  useCardCollection: () => ({ data: { userId: 'me', cards: mockPass.cards }, isPending: false, isError: false }),
 }));
+
+const T1 = {
+  season: 'T1', name: 'Temporada 1', finish: 'Pioneira', startsAt: '2026-11-01T03:00:00Z', endsAt: '2027-02-01T03:00:00Z',
+  status: 'Active', pieces: 4, levels: 12, complete: false,
+};
 
 import type { MyProfile } from '@/features/profile/types/profile';
 
@@ -108,6 +114,7 @@ beforeEach(() => {
   mockBack.mockClear();
   mockPush.mockClear();
   mockPass.data = null;
+  mockPass.cards = [];
   mockMutate.mockClear();
   mockProfile.data = PROFILE_FIXTURE;
   mockProfile.isPending = false;
@@ -175,22 +182,39 @@ describe('S8b — Sua carta', () => {
     expect(mockMutate).toHaveBeenCalledWith({ finish: 'Prisma', title: 'MURALHA' });
   });
 
-  it('shows the season card locked with the pieces won, and opens the pass (API DECISIONS #98)', async () => {
-    mockPass.data = seasonPassFixture(4);
+  it('shows the collection on its own tab, the season card on the big card with its missing pieces (DECISIONS #194)', async () => {
+    mockPass.cards = [T1];
     await render(<CardScreen />);
+    expect(screen.queryByTestId('finish-Pioneira')).toBeNull(); // not among the finishes any more
 
-    expect(screen.getByText('PASSE · 4/12 PEDAÇOS')).toBeTruthy();
-    await fireEvent.press(screen.getByTestId('finish-Pioneira'));
-    expect(mockMutate).not.toHaveBeenCalled();
+    await fireEvent.press(screen.getByText('Coleção'));
+
+    expect(screen.getByText('4 de 12 · em andamento')).toBeTruthy();
+    expect(screen.getByText('Próximas cartas')).toBeTruthy();
+    expect(screen.getAllByTestId('card-pieces').length).toBeGreaterThan(0);
+    await fireEvent.press(screen.getByTestId('collection-open-pass'));
     expect(mockPush).toHaveBeenCalledWith('/profile/pass');
+    expect(mockMutate).not.toHaveBeenCalled();
   });
 
-  it('equips the season card once the pass is complete', async () => {
-    mockPass.data = seasonPassFixture(12);
+  it('equips a complete card from the collection', async () => {
+    mockPass.cards = [{ ...T1, status: 'Ended', pieces: 12, complete: true }];
     await render(<CardScreen />);
 
-    await fireEvent.press(screen.getByTestId('finish-Pioneira'));
+    await fireEvent.press(screen.getByText('Coleção'));
+    await fireEvent.press(screen.getByTestId('collection-equip'));
+
     expect(mockMutate).toHaveBeenCalledWith({ finish: 'Pioneira', title: null });
+  });
+
+  it('says how an ended season left an incomplete card', async () => {
+    mockPass.cards = [{ ...T1, status: 'Ended', pieces: 9 }];
+    await render(<CardScreen />);
+
+    await fireEvent.press(screen.getByText('Coleção'));
+
+    expect(screen.getByText('A temporada acabou com 9 de 12 pedaços.')).toBeTruthy();
+    expect(screen.queryByTestId('collection-equip')).toBeNull();
   });
 
   it('lists the season titles: the reached ones are picked, the others open the pass', async () => {

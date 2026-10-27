@@ -1,19 +1,19 @@
 import * as Sharing from "expo-sharing";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { Check, ChevronLeft, ChevronRight, Download, Lock, Maximize2, Plus, RefreshCw } from "lucide-react-native";
+import { Check, ChevronLeft, Download, Lock, Maximize2, Plus, RefreshCw } from "lucide-react-native";
 import { type ReactNode, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 
-import { CardPiecesMini } from "@/components/domain/CardPiecesMini";
+import { CollectionCard, CollectionCardSoon } from "@/components/domain/CollectionCard";
 import { PlayerCard } from "@/components/domain/PlayerCard";
 import { Button } from "@/components/ui/Button";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
-import { piecesWon, seasonFinish, useSeasonPass } from "@/features/pass/api/seasonPass";
-import { PIECE_COUNT } from "@/features/pass/lib/cardPieces";
+import { useCardCollection, useSeasonPass, type CollectionCard as CollectionCardData } from "@/features/pass/api/seasonPass";
+import { missingPieces } from "@/features/pass/lib/cardPieces";
 import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { useSaveCardStyle } from "@/features/profile/api/saveCardStyle";
 import { CARD_TITLES, SEASON_TITLES, cardTitleCode, type CardTitleCode } from "@/features/profile/card/cardTitles";
@@ -31,7 +31,7 @@ import {
 } from "@/theme/cardFinish";
 import { colors } from "@/theme/colors";
 
-const TABS = ["Acabamento", "Título", "Estatísticas"] as const;
+const TABS = ["Acabamento", "Título", "Coleção", "Estatísticas"] as const;
 type Tab = (typeof TABS)[number];
 
 function ErrorBlock({ onRetry }: { onRetry: () => void }) {
@@ -82,36 +82,74 @@ function goPass() {
   router.push("/profile/pass");
 }
 
-// The season card's finish (API DECISIONS #98): equipped like the others once the
-// pass is complete; until then it shows the pieces won and opens the pass.
-function SeasonFinishOption({ profile, save }: { profile: MyProfile; save: Save }) {
-  const { data: pass } = useSeasonPass();
-  const finish = pass ? seasonFinish(pass) : undefined;
-  if (!pass || !finish) return null;
-  const code = finish.code as CardFinish;
-  const equipped = profile.cardStyle.finish === code;
-  const open = finish.unlocked || equipped;
-  const won = piecesWon(pass);
+// The card collection (API DECISIONS #99, #194): a card per season (and, later,
+// per event); the one chosen shows on the big card above, as it was left. A
+// complete card is equipped from here; the season being played opens the pass.
+function CollectionTab({
+  profile,
+  save,
+  cards,
+  chosen,
+  onChoose,
+}: {
+  profile: MyProfile;
+  save: Save;
+  cards: CollectionCardData[];
+  chosen: CollectionCardData | null;
+  onChoose: (card: CollectionCardData) => void;
+}) {
+  const { width: screenWidth } = useWindowDimensions();
+  const cardWidth = (Math.min(screenWidth, 480) - 40 - 12) / 2 - 18;
+  const equipped = chosen != null && profile.cardStyle.finish === chosen.finish;
 
   return (
-    <PressableScale
-      accessibilityRole="button"
-      accessibilityState={{ selected: equipped }}
-      accessibilityLabel={open ? `Acabamento ${CARD_FINISHES[code].name}` : `Acabamento ${CARD_FINISHES[code].name}: complete o passe da temporada, ${won} de ${PIECE_COUNT} pedaços`}
-      onPress={() => (open ? save.mutate({ finish: code, title: profile.cardStyle.title }) : goPass())}
-      testID={`finish-${code}`}
-      className={`mt-2 flex-row items-center gap-3 rounded-chip border p-3 ${equipped ? "border-accent-light" : "border-white/15"}`}
-      style={{ backgroundColor: CARD_SCREEN.bg }}
-    >
-      <CardPiecesMini collected={open ? PIECE_COUNT : won} width={24} />
-      <View className="flex-1">
-        <Text className="font-body-bold text-caption text-text-on-dark">{`${CARD_FINISHES[code].name} · ${pass.name}`}</Text>
-        <Text className="font-mono text-mono text-white/60 mt-1">
-          {equipped ? "EQUIPADO" : open ? "EXPERIMENTAR" : `PASSE · ${won}/${PIECE_COUNT} PEDAÇOS`}
-        </Text>
+    <>
+      <Text className="font-body text-caption text-white/60 mb-3">
+        Cada temporada, e cada evento, tem uma carta que só existe ali. A que ficar pela metade fica assim na sua coleção.
+      </Text>
+      <View className="flex-row flex-wrap gap-3">
+        {cards.map((card) => (
+          <Pressable
+            key={card.season}
+            accessibilityRole="button"
+            accessibilityState={{ selected: chosen?.season === card.season }}
+            onPress={() => onChoose(card)}
+            testID={`collection-${card.season}`}
+            className={`rounded-chip border-2 p-2 ${chosen?.season === card.season ? "border-accent-light" : "border-transparent"}`}
+          >
+            <CollectionCard card={card} width={cardWidth} />
+          </Pressable>
+        ))}
+        <View className="p-2 border-2 border-transparent">
+          <CollectionCardSoon width={cardWidth} />
+        </View>
       </View>
-      {open ? null : <ChevronRight size={18} color={colors.textMuted} />}
-    </PressableScale>
+      {chosen ? (
+        <View className="mt-4 mb-4">
+          {chosen.complete ? (
+            equipped ? (
+              <Text className="font-body-bold text-body text-accent-light text-center">Equipada na sua carta</Text>
+            ) : (
+              <Button
+                variant="grad"
+                onPress={() => save.mutate({ finish: chosen.finish as CardFinish, title: profile.cardStyle.title })}
+                testID="collection-equip"
+              >
+                Equipar esta carta
+              </Button>
+            )
+          ) : chosen.status === "Ended" ? (
+            <Text className="font-body text-caption text-white/60">
+              {`A temporada acabou com ${chosen.pieces} de ${chosen.levels} pedaços.`}
+            </Text>
+          ) : (
+            <Button variant="outlineLime" onPress={goPass} testID="collection-open-pass">
+              Ver o passe
+            </Button>
+          )}
+        </View>
+      ) : null}
+    </>
   );
 }
 
@@ -140,7 +178,6 @@ function FinishPicker({ profile, save }: { profile: MyProfile; save: Save }) {
           );
         })}
       </View>
-      <SeasonFinishOption profile={profile} save={save} />
       {/* A season finish shines the same at any level: the tier note does not apply. */}
       {cardFinishTokens(current.finish).tier ? <View className="h-4" /> : <TierNote level={profile.level} />}
     </>
@@ -282,10 +319,19 @@ function CardBody({ profile }: { profile: MyProfile }) {
     }
   };
 
+  // On the Coleção tab the big card shows the collection card chosen (the newest
+  // until one is tapped), with the pieces it still misses.
+  const collection = useCardCollection();
+  const [chosen, setChosen] = useState<CollectionCardData | null>(null);
+  const cards = collection.data?.cards ?? [];
+  const shown = tab === "Coleção" ? (chosen ?? cards[0] ?? null) : null;
+
   const style = profile.cardStyle;
   const cardProps = {
     profile,
-    finish: style.finish,
+    finish: shown ? (shown.finish as CardFinish) : style.finish,
+    pieces:
+      shown && !shown.complete ? { missing: missingPieces(shown.status === "Upcoming" ? 0 : shown.pieces) } : undefined,
     title: cardTitleCode(style.title, profile.position),
     // The card always shows the profile photo (changed only in Editar perfil).
     photoUrl: profile.avatarUrl,
@@ -332,7 +378,13 @@ function CardBody({ profile }: { profile: MyProfile }) {
         </Text>
       ) : null}
 
-      <View className="flex-row gap-6 border-b border-white/10 mb-4" accessibilityRole="tablist">
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        className="border-b border-white/10 mb-4 grow-0"
+        contentContainerClassName="gap-5"
+        accessibilityRole="tablist"
+      >
         {TABS.map((t) => (
           <Pressable
             key={t}
@@ -344,12 +396,18 @@ function CardBody({ profile }: { profile: MyProfile }) {
             <Text className={`font-body-bold text-body ${tab === t ? "text-accent-light" : "text-white/60"}`}>{t}</Text>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
 
       {tab === "Acabamento" ? (
         <FinishPicker profile={profile} save={save} />
       ) : tab === "Título" ? (
         <TitlePicker profile={profile} save={save} />
+      ) : tab === "Coleção" ? (
+        collection.isPending ? (
+          <SkeletonBlock tone="dark" className="h-56" />
+        ) : (
+          <CollectionTab profile={profile} save={save} cards={cards} chosen={shown} onChoose={setChosen} />
+        )
       ) : (
         <StatsList profile={profile} />
       )}

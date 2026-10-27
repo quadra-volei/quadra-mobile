@@ -149,6 +149,24 @@ describe('Passe da temporada', () => {
     expect(screen.queryByText('Esta semana')).toBeNull();
   });
 
+  it('shows a player without the paid track the pieces reached under a padlock, and the way to unlock them (DECISIONS #194)', async () => {
+    const free = seasonPassFixture(5);
+    mockPass.data = { ...free, premium: false, rewards: free.rewards.map((r) => (r.track === 'Premium' ? { ...r, unlocked: false } : r)) };
+    await render(<SeasonPassScreen />);
+
+    expect(screen.getByTestId('pass-pieces').props.children).toBe('0 de 12');
+    expect(screen.getByText('Você já conquistou 5 pedaços.')).toBeTruthy();
+    expect(screen.getByTestId('pass-unlock-button')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('use-title-SEMPRE_PRESENTE')); // the free track stays theirs
+    expect(mockMutate).toHaveBeenCalledWith({ finish: 'Prisma', title: 'SEMPRE_PRESENTE' });
+  });
+
+  it('has no unlock offer for a player with the paid track', async () => {
+    await render(<SeasonPassScreen />);
+
+    expect(screen.queryByTestId('pass-unlock')).toBeNull();
+  });
+
   it('says so when no season is set up', async () => {
     mockPass.data = null;
     await render(<SeasonPassScreen />);

@@ -97,3 +97,8 @@ export function useCardCollection(userId?: string) {
 export function piecesWon(pass: SeasonPass): number {
   return pass.rewards.filter((r) => r.kind === 'Piece' && r.unlocked).length;
 }
+
+/** Pieces reached but held by the paid track: they come with the pass, at once. */
+export function piecesWaiting(pass: SeasonPass): number {
+  return pass.rewards.filter((r) => r.kind === 'Piece' && !r.unlocked && r.level <= pass.level).length;
+}
