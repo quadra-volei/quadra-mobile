@@ -27,6 +27,19 @@ jest.mock('@/components/domain/LocationPrompt',() => ({
   },
 }));
 
+// Which tab bar items mark themselves as tour targets (the real hook runs).
+const mockTargetIds = new Set<string>();
+jest.mock('@/features/tour/tourTargets', () => {
+  const actual = jest.requireActual('@/features/tour/tourTargets');
+  return {
+    ...actual,
+    useTourTarget: (id: string | undefined) => {
+      if (id) mockTargetIds.add(id);
+      return actual.useTourTarget(id);
+    },
+  };
+});
+
 // Recording how the tour ended goes to the API (own test: TourOverlay.test.tsx).
 jest.mock('@/features/tour/api/recordTour', () => ({
   useRecordTour: () => ({ mutate: jest.fn() }),
@@ -272,6 +285,14 @@ describe('S5 — Bottom tab bar', () => {
   });
 
   describe('first-access tour (DECISIONS #190)', () => {
+    // Bug of 27/10: the tabs never passed their target, so steps 2–4 found nothing.
+    it('marks the "+" and the Explorar, Rede and Perfil tabs as tour targets', async () => {
+      mockTargetIds.clear();
+      await render(<TabsLayout />);
+
+      expect([...mockTargetIds].sort()).toEqual(['create', 'explore', 'network', 'profile']);
+    });
+
     it('opens the welcome card once the location is settled, for an account that never saw it', async () => {
       mockLocationSettled = true;
       mockProfile = { firstName: 'Renan', tour: null };

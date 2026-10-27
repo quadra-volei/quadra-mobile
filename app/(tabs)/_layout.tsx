@@ -276,6 +276,7 @@ function SignedInTabs() {
               label={tab.label}
               Icon={tab.Icon}
               focused={focused}
+              tourTarget={tab.tourTarget}
               onPress={() => {
                 const event = navigation.emit({
                   type: 'tabPress',

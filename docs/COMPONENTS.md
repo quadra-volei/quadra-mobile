@@ -378,7 +378,7 @@ More UI primitives will live here:
 - **Category**: domain
 - **Props**: none (driven by `useTourStore`, `src/features/tour/tourStore.ts`)
 - **Used in**: `app/(tabs)/_layout.tsx` (over the tabs, after `LocationPrompt`)
-- **Notes**: The first-access tour (DECISIONS #190), in a transparent `Modal`. Phase 0: a navy welcome card ("Bem-vindo ao Quadra", Começar / Agora não). Phases 1–4: the screen dimmed in navy with a round hole and a lime ring over one tab bar item, and a white card above it (2px navy border, `HARD_SHADOW`, "N de 4", title, text, Pular / Próximo, Concluir on the last). Targets mark themselves with `useTourTarget(id)` (`src/features/tour/tourTargets.ts`) on a plain `View` with `collapsable={false}`; a target not on screen skips its step. Leaving records the outcome (`useRecordTour`) and remembers it on the phone.
+- **Notes**: The first-access tour (DECISIONS #190, #192), drawn over the tabs in their own window (an absolute overlay, not a `Modal`; Android back = Pular). Phase 0: a navy welcome card ("Bem-vindo ao Quadra", Começar / Agora não). Phases 1–4: the screen dimmed in navy with a round hole and a lime ring over one tab bar item, and a white card above it (2px navy border, `HARD_SHADOW`, "N de 4", title, text, Pular / Próximo, Concluir on the last). Targets mark themselves with `useTourTarget(id)` (`src/features/tour/tourTargets.ts`) on a plain `View` with `collapsable={false}` and are measured against the overlay (`measureTourTarget(id, overlay)`); a target not on screen skips its step, and with none left the tour ends. Leaving records the outcome (`useRecordTour`) and remembers it on the phone.
 
 ### `UpdateGate`
 - **Path**: `src/components/domain/UpdateGate.tsx`

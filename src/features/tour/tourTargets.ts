@@ -27,13 +27,31 @@ export function useTourTarget(id: TourTargetId | undefined) {
   );
 }
 
-/** Where the target is on the screen; null when it is not mounted. */
-export function measureTourTarget(id: TourTargetId): Promise<TourRect | null> {
-  const view = targets.get(id);
-  if (!view) return Promise.resolve(null);
+// How long a measure may take before the target counts as not on screen.
+const MEASURE_TIMEOUT_MS = 500;
+
+function measureInWindow(view: View): Promise<TourRect | null> {
   return new Promise((resolve) => {
-    view.measureInWindow((x, y, width, height) =>
-      resolve(width > 0 && height > 0 ? { x, y, width, height } : null),
-    );
+    const timer = setTimeout(() => resolve(null), MEASURE_TIMEOUT_MS);
+    view.measureInWindow((x, y, width, height) => {
+      clearTimeout(timer);
+      resolve({ x, y, width, height });
+    });
   });
+}
+
+/**
+ * Where the target is, relative to `origin` (the overlay drawing the hole):
+ * both are measured in the same window and subtracted, so the bars and insets
+ * cancel out. Null when the target is not mounted, has no size, or does not answer.
+ */
+export async function measureTourTarget(id: TourTargetId, origin: View | null): Promise<TourRect | null> {
+  const view = targets.get(id);
+  if (!view) return null;
+  const [target, base] = await Promise.all([
+    measureInWindow(view),
+    origin ? measureInWindow(origin) : Promise.resolve({ x: 0, y: 0, width: 0, height: 0 }),
+  ]);
+  if (!target || !base || target.width <= 0 || target.height <= 0) return null;
+  return { x: target.x - base.x, y: target.y - base.y, width: target.width, height: target.height };
 }
