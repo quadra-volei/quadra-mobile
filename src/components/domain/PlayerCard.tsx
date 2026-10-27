@@ -277,7 +277,7 @@ function PieceCovers({ t, k, pieces, side }: { t: CardFinishTokens; k: number; p
             const c = pieceCenter(p);
             if (pieces.locked?.includes(p)) {
               return (
-                <View key={p} className="absolute" style={{ left: (c.x - 9) * k, top: (c.y - 9) * k }}>
+                <View key={p} className="absolute" style={{ left: (c.x - 9) * k, top: (c.y - 9) * k }} testID="piece-locked">
                   <Lock size={18 * k} color={PIECE_COVER.next} />
                 </View>
               );

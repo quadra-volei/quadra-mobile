@@ -161,6 +161,16 @@ describe('Passe da temporada', () => {
     expect(mockMutate).toHaveBeenCalledWith({ finish: 'Prisma', title: 'SEMPRE_PRESENTE' });
   });
 
+  it('does not say the card is theirs when a player without the paid track reaches the last level', async () => {
+    const free = seasonPassFixture(12, { points: 240 });
+    mockPass.data = { ...free, premium: false, rewards: free.rewards.map((r) => (r.track === 'Premium' ? { ...r, unlocked: false } : r)) };
+    await render(<SeasonPassScreen />);
+
+    expect(screen.getByText('Você chegou ao último nível do passe.')).toBeTruthy();
+    expect(screen.queryByText('Você completou o passe. A carta é sua.')).toBeNull();
+    expect(screen.queryByTestId('equip-season-card')).toBeNull();
+  });
+
   it('has no unlock offer for a player with the paid track', async () => {
     await render(<SeasonPassScreen />);
 

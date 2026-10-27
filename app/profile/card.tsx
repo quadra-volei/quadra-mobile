@@ -12,8 +12,8 @@ import { PlayerCard } from "@/components/domain/PlayerCard";
 import { Button } from "@/components/ui/Button";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
-import { useCardCollection, useSeasonPass, type CollectionCard as CollectionCardData } from "@/features/pass/api/seasonPass";
-import { missingPieces } from "@/features/pass/lib/cardPieces";
+import { piecesWaiting, useCardCollection, useSeasonPass, type CollectionCard as CollectionCardData } from "@/features/pass/api/seasonPass";
+import { PIECE_ORDER, missingPieces } from "@/features/pass/lib/cardPieces";
 import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { useSaveCardStyle } from "@/features/profile/api/saveCardStyle";
 import { CARD_TITLES, SEASON_TITLES, cardTitleCode, type CardTitleCode } from "@/features/profile/card/cardTitles";
@@ -322,16 +322,19 @@ function CardBody({ profile }: { profile: MyProfile }) {
   // On the Coleção tab the big card shows the collection card chosen (the newest
   // until one is tapped), with the pieces it still misses.
   const collection = useCardCollection();
+  const { data: pass } = useSeasonPass();
   const [chosen, setChosen] = useState<CollectionCardData | null>(null);
   const cards = collection.data?.cards ?? [];
   const shown = tab === "Coleção" ? (chosen ?? cards[0] ?? null) : null;
+  // The season being played, without the paid track: the pieces reached keep their padlock, as on the pass (DECISIONS #194).
+  const locked = shown && pass?.season === shown.season ? PIECE_ORDER.slice(shown.pieces, shown.pieces + piecesWaiting(pass)) : undefined;
 
   const style = profile.cardStyle;
   const cardProps = {
     profile,
     finish: shown ? (shown.finish as CardFinish) : style.finish,
     pieces:
-      shown && !shown.complete ? { missing: missingPieces(shown.status === "Upcoming" ? 0 : shown.pieces) } : undefined,
+      shown && !shown.complete ? { missing: missingPieces(shown.status === "Upcoming" ? 0 : shown.pieces), locked } : undefined,
     title: cardTitleCode(style.title, profile.position),
     // The card always shows the profile photo (changed only in Editar perfil).
     photoUrl: profile.avatarUrl,

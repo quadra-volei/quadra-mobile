@@ -77,7 +77,10 @@ function ProgressPanel({ pass }: { pass: SeasonPass }) {
           {`A temporada começa em ${dayMonth(Date.parse(pass.startsAt))}. Os pontos das suas partidas contam a partir daí.`}
         </Text>
       ) : done ? (
-        <Text className="font-body-bold text-body text-accent-light">Você completou o passe. A carta é sua.</Text>
+        <Text className="font-body-bold text-body text-accent-light">
+          {/* Without the paid track the last level does not give the card (DECISIONS #194). */}
+          {seasonFinish(pass)?.unlocked ? "Você completou o passe. A carta é sua." : "Você chegou ao último nível do passe."}
+        </Text>
       ) : (
         <View className="gap-2">
           <View className="flex-row justify-between">

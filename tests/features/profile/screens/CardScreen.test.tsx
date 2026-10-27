@@ -197,6 +197,17 @@ describe('S8b — Sua carta', () => {
     expect(mockMutate).not.toHaveBeenCalled();
   });
 
+  it('keeps the padlock on the pieces reached without the paid track, on the collection card too', async () => {
+    const free = seasonPassFixture(5);
+    mockPass.data = { ...free, premium: false, rewards: free.rewards.map((r) => (r.track === 'Premium' ? { ...r, unlocked: false } : r)) };
+    mockPass.cards = [{ ...T1, pieces: 0 }];
+    await render(<CardScreen />);
+
+    await fireEvent.press(screen.getByText('Coleção'));
+
+    expect(screen.getAllByTestId('piece-locked')).toHaveLength(5);
+  });
+
   it('equips a complete card from the collection', async () => {
     mockPass.cards = [{ ...T1, status: 'Ended', pieces: 12, complete: true }];
     await render(<CardScreen />);
