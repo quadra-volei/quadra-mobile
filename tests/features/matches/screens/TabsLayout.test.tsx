@@ -14,9 +14,9 @@ import React from 'react';
 
 // --- Native / module mocks ------------------------------------------------
 
-// The location gate (own test: LocationGate.test.tsx) -> passthrough.
-jest.mock('@/components/domain/LocationGate',() => ({
-  LocationGate: ({ children }: any) => children,
+// The location prompt (own test: LocationPrompt.test.tsx) -> nothing.
+jest.mock('@/components/domain/LocationPrompt',() => ({
+  LocationPrompt: () => null,
 }));
 
 // Blur (native) -> plain Views.
