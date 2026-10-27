@@ -2,6 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
+import { CollectionCard } from '@/components/domain/CollectionCard';
 import { Avatar } from '@/components/ui/Avatar';
 import { BackHeader } from '@/components/ui/BackHeader';
 import { Button } from '@/components/ui/Button';
@@ -12,6 +13,7 @@ import {
   usePlayerProfile,
   useSetFollow,
 } from '@/features/network/api/postsApi';
+import { useCardCollection } from '@/features/pass/api/seasonPass';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import type { ApiLevel } from '@/features/profile/api/profileApi';
 import { positionLabel } from '@/features/profile/schema/onboarding';
@@ -22,6 +24,29 @@ const LEVEL_LABEL: Record<ApiLevel, string> = {
   Advanced: 'Avançado',
   Elite: 'Elite',
 };
+
+// The season cards this player started or completed (API DECISIONS #99); nothing
+// while they have no piece of any.
+function PlayerCollection({ userId }: { userId: string }) {
+  const { data } = useCardCollection(userId);
+  const cards = data?.cards.filter((c) => c.pieces > 0) ?? [];
+  if (cards.length === 0) {
+    return null;
+  }
+  const complete = cards.filter((c) => c.complete).length;
+  return (
+    <View className="mt-4 rounded-card bg-surface-dark py-4" testID="player-collection">
+      <Text className="px-4 mb-3 font-body-bold text-caption text-accent-light">
+        {`Coleção · ${complete} ${complete === 1 ? 'carta completa' : 'cartas completas'}`}
+      </Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-4 gap-4">
+        {cards.map((card) => (
+          <CollectionCard key={card.season} card={card} width={96} />
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
 
 function Count({ value, label }: { value: number | undefined; label: string }) {
   return (
@@ -116,6 +141,8 @@ export default function PlayerScreen() {
               <Count value={profile.data.stats.wins} label="Vitórias" />
               <Count value={profile.data.stats.mvpsReceived} label="MVPs" />
             </View>
+
+            <PlayerCollection userId={id} />
 
             <View className="mt-4">
               <Button

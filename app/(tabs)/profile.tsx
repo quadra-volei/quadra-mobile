@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { Settings } from "lucide-react-native";
+import { ChevronRight, Settings } from "lucide-react-native";
 import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -7,12 +7,16 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BellWithBadge } from '@/components/domain/BellWithBadge';
 import { LevelBar } from "@/components/domain/LevelBar";
 import { MatchHistoryRow } from "@/components/domain/MatchHistoryRow";
+import { CardPiecesMini } from "@/components/domain/CardPiecesMini";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { IconButton } from "@/components/ui/IconButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { PressableScale } from "@/components/ui/PressableScale";
+import { piecesWaiting, piecesWon, useSeasonPass } from "@/features/pass/api/seasonPass";
+import { PIECE_COUNT } from "@/features/pass/lib/cardPieces";
 import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { useRecentMatches } from "@/features/profile/api/getRecentMatches";
 import { useGroupRanking } from "@/features/ranking/api/getGroupRanking";
@@ -28,6 +32,9 @@ function goRanking() {
 }
 function goCard() {
   router.push("/profile/card");
+}
+function goPass() {
+  router.push("/profile/pass");
 }
 function goSettings() {
   router.push("/profile/settings");
@@ -184,8 +191,33 @@ function ProgressSection() {
 
       <View className="mt-4">
         <LevelBar level={data.level} xp={data.xp} xpToNext={data.xpToNext} />
+        <PassLine />
       </View>
     </View>
+  );
+}
+
+// One line of the season pass inside "Seu progresso" (DECISIONS #194): the pass
+// itself lives on the Home; nothing when no season is being played.
+function PassLine() {
+  const { data: pass } = useSeasonPass();
+  if (!pass || pass.status === "Ended") {
+    return null;
+  }
+  const won = piecesWon(pass);
+  const waiting = piecesWaiting(pass);
+  const progress = waiting > 0 ? `${waiting} ${waiting === 1 ? "pedaço esperando" : "pedaços esperando"}` : `${won} de ${PIECE_COUNT}`;
+  return (
+    <PressableScale
+      accessibilityRole="button"
+      onPress={goPass}
+      testID="profile-pass-line"
+      className="mt-3 flex-row items-center gap-3 rounded-chip bg-surface-dark px-3 py-2"
+    >
+      <CardPiecesMini collected={won} width={18} />
+      <Text className="flex-1 font-body-bold text-caption text-text-on-dark">{`Passe ${pass.season} · ${progress}`}</Text>
+      <ChevronRight size={16} color={colors.textOnDark} />
+    </PressableScale>
   );
 }
 

@@ -20,7 +20,7 @@ jest.mock('lucide-react-native', () => {
   const { View } = require('react-native');
   const stub = (name: string) => (props: any) =>
     ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return { ChevronLeft: stub('back'), Send: stub('send'), Trash2: stub('trash') };
+  return { Check: stub('check'), ChevronLeft: stub('back'), Send: stub('send'), Trash2: stub('trash') };
 });
 
 jest.mock('expo-linear-gradient', () => {
@@ -52,6 +52,13 @@ jest.mock('@/features/network/api/postsApi', () => ({
 const mockMe = jest.fn();
 jest.mock('@/features/profile/api/getMyProfile', () => ({
   useMyProfile: () => mockMe(),
+}));
+
+// The player's card collection (API DECISIONS #99): none unless a test sets one.
+const mockCollection: { data: unknown } = { data: undefined };
+jest.mock('@/features/pass/api/seasonPass', () => ({
+  ...jest.requireActual('@/features/pass/api/seasonPass'),
+  useCardCollection: () => ({ data: mockCollection.data }),
 }));
 
 import { fireEvent, render, screen } from '@testing-library/react-native';
@@ -148,6 +155,26 @@ describe('Rede — perfil de outro jogador', () => {
     await fireEvent.press(screen.getByTestId('follow-button'));
 
     expect(mockSetFollow).toHaveBeenCalledWith(false);
+  });
+
+  it('shows the season cards the player started, and nothing before the first piece', async () => {
+    mockProfile.mockReturnValue(profile);
+    mockMe.mockReturnValue({ data: { id: 'me' } });
+    mockFollowState.mockReturnValue({ data: { followersCount: 0, followingCount: 0, followedByMe: false }, isPending: false });
+    const t1 = {
+      season: 'T1', name: 'Temporada 1', finish: 'Pioneira', startsAt: '2026-11-01T03:00:00Z', endsAt: '2027-02-01T03:00:00Z',
+      status: 'Ended', pieces: 12, levels: 12, complete: true,
+    };
+    mockCollection.data = { userId: 'x1', cards: [{ ...t1, pieces: 0, complete: false, status: 'Upcoming' }] };
+
+    await render(<PlayerScreen />);
+    expect(screen.queryByTestId('player-collection')).toBeNull();
+
+    mockCollection.data = { userId: 'x1', cards: [t1] };
+    await render(<PlayerScreen />);
+    expect(screen.getByText('Coleção · 1 carta completa')).toBeTruthy();
+    expect(screen.getByText('Completa')).toBeTruthy();
+    mockCollection.data = undefined;
   });
 
   it('has no follow button on my own profile', async () => {
