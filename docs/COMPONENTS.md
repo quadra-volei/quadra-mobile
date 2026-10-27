@@ -510,6 +510,13 @@ More UI primitives will live here:
 - **Used in**: S6 Explore — the "Filtros" button.
 - **Notes**: Bottom sheet like `AddGuestSheet`. Sections of `FilterChip`s (Ordenar por, Quando, Distância, Formato, Nível, Preço) plus a "Só com vaga aberta" `ToggleField`. Edits a draft; the sticky footer has "Limpar" and "Ver N partidas", N counted live with `applyFilters` over `source`. Nothing applies until "Ver"; closing discards the draft.
 
+### `DirectionsSheet`
+- **Path**: `src/components/domain/DirectionsSheet.tsx`
+- **Category**: domain
+- **Props**: `{ destination: Destination | null; distanceLabel?: string; onClose: () => void }` (`Destination` from `@/features/explore/lib/directions`: coordinates plus an optional name)
+- **Used in**: S17 Map — "Como chegar" on the game card and the arena card.
+- **Notes**: Bottom sheet like `AddGuestSheet`, open while `destination` is not null. "Corrida" (Uber, 99) and "Rota" (Google Maps, Waze, Apple Maps on iOS) as white bordered rows; a tap closes the sheet and calls `openRide`, which falls back to the store page when the app link cannot be opened (DECISIONS #190).
+
 ### `CreateSheet`
 - **Path**: `src/components/domain/CreateSheet.tsx`
 - **Category**: domain
@@ -557,7 +564,7 @@ More UI primitives will live here:
 - **Path**: `src/components/domain/TeamsSetup.tsx`
 - **Category**: domain
 - **Props**: `{ setup: TeamsSetup; testID?: string }` where `TeamsSetup` is what `useTeamsSetup(matchId, match, { enabled })` (`src/features/matches/lib/useTeamsSetup.ts`) returns
-- **Used in**: S12 Match detail, Confirmados tab, organizer of a match with fixed teams (DECISIONS #189)
+- **Used in**: S12 Match detail, Confirmados tab, organizer of a match with fixed teams (DECISIONS #190)
 - **Example**:
   ```tsx
   const teamsSetup = useTeamsSetup(matchId, match, { enabled: buildsTeams });
