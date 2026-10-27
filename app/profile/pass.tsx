@@ -26,29 +26,32 @@ import { colors } from "@/theme/colors";
 // season, to play the new piece's reveal once. Non-secret (CLAUDE.md).
 const seenKey = (userId: string, season: string) => `quadra.pass.seen.${userId}.${season}`;
 
-/** The piece to reveal when the player has won pieces since they last looked. */
-function useNewPiece(pass: SeasonPass | undefined | null): number | undefined {
+/**
+ * The newest piece while the phone checks whether the player saw it (`checking`,
+ * kept covered so it does not flash), then `reveal` when it is new to them.
+ */
+function useNewPiece(pass: SeasonPass): { checking: boolean; reveal?: number } {
   const userId = useAuthStore((s) => s.userId);
-  const [reveal, setReveal] = useState<number>();
-  const won = pass ? piecesWon(pass) : 0;
-  const season = pass?.season;
+  const won = piecesWon(pass);
+  const [state, setState] = useState<{ won: number; reveal?: number }>();
 
   useEffect(() => {
-    if (!userId || !season || won === 0) return;
+    if (!userId || won === 0) return;
     let active = true;
-    const key = seenKey(userId, season);
+    const key = seenKey(userId, pass.season);
     AsyncStorage.getItem(key)
       .then((seen) => {
-        if (active && Number(seen ?? 0) < won) setReveal(pieceOfLevel(won));
+        if (active) setState({ won, reveal: Number(seen ?? 0) < won ? pieceOfLevel(won) : undefined });
         return AsyncStorage.setItem(key, String(won));
       })
-      .catch(() => undefined); // a preference: without it the reveal just does not play
+      // A preference: without it the reveal just does not play.
+      .catch(() => active && setState({ won }));
     return () => {
       active = false;
     };
-  }, [userId, season, won]);
+  }, [userId, pass.season, won]);
 
-  return reveal;
+  return { checking: won > 0 && state?.won !== won, reveal: state?.won === won ? state.reveal : undefined };
 }
 
 function Bar({ value, max, testID }: { value: number; max: number; testID?: string }) {
@@ -179,8 +182,10 @@ function PassBody({ pass, profile }: { pass: SeasonPass; profile: MyProfile }) {
   const { width: screenWidth } = useWindowDimensions();
   const [flipped, setFlipped] = useState(false);
   const save = useSaveCardStyle();
-  const reveal = useNewPiece(pass);
+  const { checking, reveal } = useNewPiece(pass);
   const won = piecesWon(pass);
+  // While checking, the newest piece stays covered like a missing one.
+  const missing = checking ? missingPieces(won - 1) : missingPieces(won);
   const finish = seasonFinish(pass);
   const equipped = profile.cardStyle.finish === finish?.code;
   const levels = Array.from({ length: pass.levels }, (_, i) => i + 1);
@@ -207,8 +212,8 @@ function PassBody({ pass, profile }: { pass: SeasonPass; profile: MyProfile }) {
           flipped={flipped}
           onFlip={() => setFlipped((v) => !v)}
           width={Math.min(screenWidth - 120, 250)}
-          pieces={won >= PIECE_COUNT && reveal == null ? undefined : {
-            missing: missingPieces(won),
+          pieces={missing.length === 0 && reveal == null ? undefined : {
+            missing,
             next: won < PIECE_COUNT ? pieceOfLevel(won + 1) : undefined,
             reveal,
           }}
