@@ -2,7 +2,9 @@
 // collectible card. The player picks one; it is saved on the account. Components
 // read `CARD_FINISHES[finish]`; screens never inline these hex values.
 
-export type CardFinish = 'Prisma' | 'Ion' | 'Eclipse';
+// Pioneira is the whole card of the first season pass (API DECISIONS #98): only
+// who completes the pass equips it. Placeholder art until the designer's.
+export type CardFinish = 'Prisma' | 'Ion' | 'Eclipse' | 'Pioneira';
 
 type Gradient = readonly [string, string, ...string[]];
 
@@ -27,6 +29,8 @@ export type CardFinishTokens = {
   shape: 'chamfer' | 'rounded';
   /** Picker swatch background. */
   swatch: Gradient;
+  /** A season finish shines the same at any level instead of following the level tier. */
+  tier?: CardTierTokens;
 };
 
 export const CARD_FINISHES: Record<CardFinish, CardFinishTokens> = {
@@ -66,15 +70,47 @@ export const CARD_FINISHES: Record<CardFinish, CardFinishTokens> = {
     shape: 'chamfer',
     swatch: ['#765143', '#251D28'],
   },
+  // The brand's blue, lime and purple in chrome: the first season's colors.
+  Pioneira: {
+    name: 'Pioneira',
+    surface: '#0B1238',
+    ink: '#FFFFFF',
+    muted: '#BFC8F0',
+    edge: 'rgba(198,241,53,0.24)',
+    accent: '#C6F135',
+    frame: ['#F2FFC2', '#1A1AFF', '#C6F135', '#6B1AFF', '#E4ECFF', '#C6F135'],
+    foil: ['rgba(198,241,53,0)', 'rgba(198,241,53,0.85)', 'rgba(120,150,255,0.8)', 'rgba(170,110,255,0.8)', 'rgba(198,241,53,0)'],
+    shape: 'chamfer',
+    swatch: ['#1A1AFF', '#0B1238'],
+    tier: { name: 'Pioneira', from: 1, frameFoil: 0.65, faceFoil: 0.1, glare: 0.26, rainbow: false },
+  },
 };
 
+/** The finishes anyone can pick; season finishes come from the pass. */
 export const CARD_FINISH_ORDER: CardFinish[] = ['Prisma', 'Ion', 'Eclipse'];
+
+/** A finish this version knows (an older app gets Prisma for a newer one). */
+export function cardFinishTokens(finish: string): CardFinishTokens {
+  return CARD_FINISHES[finish as CardFinish] ?? CARD_FINISHES.Prisma;
+}
 
 /** The screen behind the card ("Sua carta"): deep navy with a blue glow. */
 export const CARD_SCREEN = { bg: '#080924', glow: 'rgba(37,40,134,0.5)' } as const;
 
 /** Light on the card: the glare and the darkening at the top of the photo. */
 export const CARD_LIGHT = { glare: '#FFFFFF', photoTop: '#03091D' } as const;
+
+/** A missing piece of the season card: dark glass with a hairline; the next one to win is outlined in lime. */
+export const PIECE_COVER = {
+  fill: '#0D0F33',
+  fillOpacity: 0.94,
+  edge: 'rgba(255,255,255,0.14)',
+  next: '#C6F135',
+  number: 'rgba(255,255,255,0.4)',
+  // The small outline of the card (CardPiecesMini), on navy and on light.
+  miniLine: { dark: 'rgba(255,255,255,0.28)', light: 'rgba(10,10,60,0.22)' },
+  miniGlass: { dark: 'rgba(255,255,255,0.06)', light: 'rgba(10,10,60,0.05)' },
+} as const;
 
 export type CardTier = 'Classico' | 'Prisma' | 'Holografico';
 

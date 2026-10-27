@@ -7,12 +7,14 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { BellWithBadge } from '@/components/domain/BellWithBadge';
 import { LevelBar } from "@/components/domain/LevelBar";
 import { MatchHistoryRow } from "@/components/domain/MatchHistoryRow";
+import { PassProgressCard } from "@/components/domain/PassProgressCard";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { IconButton } from "@/components/ui/IconButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { useSeasonPass } from "@/features/pass/api/seasonPass";
 import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { useRecentMatches } from "@/features/profile/api/getRecentMatches";
 import { useGroupRanking } from "@/features/ranking/api/getGroupRanking";
@@ -28,6 +30,9 @@ function goRanking() {
 }
 function goCard() {
   router.push("/profile/card");
+}
+function goPass() {
+  router.push("/profile/pass");
 }
 function goSettings() {
   router.push("/profile/settings");
@@ -186,6 +191,20 @@ function ProgressSection() {
         <LevelBar level={data.level} xp={data.xp} xpToNext={data.xpToNext} />
       </View>
     </View>
+  );
+}
+
+// ── Passe da temporada (hidden when no season is set up or it cannot load) ──
+function PassSection() {
+  const { data, isPending } = useSeasonPass();
+  if (!isPending && !data) {
+    return null;
+  }
+  return (
+    <>
+      <SectionTitleRow title="Passe da temporada" action={{ label: "Ver passe", onPress: goPass }} />
+      <PassProgressCard onPress={goPass} />
+    </>
   );
 }
 
@@ -357,6 +376,9 @@ export default function ProfileScreen() {
           <View className="mt-2">
             <ProgressSection />
           </View>
+
+          {/* Season pass: the season card in pieces (API DECISIONS #98) */}
+          <PassSection />
 
           {/* Meus amigos → season ranking preview card, before the history (DECISIONS #186) */}
           <SectionTitleRow title="Meus amigos" />

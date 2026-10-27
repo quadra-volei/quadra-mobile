@@ -231,6 +231,13 @@ jest.mock('@/features/profile/api/getRecentMatches', () => ({
   }),
 }));
 
+// Season pass: null (no season) unless a test sets one.
+const mockPass: { data: unknown } = { data: null };
+jest.mock('@/features/pass/api/seasonPass', () => ({
+  ...jest.requireActual('@/features/pass/api/seasonPass'),
+  useSeasonPass: () => ({ data: mockPass.data, isPending: false, isError: false }),
+}));
+
 jest.mock('@/features/ranking/api/getGroupRanking', () => ({
   useGroupRanking: (params: unknown) => {
     mockRanking.lastParams = params;
@@ -247,6 +254,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { useAuthStore } from '@/stores/auth';
 
+import { seasonPassFixture } from '../../../support/seasonPass';
 import ProfileScreen from '../../../../app/(tabs)/profile';
 
 function resetProfile() {
@@ -273,6 +281,7 @@ function resetRanking() {
 
 beforeEach(() => {
   mockPush.mockClear();
+  mockPass.data = null;
   resetProfile();
   resetRecent();
   resetRanking();
@@ -731,6 +740,25 @@ describe('S8 — Profile screen', () => {
    *  three mocked queries (no location/camera/contacts) and renders no permission
    *  copy on mount.
    */
+  // ------------------------------------------------------------- season pass
+  it('shows the season pass with the pieces won and opens it (API DECISIONS #98)', async () => {
+    mockPass.data = seasonPassFixture(4);
+
+    await render(<ProfileScreen />);
+
+    expect(screen.getByText('4 de 12 pedaços')).toBeTruthy();
+    expect(screen.getByText('Faltam 14 pts para o próximo pedaço')).toBeTruthy();
+    fireEvent.press(screen.getByTestId('pass-card'));
+    expect(mockPush).toHaveBeenCalledWith('/profile/pass');
+  });
+
+  it('hides the season pass section when no season is set up', async () => {
+    await render(<ProfileScreen />);
+
+    expect(screen.queryByText('Passe da temporada')).toBeNull();
+    expect(screen.queryByTestId('pass-card')).toBeNull();
+  });
+
   it('fires no permission prompt and makes zero network requests on mount', async () => {
     const fetchSpy = jest.spyOn(globalThis, 'fetch' as never);
 

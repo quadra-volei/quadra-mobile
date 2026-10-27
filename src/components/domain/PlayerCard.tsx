@@ -12,6 +12,8 @@ import Animated, {
   useAnimatedStyle,
   useReducedMotion,
   useSharedValue,
+  withDelay,
+  withSequence,
   withTiming,
 } from 'react-native-reanimated';
 import Svg, {
@@ -28,14 +30,16 @@ import Svg, {
 } from 'react-native-svg';
 
 import { QuadraWordmark } from '@/components/icons/QuadraWordmark';
+import { PIECE_ORDER, pieceCenter, piecePoints } from '@/features/pass/lib/cardPieces';
 import { cardTitleName, type CardTitleCode } from '@/features/profile/card/cardTitles';
 import { positionLabel } from '@/features/profile/schema/onboarding';
 import type { MyProfile } from '@/features/profile/types/profile';
 import {
-  CARD_FINISHES,
   CARD_LIGHT,
   CARD_TIERS,
   HOLO_FOIL,
+  PIECE_COVER,
+  cardFinishTokens,
   cardTier,
   type CardFinish,
   type CardFinishTokens,
@@ -61,7 +65,7 @@ const SWIPE_FLIP = 65;
 const GYRO = { gain: 0.8, follow: 0.02, signX: 1, signY: 1 };
 const RAD_TO_DEG = 180 / Math.PI;
 
-const CHAMFER_OUTER = '0,18 18,0 258,0 292,34 292,388 274,406 18,406 0,388';
+export const CHAMFER_OUTER = '0,18 18,0 258,0 292,34 292,388 274,406 18,406 0,388';
 const CHAMFER_INNER = '3,19.5 19.5,3 256.5,3 289,35.5 289,386.5 272.5,403 19.5,403 3,386.5';
 
 // The card's art until the player sets a photo (the prototype's illustration).
@@ -69,6 +73,20 @@ const CARD_DEFAULT_ART = require('../../../assets/card/carta-padrao.jpg');
 
 const AnimatedRect = Animated.createAnimatedComponent(Rect);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+const AnimatedPolygon = Animated.createAnimatedComponent(Polygon);
+
+// A piece just won: its cover lights up lime, then fades away.
+const REVEAL = { delay: 450, flash: 250, fade: 700 };
+
+/** The season card in pieces (API DECISIONS #98): which ones are still missing. */
+export type CardPieces = {
+  /** Pieces not won yet (indexes of `PIECES`). */
+  missing: readonly number[];
+  /** The next one to win, outlined in lime. */
+  next?: number;
+  /** A piece just won: its cover is drawn once more and fades away. */
+  reveal?: number;
+};
 
 export type PlayerCardProps = {
   profile: MyProfile;
@@ -82,6 +100,8 @@ export type PlayerCardProps = {
   width: number;
   /** The two faces, flat (no tilt), for the PNG export. */
   faceRefs?: { front: RefObject<View | null>; back: RefObject<View | null> };
+  /** Draws the card unfinished: missing pieces covered (the season pass). */
+  pieces?: CardPieces;
   testID?: string;
 };
 
@@ -190,6 +210,88 @@ function Material({
   );
 }
 
+
+/** The cover of a piece just won: lime for a moment, then gone. */
+function RevealCover({ piece }: { piece: number }) {
+  const reduceMotion = useReducedMotion();
+  const opacity = useSharedValue(1);
+  const flash = useSharedValue(0);
+
+  useEffect(() => {
+    if (reduceMotion) {
+      opacity.value = 0;
+      return;
+    }
+    flash.value = withDelay(REVEAL.delay, withSequence(withTiming(1, { duration: REVEAL.flash }), withTiming(0, { duration: REVEAL.fade })));
+    opacity.value = withDelay(REVEAL.delay + REVEAL.flash, withTiming(0, { duration: REVEAL.fade, easing: Easing.out(Easing.cubic) }));
+  }, [flash, opacity, reduceMotion]);
+
+  const cover = useAnimatedProps(() => ({ opacity: opacity.value }));
+  const glow = useAnimatedProps(() => ({ opacity: flash.value }));
+  return (
+    <>
+      <AnimatedPolygon animatedProps={cover} points={piecePoints(piece)} fill={PIECE_COVER.fill} stroke={PIECE_COVER.edge} strokeWidth={1} />
+      <AnimatedPolygon animatedProps={glow} points={piecePoints(piece)} fill={PIECE_COVER.next} fillOpacity={0.55} stroke={PIECE_COVER.next} strokeWidth={3} />
+    </>
+  );
+}
+
+/**
+ * The missing pieces of the season card, over a face: dark glass shards with the
+ * level that gives each one. The back is the front's mirror, without numbers.
+ */
+function PieceCovers({ t, k, pieces, side }: { t: CardFinishTokens; k: number; pieces: CardPieces; side: 'front' | 'back' }) {
+  const id = `${side}-pieces`;
+  return (
+    <View
+      pointerEvents="none"
+      className="absolute inset-0"
+      style={side === 'back' ? { transform: [{ scaleX: -1 }] } : undefined}
+      testID={side === 'front' ? 'card-pieces' : undefined}
+    >
+      <Svg width="100%" height="100%" viewBox={`0 0 ${W} ${H}`} style={{ position: 'absolute' }}>
+        <Defs>
+          <ClipPath id={id}>
+            <Shape t={t} inner={false} fill="#000" />
+          </ClipPath>
+        </Defs>
+        <G clipPath={`url(#${id})`}>
+          {pieces.missing.map((p) => (
+            <Polygon
+              key={p}
+              points={piecePoints(p)}
+              fill={PIECE_COVER.fill}
+              fillOpacity={PIECE_COVER.fillOpacity}
+              stroke={p === pieces.next ? PIECE_COVER.next : PIECE_COVER.edge}
+              strokeWidth={p === pieces.next ? 2.5 : 1}
+            />
+          ))}
+          {pieces.reveal != null ? <RevealCover key={pieces.reveal} piece={pieces.reveal} /> : null}
+        </G>
+      </Svg>
+      {side === 'front'
+        ? pieces.missing.map((p) => {
+            const c = pieceCenter(p);
+            return (
+              <Text
+                key={p}
+                className="font-num absolute text-center"
+                style={{
+                  color: p === pieces.next ? PIECE_COVER.next : PIECE_COVER.number,
+                  fontSize: 15 * k,
+                  width: 40 * k,
+                  left: (c.x - 20) * k,
+                  top: (c.y - 10) * k,
+                }}
+              >
+                {PIECE_ORDER.indexOf(p as (typeof PIECE_ORDER)[number]) + 1}
+              </Text>
+            );
+          })
+        : null}
+    </View>
+  );
+}
 
 /**
  * The logo on the card: always the designer's "Ativo 17" lockup (blue + lime),
@@ -307,13 +409,13 @@ function Back({ profile, t, k, title, tierName }: { profile: MyProfile; t: CardF
  * tier (`CARD_TIERS`). The gesture lives on the card only, so the screen still
  * scrolls around it. Reduced motion: no tilt, instant flip.
  */
-export function PlayerCard({ profile, finish, title, photoUrl, flipped, onFlip, width, faceRefs, testID }: PlayerCardProps) {
-  const t = CARD_FINISHES[finish];
+export function PlayerCard({ profile, finish, title, photoUrl, flipped, onFlip, width, faceRefs, pieces, testID }: PlayerCardProps) {
+  const t = cardFinishTokens(finish);
   const k = width / W;
   const height = H * k;
   const reduceMotion = useReducedMotion();
   const titleName = cardTitleName(title);
-  const tier = CARD_TIERS[cardTier(profile.level)];
+  const tier = t.tier ?? CARD_TIERS[cardTier(profile.level)];
 
   const rx = useSharedValue(REST.rx);
   const ry = useSharedValue(REST.ry);
@@ -407,7 +509,7 @@ export function PlayerCard({ profile, finish, title, photoUrl, flipped, onFlip, 
         testID={testID}
         accessible
         accessibilityRole="button"
-        accessibilityLabel={`Carta de ${[profile.firstName, profile.lastName].filter(Boolean).join(' ')}. ${flipped ? 'Verso' : 'Frente'}. Toque para virar.`}
+        accessibilityLabel={`Carta de ${[profile.firstName, profile.lastName].filter(Boolean).join(' ')}. ${pieces ? `${PIECE_ORDER.length - pieces.missing.length} de ${PIECE_ORDER.length} pedaços. ` : ''}${flipped ? 'Verso' : 'Frente'}. Toque para virar.`}
         onAccessibilityTap={onFlip}
         style={[{ width, height }, tilt]}
       >
@@ -415,10 +517,12 @@ export function PlayerCard({ profile, finish, title, photoUrl, flipped, onFlip, 
           <Animated.View ref={faceRefs?.front} collapsable={false} className="absolute inset-0" style={[{ backfaceVisibility: 'hidden' }, front]}>
             <Material t={t} tier={tier} side="front" photoUrl={photoUrl} mx={mx} my={my} />
             <Front profile={profile} t={t} k={k} title={titleName} />
+            {pieces ? <PieceCovers t={t} k={k} pieces={pieces} side="front" /> : null}
           </Animated.View>
           <Animated.View ref={faceRefs?.back} collapsable={false} className="absolute inset-0" style={[{ backfaceVisibility: 'hidden' }, back]}>
             <Material t={t} tier={tier} side="back" mx={mx} my={my} />
             <Back profile={profile} t={t} k={k} title={titleName} tierName={tier.name} />
+            {pieces ? <PieceCovers t={t} k={k} pieces={pieces} side="back" /> : null}
           </Animated.View>
         </Animated.View>
       </Animated.View>

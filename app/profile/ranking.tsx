@@ -23,6 +23,7 @@ import {
   type RankingScope,
   type RankingSort,
 } from '@/features/ranking/api/getGroupRanking';
+import { POINT_RULES } from '@/features/ranking/pointRules';
 import type { PointsBreakdown, RankingRow as RankingRowData } from '@/features/ranking/types/ranking';
 import { colors, HERO_GRADIENT } from '@/theme/colors';
 import { ICON_HIT_SLOP } from '@/theme/layout';
@@ -445,13 +446,9 @@ function MyStanding({ data, sort, isCurrent }: { data: Ranking; sort: RankingSor
   );
 }
 
-// The "Como pontuar" tutorial, as a list (quadra-api DECISIONS #95). `badge` is
-// the number or symbol on the left; MVP rows take the lime highlight.
-const TUTORIAL: { badge: string; title: string; detail: string; mvp?: boolean }[] = [
-  { badge: '+10', title: 'Presença', detail: 'Cada partida recorrente que você joga. Partidas avulsas não contam.' },
-  { badge: '+8', title: 'Jogo ganho', detail: 'Por jogo que o seu time vence no placar, até 3 por partida.' },
-  { badge: '+4', title: 'Voto de MVP', detail: 'Por voto que você recebe de quem jogou com você.', mvp: true },
-  { badge: '+20', title: 'MVP do dia', detail: 'O mais votado da partida, quando ela tem 3 votos ou mais.', mvp: true },
+// The "Como pontuar" tutorial, as a list: the point rules, then how the season works.
+const TUTORIAL: typeof POINT_RULES = [
+  ...POINT_RULES,
   { badge: '1º', title: 'Temporada', detail: 'O ranking vale para o mês e zera no dia 1º. No Geral, só entra quem jogou 3 partidas no mês.' },
   { badge: '▲', title: 'Subiu ou caiu', detail: 'A seta compara a sua posição com a de 7 dias atrás.' },
 ];

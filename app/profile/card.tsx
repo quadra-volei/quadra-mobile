@@ -1,22 +1,33 @@
 import * as Sharing from "expo-sharing";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { Check, ChevronLeft, Download, Maximize2, Plus, RefreshCw } from "lucide-react-native";
+import { Check, ChevronLeft, ChevronRight, Download, Lock, Maximize2, Plus, RefreshCw } from "lucide-react-native";
 import { type ReactNode, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 
+import { CardPiecesMini } from "@/components/domain/CardPiecesMini";
 import { PlayerCard } from "@/components/domain/PlayerCard";
 import { Button } from "@/components/ui/Button";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
+import { piecesWon, seasonFinish, useSeasonPass } from "@/features/pass/api/seasonPass";
+import { PIECE_COUNT } from "@/features/pass/lib/cardPieces";
 import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { useSaveCardStyle } from "@/features/profile/api/saveCardStyle";
-import { CARD_TITLES, cardTitleCode } from "@/features/profile/card/cardTitles";
+import { CARD_TITLES, SEASON_TITLES, cardTitleCode, type CardTitleCode } from "@/features/profile/card/cardTitles";
 import type { MyProfile } from "@/features/profile/types/profile";
 import { ActionsSummary } from "@/components/domain/ActionsSummary";
-import { CARD_FINISHES, CARD_FINISH_ORDER, CARD_SCREEN, CARD_TIERS, CARD_TIER_ORDER, cardTier } from "@/theme/cardFinish";
+import {
+  CARD_FINISHES,
+  CARD_FINISH_ORDER,
+  CARD_SCREEN,
+  CARD_TIERS,
+  CARD_TIER_ORDER,
+  cardTier,
+  type CardFinish,
+} from "@/theme/cardFinish";
 import { colors } from "@/theme/colors";
 
 const TABS = ["Acabamento", "Título", "Estatísticas"] as const;
@@ -66,6 +77,43 @@ function TierNote({ level }: { level: number }) {
   );
 }
 
+function goPass() {
+  router.push("/profile/pass");
+}
+
+// The season card's finish (API DECISIONS #98): equipped like the others once the
+// pass is complete; until then it shows the pieces won and opens the pass.
+function SeasonFinishOption({ profile, save }: { profile: MyProfile; save: Save }) {
+  const { data: pass } = useSeasonPass();
+  const finish = pass ? seasonFinish(pass) : undefined;
+  if (!pass || !finish) return null;
+  const code = finish.code as CardFinish;
+  const equipped = profile.cardStyle.finish === code;
+  const open = finish.unlocked || equipped;
+  const won = piecesWon(pass);
+
+  return (
+    <PressableScale
+      accessibilityRole="button"
+      accessibilityState={{ selected: equipped }}
+      accessibilityLabel={open ? `Acabamento ${CARD_FINISHES[code].name}` : `Acabamento ${CARD_FINISHES[code].name}: complete o passe da temporada, ${won} de ${PIECE_COUNT} pedaços`}
+      onPress={() => (open ? save.mutate({ finish: code, title: profile.cardStyle.title }) : goPass())}
+      testID={`finish-${code}`}
+      className={`mt-2 flex-row items-center gap-3 rounded-chip border p-3 ${equipped ? "border-accent-light" : "border-white/15"}`}
+      style={{ backgroundColor: CARD_SCREEN.bg }}
+    >
+      <CardPiecesMini collected={open ? PIECE_COUNT : won} width={24} />
+      <View className="flex-1">
+        <Text className="font-body-bold text-caption text-text-on-dark">{`${CARD_FINISHES[code].name} · ${pass.name}`}</Text>
+        <Text className="font-mono text-mono text-white/60 mt-1">
+          {equipped ? "EQUIPADO" : open ? "EXPERIMENTAR" : `PASSE · ${won}/${PIECE_COUNT} PEDAÇOS`}
+        </Text>
+      </View>
+      {open ? null : <ChevronRight size={18} color={colors.textMuted} />}
+    </PressableScale>
+  );
+}
+
 function FinishPicker({ profile, save }: { profile: MyProfile; save: Save }) {
   const current = profile.cardStyle;
   return (
@@ -91,7 +139,50 @@ function FinishPicker({ profile, save }: { profile: MyProfile; save: Save }) {
           );
         })}
       </View>
+      <SeasonFinishOption profile={profile} save={save} />
       <TierNote level={profile.level} />
+    </>
+  );
+}
+
+// The season pass's titles: picked like the others once their level is reached;
+// until then they say which level gives them and open the pass.
+function SeasonTitles({ profile, save, shown }: { profile: MyProfile; save: Save; shown: CardTitleCode }) {
+  const { data: pass } = useSeasonPass();
+  if (!pass) return null;
+  const rewards = pass.rewards.filter((r) => r.kind === "Title");
+  return (
+    <>
+      <Text className="font-mono text-mono text-white/60 mt-4 mb-2">{`DO PASSE · ${pass.name.toUpperCase()}`}</Text>
+      {SEASON_TITLES.filter((t) => rewards.some((r) => r.code === t.code)).map((title) => {
+        const reward = rewards.find((r) => r.code === title.code)!;
+        const on = shown === title.code;
+        const open = reward.unlocked || on;
+        return (
+          <PressableScale
+            key={title.code}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+            onPress={() => (open ? save.mutate({ finish: profile.cardStyle.finish, title: title.code }) : goPass())}
+            testID={`title-${title.code}`}
+            className={`flex-row items-center justify-between gap-3 rounded-chip border px-3 py-3 mb-2 ${on ? "border-accent-light bg-accent-light/10" : "border-white/15 bg-white/5"}`}
+          >
+            <View className="flex-1">
+              <Text className={`font-body-bold text-body ${open ? "text-text-on-dark" : "text-white/60"}`}>{title.name}</Text>
+              <Text className="font-body text-caption text-white/60 mt-1">
+                {open ? title.description : `Nível ${reward.level} do passe da temporada`}
+              </Text>
+            </View>
+            {on ? (
+              <Check size={18} color={colors.accentLight} />
+            ) : open ? (
+              <Plus size={18} color={colors.textMuted} />
+            ) : (
+              <Lock size={16} color={colors.textMuted} />
+            )}
+          </PressableScale>
+        );
+      })}
     </>
   );
 }
@@ -119,6 +210,7 @@ function TitlePicker({ profile, save }: { profile: MyProfile; save: Save }) {
           </PressableScale>
         );
       })}
+      <SeasonTitles profile={profile} save={save} shown={shown} />
     </>
   );
 }
