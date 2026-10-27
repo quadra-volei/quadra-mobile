@@ -364,7 +364,7 @@ More UI primitives will live here:
 - **Category**: domain
 - **Props**: none
 - **Used in**: the bell `IconButton` of Início, Rede and Perfil
-- **Notes**: Bell icon plus a red count of unread notifications (`useUnreadCount`, re-read every minute; "9+" above nine). Tests mock it (it needs a QueryClient).
+- **Notes**: Bell icon plus the count of unread notifications (`useUnreadCount`, re-read every minute; "9+" above nine) in a lime badge with a navy border on the button's top-right corner (DECISIONS #187). Tests mock it (it needs a QueryClient).
 
 ### `LocationGate`
 - **Path**: `src/components/domain/LocationGate.tsx`
