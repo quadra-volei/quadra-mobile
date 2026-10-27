@@ -280,7 +280,7 @@ function PassBody({ pass, profile }: { pass: SeasonPass; profile: MyProfile }) {
         </View>
       ))}
       <Text className="font-body text-caption text-white/60 mt-2 mb-4">
-        {`São os mesmos pontos do ranking. Cada ${pass.pointsPerLevel} pontos valem um pedaço, e contam até ${pass.weeklyCap} por semana.`}
+        {`São os mesmos pontos do ranking. Um pedaço a cada ${pass.pointsPerLevel} pontos, no máximo ${pass.weeklyCap} pontos por semana.`}
       </Text>
     </>
   );

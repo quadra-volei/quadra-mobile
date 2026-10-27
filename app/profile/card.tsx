@@ -25,6 +25,7 @@ import {
   CARD_SCREEN,
   CARD_TIERS,
   CARD_TIER_ORDER,
+  cardFinishTokens,
   cardTier,
   type CardFinish,
 } from "@/theme/cardFinish";
@@ -140,7 +141,8 @@ function FinishPicker({ profile, save }: { profile: MyProfile; save: Save }) {
         })}
       </View>
       <SeasonFinishOption profile={profile} save={save} />
-      <TierNote level={profile.level} />
+      {/* A season finish shines the same at any level: the tier note does not apply. */}
+      {cardFinishTokens(current.finish).tier ? <View className="h-4" /> : <TierNote level={profile.level} />}
     </>
   );
 }

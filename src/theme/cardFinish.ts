@@ -103,7 +103,8 @@ export const CARD_LIGHT = { glare: '#FFFFFF', photoTop: '#03091D' } as const;
 /** A missing piece of the season card: dark glass with a hairline; the next one to win is outlined in lime. */
 export const PIECE_COVER = {
   fill: '#0D0F33',
-  fillOpacity: 0.94,
+  // A hint of the art shows through; the name and photo do not.
+  fillOpacity: 0.97,
   edge: 'rgba(255,255,255,0.14)',
   next: '#C6F135',
   number: 'rgba(255,255,255,0.4)',
