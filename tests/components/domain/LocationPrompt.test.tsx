@@ -82,4 +82,24 @@ describe('LocationPrompt', () => {
     await waitFor(() => expect(screen.queryByTestId('location-prompt')).toBeNull());
     expect(onGranted).not.toHaveBeenCalled();
   });
+
+  it('says it is settled only once nothing is left to ask', async () => {
+    const onSettled = jest.fn();
+    mockGet.mockResolvedValue({ status: 'undetermined' });
+    mockRequest.mockResolvedValue({ status: 'granted' });
+    await render(<LocationPrompt onGranted={onGranted} onSettled={onSettled} />);
+
+    fireEvent.press(await screen.findByTestId('location-prompt-allow'));
+    expect(onSettled).not.toHaveBeenCalled();
+
+    await waitFor(() => expect(onSettled).toHaveBeenCalledTimes(1));
+  });
+
+  it('is settled at once when the permission was already answered', async () => {
+    const onSettled = jest.fn();
+    mockGet.mockResolvedValue({ status: 'granted' });
+    await render(<LocationPrompt onGranted={onGranted} onSettled={onSettled} />);
+
+    await waitFor(() => expect(onSettled).toHaveBeenCalledTimes(1));
+  });
 });

@@ -16,6 +16,8 @@ export type LocationPromptProps = {
   onGranted: () => void;
   /** What the backdrop blurs on Android (a `BlurTargetView` behind the prompt). */
   blurTarget?: RefObject<View | null>;
+  /** Called once nothing is left to ask (already answered, or just answered). */
+  onSettled?: () => void;
 };
 
 // Same wide options as the create sheet (DECISIONS #98).
@@ -31,9 +33,13 @@ const OPTION =
  * to answer. Rendered as an overlay (not a `Modal`) so the Android blur can read
  * the tabs behind it.
  */
-export function LocationPrompt({ onGranted, blurTarget }: LocationPromptProps) {
+export function LocationPrompt({ onGranted, blurTarget, onSettled }: LocationPromptProps) {
   const [state, setState] = useState<PromptState>('checking');
   const [asking, setAsking] = useState(false);
+
+  useEffect(() => {
+    if (state === 'done') onSettled?.();
+  }, [state, onSettled]);
 
   useEffect(() => {
     let active = true;

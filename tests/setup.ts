@@ -10,6 +10,12 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+// AsyncStorage is native: the package's in-memory mock, for stores persisted
+// through it (theme, notification prefs, the tour's "seen" record).
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
+
 // expo-notifications is native (push): a quiet stand-in keeps screens that import it testable.
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),

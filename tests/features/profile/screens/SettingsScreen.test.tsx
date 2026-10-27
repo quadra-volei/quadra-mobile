@@ -90,6 +90,7 @@ jest.mock('lucide-react-native', () => {
     ChevronLeft: stub('chevron-left'),
     X: stub('x'),
     ChevronRight: stub('chevron-right'),
+    Compass: stub('compass'),
     Download: stub('download'),
     FileText: stub('file-text'),
     Globe: stub('globe'),
@@ -126,8 +127,11 @@ jest.mock('expo-router', () => ({
   router: {
     push: (...args: any[]) => mockPush(...args),
     back: (...args: any[]) => mockBack(...args),
+    canDismiss: () => true,
+    dismissAll: (...args: any[]) => mockDismissAll(...args),
   },
 }));
+const mockDismissAll = jest.fn();
 
 // Linking (OS settings + mailto) — spied on the real react-native export in
 // beforeEach (mocking the internal Libraries/Linking path leaves the public
@@ -213,8 +217,9 @@ import { Linking } from 'react-native';
 
 import { dialog } from '@/components/ui/Dialog';
 
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
+import { useTourStore } from '@/features/tour/tourStore';
 import { useThemeStore } from '@/stores/theme';
 
 import SettingsScreen from '../../../../app/profile/settings';
@@ -552,6 +557,14 @@ describe('S10 — Settings list screen', () => {
     mockAdmin.data = false;
   });
 
+  it('"Ver o tour de novo" goes back to the tabs and opens the tour (DECISIONS #190)', async () => {
+    await renderScreen();
+
+    fireEvent.press(screen.getByText('Ver o tour de novo'));
+    expect(mockDismissAll).toHaveBeenCalled();
+    await waitFor(() => expect(useTourStore.getState().phase).toBe(0));
+  });
+
   it('opens the Terms and the Privacy Policy pages', async () => {
     await renderScreen();
 
@@ -560,4 +573,5 @@ describe('S10 — Settings list screen', () => {
     fireEvent.press(screen.getByText('Política de Privacidade'));
     expect(mockOpenURL).toHaveBeenCalledWith('https://quadra-volei.app/privacidade');
   });
+
 });

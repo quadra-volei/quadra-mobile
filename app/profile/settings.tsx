@@ -4,6 +4,7 @@ import {
   Bell,
   Check,
   ChevronLeft,
+  Compass,
   ChevronRight,
   Download,
   FileText,
@@ -29,6 +30,7 @@ import { useSetActivitySharing } from '@/features/activity/api/activityApi';
 import { useDeleteAccount, useExportAccount } from '@/features/auth/api/account';
 import { useAdminAccess } from '@/features/curation/api/curation';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
+import { useTourStore } from '@/features/tour/tourStore';
 import { positionLabel } from '@/features/profile/schema/onboarding';
 import { logout } from '@/lib/auth/logout';
 import { LEGAL_URLS } from '@/lib/legal';
@@ -38,6 +40,17 @@ import { colors } from '@/theme/colors';
 // App version shown on "Sobre o Quadra". Sourced as a module-local constant
 // (expo-constants/expo-application are not in the locked stack); update on bumps.
 const APP_VERSION = '1.0.0';
+
+// How long the stack takes to slide back to the tabs before the tour measures the tab bar.
+const TOUR_REPLAY_DELAY_MS = 400;
+
+/** Back to the tabs, then the first-access tour from the start (DECISIONS #190). */
+function replayTour() {
+  if (router.canDismiss()) {
+    router.dismissAll();
+  }
+  setTimeout(() => useTourStore.getState().open(), TOUR_REPLAY_DELAY_MS);
+}
 
 // ── Eyebrow section label (CONTA / PREFERÊNCIAS / SUPORTE) ──
 function SectionLabel({ children }: { children: ReactNode }) {
@@ -395,6 +408,13 @@ export default function SettingsScreen() {
               title="Enviar feedback"
               subtitle="Sugestões, problemas e elogios"
               onPress={() => router.push('/profile/feedback')}
+            />
+            <Divider />
+            <SettingsRow
+              icon={<Compass size={24} color={colors.surfaceDark} />}
+              title="Ver o tour de novo"
+              subtitle="Os atalhos do app em 4 toques"
+              onPress={replayTour}
             />
             <Divider />
             <SettingsRow
