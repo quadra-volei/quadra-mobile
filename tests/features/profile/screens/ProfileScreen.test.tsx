@@ -765,7 +765,7 @@ describe('S8 — Profile screen', () => {
 
     await render(<ProfileScreen />);
 
-    expect(screen.getByText('Minha coleção')).toBeTruthy();
+    expect(screen.getByText('MINHA COLEÇÃO')).toBeTruthy();
     expect(screen.getByText('4 de 12 · em andamento')).toBeTruthy();
     expect(screen.getByText('Próximas cartas')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('profile-collection-T1'));

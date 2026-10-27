@@ -222,7 +222,8 @@ function CollectionSection() {
   }
   return (
     <>
-      <SectionTitleRow title="Minha coleção" action={{ label: "Ver tudo", onPress: goCollection }} />
+      {/* Typed in capitals: Android measures the display font before the uppercase transform and cuts the second word. */}
+      <SectionTitleRow title="MINHA COLEÇÃO" action={{ label: "Ver tudo", onPress: goCollection }} />
       <View className="mx-4 mt-2 rounded-card bg-surface-dark py-4">
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-4 gap-4">
           {data.cards.map((card) => (

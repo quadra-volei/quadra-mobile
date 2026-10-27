@@ -57,7 +57,7 @@ export function CollectionCard({ card, width, testID }: { card: CollectionCardDa
           <G clipPath={`url(#${id}-clip)`}>
             <Rect x={0} y={0} width={CARD_W} height={CARD_H} fill={`url(#${id}-glow)`} />
             {card.complete ? (
-              <Rect x={0} y={0} width={CARD_W} height={CARD_H} fill={`url(#${id}-foil)`} opacity={0.35} />
+              <Rect x={0} y={0} width={CARD_W} height={CARD_H} fill={`url(#${id}-foil)`} opacity={0.18} />
             ) : null}
             {missing.map((p) => (
               <Polygon key={p} points={piecePoints(p)} fill={PIECE_COVER.fill} fillOpacity={PIECE_COVER.fillOpacity} stroke={PIECE_COVER.edge} strokeWidth={2} />
