@@ -564,7 +564,7 @@ More UI primitives will live here:
 - **Path**: `src/components/domain/TeamsSetup.tsx`
 - **Category**: domain
 - **Props**: `{ setup: TeamsSetup; testID?: string }` where `TeamsSetup` is what `useTeamsSetup(matchId, match, { enabled })` (`src/features/matches/lib/useTeamsSetup.ts`) returns
-- **Used in**: S12 Match detail, Confirmados tab, organizer of a match with fixed teams (DECISIONS #190)
+- **Used in**: S12 Match detail, Confirmados tab, organizer of a match with fixed teams (DECISIONS #189)
 - **Example**:
   ```tsx
   const teamsSetup = useTeamsSetup(matchId, match, { enabled: buildsTeams });
