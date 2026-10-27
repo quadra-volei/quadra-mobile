@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import { ArrowRight, ChevronLeft, Clock, LocateFixed, MapPin, Users } from 'lucide-react-native';
+import { ArrowRight, ChevronLeft, Clock, LocateFixed, MapPin, Navigation, Users } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
@@ -11,7 +11,7 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import MapView, { Marker, type Region } from 'react-native-maps';
+import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
@@ -21,6 +21,7 @@ import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { CourtImage } from '@/components/ui/CourtImage';
 import { Tag } from '@/components/ui/Tag';
 import { MatchCard } from '@/components/domain/MatchCard';
+import { DirectionsSheet } from '@/components/domain/DirectionsSheet';
 import { MapListSheet } from '@/components/domain/MapListSheet';
 import {
   CLUSTER_ANCHOR,
@@ -40,6 +41,7 @@ import {
 } from '@/features/explore/api/mapItems';
 import { useVenueDetails, VENUE_KINDS, type VenueKind } from '@/features/explore/api/venues';
 import { NO_CLUSTER_DELTA, clusterPoints, type MapPoint } from '@/features/explore/lib/cluster';
+import { arcBetween, type Destination } from '@/features/explore/lib/directions';
 import { useNearbyMatches } from '@/features/matches/api/getNearby';
 import { distanceKm } from '@/features/matches/lib/distanceKm';
 import { readDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
@@ -145,6 +147,7 @@ function VenueSheet({
   next,
   onOpenMatch,
   onNextVenue,
+  onDirections,
 }: {
   venue: MapArena;
   /** All its upcoming games once loaded (`useArenaDetail`), else the first ones the map has. */
@@ -155,6 +158,8 @@ function VenueSheet({
   next: MapArena | null;
   onOpenMatch: (id: string) => void;
   onNextVenue: (venue: MapArena) => void;
+  /** Opens "Como chegar" for this arena. */
+  onDirections: () => void;
 }) {
   const { width } = useWindowDimensions();
   const cardWidth = Math.min(width - 64, 320);
@@ -199,6 +204,16 @@ function VenueSheet({
               {address}
             </Text>
           ) : null}
+          <Pressable
+            onPress={onDirections}
+            accessibilityRole="button"
+            accessibilityLabel="Como chegar"
+            testID="map-venue-directions"
+            className="mt-2 self-start flex-row items-center gap-1 rounded-pill border-2 border-surface-dark bg-accent px-3 py-1"
+          >
+            <Navigation size={14} color={colors.surfaceDark} />
+            <Text className="font-body-bold text-caption text-surface-dark">Como chegar</Text>
+          </Pressable>
         </View>
         {venue.gamesCount > 0 ? (
           <View className="rounded-pill bg-success px-3 py-1">
@@ -326,6 +341,8 @@ export default function MapScreen() {
   const [maxKm, setMaxKm] = useState(MAX_KM);
   const [kinds, setKinds] = useState<VenueKind[]>([]);
   const [distanceOpen, setDistanceOpen] = useState(false);
+  // The place "Como chegar" is open for; null while the sheet is closed.
+  const [directionsTo, setDirectionsTo] = useState<Destination | null>(null);
   // The map fills the screen: its size and region say how close pins sit on screen.
   const screen = useWindowDimensions();
   const [region, setRegion] = useState<Region | null>(null);
@@ -521,6 +538,17 @@ export default function MapScreen() {
   const haloVenue = clusters.some((c) => c.points.length === 1 && c.id === `v:${selectedVenueId}`)
     ? selectedVenue
     : null;
+  // Where the dotted line goes and "Como chegar" takes the user: the open pin.
+  const destination: Destination | null = selected
+    ? {
+        latitude: selected.lat,
+        longitude: selected.lon,
+        name: selected.venue ? splitVenue(selected.venue).name : selected.name,
+      }
+    : selectedVenue
+      ? { latitude: selectedVenue.lat, longitude: selectedVenue.lon, name: venueDetails.data?.title }
+      : null;
+  const destinationKm = destination && userLocation ? distanceKm(userLocation, destination) : null;
   const toggleKind = (kind: VenueKind) =>
     setKinds((prev) => (prev.includes(kind) ? prev.filter((k) => k !== kind) : [...prev, kind]));
 
@@ -659,6 +687,18 @@ export default function MapScreen() {
             image={VENUE_HALO}
             zIndex={1}
             testID="map-venue-halo"
+          />
+        ) : null}
+        {/* From the user to the open pin: a dotted arc, a hint of the way, not a route. */}
+        {destination && userLocation ? (
+          <Polyline
+            coordinates={arcBetween(userLocation, destination)}
+            strokeColor={colors.primary}
+            strokeWidth={3}
+            lineDashPattern={[2, 8]}
+            lineCap="round"
+            zIndex={0}
+            testID="map-route-line"
           />
         ) : null}
       </MapView>
@@ -819,6 +859,7 @@ export default function MapScreen() {
                 setSelectedVenueId(next.id);
                 showArena(next);
               }}
+              onDirections={() => setDirectionsTo(destination)}
             />
           </View>
         </SafeAreaView>
@@ -910,20 +951,37 @@ export default function MapScreen() {
                   </View>
                 </View>
 
-                <View className="mt-4">
-                  <Button
-                    variant="primary"
-                    onPress={() => goMatch(selected.id)}
-                    testID="map-preview-open"
-                  >
-                    Ver partida
-                  </Button>
+                <View className="mt-4 flex-row gap-3">
+                  <View className="flex-1">
+                    <Button
+                      variant="outline"
+                      onPress={() => setDirectionsTo(destination)}
+                      testID="map-preview-directions"
+                    >
+                      Como chegar
+                    </Button>
+                  </View>
+                  <View className="flex-1">
+                    <Button
+                      variant="primary"
+                      onPress={() => goMatch(selected.id)}
+                      testID="map-preview-open"
+                    >
+                      Ver partida
+                    </Button>
+                  </View>
                 </View>
               </View>
             </View>
           </View>
         </SafeAreaView>
       )}
+
+      <DirectionsSheet
+        destination={directionsTo}
+        distanceLabel={destinationKm !== null ? formatKm(destinationKm) : undefined}
+        onClose={() => setDirectionsTo(null)}
+      />
     </View>
   );
 }

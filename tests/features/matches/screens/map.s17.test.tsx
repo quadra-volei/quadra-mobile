@@ -49,6 +49,7 @@ jest.mock('react-native-safe-area-context', () => {
   return {
     SafeAreaView: ({ children, ...props }: any) =>
       ReactLocal.createElement(View, props, children),
+    useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
   };
 });
 
@@ -98,7 +99,8 @@ jest.mock('react-native-maps', () => {
       { onPress, testID, accessibilityRole: 'button', ...props },
       children,
     );
-  return { __esModule: true, default: MapView, Marker };
+  const Polyline = (props: any) => ReactLocal.createElement(View, props);
+  return { __esModule: true, default: MapView, Marker, Polyline };
 });
 
 // expo-location -> spyable async permission/location fns + PermissionStatus enum.
@@ -484,6 +486,39 @@ describe('S17 — Map of Nearby Matches', () => {
     });
   });
 
+  it('draws a dotted line from the user to the tapped game and offers the ride apps', async () => {
+    const openURL = jest.spyOn(Linking, 'openURL').mockResolvedValue(true);
+    await renderScreen();
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
+
+    expect(screen.queryByTestId('map-route-line')).toBeNull();
+    await press(screen.getByTestId('map-pin-near-last'));
+
+    const line = screen.getByTestId('map-route-line');
+    expect(line.props.lineDashPattern).toBeDefined();
+    const points = line.props.coordinates;
+    expect(points[0]).toEqual({ latitude: -23.56, longitude: -46.64 });
+    expect(points[points.length - 1].latitude).toBeCloseTo(-23.5731);
+    expect(points[points.length - 1].longitude).toBeCloseTo(-46.6289);
+
+    expect(screen.queryByTestId('directions-sheet')).toBeNull();
+    await press(screen.getByTestId('map-preview-directions'));
+    expect(screen.getByTestId('directions-sheet')).toBeTruthy();
+    expect(screen.getByText('Quadra do Parque · a 1,8 km de você')).toBeTruthy();
+
+    await press(screen.getByTestId('directions-uber'));
+    expect(openURL).toHaveBeenCalledWith(expect.stringContaining('https://m.uber.com/ul/?action=setPickup'));
+    expect(openURL.mock.calls[0]![0]).toContain('dropoff%5Blatitude%5D=-23.573100');
+    expect(screen.queryByTestId('directions-sheet')).toBeNull();
+
+    // A tap on the map closes the card and takes the line away.
+    await act(async () => {
+      screen.getByTestId('map-view').props.onPress({ nativeEvent: {} });
+    });
+    expect(screen.queryByTestId('map-route-line')).toBeNull();
+    openURL.mockRestore();
+  });
+
   /**
    * Moving the map searches the area on screen, so a match far from the user
    * (another city) is found by taking the map there.
@@ -709,6 +744,21 @@ describe('Arenas on the map', () => {
 
     await press(screen.getByTestId('map-venue-empty'));
     expect(screen.getByText('Nenhum jogo marcado aqui nos próximos dias.')).toBeTruthy();
+  });
+
+  it('offers directions to the open arena, under its name from Google', async () => {
+    mockVenues.data = [venue('today', [g('near-open', 'Arena Sky Beach')])];
+    await renderScreen();
+    await waitFor(() => expect(screen.getByTestId('map-view')).toBeTruthy());
+
+    await press(screen.getByTestId('map-venue-today'));
+    expect(screen.getByTestId('map-route-line')).toBeTruthy();
+    await press(screen.getByTestId('map-venue-directions'));
+    expect(screen.getByTestId('directions-sheet')).toBeTruthy();
+    expect(screen.getByText(/^Arena Copacabana · a .* km de você$/)).toBeTruthy();
+    expect(screen.getByTestId('directions-99')).toBeTruthy();
+    expect(screen.getByTestId('directions-google-maps')).toBeTruthy();
+    expect(screen.getByTestId('directions-waze')).toBeTruthy();
   });
 
   it('ends the arena games with the closest other arena that has games', async () => {
