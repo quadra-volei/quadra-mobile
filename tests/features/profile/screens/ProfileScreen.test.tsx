@@ -231,11 +231,12 @@ jest.mock('@/features/profile/api/getRecentMatches', () => ({
   }),
 }));
 
-// Season pass: null (no season) unless a test sets one.
-const mockPass: { data: unknown } = { data: null };
+// Season pass and card collection: none unless a test sets them.
+const mockPass: { data: unknown; collection: unknown } = { data: null, collection: undefined };
 jest.mock('@/features/pass/api/seasonPass', () => ({
   ...jest.requireActual('@/features/pass/api/seasonPass'),
   useSeasonPass: () => ({ data: mockPass.data, isPending: false, isError: false }),
+  useCardCollection: () => ({ data: mockPass.collection }),
 }));
 
 jest.mock('@/features/ranking/api/getGroupRanking', () => ({
@@ -282,6 +283,7 @@ function resetRanking() {
 beforeEach(() => {
   mockPush.mockClear();
   mockPass.data = null;
+  mockPass.collection = undefined;
   resetProfile();
   resetRecent();
   resetRanking();
@@ -749,6 +751,24 @@ describe('S8 — Profile screen', () => {
     expect(screen.getByText('4 de 12 pedaços')).toBeTruthy();
     expect(screen.getByText('Faltam 14 pts para o próximo pedaço')).toBeTruthy();
     fireEvent.press(screen.getByTestId('pass-card'));
+    expect(mockPush).toHaveBeenCalledWith('/profile/pass');
+  });
+
+  it('shows the card collection with the slot of the cards to come, and opens it (API DECISIONS #99)', async () => {
+    mockPass.collection = {
+      userId: 'me',
+      cards: [{
+        season: 'T1', name: 'Temporada 1', finish: 'Pioneira', startsAt: '2026-11-01T03:00:00Z', endsAt: '2027-02-01T03:00:00Z',
+        status: 'Active', pieces: 4, levels: 12, complete: false,
+      }],
+    };
+
+    await render(<ProfileScreen />);
+
+    expect(screen.getByText('Minha coleção')).toBeTruthy();
+    expect(screen.getByText('4 de 12 · em andamento')).toBeTruthy();
+    expect(screen.getByText('Próximas cartas')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('profile-collection-T1'));
     expect(mockPush).toHaveBeenCalledWith('/profile/pass');
   });
 

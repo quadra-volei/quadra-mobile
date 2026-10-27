@@ -66,7 +66,7 @@ const GYRO = { gain: 0.8, follow: 0.02, signX: 1, signY: 1 };
 const RAD_TO_DEG = 180 / Math.PI;
 
 export const CHAMFER_OUTER = '0,18 18,0 258,0 292,34 292,388 274,406 18,406 0,388';
-const CHAMFER_INNER = '3,19.5 19.5,3 256.5,3 289,35.5 289,386.5 272.5,403 19.5,403 3,386.5';
+export const CHAMFER_INNER = '3,19.5 19.5,3 256.5,3 289,35.5 289,386.5 272.5,403 19.5,403 3,386.5';
 
 // The card's art until the player sets a photo (the prototype's illustration).
 const CARD_DEFAULT_ART = require('../../../assets/card/carta-padrao.jpg');

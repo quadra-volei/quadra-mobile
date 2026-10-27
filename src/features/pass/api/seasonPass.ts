@@ -61,6 +61,38 @@ export function seasonFinish(pass: SeasonPass): SeasonReward | undefined {
   return pass.rewards.find((r) => r.kind === 'Finish');
 }
 
+// Card collection (`GET /api/v1/card-collection?userId=`, quadra-api DECISIONS
+// #99): the card of every season set up, newest first, with the pieces won.
+// Anyone signed in may see another player's.
+
+export type CollectionCard = {
+  season: string;
+  name: string;
+  /** The finish of the whole card. */
+  finish: string;
+  startsAt: string;
+  endsAt: string;
+  status: SeasonPassStatus;
+  pieces: number;
+  levels: number;
+  complete: boolean;
+};
+
+export type CardCollection = { userId: string; cards: CollectionCard[] };
+
+export const cardCollectionQueryKey = (userId?: string) => ['card-collection', userId ?? 'me'] as const;
+
+/** A player's collection; the signed-in player's without `userId`. */
+export function useCardCollection(userId?: string) {
+  return useQuery({
+    queryKey: cardCollectionQueryKey(userId),
+    queryFn: () =>
+      authorizedApiClient<CardCollection>(
+        `/api/v1/card-collection${userId ? `?userId=${encodeURIComponent(userId)}` : ''}`,
+      ),
+  });
+}
+
 /** Pieces won: the unlocked ones (on the paid track, so the level alone is not enough). */
 export function piecesWon(pass: SeasonPass): number {
   return pass.rewards.filter((r) => r.kind === 'Piece' && r.unlocked).length;

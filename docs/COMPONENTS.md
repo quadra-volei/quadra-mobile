@@ -416,6 +416,17 @@ More UI primitives will live here:
   ```
 - **Notes**: The season card's outline cut into its 12 pieces: the first `collected` pieces of `PIECE_ORDER` in lime, the rest as glass. With `highlight`, only that piece stands out (lime when won, a lime outline while not). Colors from `PIECE_COVER` in `src/theme/cardFinish.ts`.
 
+### `CollectionCard` / `CollectionCardSoon`
+- **Path**: `src/components/domain/CollectionCard.tsx`
+- **Category**: domain
+- **Props**: `{ card: CollectionCard; width: number; testID?: string }` (`CollectionCard` from `features/pass/api/seasonPass`); `CollectionCardSoon`: `{ width: number }`
+- **Used in**: "Minha coleção" on S8 Profile, the collection screen (`app/profile/collection.tsx`), another player's profile
+- **Example**:
+  ```tsx
+  <CollectionCard card={card} width={96} />
+  ```
+- **Notes**: A season card as a static thumbnail (DECISIONS #193): the finish's frame gradient and surface (`cardFinishTokens`), a glow, a foil when complete, the missing pieces covered (`PIECE_COVER`), the season code (`font-display`) and finish name over them, a lime check when complete; below, the season name and `collectionStatus(card)`. No photo, sensor or gesture, so many fit on a screen. `CollectionCardSoon` is the dashed "Próximas cartas" slot.
+
 ### `PassProgressCard`
 - **Path**: `src/components/domain/PassProgressCard.tsx`
 - **Category**: domain

@@ -14,7 +14,8 @@ import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { IconButton } from "@/components/ui/IconButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
-import { useSeasonPass } from "@/features/pass/api/seasonPass";
+import { CollectionCard, CollectionCardSoon } from "@/components/domain/CollectionCard";
+import { useCardCollection, useSeasonPass } from "@/features/pass/api/seasonPass";
 import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { useRecentMatches } from "@/features/profile/api/getRecentMatches";
 import { useGroupRanking } from "@/features/ranking/api/getGroupRanking";
@@ -34,6 +35,11 @@ function goCard() {
 function goPass() {
   router.push("/profile/pass");
 }
+function goCollection() {
+  router.push("/profile/collection");
+}
+
+const COLLECTION_CARD_W = 96;
 function goSettings() {
   router.push("/profile/settings");
 }
@@ -204,6 +210,34 @@ function PassSection() {
     <>
       <SectionTitleRow title="Passe da temporada" action={{ label: "Ver passe", onPress: goPass }} />
       <PassProgressCard onPress={goPass} />
+    </>
+  );
+}
+
+// ── Minha coleção: a card per season, then the slot of the cards to come (API DECISIONS #99) ──
+function CollectionSection() {
+  const { data } = useCardCollection();
+  if (!data || data.cards.length === 0) {
+    return null;
+  }
+  return (
+    <>
+      <SectionTitleRow title="Minha coleção" action={{ label: "Ver tudo", onPress: goCollection }} />
+      <View className="mx-4 mt-2 rounded-card bg-surface-dark py-4">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="px-4 gap-4">
+          {data.cards.map((card) => (
+            <Pressable
+              key={card.season}
+              accessibilityRole="button"
+              onPress={card.status === "Ended" ? goCollection : goPass}
+              testID={`profile-collection-${card.season}`}
+            >
+              <CollectionCard card={card} width={COLLECTION_CARD_W} />
+            </Pressable>
+          ))}
+          <CollectionCardSoon width={COLLECTION_CARD_W} />
+        </ScrollView>
+      </View>
     </>
   );
 }
@@ -379,6 +413,9 @@ export default function ProfileScreen() {
 
           {/* Season pass: the season card in pieces (API DECISIONS #98) */}
           <PassSection />
+
+          {/* The season cards collected, complete or not (API DECISIONS #99) */}
+          <CollectionSection />
 
           {/* Meus amigos → season ranking preview card, before the history (DECISIONS #186) */}
           <SectionTitleRow title="Meus amigos" />
