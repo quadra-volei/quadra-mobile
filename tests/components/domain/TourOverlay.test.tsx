@@ -18,9 +18,11 @@ jest.mock('@/lib/api/authorizedClient', () => ({
 
 // Every tab bar item is mounted, except the ones a test takes away.
 const mockUnmounted = new Set<string>();
+const mockMeasure = jest.fn((id: string, _origin: unknown) =>
+  Promise.resolve(mockUnmounted.has(id) ? null : { x: 100, y: 700, width: 28, height: 28 }),
+);
 jest.mock('@/features/tour/tourTargets', () => ({
-  measureTourTarget: (id: string) =>
-    Promise.resolve(mockUnmounted.has(id) ? null : { x: 100, y: 700, width: 28, height: 28 }),
+  measureTourTarget: (id: string, origin: unknown) => mockMeasure(id, origin),
 }));
 
 import { TourOverlay } from '@/components/domain/TourOverlay';
@@ -30,7 +32,7 @@ import { useAuthStore } from '@/stores/auth';
 
 const USER_ID = 'user-1';
 
-function renderTour() {
+async function renderTour() {
   const client = new QueryClient({ defaultOptions: { mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
@@ -46,6 +48,7 @@ describe('TourOverlay', () => {
     mockApi.mockReset();
     mockApi.mockResolvedValue({ version: 1, outcome: 'Completed', lastStep: 4, endedAt: '2026-10-27T00:00:00Z' });
     mockUnmounted.clear();
+    mockMeasure.mockClear();
     useTourStore.setState({ phase: 'closed', seen: {} });
     useAuthStore.setState({ userId: USER_ID });
   });
@@ -115,5 +118,29 @@ describe('TourOverlay', () => {
 
     expect(await screen.findByText('Concluir')).toBeTruthy();
     expect(screen.queryByTestId('tour-skip')).toBeNull();
+  });
+
+  it('measures each target against the overlay, not the window', async () => {
+    useTourStore.getState().open();
+    await renderTour();
+
+    fireEvent.press(screen.getByTestId('tour-start'));
+    await screen.findByTestId('tour-step-1');
+
+    expect(mockMeasure).toHaveBeenCalledWith(TOUR_STEPS[0]!.target, expect.anything());
+  });
+
+  it('ends the tour instead of leaving an empty veil when no target is left', async () => {
+    for (const step of TOUR_STEPS.slice(1)) mockUnmounted.add(step.target);
+    useTourStore.getState().open();
+    await renderTour();
+
+    fireEvent.press(screen.getByTestId('tour-start'));
+    await screen.findByTestId('tour-step-1');
+    fireEvent.press(screen.getByTestId('tour-next'));
+
+    await waitFor(() => expect(useTourStore.getState().phase).toBe('closed'));
+    expect(screen.queryByTestId('tour-overlay')).toBeNull();
+    expect(sentBody()).toEqual({ version: TOUR_VERSION, outcome: 'Completed', lastStep: TOUR_STEPS.length });
   });
 });
