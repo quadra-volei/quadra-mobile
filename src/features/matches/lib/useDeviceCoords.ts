@@ -27,9 +27,9 @@ export async function readDeviceCoords(): Promise<Coords | null> {
 
 /**
  * The device's position when location permission was ALREADY granted, else
- * null. Never prompts: `LocationGate` asks at the app entry, before the
- * tabs mount, so Home and Explore fall back to a default centre only when the
- * permission was denied.
+ * null. Never prompts: `LocationPrompt` asks when the signed-in app opens and
+ * the tabs mount again once it is allowed, so Home and Explore fall back to a
+ * default centre only when the permission was denied.
  */
 export function useDeviceCoords(): Coords | null {
   return useDeviceLocation().coords;

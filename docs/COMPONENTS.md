@@ -366,12 +366,12 @@ More UI primitives will live here:
 - **Used in**: the bell `IconButton` of Início, Rede and Perfil
 - **Notes**: Bell icon plus the count of unread notifications (`useUnreadCount`, re-read every minute; "9+" above nine) in a lime badge with a navy border on the button's top-right corner (DECISIONS #187). Tests mock it (it needs a QueryClient).
 
-### `LocationGate`
-- **Path**: `src/components/domain/LocationGate.tsx`
+### `LocationPrompt`
+- **Path**: `src/components/domain/LocationPrompt.tsx`
 - **Category**: domain
-- **Props**: `{ children: ReactNode }`
-- **Used in**: `app/(tabs)/_layout.tsx` (around the tabs)
-- **Notes**: Asks for the location permission before rendering its children, only while the permission was never answered (DECISIONS #72). Denied: explains what is lost, offers the phone settings, then lets the user in.
+- **Props**: `{ onGranted: () => void; blurTarget?: RefObject<View | null> }`
+- **Used in**: `app/(tabs)/_layout.tsx` (over the tabs, next to `CreateSheet`)
+- **Notes**: Asks for the location permission once, only while it was never answered (DECISIONS #72, #188): a card centred on the screen over the tabs, blurred and dimmed behind it like `CreateSheet` (white card, 2px navy border, `HARD_SHADOW`, lime pin badge, wide options). The veil does not close it. Allowed: calls `onGranted` (the layout remounts the tabs so they read the position). Denied: explains what is lost, offers the phone settings, then lets the user in. Renders nothing otherwise.
 
 ### `UpdateGate`
 - **Path**: `src/components/domain/UpdateGate.tsx`

@@ -15,7 +15,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CreateSheet } from '@/components/domain/CreateSheet';
-import { LocationGate } from '@/components/domain/LocationGate';
+import { LocationPrompt } from '@/components/domain/LocationPrompt';
 import { TabExploreIcon } from '@/components/icons/TabExploreIcon';
 import { TabHomeIcon } from '@/components/icons/TabHomeIcon';
 import { TabNetworkIcon } from '@/components/icons/TabNetworkIcon';
@@ -169,6 +169,10 @@ function SignedInTabs() {
   const closeSheet = useCallback(() => setSheetOpen(false), []);
   // What the sheet's backdrop blurs on Android.
   const blurTarget = useRef<View>(null);
+  // Bumped when the location is allowed: the tabs mount again so screens that
+  // read the position once, on mount (`useDeviceCoords`), get it (DECISIONS #188).
+  const [tabsKey, setTabsKey] = useState(0);
+  const remountTabs = useCallback(() => setTabsKey((k) => k + 1), []);
 
   // Signed in: ask for push once and open the match of a tapped push (API DECISIONS #77).
   useEffect(() => {
@@ -196,11 +200,10 @@ function SignedInTabs() {
   }, []);
 
   return (
-    // Asks for the location before any tab mounts (DECISIONS #72).
-    <LocationGate>
     <View className="flex-1">
     <BlurTargetView ref={blurTarget} style={{ flex: 1 }}>
     <Tabs
+      key={tabsKey}
       // Switching tabs cross-fades the screens over the app background.
       screenOptions={{
         headerShown: false,
@@ -300,7 +303,8 @@ function SignedInTabs() {
         }}
       />
     ) : null}
+    {/* Asks for the location once, over the tabs (DECISIONS #72, #188). */}
+    <LocationPrompt blurTarget={blurTarget} onGranted={remountTabs} />
     </View>
-    </LocationGate>
   );
 }
