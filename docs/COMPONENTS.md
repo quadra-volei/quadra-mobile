@@ -378,7 +378,7 @@ More UI primitives will live here:
 - **Category**: domain
 - **Props**: none (driven by `useTourStore`, `src/features/tour/tourStore.ts`)
 - **Used in**: `app/(tabs)/_layout.tsx` (over the tabs, after `LocationPrompt`)
-- **Notes**: The first-access tour (DECISIONS #190, #192), drawn over the tabs in their own window (an absolute overlay, not a `Modal`; Android back = Pular). Phase 0: a navy welcome card ("Bem-vindo ao Quadra", Começar / Agora não). Phases 1–4: the screen dimmed in navy with a round hole and a lime ring over one tab bar item, and a white card above it (2px navy border, `HARD_SHADOW`, "N de 4", title, text, Pular / Próximo, Concluir on the last). Targets mark themselves with `useTourTarget(id)` (`src/features/tour/tourTargets.ts`) on a plain `View` with `collapsable={false}` and are measured against the overlay (`measureTourTarget(id, overlay)`); a target not on screen skips its step, and with none left the tour ends. Leaving records the outcome (`useRecordTour`) and remembers it on the phone.
+- **Notes**: The first-access tour (DECISIONS #190, #195), drawn over the tabs in their own window (an absolute overlay, not a `Modal`; Android back = Pular). Phase 0: a navy welcome card ("Bem-vindo ao Quadra", Começar / Agora não). Phases 1–4: the screen dimmed in navy with a round hole and a lime ring over one tab bar item, and a white card above it (2px navy border, `HARD_SHADOW`, "N de 4", title, text, Pular / Próximo, Concluir on the last). Targets mark themselves with `useTourTarget(id)` (`src/features/tour/tourTargets.ts`) on a plain `View` with `collapsable={false}` and are measured against the overlay (`measureTourTarget(id, overlay)`); a target not on screen skips its step, and with none left the tour ends. Leaving records the outcome (`useRecordTour`) and remembers it on the phone.
 
 ### `UpdateGate`
 - **Path**: `src/components/domain/UpdateGate.tsx`
@@ -401,9 +401,38 @@ More UI primitives will live here:
 ### `PlayerCard`
 - **Path**: `src/components/domain/PlayerCard.tsx`
 - **Category**: domain
-- **Props**: `{ profile: MyProfile; finish: CardFinish; title: CardTitleCode; photoUrl?: string; flipped: boolean; onFlip: () => void; width: number; faceRefs?: { front; back: RefObject<View> }; testID?: string }` (`faceRefs` gives the flat faces to `captureRef` for the PNG export)
-- **Used in**: S8b "Sua carta" (`app/profile/card.tsx`), on the screen and in the enlarged view
-- **Notes**: Collectible card with front and back (DECISIONS #119), drawn on a 292 × 406 grid and scaled to `width`. Finish tokens in `src/theme/cardFinish.ts` (Prisma and Eclipse chamfered, Íon rounded); titles in `src/features/profile/card/cardTitles.ts`. Material is SVG (frame gradient, body, photo clipped to the shape, a foil band and a glare that follow the finger through reanimated animated props); text is RN on top. Drag tilts it (±11° / ±14°) and settles back in 350 ms; a tap or a horizontal swipe over 65 px flips it in 600 ms, showing only the face towards the viewer. Gestures live on the card only. Reduced motion: no tilt, instant flip.
+- **Props**: `{ profile: MyProfile; finish: CardFinish; title: CardTitleCode; photoUrl?: string; flipped: boolean; onFlip: () => void; width: number; faceRefs?: { front; back: RefObject<View> }; pieces?: CardPieces; testID?: string }` (`faceRefs` gives the flat faces to `captureRef` for the PNG export; `pieces = { missing, next?, reveal?, locked? }` draws the season card unfinished)
+- **Used in**: S8b "Sua carta" (`app/profile/card.tsx`), on the screen and in the enlarged view; the season pass (`app/profile/pass.tsx`), with `pieces`
+- **Notes**: Collectible card with front and back (DECISIONS #119), drawn on a 292 × 406 grid and scaled to `width`. Finish tokens in `src/theme/cardFinish.ts` (Prisma and Eclipse chamfered, Íon rounded); titles in `src/features/profile/card/cardTitles.ts`. Material is SVG (frame gradient, body, photo clipped to the shape, a foil band and a glare that follow the finger through reanimated animated props); text is RN on top. Drag tilts it (±11° / ±14°) and settles back in 350 ms; a tap or a horizontal swipe over 65 px flips it in 600 ms, showing only the face towards the viewer. Gestures live on the card only. Reduced motion: no tilt, instant flip. With `pieces` (season pass, DECISIONS #192) each missing piece of `src/features/pass/lib/cardPieces.ts` (12 shards on the same grid) is covered by dark glass with the level that gives it, the next one outlined in lime, on both faces (the back mirrored, without numbers); `reveal` flashes one piece lime and fades its cover away; `locked` (pieces reached without the paid track) shows a lime padlock instead of the level. A finish this version does not know draws as Prisma (`cardFinishTokens`); a finish with its own `tier` (Pioneira) ignores the level tier.
+
+### `CardPiecesMini`
+- **Path**: `src/components/domain/CardPiecesMini.tsx`
+- **Category**: domain
+- **Props**: `{ collected: number; highlight?: number; width?: number; tone?: 'dark' | 'light' }`
+- **Used in**: the season pass levels (`app/profile/pass.tsx`), `PassProgressCard`, the pass line in "Seu progresso" (S8)
+- **Example**:
+  ```tsx
+  <CardPiecesMini collected={4} highlight={pieceOfLevel(5)} width={26} />
+  ```
+- **Notes**: The season card's outline cut into its 12 pieces: the first `collected` pieces of `PIECE_ORDER` in lime, the rest as glass. With `highlight`, only that piece stands out (lime when won, a lime outline while not). Colors from `PIECE_COVER` in `src/theme/cardFinish.ts`.
+
+### `CollectionCard` / `CollectionCardSoon`
+- **Path**: `src/components/domain/CollectionCard.tsx`
+- **Category**: domain
+- **Props**: `{ card: CollectionCard; width: number; testID?: string }` (`CollectionCard` from `features/pass/api/seasonPass`); `CollectionCardSoon`: `{ width: number }`
+- **Used in**: the Coleção tab of S8b "Sua carta", another player's profile
+- **Example**:
+  ```tsx
+  <CollectionCard card={card} width={96} />
+  ```
+- **Notes**: A season card as a static thumbnail (DECISIONS #193): the finish's frame gradient and surface (`cardFinishTokens`), a glow, a foil when complete, the missing pieces covered (`PIECE_COVER`), the season code (`font-display`) and finish name over them, a lime check when complete; below, the season name and `collectionStatus(card)`. No photo, sensor or gesture, so many fit on a screen. `CollectionCardSoon` is the dashed "Próximas cartas" slot.
+
+### `PassProgressCard`
+- **Path**: `src/components/domain/PassProgressCard.tsx`
+- **Category**: domain
+- **Props**: `{ onPress: () => void }`
+- **Used in**: S5 Home ("Passe da temporada", DECISIONS #194)
+- **Notes**: Navy card with the season card's outline (`CardPiecesMini`), "N de 12 pedaços", the season and its days left, the points to the next piece and 12 segments; without the paid track, "N pedaços esperando por você" and those segments half lit. Reads `useSeasonPass` itself; renders nothing when no season is set up (204) and a skeleton while loading.
 
 ### `MatchCardCompact`
 - **Path**: `src/components/domain/MatchCardCompact.tsx`

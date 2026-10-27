@@ -35,7 +35,7 @@ jest.mock('lucide-react-native', () => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
   const stub = (props: any) => ReactLocal.createElement(View, props);
-  return { Check: stub, ChevronLeft: stub, Download: stub, Maximize2: stub, Plus: stub, RefreshCw: stub };
+  return { Check: stub, ChevronLeft: stub, ChevronRight: stub, Download: stub, Lock: stub, Maximize2: stub, Plus: stub, RefreshCw: stub };
 });
 
 jest.mock('@/components/ui/Button', () => {
@@ -49,7 +49,23 @@ jest.mock('@/components/ui/Button', () => {
 });
 
 const mockBack = jest.fn();
-jest.mock('expo-router', () => ({ router: { back: (...args: any[]) => mockBack(...args) } }));
+const mockPush = jest.fn();
+jest.mock('expo-router', () => ({
+  router: { back: (...args: any[]) => mockBack(...args), push: (...args: any[]) => mockPush(...args) },
+}));
+
+// Season pass and card collection: none unless a test sets them.
+const mockPass: { data: unknown; cards: unknown[] } = { data: null, cards: [] };
+jest.mock('@/features/pass/api/seasonPass', () => ({
+  ...jest.requireActual('@/features/pass/api/seasonPass'),
+  useSeasonPass: () => ({ data: mockPass.data, isPending: false, isError: false }),
+  useCardCollection: () => ({ data: { userId: 'me', cards: mockPass.cards }, isPending: false, isError: false }),
+}));
+
+const T1 = {
+  season: 'T1', name: 'Temporada 1', finish: 'Pioneira', startsAt: '2026-11-01T03:00:00Z', endsAt: '2027-02-01T03:00:00Z',
+  status: 'Active', pieces: 4, levels: 12, complete: false,
+};
 
 import type { MyProfile } from '@/features/profile/types/profile';
 
@@ -91,10 +107,14 @@ jest.mock('@/features/profile/api/saveCardStyle', () => ({
 
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
+import { seasonPassFixture } from '../../../support/seasonPass';
 import CardScreen from '../../../../app/profile/card';
 
 beforeEach(() => {
   mockBack.mockClear();
+  mockPush.mockClear();
+  mockPass.data = null;
+  mockPass.cards = [];
   mockMutate.mockClear();
   mockProfile.data = PROFILE_FIXTURE;
   mockProfile.isPending = false;
@@ -160,6 +180,64 @@ describe('S8b — Sua carta', () => {
     await fireEvent.press(screen.getByText("Título"));
     fireEvent.press(screen.getByTestId('title-MURALHA'));
     expect(mockMutate).toHaveBeenCalledWith({ finish: 'Prisma', title: 'MURALHA' });
+  });
+
+  it('shows the collection on its own tab, the season card on the big card with its missing pieces (DECISIONS #194)', async () => {
+    mockPass.cards = [T1];
+    await render(<CardScreen />);
+    expect(screen.queryByTestId('finish-Pioneira')).toBeNull(); // not among the finishes any more
+
+    await fireEvent.press(screen.getByText('Coleção'));
+
+    expect(screen.getByText('4 de 12 · em andamento')).toBeTruthy();
+    expect(screen.getByText('Próximas cartas')).toBeTruthy();
+    expect(screen.getAllByTestId('card-pieces').length).toBeGreaterThan(0);
+    await fireEvent.press(screen.getByTestId('collection-open-pass'));
+    expect(mockPush).toHaveBeenCalledWith('/profile/pass');
+    expect(mockMutate).not.toHaveBeenCalled();
+  });
+
+  it('keeps the padlock on the pieces reached without the paid track, on the collection card too', async () => {
+    const free = seasonPassFixture(5);
+    mockPass.data = { ...free, premium: false, rewards: free.rewards.map((r) => (r.track === 'Premium' ? { ...r, unlocked: false } : r)) };
+    mockPass.cards = [{ ...T1, pieces: 0 }];
+    await render(<CardScreen />);
+
+    await fireEvent.press(screen.getByText('Coleção'));
+
+    expect(screen.getAllByTestId('piece-locked')).toHaveLength(5);
+  });
+
+  it('equips a complete card from the collection', async () => {
+    mockPass.cards = [{ ...T1, status: 'Ended', pieces: 12, complete: true }];
+    await render(<CardScreen />);
+
+    await fireEvent.press(screen.getByText('Coleção'));
+    await fireEvent.press(screen.getByTestId('collection-equip'));
+
+    expect(mockMutate).toHaveBeenCalledWith({ finish: 'Pioneira', title: null });
+  });
+
+  it('says how an ended season left an incomplete card', async () => {
+    mockPass.cards = [{ ...T1, status: 'Ended', pieces: 9 }];
+    await render(<CardScreen />);
+
+    await fireEvent.press(screen.getByText('Coleção'));
+
+    expect(screen.getByText('A temporada acabou com 9 de 12 pedaços.')).toBeTruthy();
+    expect(screen.queryByTestId('collection-equip')).toBeNull();
+  });
+
+  it('lists the season titles: the reached ones are picked, the others open the pass', async () => {
+    mockPass.data = seasonPassFixture(4);
+    await render(<CardScreen />);
+
+    await fireEvent.press(screen.getByText("Título"));
+    await fireEvent.press(screen.getByTestId('title-SEMPRE_PRESENTE'));
+    expect(mockMutate).toHaveBeenCalledWith({ finish: 'Prisma', title: 'SEMPRE_PRESENTE' });
+    expect(screen.getByText('Nível 6 do passe da temporada')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('title-CRIA_DA_QUADRA'));
+    expect(mockPush).toHaveBeenCalledWith('/profile/pass');
   });
 
   it('lists the real numbers on the Estatísticas tab', async () => {

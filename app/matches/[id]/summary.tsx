@@ -32,6 +32,9 @@ import {
   type MatchSummary,
   type SheetRow,
 } from '@/features/matches/api/getMatchSummary';
+import { CardPiecesMini } from '@/components/domain/CardPiecesMini';
+import { piecesWon, useSeasonPass } from '@/features/pass/api/seasonPass';
+import { PIECE_COUNT } from '@/features/pass/lib/cardPieces';
 import { useMatchPoints } from '@/features/ranking/api/getGroupRanking';
 import { useAuthStore } from '@/stores/auth';
 import { colors } from '@/theme/colors';
@@ -499,6 +502,7 @@ function RankingPointsCard({ matchId }: { matchId: string }) {
           +{data.points} <Text className="font-body text-body text-white/70">pts</Text>
         </Text>
         <Text className="font-body text-caption text-white/70">{parts.join(' · ')}</Text>
+        <SeasonPassLine />
         <View className="mt-3">
           <Button
             variant="outlineLime"
@@ -510,5 +514,26 @@ function RankingPointsCard({ matchId }: { matchId: string }) {
         </View>
       </View>
     </View>
+  );
+}
+
+/** The same points build the season card (API DECISIONS #98): how many pieces, and the way in. */
+function SeasonPassLine() {
+  const { data: pass } = useSeasonPass();
+  if (!pass || pass.status !== 'Active') return null;
+  const won = piecesWon(pass);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => router.push('/profile/pass')}
+      className="mt-3 flex-row items-center gap-3 rounded-chip bg-white/5 px-3 py-2"
+      testID="summary-pass"
+    >
+      <CardPiecesMini collected={won} width={20} />
+      <Text className="flex-1 font-body-bold text-caption text-text-on-dark">
+        {`Passe da temporada · ${won} de ${PIECE_COUNT} pedaços`}
+      </Text>
+      <Text className="font-body-bold text-caption text-accent-light">Ver</Text>
+    </Pressable>
   );
 }

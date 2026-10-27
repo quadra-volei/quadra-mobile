@@ -231,6 +231,13 @@ jest.mock('@/features/profile/api/getRecentMatches', () => ({
   }),
 }));
 
+// Season pass: none unless a test sets one.
+const mockPass: { data: unknown } = { data: null };
+jest.mock('@/features/pass/api/seasonPass', () => ({
+  ...jest.requireActual('@/features/pass/api/seasonPass'),
+  useSeasonPass: () => ({ data: mockPass.data, isPending: false, isError: false }),
+}));
+
 jest.mock('@/features/ranking/api/getGroupRanking', () => ({
   useGroupRanking: (params: unknown) => {
     mockRanking.lastParams = params;
@@ -247,6 +254,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { useAuthStore } from '@/stores/auth';
 
+import { seasonPassFixture } from '../../../support/seasonPass';
 import ProfileScreen from '../../../../app/(tabs)/profile';
 
 function resetProfile() {
@@ -273,6 +281,7 @@ function resetRanking() {
 
 beforeEach(() => {
   mockPush.mockClear();
+  mockPass.data = null;
   resetProfile();
   resetRecent();
   resetRanking();
@@ -731,6 +740,35 @@ describe('S8 — Profile screen', () => {
    *  three mocked queries (no location/camera/contacts) and renders no permission
    *  copy on mount.
    */
+  // ------------------------------------------------------------- season pass
+  it('keeps the season pass to one line in "Seu progresso" that opens it (DECISIONS #194)', async () => {
+    mockPass.data = seasonPassFixture(4);
+
+    await render(<ProfileScreen />);
+
+    expect(screen.getByText('Passe T1 · 4 de 12')).toBeTruthy();
+    expect(screen.queryByTestId('pass-card')).toBeNull();
+    await fireEvent.press(screen.getByTestId('profile-pass-line'));
+    expect(mockPush).toHaveBeenCalledWith('/profile/pass');
+  });
+
+  it('says how many pieces wait for a player without the paid track', async () => {
+    mockPass.data = seasonPassFixture(5, {
+      premium: false,
+      rewards: seasonPassFixture(5).rewards.map((r) => (r.track === 'Premium' ? { ...r, unlocked: false } : r)),
+    });
+
+    await render(<ProfileScreen />);
+
+    expect(screen.getByText('Passe T1 · 5 pedaços esperando')).toBeTruthy();
+  });
+
+  it('has no season pass line when no season is set up', async () => {
+    await render(<ProfileScreen />);
+
+    expect(screen.queryByTestId('profile-pass-line')).toBeNull();
+  });
+
   it('fires no permission prompt and makes zero network requests on mount', async () => {
     const fetchSpy = jest.spyOn(globalThis, 'fetch' as never);
 

@@ -1,25 +1,37 @@
 import * as Sharing from "expo-sharing";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { Check, ChevronLeft, Download, Maximize2, Plus, RefreshCw } from "lucide-react-native";
+import { Check, ChevronLeft, Download, Lock, Maximize2, Plus, RefreshCw } from "lucide-react-native";
 import { type ReactNode, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { captureRef } from "react-native-view-shot";
 
+import { CollectionCard, CollectionCardSoon } from "@/components/domain/CollectionCard";
 import { PlayerCard } from "@/components/domain/PlayerCard";
 import { Button } from "@/components/ui/Button";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
+import { piecesWaiting, useCardCollection, useSeasonPass, type CollectionCard as CollectionCardData } from "@/features/pass/api/seasonPass";
+import { PIECE_ORDER, missingPieces } from "@/features/pass/lib/cardPieces";
 import { useMyProfile } from "@/features/profile/api/getMyProfile";
 import { useSaveCardStyle } from "@/features/profile/api/saveCardStyle";
-import { CARD_TITLES, cardTitleCode } from "@/features/profile/card/cardTitles";
+import { CARD_TITLES, SEASON_TITLES, cardTitleCode, type CardTitleCode } from "@/features/profile/card/cardTitles";
 import type { MyProfile } from "@/features/profile/types/profile";
 import { ActionsSummary } from "@/components/domain/ActionsSummary";
-import { CARD_FINISHES, CARD_FINISH_ORDER, CARD_SCREEN, CARD_TIERS, CARD_TIER_ORDER, cardTier } from "@/theme/cardFinish";
+import {
+  CARD_FINISHES,
+  CARD_FINISH_ORDER,
+  CARD_SCREEN,
+  CARD_TIERS,
+  CARD_TIER_ORDER,
+  cardFinishTokens,
+  cardTier,
+  type CardFinish,
+} from "@/theme/cardFinish";
 import { colors } from "@/theme/colors";
 
-const TABS = ["Acabamento", "Título", "Estatísticas"] as const;
+const TABS = ["Acabamento", "Título", "Coleção", "Estatísticas"] as const;
 type Tab = (typeof TABS)[number];
 
 function ErrorBlock({ onRetry }: { onRetry: () => void }) {
@@ -66,6 +78,81 @@ function TierNote({ level }: { level: number }) {
   );
 }
 
+function goPass() {
+  router.push("/profile/pass");
+}
+
+// The card collection (API DECISIONS #99, #194): a card per season (and, later,
+// per event); the one chosen shows on the big card above, as it was left. A
+// complete card is equipped from here; the season being played opens the pass.
+function CollectionTab({
+  profile,
+  save,
+  cards,
+  chosen,
+  onChoose,
+}: {
+  profile: MyProfile;
+  save: Save;
+  cards: CollectionCardData[];
+  chosen: CollectionCardData | null;
+  onChoose: (card: CollectionCardData) => void;
+}) {
+  const { width: screenWidth } = useWindowDimensions();
+  const cardWidth = (Math.min(screenWidth, 480) - 40 - 12) / 2 - 18;
+  const equipped = chosen != null && profile.cardStyle.finish === chosen.finish;
+
+  return (
+    <>
+      <Text className="font-body text-caption text-white/60 mb-3">
+        Cada temporada, e cada evento, tem uma carta que só existe ali. A que ficar pela metade fica assim na sua coleção.
+      </Text>
+      <View className="flex-row flex-wrap gap-3">
+        {cards.map((card) => (
+          <Pressable
+            key={card.season}
+            accessibilityRole="button"
+            accessibilityState={{ selected: chosen?.season === card.season }}
+            onPress={() => onChoose(card)}
+            testID={`collection-${card.season}`}
+            className={`rounded-chip border-2 p-2 ${chosen?.season === card.season ? "border-accent-light" : "border-transparent"}`}
+          >
+            <CollectionCard card={card} width={cardWidth} />
+          </Pressable>
+        ))}
+        <View className="p-2 border-2 border-transparent">
+          <CollectionCardSoon width={cardWidth} />
+        </View>
+      </View>
+      {chosen ? (
+        <View className="mt-4 mb-4">
+          {chosen.complete ? (
+            equipped ? (
+              <Text className="font-body-bold text-body text-accent-light text-center">Equipada na sua carta</Text>
+            ) : (
+              <Button
+                variant="grad"
+                onPress={() => save.mutate({ finish: chosen.finish as CardFinish, title: profile.cardStyle.title })}
+                testID="collection-equip"
+              >
+                Equipar esta carta
+              </Button>
+            )
+          ) : chosen.status === "Ended" ? (
+            <Text className="font-body text-caption text-white/60">
+              {`A temporada acabou com ${chosen.pieces} de ${chosen.levels} pedaços.`}
+            </Text>
+          ) : (
+            <Button variant="outlineLime" onPress={goPass} testID="collection-open-pass">
+              Ver o passe
+            </Button>
+          )}
+        </View>
+      ) : null}
+    </>
+  );
+}
+
 function FinishPicker({ profile, save }: { profile: MyProfile; save: Save }) {
   const current = profile.cardStyle;
   return (
@@ -91,7 +178,50 @@ function FinishPicker({ profile, save }: { profile: MyProfile; save: Save }) {
           );
         })}
       </View>
-      <TierNote level={profile.level} />
+      {/* A season finish shines the same at any level: the tier note does not apply. */}
+      {cardFinishTokens(current.finish).tier ? <View className="h-4" /> : <TierNote level={profile.level} />}
+    </>
+  );
+}
+
+// The season pass's titles: picked like the others once their level is reached;
+// until then they say which level gives them and open the pass.
+function SeasonTitles({ profile, save, shown }: { profile: MyProfile; save: Save; shown: CardTitleCode }) {
+  const { data: pass } = useSeasonPass();
+  if (!pass) return null;
+  const rewards = pass.rewards.filter((r) => r.kind === "Title");
+  return (
+    <>
+      <Text className="font-mono text-mono text-white/60 mt-4 mb-2">{`DO PASSE · ${pass.name.toUpperCase()}`}</Text>
+      {SEASON_TITLES.filter((t) => rewards.some((r) => r.code === t.code)).map((title) => {
+        const reward = rewards.find((r) => r.code === title.code)!;
+        const on = shown === title.code;
+        const open = reward.unlocked || on;
+        return (
+          <PressableScale
+            key={title.code}
+            accessibilityRole="button"
+            accessibilityState={{ selected: on }}
+            onPress={() => (open ? save.mutate({ finish: profile.cardStyle.finish, title: title.code }) : goPass())}
+            testID={`title-${title.code}`}
+            className={`flex-row items-center justify-between gap-3 rounded-chip border px-3 py-3 mb-2 ${on ? "border-accent-light bg-accent-light/10" : "border-white/15 bg-white/5"}`}
+          >
+            <View className="flex-1">
+              <Text className={`font-body-bold text-body ${open ? "text-text-on-dark" : "text-white/60"}`}>{title.name}</Text>
+              <Text className="font-body text-caption text-white/60 mt-1">
+                {open ? title.description : `Nível ${reward.level} do passe da temporada`}
+              </Text>
+            </View>
+            {on ? (
+              <Check size={18} color={colors.accentLight} />
+            ) : open ? (
+              <Plus size={18} color={colors.textMuted} />
+            ) : (
+              <Lock size={16} color={colors.textMuted} />
+            )}
+          </PressableScale>
+        );
+      })}
     </>
   );
 }
@@ -119,6 +249,7 @@ function TitlePicker({ profile, save }: { profile: MyProfile; save: Save }) {
           </PressableScale>
         );
       })}
+      <SeasonTitles profile={profile} save={save} shown={shown} />
     </>
   );
 }
@@ -188,10 +319,22 @@ function CardBody({ profile }: { profile: MyProfile }) {
     }
   };
 
+  // On the Coleção tab the big card shows the collection card chosen (the newest
+  // until one is tapped), with the pieces it still misses.
+  const collection = useCardCollection();
+  const { data: pass } = useSeasonPass();
+  const [chosen, setChosen] = useState<CollectionCardData | null>(null);
+  const cards = collection.data?.cards ?? [];
+  const shown = tab === "Coleção" ? (chosen ?? cards[0] ?? null) : null;
+  // The season being played, without the paid track: the pieces reached keep their padlock, as on the pass (DECISIONS #194).
+  const locked = shown && pass?.season === shown.season ? PIECE_ORDER.slice(shown.pieces, shown.pieces + piecesWaiting(pass)) : undefined;
+
   const style = profile.cardStyle;
   const cardProps = {
     profile,
-    finish: style.finish,
+    finish: shown ? (shown.finish as CardFinish) : style.finish,
+    pieces:
+      shown && !shown.complete ? { missing: missingPieces(shown.status === "Upcoming" ? 0 : shown.pieces), locked } : undefined,
     title: cardTitleCode(style.title, profile.position),
     // The card always shows the profile photo (changed only in Editar perfil).
     photoUrl: profile.avatarUrl,
@@ -238,7 +381,13 @@ function CardBody({ profile }: { profile: MyProfile }) {
         </Text>
       ) : null}
 
-      <View className="flex-row gap-6 border-b border-white/10 mb-4" accessibilityRole="tablist">
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        className="border-b border-white/10 mb-4 grow-0"
+        contentContainerClassName="gap-5"
+        accessibilityRole="tablist"
+      >
         {TABS.map((t) => (
           <Pressable
             key={t}
@@ -250,12 +399,18 @@ function CardBody({ profile }: { profile: MyProfile }) {
             <Text className={`font-body-bold text-body ${tab === t ? "text-accent-light" : "text-white/60"}`}>{t}</Text>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
 
       {tab === "Acabamento" ? (
         <FinishPicker profile={profile} save={save} />
       ) : tab === "Título" ? (
         <TitlePicker profile={profile} save={save} />
+      ) : tab === "Coleção" ? (
+        collection.isPending ? (
+          <SkeletonBlock tone="dark" className="h-56" />
+        ) : (
+          <CollectionTab profile={profile} save={save} cards={cards} chosen={shown} onChoose={setChosen} />
+        )
       ) : (
         <StatsList profile={profile} />
       )}

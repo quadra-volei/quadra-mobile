@@ -19,7 +19,7 @@ const CARD_GAP = 16;
 type Size = { width: number; height: number };
 
 /**
- * The first-access tour (DECISIONS #190, #192): a welcome card, then the screen
+ * The first-access tour (DECISIONS #190, #195): a welcome card, then the screen
  * dimmed with a hole over one tab bar item and a card above it. Driven by
  * `useTourStore`; mounted once, over the tabs. Drawn in the tabs' own window
  * (not a `Modal`), and each target is measured against the overlay itself, so
