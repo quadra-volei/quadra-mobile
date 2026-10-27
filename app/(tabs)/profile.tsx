@@ -358,13 +358,13 @@ export default function ProfileScreen() {
             <ProgressSection />
           </View>
 
+          {/* Meus amigos → season ranking preview card, before the history (DECISIONS #186) */}
+          <SectionTitleRow title="Meus amigos" />
+          <RankingSection />
+
           {/* MINHAS PARTIDAS */}
           <SectionTitleRow title="MINHAS PARTIDAS" />
           <RecentMatchesSection />
-
-          {/* Meus amigos → "Ranking semanal" preview card */}
-          <SectionTitleRow title="Meus amigos" />
-          <RankingSection />
         </ScrollView>
       </View>
 

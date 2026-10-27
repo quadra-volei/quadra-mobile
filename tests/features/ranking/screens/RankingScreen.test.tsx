@@ -60,6 +60,8 @@ jest.mock('lucide-react-native', () => {
     ChevronRight: stub('chevron-right'),
     ChevronUp: stub('chevron-up'),
     Crown: stub('crown'),
+    CircleHelp: stub('circle-help'),
+    X: stub('x'),
   };
   const fallback = (props: any) => require('react').createElement(require('react-native').View, props);
   return new Proxy(icons, { get: (target, key: string) => (key in target ? target[key] : fallback) });
@@ -229,7 +231,7 @@ describe('Ranking screen (season, DECISIONS #63, API #95)', () => {
     expect(lastParams()).toMatchObject({ scope: 'group', groupId: 'g9' });
   });
 
-  it('opens a profile from the podium, and a list row opens in place first', async () => {
+  it('opens a profile from the podium and from a row photo, and the rest of the row opens in place', async () => {
     await render(<RankingScreen />);
 
     await fireEvent.press(screen.getByLabelText('1º, Érica, 81 pontos'));
@@ -237,7 +239,10 @@ describe('Ranking screen (season, DECISIONS #63, API #95)', () => {
 
     await fireEvent.press(screen.getByTestId('ranking-row-p-duda'));
     expect(screen.getByTestId('ranking-row-detail')).toBeTruthy();
-    await fireEvent.press(screen.getByTestId('ranking-row-profile'));
+    expect(screen.queryByText('Ver perfil')).toBeNull();
+    expect(screen.getByText('vezes MVP do dia')).toBeTruthy();
+
+    await fireEvent.press(screen.getByTestId('ranking-row-p-duda-main-player'));
     expect(mockPush).toHaveBeenLastCalledWith('/players/p-duda');
   });
 
@@ -263,10 +268,13 @@ describe('Ranking screen (season, DECISIONS #63, API #95)', () => {
     expect(screen.getByText(/Jogue mais 2 partidas neste mês/)).toBeTruthy();
   });
 
-  it('always shows how points are earned', async () => {
+  it('explains how points are earned from the header help button', async () => {
     await render(<RankingScreen />);
 
-    expect(screen.getByText('Como pontuar')).toBeTruthy();
+    expect(screen.queryByTestId('ranking-tutorial')).toBeNull();
+    await fireEvent.press(screen.getByTestId('ranking-help'));
+
+    expect(screen.getByTestId('ranking-tutorial')).toBeTruthy();
     expect(screen.getByText('MVP do dia')).toBeTruthy();
     expect(screen.getByText('+20')).toBeTruthy();
   });

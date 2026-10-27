@@ -1,15 +1,16 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Crown } from 'lucide-react-native';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleHelp, Crown, X } from 'lucide-react-native';
 import { useState } from 'react';
-import { Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { Modal, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { PositionTag } from '@/components/domain/PositionPicker';
 import { RankingRow } from '@/components/domain/RankingRow';
 import { Avatar } from '@/components/ui/Avatar';
 import { BackHeader } from '@/components/ui/BackHeader';
-import { Button } from '@/components/ui/Button';
+import { IconButton } from '@/components/ui/IconButton';
 import { FilterChip } from '@/components/ui/FilterChip';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
@@ -48,14 +49,6 @@ const EMPTY_MESSAGE: Record<RankingScope, string> = {
   group: 'Ninguém pontuou neste grupo neste mês',
   general: 'Ninguém tem jogos suficientes neste mês ainda',
 };
-
-// The point rules of quadra-api DECISIONS #95, shown as the screen's legend.
-const RULES: { points: string; label: string; detail: string; mvp?: boolean }[] = [
-  { points: '+10', label: 'Presença', detail: 'por partida' },
-  { points: '+8', label: 'Jogo ganho', detail: 'até 3 por partida' },
-  { points: '+4', label: 'Voto de MVP', detail: 'por voto recebido', mvp: true },
-  { points: '+20', label: 'MVP do dia', detail: 'com 3+ votos', mvp: true },
-];
 
 // The breakdown bar takes the palette in its order (blue, lime, orange); MVP,
 // the main signal, gets the lime highlight.
@@ -352,22 +345,31 @@ function BreakdownBar({ breakdown, total }: { breakdown: PointsBreakdown; total:
 }
 
 /** A small stat: a Russo number over its label. */
-function Stat({ value, label }: { value: number | string; label: string }) {
+function Stat({ value, one, many }: { value: number; one: string; many: string }) {
   return (
-    <View className="flex-1 items-center rounded-chip bg-bg-light py-2">
-      <Text className="font-num text-primary text-body">{value}</Text>
-      <Text className="font-body text-caption text-text-muted">{label}</Text>
+    <View className="flex-1 flex-row items-center gap-2 rounded-chip bg-bg-light px-4 py-3">
+      <Text className="font-num text-primary" style={{ fontSize: 20 }}>
+        {value}
+      </Text>
+      <Text className="flex-1 font-body text-caption text-text-muted" numberOfLines={2}>
+        {value === 1 ? one : many}
+      </Text>
     </View>
   );
 }
 
+/** Two by two, so each label has room inside its box. */
 function Stats({ row }: { row: RankingRowData }) {
   return (
-    <View className="flex-row gap-2">
-      <Stat value={row.matches ?? 0} label="partidas" />
-      <Stat value={row.wins ?? 0} label="jogos ganhos" />
-      <Stat value={row.votes ?? 0} label="votos MVP" />
-      <Stat value={row.mvps ?? 0} label="MVPs" />
+    <View className="gap-2">
+      <View className="flex-row gap-2">
+        <Stat value={row.matches ?? 0} one="partida" many="partidas" />
+        <Stat value={row.wins ?? 0} one="jogo ganho" many="jogos ganhos" />
+      </View>
+      <View className="flex-row gap-2">
+        <Stat value={row.votes ?? 0} one="voto de MVP" many="votos de MVP" />
+        <Stat value={row.mvps ?? 0} one="vez MVP do dia" many="vezes MVP do dia" />
+      </View>
     </View>
   );
 }
@@ -443,29 +445,68 @@ function MyStanding({ data, sort, isCurrent }: { data: Ranking; sort: RankingSor
   );
 }
 
-/** How points are earned, always in sight (quadra-api DECISIONS #95). */
-function PointsLegend() {
+// The "Como pontuar" tutorial, as a list (quadra-api DECISIONS #95). `badge` is
+// the number or symbol on the left; MVP rows take the lime highlight.
+const TUTORIAL: { badge: string; title: string; detail: string; mvp?: boolean }[] = [
+  { badge: '+10', title: 'Presença', detail: 'Cada partida recorrente que você joga. Partidas avulsas não contam.' },
+  { badge: '+8', title: 'Jogo ganho', detail: 'Por jogo que o seu time vence no placar, até 3 por partida.' },
+  { badge: '+4', title: 'Voto de MVP', detail: 'Por voto que você recebe de quem jogou com você.', mvp: true },
+  { badge: '+20', title: 'MVP do dia', detail: 'O mais votado da partida, quando ela tem 3 votos ou mais.', mvp: true },
+  { badge: '1º', title: 'Temporada', detail: 'O ranking vale para o mês e zera no dia 1º. No Geral, só entra quem jogou 3 partidas no mês.' },
+  { badge: '▲', title: 'Subiu ou caiu', detail: 'A seta compara a sua posição com a de 7 dias atrás.' },
+];
+
+function HowToScoreSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const insets = useSafeAreaInsets();
   return (
-    <View className="mx-4 mt-4" testID="ranking-legend">
-      <Text className="font-display text-h2 text-text-primary uppercase">Como pontuar</Text>
-      <Text className="font-body text-caption text-text-muted mt-1">
-        Só partidas recorrentes contam. O MVP, votado por quem jogou, é o que mais vale.
-      </Text>
-      <View className="flex-row gap-2 mt-3">
-        {RULES.map((r) => (
-          <View
-            key={r.label}
-            className={`flex-1 rounded-chip px-2 py-3 items-center ${r.mvp ? 'bg-accent/20 border-2 border-accent' : 'bg-white shadow-card'}`}
-          >
-            <Text className="font-num text-primary" style={{ fontSize: 20 }}>
-              {r.points}
-            </Text>
-            <Text className="font-body-bold text-caption text-text-primary text-center mt-1">{r.label}</Text>
-            <Text className="font-body text-caption text-text-muted text-center">{r.detail}</Text>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Fechar"
+        onPress={onClose}
+        className="flex-1 justify-end bg-black/40"
+      >
+        {/* Taps on the card must not reach the backdrop. */}
+        <Pressable
+          onPress={() => {}}
+          testID="ranking-tutorial"
+          className="rounded-t-card bg-bg-light px-4 pt-4"
+          style={{ paddingBottom: insets.bottom + 16 }}
+        >
+          <View className="flex-row items-center justify-between">
+            <Text className="font-display text-h2 text-text-primary uppercase">Como pontuar</Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Fechar"
+              onPress={onClose}
+              className="h-9 w-9 items-center justify-center rounded-chip bg-white shadow-card"
+            >
+              <X size={20} color={colors.surfaceDark} />
+            </Pressable>
           </View>
-        ))}
-      </View>
-    </View>
+          <Text className="mt-1 font-body text-caption text-text-muted">
+            O MVP, votado por quem jogou, é o que mais vale.
+          </Text>
+          <View className="mt-4 gap-2">
+            {TUTORIAL.map((t) => (
+              <View key={t.title} className="flex-row items-center gap-3 rounded-chip bg-white px-4 py-3 shadow-card">
+                <View
+                  className={`h-12 w-12 items-center justify-center rounded-chip ${t.mvp ? 'bg-accent' : 'bg-bg-light-alt'}`}
+                >
+                  <Text className={`font-num ${t.mvp ? 'text-surface-dark' : 'text-primary'}`} style={{ fontSize: 18 }}>
+                    {t.badge}
+                  </Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="font-body-bold text-body-bold text-text-primary">{t.title}</Text>
+                  <Text className="font-body text-caption text-text-muted">{t.detail}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
@@ -500,6 +541,8 @@ function ExpandableRow({
             isMe={Boolean(row.isMe)}
             scoreUnit={UNIT[sort].long}
             highlight={false}
+            onPressPlayer={() => openPlayer(row.playerId)}
+            testID={`ranking-row-${row.playerId}-main`}
           />
         </View>
         <View className="pr-3">
@@ -510,9 +553,6 @@ function ExpandableRow({
         <Animated.View entering={FadeIn.duration(MOTION.fadeIn)} className="px-4 pb-4 gap-3" testID="ranking-row-detail">
           <Stats row={row} />
           {row.breakdown && row.score > 0 ? <BreakdownBar breakdown={row.breakdown} total={row.score} /> : null}
-          <Button variant="outline" onPress={() => openPlayer(row.playerId)} testID="ranking-row-profile">
-            Ver perfil
-          </Button>
         </Animated.View>
       ) : null}
     </View>
@@ -543,6 +583,7 @@ export default function RankingScreen() {
   const currentSeason = monthOf(new Date());
   const [season, setSeason] = useState(currentSeason);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
 
   const groups = useRankingGroups();
   const groupId = pickedGroupId ?? groups.data?.[0]?.id;
@@ -661,8 +702,8 @@ export default function RankingScreen() {
 
         {data && !noGroups && data.rows.length > 0 ? (
           <View className="mx-4 mt-6">
-            <View className="flex-row items-center justify-between">
-              <Text className="font-display text-h2 text-text-primary uppercase">Classificação</Text>
+            <Text className="font-display text-h2 text-text-primary uppercase">Classificação</Text>
+            <View className="mt-3 self-start">
               <Segmented
                 options={SORTS.map((s) => ({ key: s.sort, label: s.label }))}
                 value={sort}
@@ -671,9 +712,9 @@ export default function RankingScreen() {
                 compact
               />
             </View>
-            <Text className="font-body text-caption text-text-muted mt-1">
+            <Text className="font-body text-caption text-text-muted mt-3">
               {scope === 'general' ? `Mínimo de ${data.minMatches} partidas no mês · ` : ''}
-              Toque num jogador para ver os números
+              Toque na linha para ver os números e na foto para abrir o perfil
             </Text>
             <Animated.View
               key={`${scope}-${season}-${sort}-${position ?? 'all'}`}
@@ -694,10 +735,18 @@ export default function RankingScreen() {
           </View>
         ) : null}
 
-        {!noGroups ? <PointsLegend /> : null}
       </ScrollView>
 
-      <BackHeader title="Ranking" onHeight={setHeaderHeight} />
+      <BackHeader
+        title="Ranking"
+        onHeight={setHeaderHeight}
+        right={
+          <IconButton label="Como pontuar" onPress={() => setHelpOpen(true)} testID="ranking-help">
+            <CircleHelp size={20} color={colors.surfaceDark} />
+          </IconButton>
+        }
+      />
+      <HowToScoreSheet visible={helpOpen} onClose={() => setHelpOpen(false)} />
     </View>
   );
 }
