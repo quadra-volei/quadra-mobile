@@ -14,7 +14,6 @@ import {
   Shuffle,
   Trophy,
   XCircle,
-  UserPlus,
 } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
@@ -33,7 +32,7 @@ import { dialog } from '@/components/ui/Dialog';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { TextField } from '@/components/ui/TextField';
 import { TabIndicator, TabLabel } from '@/components/ui/UnderlineTab';
-import { useAddGuest } from '@/features/matches/api/addGuest';
+import { useAddGuest, useRemoveFromMatch } from '@/features/matches/api/addGuest';
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
 import { useShareMatch } from '@/features/network/api/postsApi';
 import { useCancelMatch } from '@/features/matches/api/editMatch';
@@ -51,7 +50,8 @@ import {
   useJoinMatch,
 } from '@/features/matches/api/presence';
 import type { AddGuestInput } from '@/features/matches/schema/addGuest';
-import type { MatchDetail } from '@/features/matches/types/matchDetail';
+import { GENDER_LABEL, SURFACE_LABEL } from '@/features/matches/types/match';
+import type { MatchDetail, PresencePlayer } from '@/features/matches/types/matchDetail';
 import { usePullToRefresh, useRefreshOnFocus } from '@/hooks/useRefresh';
 import { inviteLink } from '@/lib/inviteLink';
 import { useAuthStore } from '@/stores/auth';
@@ -234,6 +234,7 @@ export default function MatchDetailScreen() {
   const declinePresence = useDeclinePresence(matchId);
   const joinMatch = useJoinMatch(matchId);
   const addGuest = useAddGuest(matchId);
+  const removePlayer = useRemoveFromMatch(matchId);
   const shareMatch = useShareMatch();
   const cancelMatch = useCancelMatch(matchId);
   const startFreeGame = useStartFreeGame(matchId);
@@ -287,12 +288,49 @@ export default function MatchDetailScreen() {
     });
   };
 
+  // Only an open match still to come goes to the Rede (the API refuses the rest).
+  const canShareToFeed = isOrganizer && !match.isPrivate && !match.cancelled && !match.game;
   const onShareToFeed = () => {
     shareMatch.mutate(match.id, {
-      onSuccess: () =>
-        dialog.alert('Partida compartilhada', 'Ela já aparece na Rede com o botão Participar.'),
+      onSuccess: ({ alreadyShared }) =>
+        alreadyShared
+          ? dialog.alert('Essa partida já está na Rede', 'Ela aparece uma vez só, com o botão Participar.')
+          : dialog.alert('Partida compartilhada', 'Ela já aparece na Rede com o botão Participar.'),
       onError: (error) => dialog.alert('Não deu para compartilhar', error.message),
     });
+  };
+
+  // The organizer takes someone off the list until the game starts (the API checks it too).
+  const canRemove = isOrganizer && !match.cancelled && !match.game;
+  const openProfile = (player: PresencePlayer) =>
+    player.id === userId
+      ? router.push('/(tabs)/profile')
+      : router.push({ pathname: '/players/[id]', params: { id: player.id } });
+  const onPressPlayer = (player: PresencePlayer) => {
+    if (!canRemove || player.id === match.organizerId) {
+      if (!player.isGuest) openProfile(player);
+      return;
+    }
+    dialog.alert(player.handle ? `@${player.handle}` : player.name, undefined, [
+      ...(player.isGuest ? [] : [{ text: 'Ver perfil', onPress: () => openProfile(player) }]),
+      {
+        text: 'Remover da partida',
+        style: 'destructive' as const,
+        onPress: () =>
+          dialog.alert(`Remover ${player.name} da partida?`, 'A vaga fica livre e o primeiro da lista de espera entra.', [
+            { text: 'Voltar', style: 'cancel' },
+            {
+              text: 'Remover',
+              style: 'destructive',
+              onPress: () =>
+                removePlayer.mutate(player, {
+                  onError: (error) => dialog.alert('Não deu para remover', error.message),
+                }),
+            },
+          ]),
+      },
+      { text: 'Cancelar', style: 'cancel' as const },
+    ]);
   };
 
   const onCancelMatch = () => {
@@ -430,12 +468,19 @@ export default function MatchDetailScreen() {
               </View>
             ) : null}
 
-            <View className="flex-row gap-2">
+            <View className="flex-row flex-wrap gap-2">
               <View className="rounded-pill bg-white/90 px-3 py-1">
                 <Text className="font-mono text-mono text-text-primary uppercase">
                   {match.format}
                 </Text>
               </View>
+              {[match.surface ? SURFACE_LABEL[match.surface] : null, match.gender ? GENDER_LABEL[match.gender] : null]
+                .filter((label): label is string => label !== null)
+                .map((label) => (
+                  <View key={label} className="rounded-pill bg-white/90 px-3 py-1" testID="match-kind-badge">
+                    <Text className="font-mono text-mono text-text-primary uppercase">{label}</Text>
+                  </View>
+                ))}
               {match.freeTeams ? (
                 <View className="rounded-pill bg-white/90 px-3 py-1" testID="free-teams-badge">
                   <Text className="font-mono text-mono text-text-primary uppercase">Sem times fixos</Text>
@@ -588,7 +633,7 @@ export default function MatchDetailScreen() {
           </InfoRow>
 
           {/* The match only reaches the Rede feed when its organizer says so. */}
-          {isOrganizer ? (
+          {canShareToFeed ? (
             <View className="mt-5">
               <Button
                 variant="outline"
@@ -656,39 +701,22 @@ export default function MatchDetailScreen() {
           entering={FadeIn.duration(MOTION.fadeIn)}
           className="px-5 pb-5 pt-4"
         >
-          {/* ── Who is going; the organizer invites and fills open slots ── */}
-          <View className="mb-5 flex-row items-center gap-3">
-            <View className="flex-1">
-              <Text
-                className="font-body-semibold text-body-bold text-text-primary"
-                testID="open-slots"
-              >
-                {openSlots === 0
-                  ? 'Sem vagas abertas'
-                  : openSlots === 1
-                    ? '1 vaga aberta'
-                    : `${openSlots} vagas abertas`}
-              </Text>
-            </View>
-            {isOrganizer ? (
-              <Button
-                variant="outline"
-                onPress={onShare}
-                leftIcon={<UserPlus size={18} color={colors.surfaceDark} />}
-                testID="invite"
-              >
-                Convidar
-              </Button>
-            ) : null}
-          </View>
+          {/* ── Who is going (inviting is the share icon on the cover) ── */}
+          <Text
+            className="mb-5 font-body-semibold text-body-bold text-text-primary"
+            testID="open-slots"
+          >
+            {openSlots === 0
+              ? 'Sem vagas abertas'
+              : openSlots === 1
+                ? '1 vaga aberta'
+                : `${openSlots} vagas abertas`}
+          </Text>
           <PresenceGrid
             players={match.players}
             capacity={match.capacity}
-            onPressPlayer={(player) =>
-              player.id === userId
-                ? router.push('/(tabs)/profile')
-                : router.push({ pathname: '/players/[id]', params: { id: player.id } })
-            }
+            onPressPlayer={onPressPlayer}
+            guestsPressable={canRemove}
             onAddGuest={isOrganizer ? () => setGuestSheetOpen(true) : undefined}
             testID="presence-grid"
           />

@@ -127,6 +127,8 @@ export const createMatchSchema = z
     // ── Bloco 7 · privacidade ──
     privacy: z.enum(PRIVACY_MODES),
     inviteMode: z.enum(INVITE_MODES).optional(),
+    gender: z.enum(['Mixed', 'Male', 'Female']).optional(),
+    surface: z.enum(['Beach', 'Court']).optional(),
   })
   .superRefine((v, ctx) => {
     if (v.type === 'OneOff') {
@@ -158,13 +160,6 @@ export const createMatchSchema = z
           message: 'Informe a data de início',
         });
       }
-    }
-    if (v.privacy === 'private' && !v.inviteMode) {
-      ctx.addIssue({
-        path: ['inviteMode'],
-        code: z.ZodIssueCode.custom,
-        message: 'Escolha como convidar',
-      });
     }
   });
 

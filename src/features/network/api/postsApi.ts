@@ -187,16 +187,19 @@ export function useInvitableMatches() {
  */
 export function useShareMatch() {
   const queryClient = useQueryClient();
-  return useMutation<Post, Error, string>({
+  return useMutation<{ post: Post; alreadyShared: boolean }, Error, string>({
     mutationFn: async (matchId) => {
       try {
-        return await authorizedApiClient<Post>('/api/v1/posts', {
+        const post = await authorizedApiClient<Post>('/api/v1/posts', {
           method: 'POST',
           body: JSON.stringify({ matchId }),
         });
+        // A match goes to the Rede once: sharing again answers with the card already there,
+        // so a card older than a minute means nothing new was posted.
+        return { post, alreadyShared: Date.now() - Date.parse(post.createdAt) > 60_000 };
       } catch (error) {
         if (error instanceof ApiError && error.status === 422) {
-          throw new Error('Só dá para compartilhar uma partida aberta que ainda não começou.');
+          throw new Error('Só partidas abertas, não canceladas e que ainda não começaram vão para a Rede.');
         }
         if (error instanceof ApiError && error.status === 429) {
           throw new Error('Você já publicou muito hoje. Tente de novo amanhã.');

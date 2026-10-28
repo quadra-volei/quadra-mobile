@@ -150,7 +150,8 @@ async function getMatchSummary(matchId: string): Promise<MatchSummary> {
     mine: team.teamId === myTeamId,
     winner: team.teamId === summary.winnerTeamId,
   }));
-  const games: SummaryGame[] = summary.sets.map((set) => ({
+  // A game the match ended before it got a point says nothing: left out.
+  const games: SummaryGame[] = summary.sets.filter((set) => set.teamAPoints + set.teamBPoints > 0).map((set) => ({
     number: set.setNumber,
     winner: teams.find((team) => team.id === set.winnerTeamId) ?? null,
     points: [Math.max(set.teamAPoints, set.teamBPoints), Math.min(set.teamAPoints, set.teamBPoints)],

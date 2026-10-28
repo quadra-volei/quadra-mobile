@@ -63,7 +63,11 @@ const SWIPE_FLIP = 65;
 // how the phone is held. Calibration knobs: flip a `sign` if an axis turns the
 // wrong way on a device; `gain` is card degrees per phone degree.
 // ponytail: no wrap-around at ±180° roll; fine for a card held in front of you.
-const GYRO = { gain: 0.8, follow: 0.02, signX: 1, signY: 1 };
+// Lag on phones (28/10): every write to the tilt values redraws the SVG faces
+// (photo, gradients, clips), so the sensor runs at ~30 Hz instead of the screen
+// rate and a change under `deadzone` degrees (tremor, noise, the rest pose
+// creeping) writes nothing.
+const GYRO = { gain: 0.8, follow: 0.02, signX: 1, signY: 1, intervalMs: 33, deadzone: 0.4 };
 const RAD_TO_DEG = 180 / Math.PI;
 
 export const CHAMFER_OUTER = '0,18 18,0 258,0 292,34 292,388 274,406 18,406 0,388';
@@ -435,7 +439,9 @@ export function PlayerCard({ profile, finish, title, photoUrl, flipped, onFlip, 
   // A finger on the card (or the card settling after it): the sensor waits.
   const held = useSharedValue(false);
   const rest = useSharedValue({ pitch: 0, roll: 0, ready: false });
-  const rotation = useAnimatedSensor(SensorType.ROTATION);
+  // The face turned away keeps its light still: no redraw for what is not seen.
+  const still = useSharedValue(0.5);
+  const rotation = useAnimatedSensor(SensorType.ROTATION, { interval: GYRO.intervalMs });
 
   useAnimatedReaction(
     () => rotation.sensor.value,
@@ -447,6 +453,7 @@ export function PlayerCard({ profile, finish, title, photoUrl, flipped, onFlip, 
       rest.value = { pitch, roll, ready: true };
       const dx = Math.min(Math.max((r.pitch - pitch) * RAD_TO_DEG * GYRO.gain * GYRO.signX, -TILT.x / 2), TILT.x / 2);
       const dy = Math.min(Math.max((r.roll - roll) * RAD_TO_DEG * GYRO.gain * GYRO.signY, -TILT.y / 2), TILT.y / 2);
+      if (Math.abs(REST.rx + dx - rx.value) < GYRO.deadzone && Math.abs(REST.ry + dy - ry.value) < GYRO.deadzone) return;
       rx.value = REST.rx + dx;
       ry.value = REST.ry + dy;
       mx.value = 0.5 + dy / TILT.y;
@@ -525,12 +532,12 @@ export function PlayerCard({ profile, finish, title, photoUrl, flipped, onFlip, 
       >
         <Animated.View key={finish} entering={FadeIn.duration(reduceMotion ? 0 : 300)} className="absolute inset-0">
           <Animated.View ref={faceRefs?.front} collapsable={false} className="absolute inset-0" style={[{ backfaceVisibility: 'hidden' }, front]}>
-            <Material t={t} tier={tier} side="front" photoUrl={photoUrl} mx={mx} my={my} />
+            <Material t={t} tier={tier} side="front" photoUrl={photoUrl} mx={flipped ? still : mx} my={flipped ? still : my} />
             <Front profile={profile} t={t} k={k} title={titleName} />
             {pieces ? <PieceCovers t={t} k={k} pieces={pieces} side="front" /> : null}
           </Animated.View>
           <Animated.View ref={faceRefs?.back} collapsable={false} className="absolute inset-0" style={[{ backfaceVisibility: 'hidden' }, back]}>
-            <Material t={t} tier={tier} side="back" mx={mx} my={my} />
+            <Material t={t} tier={tier} side="back" mx={flipped ? mx : still} my={flipped ? my : still} />
             <Back profile={profile} t={t} k={k} title={titleName} tierName={tier.name} />
             {pieces ? <PieceCovers t={t} k={k} pieces={pieces} side="back" /> : null}
           </Animated.View>

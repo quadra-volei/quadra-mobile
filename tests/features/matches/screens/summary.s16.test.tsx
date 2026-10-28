@@ -436,9 +436,13 @@ describe('S16 — Match Summary', () => {
     });
 
     expect(Share.share).toHaveBeenCalledTimes(1);
-    expect((Share.share as jest.Mock).mock.calls[0][0]).toEqual({
-      message: 'Vôlei de Quinta — Time 1 venceu: Time 1 3 × Time 2 1. MVP: Érica Moraes.',
-    });
+    // No file sharing in the test environment: the text goes alone, with each game and the MVP.
+    const { message } = (Share.share as jest.Mock).mock.calls[0][0] as { message: string };
+    expect(message).toContain('Vôlei de Quinta');
+    expect(message).toContain('Time 1 venceu: Time 1 3 × Time 2 1');
+    expect(message).toContain('Jogo 2: 2 25–23');
+    expect(message).toContain('MVP: Érica Moraes (5 de 10 votos)');
+    expect(message).toContain('https://quadra-volei.app');
   });
 
   /**

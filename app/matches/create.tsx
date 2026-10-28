@@ -62,7 +62,7 @@ import {
   TIME_PRESETS,
   type CreateMatchInput,
 } from '@/features/matches/schema/createMatch';
-import type { MatchFormat, MatchLevel } from '@/features/matches/types/match';
+import { GENDER_LABEL, SURFACE_LABEL, type MatchFormat, type MatchGender, type MatchLevel, type MatchSurface } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
 import { MAP_STYLE } from '@/theme/mapStyle';
 import { useAuthStore } from '@/stores/auth';
@@ -422,7 +422,8 @@ export default function CreateMatchScreen() {
     freeTeams,
     level,
     privacy,
-    inviteMode,
+    gender,
+    surface,
   } = values;
 
   // ── Progressive-disclosure reveal conditions (mirror the prototype) ──
@@ -442,7 +443,6 @@ export default function CreateMatchScreen() {
   const showValor = showNivel && !!level;
   // The price has a default, so privacy shows together with it.
   const showPrivacidade = showValor;
-  const showInvite = showPrivacidade && privacy === 'private';
 
   const complete = isCreateMatchComplete(values);
 
@@ -1095,6 +1095,31 @@ export default function CreateMatchScreen() {
                   </Text>
                 </View>
               </Reveal>
+              {/* Optional: the match says where and for whom (shown on its cover). */}
+            <Text className="mt-4 mb-2 font-body-semibold text-caption text-text-muted">Onde é</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {(Object.keys(SURFACE_LABEL) as MatchSurface[]).map((s) => (
+                <FilterChip
+                  key={s}
+                  label={SURFACE_LABEL[s]}
+                  selected={surface === s}
+                  onPress={() => setValue('surface', s)}
+                  testID={`surface-${s}`}
+                />
+              ))}
+            </View>
+            <Text className="mt-4 mb-2 font-body-semibold text-caption text-text-muted">Para quem</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {(Object.keys(GENDER_LABEL) as MatchGender[]).map((g) => (
+                <FilterChip
+                  key={g}
+                  label={GENDER_LABEL[g]}
+                  selected={gender === g}
+                  onPress={() => setValue('gender', g)}
+                  testID={`gender-${g}`}
+                />
+              ))}
+            </View>
             </Reveal>
           </View>
 
@@ -1204,34 +1229,10 @@ export default function CreateMatchScreen() {
                     />
                   }
                   title="Privada"
-                  desc="Só quem você deixar"
+                  desc="Só entra quem tiver o link de convite"
                   testID="privacy-private"
                 />
               </View>
-              <Reveal show={showInvite}>
-                <View className="gap-2">
-                  <OptionCard
-                    selected={inviteMode === 'code'}
-                    onPress={() => {
-                      setValue('inviteMode', 'code', { shouldValidate: true });
-                      advanceTo('end');
-                    }}
-                    title="Código de convite"
-                    desc="Quem tiver o código pode entrar"
-                    testID="invite-code"
-                  />
-                  <OptionCard
-                    selected={inviteMode === 'guests'}
-                    onPress={() => {
-                      setValue('inviteMode', 'guests', { shouldValidate: true });
-                      advanceTo('end');
-                    }}
-                    title="Somente convidados"
-                    desc="Só quem você chamar direto"
-                    testID="invite-guests"
-                  />
-                </View>
-              </Reveal>
             </Reveal>
           </View>
 

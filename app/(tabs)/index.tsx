@@ -10,7 +10,6 @@ import { ActivityRow } from "@/components/domain/ActivityRow";
 import { MatchCardCompact } from "@/components/domain/MatchCardCompact";
 import { PassProgressCard } from "@/components/domain/PassProgressCard";
 import { HomeHeroArt } from "@/components/icons/HomeHeroArt";
-import { Button } from "@/components/ui/Button";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { StateMessage } from "@/components/ui/StateMessage";
@@ -29,8 +28,8 @@ import { useAuthStore } from "@/stores/auth";
 import { HARD_SHADOW, colors } from "@/theme/colors";
 import { TAB_BAR_CLEARANCE } from "@/theme/layout";
 
-function goExplore() {
-  router.push("/explore");
+function goUpcoming() {
+  router.push("/matches/upcoming");
 }
 function goMatch(id: string) {
   router.push({ pathname: "/matches/[id]", params: { id } });
@@ -55,13 +54,20 @@ function SectionHeader({
   onAction: () => void;
 }) {
   return (
-    <View className="flex-row items-center justify-between px-4 mt-6">
-      <Text className="font-display text-h2 text-text-primary uppercase">
+    <View className="flex-row items-center justify-between gap-3 px-4 mt-6">
+      {/* A long title shrinks to one line instead of being cut ("PASSE DA"). */}
+      <Text
+        className="flex-1 font-display text-h2 text-text-primary uppercase"
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
         {title}
       </Text>
-      <Button variant="ghost" onPress={onAction}>
-        {actionLabel}
-      </Button>
+      {/* A bare link, not the ghost Button: its px-6 pushed every action off
+          the cards' right edge. */}
+      <PressableScale accessibilityRole="button" onPress={onAction} hitSlop={12}>
+        <Text className="font-body-semibold text-body-bold text-primary">{actionLabel}</Text>
+      </PressableScale>
     </View>
   );
 }
@@ -198,7 +204,7 @@ function UpcomingSection({
   if (isPending) {
     return (
       <>
-        <SectionHeader title="PRÓXIMAS PARTIDAS" actionLabel="Ver todas" onAction={goExplore} />
+        <SectionHeader title="PRÓXIMAS PARTIDAS" actionLabel="Ver todas" onAction={goUpcoming} />
         <View className="flex-row px-4 gap-3 mt-2">
           <SkeletonBlock className="w-[262px] h-[248px]" />
           <SkeletonBlock className="w-[262px] h-[248px]" />
@@ -210,7 +216,7 @@ function UpcomingSection({
   if (isError) {
     return (
       <>
-        <SectionHeader title="PRÓXIMAS PARTIDAS" actionLabel="Ver todas" onAction={goExplore} />
+        <SectionHeader title="PRÓXIMAS PARTIDAS" actionLabel="Ver todas" onAction={goUpcoming} />
         <StateMessage
           message="Não foi possível carregar"
           actionLabel="Tentar novamente"
@@ -226,7 +232,7 @@ function UpcomingSection({
 
   return (
     <>
-      <SectionHeader title="PRÓXIMAS PARTIDAS" actionLabel="Ver todas" onAction={goExplore} />
+      <SectionHeader title="PRÓXIMAS PARTIDAS" actionLabel="Ver todas" onAction={goUpcoming} />
       <FlatList<UpcomingMatch>
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -325,7 +331,7 @@ function PassSection() {
   }
   return (
     <>
-      <SectionHeader title="PASSE DA TEMPORADA" actionLabel="Ver passe" onAction={goPass} />
+      <SectionHeader title="SEU PASSE" actionLabel="Ver passe" onAction={goPass} />
       <PassProgressCard onPress={goPass} />
     </>
   );

@@ -5,12 +5,15 @@ import { ScrollView, Text, View } from 'react-native';
 import { CollectionCard } from '@/components/domain/CollectionCard';
 import { Avatar } from '@/components/ui/Avatar';
 import { BackHeader } from '@/components/ui/BackHeader';
+import { dialog } from '@/components/ui/Dialog';
 import { Button } from '@/components/ui/Button';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import {
+  useBlockedPlayers,
   useFollowState,
   usePlayerProfile,
+  useSetBlock,
   useSetFollow,
 } from '@/features/network/api/postsApi';
 import { useCardCollection } from '@/features/pass/api/seasonPass';
@@ -67,6 +70,30 @@ export default function PlayerScreen() {
   const me = useMyProfile();
   const isMe = me.data?.id === id;
   const following = follow.data?.followedByMe ?? false;
+  const blockedList = useBlockedPlayers();
+  const setBlock = useSetBlock();
+  const blocked = blockedList.data?.some((b) => b.userId === id) ?? false;
+
+  // Same wording as the post menu on Rede; unblocking also lives in Configurações.
+  const toggleBlock = (name: string) => {
+    const failed = () => dialog.alert('Não deu certo', 'Tente de novo em instantes.');
+    if (blocked) {
+      setBlock.mutate({ userId: id, blocked: false }, { onError: failed });
+      return;
+    }
+    dialog.alert(
+      `Bloquear ${name}?`,
+      'Vocês deixam de ver os posts e comentários um do outro e de se seguir. Dá para desbloquear em Configurações.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Bloquear',
+          style: 'destructive',
+          onPress: () => setBlock.mutate({ userId: id, blocked: true }, { onError: failed }),
+        },
+      ],
+    );
+  };
 
   return (
     <View className="flex-1 bg-bg-light">
@@ -153,6 +180,19 @@ export default function PlayerScreen() {
                 Ver carta
               </Button>
             </View>
+
+            {isMe || blockedList.isPending ? null : (
+              <View className="mt-2">
+                <Button
+                  variant="ghost"
+                  onPress={() => toggleBlock(profile.data.displayName)}
+                  loading={setBlock.isPending}
+                  testID="block-player"
+                >
+                  {blocked ? 'Desbloquear jogador' : 'Bloquear jogador'}
+                </Button>
+              </View>
+            )}
           </>
         )}
       </ScrollView>

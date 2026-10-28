@@ -69,3 +69,11 @@ export type NearbyMatch = {
   /** ISO start timestamp (drives the "Hoje" filter on Explore). */
   startsAt?: string;
 };
+
+/** Who the match is for (API `gender`). */
+export type MatchGender = 'Mixed' | 'Male' | 'Female';
+/** Where it is played (API `surface`). */
+export type MatchSurface = 'Beach' | 'Court';
+
+export const GENDER_LABEL: Record<MatchGender, string> = { Mixed: 'Misto', Male: 'Masculino', Female: 'Feminino' };
+export const SURFACE_LABEL: Record<MatchSurface, string> = { Beach: 'Praia', Court: 'Quadra' };

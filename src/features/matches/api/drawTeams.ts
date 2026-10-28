@@ -98,13 +98,15 @@ export function useDrawTeams(id: string) {
 export type MovePlayerVariables = {
   players: PresencePlayer[];
   playerId: string;
-  teamId: string;
+  /** null: to the bench (in no team, out of the game). */
+  teamId: string | null;
 };
 
 /**
- * Moves one drawn player to another team after the draw
- * (`PUT /matches/{id}/teams/{teamId}/members/{playerId}`) and answers with
- * every team as it is now.
+ * Moves one player to another team after the draw, from the bench into a team,
+ * or (`teamId` null) from a team to the bench
+ * (`PUT /matches/{id}/teams/{teamId}/members/{playerId}`, `DELETE
+ * /matches/{id}/teams/members/{playerId}`) and answers with every team as it is now.
  */
 export function useMovePlayer(id: string) {
   const storeTeams = useStoreTeams(id);

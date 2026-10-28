@@ -201,7 +201,7 @@ export function TeamsSetup({ setup, testID = 'teams-setup' }: TeamsSetupProps) {
             className="font-body text-caption text-text-muted"
             testID="team-config-summary"
           >
-            {setup.teams.length} times · toque em um jogador para trocá-lo de time.
+            {setup.teams.length} times · toque em um jogador para trocá-lo de time ou mandar para as reservas.
           </Text>
 
           <View className="mt-2 gap-3">
@@ -220,10 +220,18 @@ export function TeamsSetup({ setup, testID = 'teams-setup' }: TeamsSetupProps) {
             ))}
           </View>
 
+          {/* The bench: confirmed but out of the game; a tap puts one in a team. */}
           {setup.sittingOut.length > 0 ? (
-            <Text className="mt-4 font-body text-caption text-text-muted" testID="sitting-out">
-              De fora neste sorteio: {setup.sittingOut.map((p) => p.name).join(', ')}
-            </Text>
+            <View className="mt-3" testID="sitting-out">
+              <TeamRoster
+                teamId="reservas"
+                teamName="Reservas"
+                players={setup.sittingOut}
+                colorIndex={-1}
+                onPlayerPress={setup.moving ? undefined : (player) => setup.handleMovePlayer(player, null)}
+                testID="team-roster-bench"
+              />
+            </View>
           ) : null}
         </View>
       )}

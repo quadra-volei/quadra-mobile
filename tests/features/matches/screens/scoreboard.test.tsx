@@ -207,18 +207,21 @@ describe('S14 — live scoreboard', () => {
       expect.anything(),
     );
 
+    // Undo asks whose point to take back (only teams with points), then sends it.
     await press('undo-button');
-    expect(mockUndoPoint.mutate).toHaveBeenCalledWith({ setNumber: 2 }, expect.anything());
+    const undoButtons = (dialog.alert as jest.Mock).mock.calls[0][2] as { onPress?: () => void }[];
+    await act(async () => undoButtons[1]?.onPress?.());
+    expect(mockUndoPoint.mutate).toHaveBeenCalledWith({ setNumber: 2, teamId: 'team-3' }, expect.anything());
 
     // Ending the set asks first; confirming sends it.
     await press('end-set-button');
-    const buttons = (dialog.alert as jest.Mock).mock.calls[0][2] as { onPress?: () => void }[];
+    const buttons = (dialog.alert as jest.Mock).mock.calls[1][2] as { onPress?: () => void }[];
     await act(async () => buttons[1]?.onPress?.());
     expect(mockEndSet.mutate).toHaveBeenCalledWith({ setNumber: 2 }, expect.anything());
   });
 
   it('disables undo when there is no point to take back', async () => {
-    await show({ ...playing, canUndo: false });
+    await show({ ...playing, scores: [0, 0] });
 
     expect(screen.getByTestId('undo-button').props.accessibilityState.disabled).toBe(true);
   });

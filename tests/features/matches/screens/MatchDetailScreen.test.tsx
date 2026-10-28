@@ -296,6 +296,7 @@ jest.mock('@/features/matches/api/addGuest', () => ({
     mutate: mockAddGuest.mutate,
     isPending: mockAddGuest.isPending,
   }),
+  useRemoveFromMatch: () => ({ mutate: jest.fn(), isPending: false }),
 }));
 
 import {
@@ -913,7 +914,8 @@ describe('S12 — Match Detail screen', () => {
     expect(screen.queryByTestId('teams-setup')).toBeNull();
 
     await openPlayersTab();
-    expect(screen.getByTestId('invite')).toBeTruthy();
+    // Inviting is the share icon on the cover; no second Convidar button.
+    expect(screen.queryByTestId('invite')).toBeNull();
     expect(screen.getByTestId('presence-grid')).toBeTruthy();
     expect(screen.getByTestId('teams-setup')).toBeTruthy();
     expect(screen.getByTestId('team-count-2')).toBeTruthy();
@@ -1006,12 +1008,11 @@ describe('S12 — Match Detail screen', () => {
    * Criterion: "The 'Convidar' button ... invokes Share.share — no navigation, no
    *  contact picker."
    */
-  it('invokes Share.share from the organizer Convidar button (no navigation)', async () => {
+  it('invokes Share.share from the cover share icon for the organizer (no navigation)', async () => {
     await renderOrganizer();
-    await openPlayersTab();
 
     await act(async () => {
-      fireEvent.press(screen.getByTestId('invite'));
+      fireEvent.press(screen.getByTestId('hero-share'));
     });
     expect(mockShare).toHaveBeenCalledTimes(1);
     expect(mockShare.mock.calls[0][0]).toEqual(

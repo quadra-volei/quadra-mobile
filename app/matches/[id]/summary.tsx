@@ -15,8 +15,10 @@ import {
   User,
   Zap,
 } from 'lucide-react-native';
-import { useState } from 'react';
+import * as Sharing from 'expo-sharing';
+import { useRef, useState } from 'react';
 import { Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
@@ -66,6 +68,16 @@ export default function MatchSummaryScreen() {
   }
 
   return <SummaryContent matchId={matchId} summary={summaryQuery.data} />;
+}
+
+/**
+ * Who took a game: the winner's short name; "Empate" for a level score; "Sem
+ * vencedor" for a game cut short with a lead before the API gave it to the
+ * leader (summaries from before 28/10).
+ */
+function gameLabel(game: MatchSummary['games'][number]): string {
+  if (game.winner) return shortTeamName(game.winner.name);
+  return game.points[0] === game.points[1] ? 'Empate' : 'Sem vencedor';
 }
 
 /** Portuguese label for the result pill / share text. */
@@ -123,13 +135,34 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
         .map((team) => `${team.name} ${team.wins}`)
         .join(' × ')}`;
 
+  // The share is a picture of the result (header, teams, games, MVP) with the
+  // text under it; a phone that cannot share files gets the text alone.
+  const shotRef = useRef<View>(null);
+  const shareText = [
+    `🏐 ${summary.name}`,
+    [splitVenue(summary.venue).name, summary.dateLabel].filter(Boolean).join(' · '),
+    '',
+    standingsText,
+    ...summary.games.map((game) => `Jogo ${game.number}: ${gameLabel(game)} ${game.points[0]}–${game.points[1]}`),
+    hasVoting ? '' : null,
+    hasVoting ? `⭐ MVP: ${summary.mvp.name} (${summary.mvp.votes} de ${summary.totalVotes} votos)` : null,
+    '',
+    'Organize a sua no Quadra: https://quadra-volei.app',
+  ]
+    .filter((line) => line !== null)
+    .join('\n');
   const handleShare = async () => {
     if (isSharing) return;
     setIsSharing(true);
     try {
-      await Share.share({
-        message: `${summary.name} — ${standingsText}.${hasVoting ? ` MVP: ${summary.mvp.name}.` : ''}`,
-      });
+      const uri = shotRef.current && (await Sharing.isAvailableAsync())
+        ? await captureRef(shotRef.current, { format: 'png', result: 'tmpfile' }).catch(() => null)
+        : null;
+      if (uri) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: shareText, UTI: 'public.png' });
+      } else {
+        await Share.share({ message: shareText });
+      }
     } finally {
       setIsSharing(false);
     }
@@ -149,6 +182,8 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
         <SummaryHeader onShare={handleShare} isSharing={isSharing} />
 
         <ScrollView className="flex-1" contentContainerClassName="pb-6">
+          {/* What the shared picture shows: the result, the teams, the games, the MVP. */}
+          <View ref={shotRef} collapsable={false} className="bg-surface-dark pb-4">
           {/* ── Result header ── */}
           <View
             className="items-center px-4 pt-2"
@@ -225,7 +260,7 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
                   ) : null}
                   {/* The winner by its color and short name; the score says the rest. */}
                   <Text className="flex-1 font-body-semibold text-caption text-text-on-dark" numberOfLines={1}>
-                    {game.winner ? shortTeamName(game.winner.name) : 'Empate'}
+                    {gameLabel(game)}
                   </Text>
                   {game.winner ? <Trophy size={12} color={colors.accent} /> : null}
                   <Text className="font-num text-caption text-text-on-dark">
@@ -235,6 +270,18 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
               ))}
             </View>
           ) : null}
+
+          {hasVoting ? (
+            <View className="px-4 mt-6 flex-row items-center gap-3" testID="summary-mvp-line">
+              <Trophy size={16} color={colors.accent} />
+              <Text className="flex-1 font-body-bold text-body-bold text-text-on-dark" numberOfLines={1}>
+                {`MVP: ${summary.mvp.name}`}
+              </Text>
+              <Text className="font-num text-caption text-white/70">{`${summary.mvp.votes} votos`}</Text>
+            </View>
+          ) : null}
+          <Text className="mt-4 text-center font-mono text-mono text-white/40">quadra-volei.app</Text>
+          </View>
 
           <RankingPointsCard matchId={matchId} />
 
