@@ -189,7 +189,7 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
   };
 
   const handleEndGame = () => {
-    dialog.alert('Encerrar a partida?', 'Vence o time que ganhou mais jogos. Um jogo em andamento não conta.', [
+    dialog.alert('Encerrar a partida?', 'Vence o time que ganhou mais jogos. Um jogo em andamento vai para quem estiver na frente.', [
       { text: 'Continuar jogando', style: 'cancel' },
       {
         text: 'Encerrar',
