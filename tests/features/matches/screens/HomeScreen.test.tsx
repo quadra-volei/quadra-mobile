@@ -8,7 +8,7 @@ jest.mock('@/components/domain/BellWithBadge', () => ({
  *  - Header shows "INÍCIO" + bell + theme toggle — NO avatar, NO greeting.
  *  - "SEU PRÓXIMO JOGO" shows one card: the soonest confirmed match (#98).
  *  - With nothing to show, only the header and the blue hero (#98).
- *  - "Ver todas" navigates to /explore.
+ *  - "Ver todas" navigates to /matches/upcoming.
  *  - "PRÓXIMAS PARTIDAS" renders a horizontal scroll of MatchCardCompact from
  *    useUpcomingMatches; tapping a card navigates to S12 with its id.
  *  - No "JOGOS PERTO DE VOCÊ" on Home (#104).
@@ -253,7 +253,7 @@ describe('S5 — Home, season pass (DECISIONS #194)', () => {
 
     await render(<HomeScreen />);
 
-    expect(screen.getByText('PASSE DA TEMPORADA')).toBeTruthy();
+    expect(screen.getByText('SEU PASSE')).toBeTruthy();
     expect(screen.getByText('4 de 12 pedaços')).toBeTruthy();
     await fireEvent.press(screen.getByTestId('pass-card'));
     expect(mockPush).toHaveBeenCalledWith('/profile/pass');
@@ -271,11 +271,11 @@ describe('S5 — Home, season pass (DECISIONS #194)', () => {
 
   it('has no pass when no season is set up or the season is over', async () => {
     await render(<HomeScreen />);
-    expect(screen.queryByText('PASSE DA TEMPORADA')).toBeNull();
+    expect(screen.queryByText('SEU PASSE')).toBeNull();
 
     mockPass.data = seasonPassFixture(12, { status: 'Ended' });
     await render(<HomeScreen />);
-    expect(screen.queryByText('PASSE DA TEMPORADA')).toBeNull();
+    expect(screen.queryByText('SEU PASSE')).toBeNull();
   });
 });
 
@@ -321,14 +321,14 @@ describe('S5 — Home screen', () => {
 
   /**
    * Covers: S5 — Home
-   * Criterion: "Tapping ... 'Ver todas' navigate to S6 (/explore)."
+   * Criterion: "Tapping ... 'Ver todas' navigate to the upcoming list (/matches/upcoming)."
    */
-  it('navigates to /explore from "Ver todas"', async () => {
+  it('navigates to the upcoming list from "Ver todas"', async () => {
     await render(<HomeScreen />);
 
     fireEvent.press(screen.getByText('Ver todas'));
 
-    expect(mockPush).toHaveBeenCalledWith('/explore');
+    expect(mockPush).toHaveBeenCalledWith('/matches/upcoming');
   });
 
   // ------------------------------------------------ PRÓXIMAS PARTIDAS section

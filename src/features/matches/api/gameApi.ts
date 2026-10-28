@@ -128,13 +128,13 @@ export async function postDraft(
 /** Moves a drawn player to another team; answers with every team after the move. */
 export async function putTeamMember(
   matchId: string,
-  teamId: string,
+  teamId: string | null,
   playerId: string,
 ): Promise<ApiTeam[]> {
-  const { teams } = await send<{ teams: ApiTeam[] }>(
-    'PUT',
-    gamePath(matchId, `teams/${teamId}/members/${playerId}`),
-  );
+  // No team: the bench (DELETE takes the member out of every team).
+  const { teams } = teamId
+    ? await send<{ teams: ApiTeam[] }>('PUT', gamePath(matchId, `teams/${teamId}/members/${playerId}`))
+    : await send<{ teams: ApiTeam[] }>('DELETE', gamePath(matchId, `teams/members/${playerId}`));
   return teams;
 }
 
@@ -212,10 +212,12 @@ export function postPoint(
   );
 }
 
-export function deleteLastPoint(matchId: string, setNumber: number): Promise<ApiScoreboard> {
+/** Undoes the last point; with a team, takes one point off that team (any number of times). */
+export function deleteLastPoint(matchId: string, setNumber: number, teamId?: string): Promise<ApiScoreboard> {
+  const team = teamId ? `?teamId=${encodeURIComponent(teamId)}` : '';
   return send<ApiScoreboard>(
     'DELETE',
-    gamePath(matchId, `scoreboard/sets/${setNumber}/points/last`),
+    gamePath(matchId, `scoreboard/sets/${setNumber}/points/last${team}`),
   );
 }
 

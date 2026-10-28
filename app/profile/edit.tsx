@@ -31,6 +31,14 @@ import type { MyProfile } from "@/features/profile/types/profile";
 import { colors } from "@/theme/colors";
 import { DEFAULT_AVATAR, PRESET_AVATARS } from "@/theme/defaultAvatars";
 
+// In a release APK a bundled image's `localUri` is a bare drawable name
+// ("assets_avatars_preset01"), which the photo resizer cannot open: the preset
+// avatar never saved. As an `android.resource://` URI any Android loader reads it.
+const ANDROID_PACKAGE = "com.quadra.app";
+function fileUriOfAsset(localUri: string): string {
+  return localUri.includes(":") ? localUri : `android.resource://${ANDROID_PACKAGE}/drawable/${localUri}`;
+}
+
 function EditSkeleton() {
   return (
     <View className="px-4 mt-6 gap-4">
@@ -144,7 +152,7 @@ function EditProfileForm({
     const [asset] = await Asset.loadAsync(PRESET_AVATARS[index]!);
     if (asset?.localUri) {
       setPreset(index);
-      setValue("avatarUri", asset.localUri, { shouldDirty: true });
+      setValue("avatarUri", fileUriOfAsset(asset.localUri), { shouldDirty: true });
     }
   };
 

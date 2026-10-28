@@ -6,7 +6,9 @@ import {
 import type { EditMatchInput } from '@/features/matches/schema/editMatch';
 import type {
   MatchFormat,
+  MatchGender,
   MatchLevel,
+  MatchSurface,
   NearbyMatch,
   UpcomingMatch,
 } from '@/features/matches/types/match';
@@ -55,6 +57,10 @@ export type ApiMatch = {
   description?: string | null;
   visibility: 'Open' | 'Private';
   inviteMode: 'Code' | 'Guests' | null;
+  /** Men's, women's or mixed; null when not declared (older matches). */
+  gender?: MatchGender | null;
+  /** Beach or court; null when not declared (older matches). */
+  surface?: MatchSurface | null;
   priceMonthly: number | null;
   /** Read URL of the cover the organizer uploaded (lists and detail); null without one. */
   coverUrl?: string | null;
@@ -141,6 +147,8 @@ export type ApiCreateMatch = {
   freeTeams: boolean;
   visibility: 'Open' | 'Private';
   inviteMode: 'Code' | 'Guests' | null;
+  gender: MatchGender | null;
+  surface: MatchSurface | null;
   priceMonthly: number | null;
   recurrenceDays: number[] | null;
   /** Storage key of the uploaded cover (`uploadProfilePhoto`), or null. */
@@ -250,7 +258,10 @@ export function toApiCreateMatch(
     gamePoints: input.gamePoints,
     freeTeams: input.freeTeams,
     visibility: isPrivate ? 'Private' : 'Open',
-    inviteMode: isPrivate ? (input.inviteMode === 'guests' ? 'Guests' : 'Code') : null,
+    // Every private match is joined by its invite link / code (API DECISIONS, 28/10).
+    inviteMode: isPrivate ? 'Code' : null,
+    gender: input.gender ?? null,
+    surface: input.surface ?? null,
     priceMonthly: recurring && input.priceMonthly > 0 ? input.priceMonthly : null,
     recurrenceDays: recurring
       ? input.recDays.map((day) => (day === 0 ? 7 : day)).sort((a, b) => a - b)
@@ -312,7 +323,8 @@ export function toMatchDetail(api: ApiMatchDetail, userId: string | null): Match
   const isOrganizer = match.organizerId === userId;
   const windowOpen = match.status === 'Open';
   const waiting = api.myWaitingListPosition != null;
-  const byCode = match.visibility === 'Private' && match.inviteMode === 'Code';
+  // Every private match is joined by its invite code (API DECISIONS, 28/10).
+  const byCode = match.visibility === 'Private';
   const monthly = match.type === 'Recurring' && match.priceMonthly != null;
 
   let myParticipationType: ParticipationType | null = null;
@@ -389,6 +401,9 @@ export function toMatchDetail(api: ApiMatchDetail, userId: string | null): Match
     myWaitingListPosition: api.myWaitingListPosition,
     game: toGameStage(api.game),
     freeTeams: match.freeTeams ?? false,
+    isPrivate: match.visibility === 'Private',
+    gender: match.gender ?? undefined,
+    surface: match.surface ?? undefined,
     cancelled: match.status === 'Cancelled',
     // The API refuses edits once the game started or the window closed (DECISIONS).
     editable:
@@ -449,6 +464,10 @@ export type ApiUpdateMatch = {
   freeTeams: boolean;
   priceMonthly: number | null;
   coverObjectKey: string | null;
+  visibility: 'Open' | 'Private';
+  /** Null keeps what the match has. */
+  gender: MatchGender | null;
+  surface: MatchSurface | null;
   /** Null for both keeps the arena, unless the game moved (API DECISIONS #92). */
   placeId: string | null;
   arenaId: string | null;
@@ -477,6 +496,9 @@ export function toApiUpdateMatch(
     freeTeams: input.freeTeams,
     priceMonthly: input.priceMonthly > 0 ? input.priceMonthly : null,
     coverObjectKey,
+    visibility: input.privacy === 'private' ? 'Private' : 'Open',
+    gender: input.gender ?? null,
+    surface: input.surface ?? null,
     placeId: input.placeId ?? null,
     arenaId: input.arenaId ?? null,
   };
@@ -503,6 +525,9 @@ export function toEditMatchDefaults(api: ApiMatchDetail): EditMatchInput {
     level: toLevel(match.level),
     gamePoints: match.gamePoints ?? DEFAULT_GAME_POINTS,
     freeTeams: match.freeTeams ?? false,
+    privacy: match.visibility === 'Private' ? 'private' : 'open',
+    gender: match.gender ?? undefined,
+    surface: match.surface ?? undefined,
     // A duration the app has no preset for (made elsewhere) starts at the default.
     duration:
       MATCH_DURATIONS.find((d) => toMinutes(d) === minutes) ?? '1h30',

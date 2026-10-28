@@ -9,7 +9,7 @@ export type TeamRosterProps = {
   teamId: string;
   teamName?: string;
   players: PresencePlayer[];
-  /** 0-based position of the team, which picks its color (teamColors). */
+  /** 0-based position of the team, which picks its color (teamColors); -1 is the bench (grey). */
   colorIndex?: number;
   /** When set, each player row is a button (S13: move the player to another team). */
   onPlayerPress?: (player: PresencePlayer) => void;
@@ -35,7 +35,7 @@ export function TeamRoster({
     <View className="rounded-card border border-line bg-white p-4" testID={testID}>
       {/* ── Team header ── */}
       <View className="mb-3 flex-row items-center gap-2">
-        <View className={`h-3 w-3 rounded-full ${getTeamBgColor(colorIndex)}`} />
+        <View className={`h-3 w-3 rounded-full ${colorIndex < 0 ? "bg-text-muted" : getTeamBgColor(colorIndex)}`} />
         <Text className="flex-1 font-body-extrabold text-h3 text-text-primary">
           {teamName || `Time ${teamId}`}
         </Text>

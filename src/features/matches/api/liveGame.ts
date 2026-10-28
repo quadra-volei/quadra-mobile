@@ -325,11 +325,11 @@ export function useAddPoint(matchId: string) {
   });
 }
 
-/** Takes back the last point of the set (one level). */
+/** Takes one point off the chosen team in the set (as many times as needed). */
 export function useUndoPoint(matchId: string) {
-  return useGameMutation<{ setNumber: number }>(
+  return useGameMutation<{ setNumber: number; teamId: string }>(
     matchId,
-    (input) => deleteLastPoint(matchId, input.setNumber),
+    (input) => deleteLastPoint(matchId, input.setNumber, input.teamId),
     { 409: 'Não há ponto para desfazer.' },
   );
 }

@@ -189,7 +189,7 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
   };
 
   const handleEndGame = () => {
-    dialog.alert('Encerrar a partida?', 'Vence o time que ganhou mais jogos. Um jogo em andamento não conta.', [
+    dialog.alert('Encerrar a partida?', 'Vence o time que ganhou mais jogos. Um jogo em andamento vai para quem estiver na frente.', [
       { text: 'Continuar jogando', style: 'cancel' },
       {
         text: 'Encerrar',
@@ -494,12 +494,23 @@ function LiveScoreboard({
                 <Button
                   variant="outlineW"
                   onPress={() =>
-                    undoPoint.mutate(
-                      { setNumber },
-                      { onError: (error) => dialog.alert('Erro ao desfazer', error.message) },
-                    )
+                    // The organizer picks whose point to take back, as many as needed.
+                    dialog.alert('Tirar um ponto de qual time?', undefined, [
+                      ...pair
+                        .map((team, index) => ({ team, points: game.scores[index] ?? 0 }))
+                        .filter(({ points }) => points > 0)
+                        .map(({ team, points }) => ({
+                          text: `${team.name} (${points})`,
+                          onPress: () =>
+                            undoPoint.mutate(
+                              { setNumber, teamId: team.id },
+                              { onError: (error) => dialog.alert('Erro ao desfazer', error.message) },
+                            ),
+                        })),
+                      { text: 'Cancelar', style: 'cancel' as const },
+                    ])
                   }
-                  disabled={!game.canUndo || busy}
+                  disabled={game.scores[0] + game.scores[1] === 0 || busy}
                   testID="undo-button"
                 >
                   Desfazer

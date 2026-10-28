@@ -501,7 +501,7 @@ describe('S11 — Create-match (formulário vivo)', () => {
     expect(screen.getByTestId('time-19h00')).toBeTruthy();
   });
 
-  it('completes a Recurring · private (guests) flow and submits its payload', async () => {
+  it('completes a Recurring · private flow (joined by the invite link) and submits its payload', async () => {
     await renderScreen();
     await type('match-name', 'Racha Fixo');
     await type('match-location', 'Arena Central');
@@ -511,12 +511,10 @@ describe('S11 — Create-match (formulário vivo)', () => {
     await press('time-20h00');
     await press('format-6X6');
     await press('level-AVANCADO');
+    await press('surface-Beach');
+    await press('gender-Female');
+    // Private needs nothing else: every private match is joined by its invite link.
     await press('privacy-private');
-    // Private requires an invite mode before the flow is complete.
-    expect(screen.getByTestId('create-submit').props.accessibilityState?.disabled).toBe(
-      true,
-    );
-    await press('invite-guests');
 
     await press('create-submit');
     expect(mockCreate.mutate.mock.calls[0]?.[0]).toMatchObject({
@@ -527,7 +525,8 @@ describe('S11 — Create-match (formulário vivo)', () => {
       format: '6X6',
       level: 'AVANCADO',
       privacy: 'private',
-      inviteMode: 'guests',
+      surface: 'Beach',
+      gender: 'Female',
     });
   });
 

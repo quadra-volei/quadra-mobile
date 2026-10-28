@@ -4,8 +4,8 @@ import { isValidBrDate, MATCH_DURATIONS } from '@/features/matches/schema/create
 import { LEVELS } from '@/features/profile/schema/onboarding';
 
 /**
- * The organizer's edit form (`app/matches/[id]/edit.tsx`). Type (avulsa / recorrente) and
- * privacy are not editable (API DECISIONS #62), so the form is flat: one date and time, and
+ * The organizer's edit form (`app/matches/[id]/edit.tsx`). The type (avulsa / recorrente)
+ * is not editable (API DECISIONS #62); privacy is (a private match gets its invite code). The form is flat: one date and time, and
  * the address must keep coordinates (the current ones, or a picked suggestion).
  */
 export const editMatchSchema = z.object({
@@ -25,6 +25,9 @@ export const editMatchSchema = z.object({
   freeTeams: z.boolean(),
   players: z.number().int().min(2, 'Mínimo de 2 jogadores').max(100),
   level: z.enum(LEVELS),
+  privacy: z.enum(['open', 'private']),
+  gender: z.enum(['Mixed', 'Male', 'Female']).optional(),
+  surface: z.enum(['Beach', 'Court']).optional(),
   price: z.number().min(0),
   priceMonthly: z.number().min(0),
 });

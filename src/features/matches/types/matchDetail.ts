@@ -2,7 +2,7 @@
 // matches hooks (src/features/matches/api/*), which map the backend payloads
 // into them. No `any`.
 
-import type { MatchFormat, MatchLevel } from '@/features/matches/types/match';
+import type { MatchFormat, MatchGender, MatchLevel, MatchSurface } from '@/features/matches/types/match';
 
 /** Court position abbreviations (no per-position color — contrast-based pill). */
 export type PlayerPosition = 'LEV' | 'PON' | 'OPO' | 'CEN' | 'LIB' | 'COR';
@@ -141,6 +141,10 @@ export type MatchDetail = {
   freeTeams: boolean;
   /** Where the game is; null/absent until the organizer starts it. */
   game?: MatchGameStage | null;
+  /** Not listed: joined by the invite link / code. Never goes to the Rede feed. */
+  isPrivate?: boolean;
+  gender?: MatchGender;
+  surface?: MatchSurface;
   /** The organizer cancelled the match. */
   cancelled?: boolean;
   /** The caller organizes it and it can still be edited or cancelled (before the game). */

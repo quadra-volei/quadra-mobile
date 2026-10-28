@@ -73,18 +73,19 @@ export function useTeamsSetup(
     );
 
   // After the draw the organizer can still fix the teams: tap a player, pick
-  // the team they go to. Saved on the backend, which answers with every team.
-  const handleMovePlayer = (player: PresencePlayer, fromTeamId: string) => {
-    const others = teams.filter((team) => team.id !== fromTeamId);
+  // the team they go to, or the bench (Reservas: confirmed, out of the game,
+  // ready to come in). Saved on the backend, which answers with every team.
+  const handleMovePlayer = (player: PresencePlayer, fromTeamId: string | null) => {
+    const move = (teamId: string | null) =>
+      movePlayer.mutate(
+        { players, playerId: player.id, teamId },
+        { onError: (error) => dialog.alert('Erro ao mover', error.message) },
+      );
     dialog.alert(`Mover ${player.name} para`, undefined, [
-      ...others.map((team) => ({
-        text: team.name || `Time ${team.number}`,
-        onPress: () =>
-          movePlayer.mutate(
-            { players, playerId: player.id, teamId: team.id },
-            { onError: (error) => dialog.alert('Erro ao mover', error.message) },
-          ),
-      })),
+      ...teams
+        .filter((team) => team.id !== fromTeamId)
+        .map((team) => ({ text: team.name || `Time ${team.number}`, onPress: () => move(team.id) })),
+      ...(fromTeamId ? [{ text: 'Reservas', onPress: () => move(null) }] : []),
       { text: 'Cancelar', style: 'cancel' as const },
     ]);
   };

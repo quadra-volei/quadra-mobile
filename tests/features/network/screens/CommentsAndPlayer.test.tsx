@@ -47,6 +47,8 @@ jest.mock('@/features/network/api/postsApi', () => ({
   usePlayerProfile: () => mockProfile(),
   useFollowState: () => mockFollowState(),
   useSetFollow: () => ({ mutate: mockSetFollow, isPending: false, isError: false }),
+  useBlockedPlayers: () => ({ data: [], isPending: false }),
+  useSetBlock: () => ({ mutate: jest.fn(), isPending: false }),
 }));
 
 const mockMe = jest.fn();
