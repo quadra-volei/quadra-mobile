@@ -135,8 +135,8 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
         .map((team) => `${team.name} ${team.wins}`)
         .join(' × ')}`;
 
-  // The share is a picture of the result (header, teams, games, MVP) with the
-  // text under it; a phone that cannot share files gets the text alone.
+  // The share is a picture of the result (header, teams, games, MVP, the site);
+  // a phone that cannot share files gets the full text instead.
   const shotRef = useRef<View>(null);
   const shareText = [
     `🏐 ${summary.name}`,
