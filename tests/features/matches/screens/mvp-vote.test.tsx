@@ -24,9 +24,12 @@ jest.mock('lucide-react-native', () => {
   return new Proxy(icons, { get: (target, key: string) => (key in target ? target[key] : fallback) });
 });
 
+jest.mock('expo-blur', () => ({ BlurView: () => null }));
+
 const mockBack = jest.fn();
+const mockReplace = jest.fn();
 jest.mock('expo-router', () => ({
-  router: { back: mockBack },
+  router: { back: mockBack, replace: (...args: unknown[]) => mockReplace(...args) },
   useLocalSearchParams: () => ({ id: 'mine-1' }),
 }));
 
@@ -226,6 +229,23 @@ describe('S15 — Post-Match MVP Vote', () => {
 
     // The component renders both states; verify structure is there
     expect(screen.getByText('QUEM BRILHOU?')).toBeTruthy();
+  });
+
+  it('after the vote shows who got it and leads back home', async () => {
+    mockVoteMutationState.mutate.mockImplementationOnce(
+      (id: string, options: { onSuccess: (r: unknown) => void }) =>
+        options.onSuccess({ success: true, votedForPlayerId: id, votedForName: 'Érica' }),
+    );
+    await render(<MvpVoteScreen />, { wrapper });
+
+    await fireEvent.press(screen.getByText('@erica_cen'));
+    await fireEvent.press(screen.getByTestId('mvp-submit-button'));
+
+    expect(screen.getByTestId('mvp-vote-registered')).toBeTruthy();
+    expect(screen.getByTestId('mvp-voted-name')).toHaveTextContent('Érica');
+    expect(screen.getByText('Seu voto foi registrado. Valeu por jogar!')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('mvp-go-home'));
+    expect(mockReplace).toHaveBeenCalledWith('/(tabs)');
   });
 
   /** Criterion 12: Back chevron navigates back via router.back() */

@@ -1,8 +1,10 @@
 /**
- * The match's stats sheet (`app/matches/[id]/stats.tsx`, API DECISIONS #84).
- * The organizer taps a count to add one and "−" to take one back; only players
- * someone tapped go into the sheet (the others stay without a record, never
- * zero). Everyone else reads it, with no controls.
+ * The match's stats sheet (`app/matches/[id]/stats.tsx`, API DECISIONS #84),
+ * one player at a time. The organizer picks the player in the strip, "+" adds
+ * one and "−" takes one back; only players someone touched go into the sheet
+ * (the others stay without a record, never zero). Everyone else reads it, with
+ * no controls. Right after the match ends (flow=end) confirming leads to the
+ * MVP vote.
  */
 import React from 'react';
 
@@ -16,7 +18,7 @@ jest.mock('lucide-react-native', () => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
   const Icon = (props: any) => ReactLocal.createElement(View, props);
-  return { ChevronLeft: Icon, Minus: Icon };
+  return { Check: Icon, ChevronLeft: Icon, Fence: Icon, HandHelping: Icon, Lock: Icon, Minus: Icon, Plus: Icon, Volleyball: Icon, Zap: Icon };
 });
 
 jest.mock('@/components/ui/Button', () => {
@@ -28,9 +30,12 @@ jest.mock('@/components/ui/Button', () => {
   };
 });
 
+jest.mock('expo-linear-gradient', () => ({ LinearGradient: () => null }));
+
+let mockParams: { id: string; flow?: string } = { id: 'match-1' };
 jest.mock('expo-router', () => ({
-  router: { back: jest.fn(), push: jest.fn() },
-  useLocalSearchParams: () => ({ id: 'match-1' }),
+  router: { back: jest.fn(), push: jest.fn(), replace: jest.fn() },
+  useLocalSearchParams: () => mockParams,
 }));
 
 let mockUserId = 'org';
@@ -54,26 +59,34 @@ jest.mock('@/features/matches/api/getMatchDetail', () => ({
   }),
 }));
 
+let mockSaved: Record<string, unknown> = {};
 const mockSave = { isPending: false, mutate: jest.fn() };
 jest.mock('@/features/matches/api/playerStats', () => ({
-  usePlayerStats: () => ({ isPending: false, isError: false, data: { editable: true, byPlayer: {} } }),
+  usePlayerStats: () => ({ isPending: false, isError: false, data: { editable: true, byPlayer: mockSaved } }),
   useSavePlayerStats: () => mockSave,
 }));
 
 import { fireEvent, render, screen } from '@testing-library/react-native';
+
+import { router as mockRouter } from 'expo-router';
 
 import StatsScreen from '../../../../app/matches/[id]/stats';
 
 describe('Stats sheet', () => {
   beforeEach(() => {
     mockUserId = 'org';
+    mockParams = { id: 'match-1' };
+    mockSaved = {};
     mockSave.mutate.mockClear();
+    jest.mocked(mockRouter.back).mockClear();
+    jest.mocked(mockRouter.replace).mockClear();
   });
 
-  it('saves only the players the organizer tapped, with the counts they set', async () => {
+  it('saves only the players the organizer touched, with the counts they set', async () => {
     await render(<StatsScreen />);
 
-    expect(screen.queryByTestId('stats-row-g1')).toBeNull(); // guests have no profile
+    expect(screen.queryByTestId('stats-pick-g1')).toBeNull(); // guests have no profile
+    expect(screen.getByTestId('stats-row-p1')).toBeTruthy(); // the first player opens
     await fireEvent.press(screen.getByTestId('stats-add-kills-p1'));
     await fireEvent.press(screen.getByTestId('stats-add-kills-p1'));
     await fireEvent.press(screen.getByTestId('stats-minus-kills-p1'));
@@ -86,11 +99,53 @@ describe('Stats sheet', () => {
     );
   });
 
+  it('switches player from the strip and keeps each one\'s counts', async () => {
+    await render(<StatsScreen />);
+
+    await fireEvent.press(screen.getByTestId('stats-add-aces-p1'));
+    await fireEvent.press(screen.getByTestId('stats-pick-p2'));
+    expect(screen.getByTestId('stats-row-p2')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('stats-add-blocks-p2'));
+    await fireEvent.press(screen.getByTestId('stats-save'));
+
+    expect(mockSave.mutate).toHaveBeenCalledWith(
+      {
+        p1: { kills: 0, blocks: 0, aces: 1, digs: 0, assists: 0 },
+        p2: { kills: 0, blocks: 1, aces: 0, digs: 0, assists: 0 },
+      },
+      expect.anything(),
+    );
+  });
+
+  it('names each action in full', async () => {
+    await render(<StatsScreen />);
+
+    for (const label of ['Cortadas', 'Blocks', 'Aces', 'Salvadas', 'Assistências']) {
+      expect(screen.getByText(label)).toBeTruthy();
+    }
+    expect(screen.queryByText('CRT')).toBeNull();
+  });
+
+  it('right after the match, confirming goes on to the MVP vote', async () => {
+    mockParams = { id: 'match-1', flow: 'end' };
+    await render(<StatsScreen />);
+
+    expect(screen.getByText('Fim de jogo')).toBeTruthy();
+    // Nothing changed: no save, straight to the vote.
+    await fireEvent.press(screen.getByTestId('stats-save'));
+    expect(mockSave.mutate).not.toHaveBeenCalled();
+    expect(mockRouter.replace).toHaveBeenCalledWith({
+      pathname: '/matches/[id]/mvp-vote',
+      params: { id: 'match-1' },
+    });
+  });
+
   it('shows no controls to someone who does not organize', async () => {
     mockUserId = 'p1';
     await render(<StatsScreen />);
 
     expect(screen.getByTestId('stats-row-p1')).toBeTruthy();
+    expect(screen.getByTestId('stats-value-kills-p1')).toHaveTextContent('—');
     expect(screen.queryByTestId('stats-add-kills-p1')).toBeNull();
     expect(screen.queryByTestId('stats-save')).toBeNull();
   });

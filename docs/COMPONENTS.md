@@ -560,6 +560,13 @@ More UI primitives will live here:
 - **Used in**: `app/(tabs)/_layout.tsx` (opened by the central "+")
 - **Notes**: "O que você quer criar?" overlay (DECISIONS #98): blurred and dimmed backdrop (tap closes), white card with 2px navy border and `HARD_SHADOW`, "Criar partida" (lime) and "Criar publicação" (white) wide options, "Cancelar" link. The card grows out of the tab bar (it starts with the bar's frame and opens upward, no overshoot) and folds back into it on close; the layout hides the bar meanwhile (DECISIONS #161). An overlay rather than a `Modal` so the Android blur can read the `BlurTargetView` passed as `blurTarget`; Android back closes it. Mount it only while open.
 
+### `SetEndSheet`
+- **Path**: `src/components/domain/SetEndSheet.tsx`
+- **Category**: domain
+- **Props**: `{ setNumber: number; teams: [{ name: string; won: boolean }, { name: string; won: boolean }]; scores: [number, number]; onNextSet: () => void; onFinish: () => void; onClose: () => void; busy?: boolean }`
+- **Used in**: S13.5 Scoreboard (`SetTeamPicker`), right after a set ends, organizer only
+- **Notes**: "O que vem agora?" bottom sheet from the designer's file (DECISIONS #197): blurred, navy-dimmed backdrop (tap closes), navy sheet with handle, "SET N ENCERRADO", the set's score (winner's name in lime), "Próximo set" (lime) and "Finalizar partida" (outline on navy) as wide options with icon tile and chevron, "Continuar jogando" link that only closes it. Slides up on open; Android back closes it. An overlay, not a `Modal`. Mount it only while open.
+
 ### `CoverPicker`
 - **Path**: `src/components/domain/CoverPicker.tsx`
 - **Category**: domain

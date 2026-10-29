@@ -79,6 +79,8 @@ export type LiveGame = {
   setStartedAt: string | null;
   /** Winner of the last finished set — the team that "stays on court". */
   lastSetWinnerId: string | null;
+  /** The last finished set: its two teams and final score (the end-of-set sheet). */
+  lastSet: { pair: [Team, Team]; scores: [number, number] } | null;
   winnerTeamId: string | null;
 };
 
@@ -97,6 +99,7 @@ export function toLiveGame(data: LiveGameData): LiveGame {
     canUndo: false,
     setStartedAt: null,
     lastSetWinnerId: null,
+    lastSet: null,
     winnerTeamId: null,
     pair: null,
   };
@@ -111,8 +114,15 @@ export function toLiveGame(data: LiveGameData): LiveGame {
       setsWon[set.winnerTeamId] = (setsWon[set.winnerTeamId] ?? 0) + 1;
     }
   }
-  const lastSetWinnerId = finished[finished.length - 1]?.winnerTeamId ?? null;
-  const shared = { ...base, setsWon, lastSetWinnerId, winnerTeamId: scoreboard.winnerTeamId };
+  const last = finished[finished.length - 1];
+  const lastSetWinnerId = last?.winnerTeamId ?? null;
+  const lastTeamA = teams.find((team) => team.id === last?.teamAId);
+  const lastTeamB = teams.find((team) => team.id === last?.teamBId);
+  const lastSet =
+    last && lastTeamA && lastTeamB
+      ? { pair: [lastTeamA, lastTeamB] as [Team, Team], scores: [last.teamAPoints, last.teamBPoints] as [number, number] }
+      : null;
+  const shared = { ...base, setsWon, lastSetWinnerId, lastSet, winnerTeamId: scoreboard.winnerTeamId };
 
   if (scoreboard.state === 'Ended') {
     return { ...shared, phase: 'ENDED', setNumber: scoreboard.currentSetNumber };

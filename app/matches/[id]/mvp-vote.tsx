@@ -1,8 +1,9 @@
+import { BlurView } from 'expo-blur';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
+import { ChevronLeft, House, Trophy } from 'lucide-react-native';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { PositionTag } from '@/components/domain/PositionPicker';
@@ -211,38 +212,9 @@ export default function MvpVoteScreen() {
     );
   }
 
-  // Post-vote state
-  if (hasVoted && votedForPlayer) {
-    return (
-      <Frame>
-        <View className="flex-1 items-center justify-center px-6">
-          <Avatar uri={votedForPlayer.avatarUrl} name={votedForPlayer.name} size="lg" />
-          <Text
-            className="font-body-extrabold text-h3 text-text-on-dark text-center mt-4"
-            accessibilityLiveRegion="polite"
-          >
-            Você votou em {votedForPlayer.name}.
-          </Text>
-          <Text className="font-body text-body text-white/70 text-center mt-2">
-            O MVP sai quando quem organiza encerrar a votação. Até lá dá para trocar o voto.
-          </Text>
-        </View>
-        <View className="px-4 pb-3">
-          <Button
-            variant="outlineW"
-            onPress={() => setHasVoted(false)}
-            testID="mvp-change-vote"
-          >
-            Trocar voto
-          </Button>
-        </View>
-        <WrapUp matchId={matchId} emphasis />
-      </Frame>
-    );
-  }
-
-  // Pre-vote state: player selection
-  return (
+  // Pre-vote state: player selection. After the vote it stays behind, blurred,
+  // under the confirmation (VoteRegistered).
+  const picker = (
     <Frame hint="Escolha quem mais se destacou. Não dá para votar em você.">
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="px-4 gap-3 pb-4">
@@ -307,5 +279,94 @@ export default function MvpVoteScreen() {
       </View>
       <WrapUp matchId={matchId} emphasis={false} />
     </Frame>
+  );
+
+  if (hasVoted && votedForPlayer) {
+    return (
+      <View className="flex-1 bg-surface-dark">
+        {picker}
+        <VoteRegistered
+          matchId={matchId}
+          player={votedForPlayer}
+          onChangeVote={() => setHasVoted(false)}
+        />
+      </View>
+    );
+  }
+  return picker;
+}
+
+/**
+ * The vote went in: the screen behind blurred, the chosen player's photo with a
+ * lime ring and a trophy, "MVP DA PARTIDA", their name and "Voltar ao início".
+ * The vote can still be changed while the voting is open; the organizer also
+ * closes the voting from here.
+ */
+function VoteRegistered({
+  matchId,
+  player,
+  onChangeVote,
+}: {
+  matchId: string;
+  player: MatchPlayer;
+  onChangeVote: () => void;
+}) {
+  return (
+    <View style={StyleSheet.absoluteFill} testID="mvp-vote-registered">
+      <BlurView
+        intensity={40}
+        tint="dark"
+        blurMethod="dimezisBlurViewSdk31Plus"
+        style={StyleSheet.absoluteFill}
+      />
+      <View className="bg-surface-dark/70" style={StyleSheet.absoluteFill} />
+      <SafeAreaView edges={['top', 'bottom']} className="flex-1">
+        <View className="flex-1 items-center justify-center px-8">
+          <View>
+            <View className="rounded-full border-4 border-accent p-1">
+              <Avatar uri={player.avatarUrl} name={player.name} size="xl" />
+            </View>
+            <View className="absolute -bottom-1 left-6 h-10 w-10 items-center justify-center rounded-full border-2 border-surface-dark bg-accent">
+              <Trophy size={18} color={colors.surfaceDark} />
+            </View>
+          </View>
+          <Text className="mt-6 font-mono text-mono uppercase tracking-widest text-accent">
+            MVP da partida
+          </Text>
+          <Text
+            className="mt-1 text-center font-display text-display uppercase text-text-on-dark"
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            accessibilityLiveRegion="polite"
+            testID="mvp-voted-name"
+          >
+            {player.name}
+          </Text>
+          <Text className="mt-2 text-center font-body text-body text-white/80">
+            Seu voto foi registrado. Valeu por jogar!
+          </Text>
+          <View className="mt-8 self-stretch">
+            <Button
+              variant="grad"
+              onPress={() => router.replace('/(tabs)')}
+              leftIcon={<House size={18} color={colors.surfaceDark} />}
+              testID="mvp-go-home"
+            >
+              Voltar ao início
+            </Button>
+          </View>
+          <Pressable
+            onPress={onChangeVote}
+            accessibilityRole="button"
+            hitSlop={ICON_HIT_SLOP}
+            className="mt-4 py-1"
+            testID="mvp-change-vote"
+          >
+            <Text className="font-body-semibold text-caption text-white/60">Trocar voto</Text>
+          </Pressable>
+        </View>
+        <WrapUp matchId={matchId} emphasis={false} />
+      </SafeAreaView>
+    </View>
   );
 }
