@@ -9,7 +9,9 @@
  *  - players wait while the organizer picks;
  *  - during a set the organizer scores, undoes and ends the set; players only
  *    watch (no controls);
- *  - when the game ends the screen leads to the MVP vote.
+ *  - right after a set, "O que vem agora?" offers the next set or finishing;
+ *    finishing leads the organizer to the stats sheet;
+ *  - when the game ends the screen leads to the stats (organizer) and the MVP vote.
  */
 import React from 'react';
 
@@ -19,6 +21,7 @@ jest.mock('react-native-safe-area-context', () => {
   return {
     SafeAreaView: ({ children, ...props }: any) =>
       ReactLocal.createElement(View, props, children),
+    useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
   };
 });
 
@@ -26,8 +29,10 @@ jest.mock('lucide-react-native', () => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
   const Icon = (props: any) => ReactLocal.createElement(View, props);
-  return { ChevronLeft: Icon, Trophy: Icon };
+  return { ChevronLeft: Icon, ChevronRight: Icon, Glasses: Icon, Trophy: Icon, Volleyball: Icon };
 });
+
+jest.mock('expo-blur', () => ({ BlurView: () => null }));
 
 jest.mock('@/components/ui/Button', () => {
   const ReactLocal = require('react');
@@ -110,6 +115,7 @@ function game(overrides: Partial<LiveGame>): LiveGame {
     canUndo: false,
     setStartedAt: null,
     lastSetWinnerId: null,
+    lastSet: null,
     winnerTeamId: null,
     ...overrides,
   };
@@ -184,6 +190,63 @@ describe('S13.5 — set team picker', () => {
   });
 });
 
+describe('end of set — "O que vem agora?"', () => {
+  const afterSet = (count: number): Partial<LiveGame> => {
+    const some = teams.slice(0, count);
+    return {
+      phase: 'PICK_NEXT',
+      setNumber: 2,
+      teams: some,
+      lastSetWinnerId: 'team-1',
+      lastSet: { pair: [some[0]!, some[1]!], scores: [21, 17] },
+    };
+  };
+
+  it('opens over the picker with the set that ended and its score', async () => {
+    await show(afterSet(3));
+
+    expect(screen.getByTestId('set-end-sheet')).toBeTruthy();
+    expect(screen.getByText('Set 1 encerrado')).toBeTruthy();
+    expect(screen.getByText('21')).toBeTruthy();
+    expect(screen.getByText('17')).toBeTruthy();
+  });
+
+  it('with two teams "Próximo set" starts the same pair again', async () => {
+    await show(afterSet(2));
+
+    await press('set-end-next');
+    expect(mockStartSet.mutate).toHaveBeenCalledWith(['team-1', 'team-2'], expect.anything());
+  });
+
+  it('with more teams "Próximo set" closes the sheet so the organizer picks who comes in', async () => {
+    await show(afterSet(3));
+
+    await press('set-end-next');
+    expect(mockStartSet.mutate).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('set-end-sheet')).toBeNull();
+  });
+
+  it('"Finalizar partida" ends the match and goes to the stats sheet', async () => {
+    mockEndGame.mutate.mockImplementationOnce((_input: unknown, options: { onSuccess: () => void }) =>
+      options.onSuccess(),
+    );
+    await show(afterSet(2));
+
+    await press('set-end-finish');
+    expect(mockEndGame.mutate).toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: '/matches/[id]/stats',
+      params: { id: 'match-1', flow: 'end' },
+    });
+  });
+
+  it('is not shown to players', async () => {
+    await show({ ...afterSet(2), isOrganizer: false });
+
+    expect(screen.queryByTestId('set-end-sheet')).toBeNull();
+  });
+});
+
 describe('S14 — live scoreboard', () => {
   const playing: Partial<LiveGame> = {
     phase: 'PLAYING',
@@ -247,6 +310,16 @@ describe('game over', () => {
     expect(mockReplace).toHaveBeenCalledWith({
       pathname: '/matches/[id]/mvp-vote',
       params: { id: 'match-1' },
+    });
+  });
+
+  it('takes the organizer on to the stats sheet first', async () => {
+    await show({ phase: 'ENDED', winnerTeamId: 'team-2' });
+
+    await press('go-stats');
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: '/matches/[id]/stats',
+      params: { id: 'match-1', flow: 'end' },
     });
   });
 });

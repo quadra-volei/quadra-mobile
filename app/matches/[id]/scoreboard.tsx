@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { SetEndSheet } from '@/components/domain/SetEndSheet';
 import { Button } from '@/components/ui/Button';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { dialog } from '@/components/ui/Dialog';
@@ -35,10 +36,11 @@ import { ICON_HIT_SLOP } from '@/theme/layout';
  *   themselves.
  * - PLAYING — the live scoreboard (S14): the organizer scores, undoes the last
  *   point and may end the set early; everyone else watches it update live.
- * - ENDED — on to the MVP vote.
+ * - ENDED — on to the stats sheet (organizer) and the MVP vote.
  * A match without fixed teams (API DECISIONS #86) has none of that: it runs
  * from "Começar" to "Encerrar" with no score (`FreeGame`).
- * The organizer reaches the stats sheet from every phase.
+ * The organizer reaches the stats sheet from every phase; ending the match
+ * takes them straight to it, and from it to the MVP vote.
  *
  * The whole route is navy: secondary text is `text-white/70` (never
  * `text-text-muted`, which is the muted tone for light surfaces) and buttons
@@ -156,9 +158,16 @@ function setsLabel(setsWon: number): string {
   return `${setsWon} ${setsWon === 1 ? 'vitória' : 'vitórias'}`;
 }
 
+/** Where the organizer lands once the match is ended: the stats, then the MVP vote. */
+function goToEndStats(matchId: string) {
+  router.replace({ pathname: '/matches/[id]/stats', params: { id: matchId, flow: 'end' } });
+}
+
 /**
  * S13.5 — the organizer picks the two teams of the next set. The winner of the
- * last set is flagged ("continua em quadra") but not forced.
+ * last set is flagged ("continua em quadra") but not forced. Right after a set
+ * ends, "O que vem agora?" (`SetEndSheet`) opens over it: next set, finish the
+ * match, or close it and stay here.
  */
 function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
   // With two teams the next game is always the same pair: both come selected.
@@ -167,6 +176,7 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
   );
   const startSet = useStartSet(matchId);
   const endGame = useEndGame(matchId);
+  const [sheetOpen, setSheetOpen] = useState(game.phase === 'PICK_NEXT' && game.lastSet !== null);
 
   const toggleTeamSelection = (teamId: string) => {
     setSelectedTeamIds((prev) => {
@@ -188,18 +198,34 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
     });
   };
 
+  const finish = () =>
+    endGame.mutate(undefined, {
+      onSuccess: () => goToEndStats(matchId),
+      onError: (error) => dialog.alert('Não foi possível encerrar', error.message),
+    });
+
   const handleEndGame = () => {
     dialog.alert('Encerrar a partida?', 'Vence o time que ganhou mais jogos. Um jogo em andamento vai para quem estiver na frente.', [
       { text: 'Continuar jogando', style: 'cancel' },
-      {
-        text: 'Encerrar',
-        style: 'destructive',
-        onPress: () =>
-          endGame.mutate(undefined, {
-            onError: (error) => dialog.alert('Não foi possível encerrar', error.message),
-          }),
-      },
+      { text: 'Encerrar', style: 'destructive', onPress: finish },
     ]);
+  };
+
+  // "Próximo set": with two teams it is the same pair again, started right
+  // away; with more, the organizer picks who comes in on this screen.
+  const handleNextSet = () => {
+    if (game.teams.length !== 2) {
+      setSheetOpen(false);
+      return;
+    }
+    const [first, second] = game.teams;
+    if (!first || !second) return;
+    startSet.mutate([first.id, second.id], {
+      onError: (error) => {
+        setSheetOpen(false);
+        dialog.alert('Não foi possível começar o jogo', error.message);
+      },
+    });
   };
 
   return (
@@ -330,6 +356,21 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
           ) : null}
         </View>
       </SafeAreaView>
+
+      {sheetOpen && game.lastSet ? (
+        <SetEndSheet
+          setNumber={game.setNumber - 1}
+          teams={[
+            { name: game.lastSet.pair[0].name ?? '', won: game.lastSetWinnerId === game.lastSet.pair[0].id },
+            { name: game.lastSet.pair[1].name ?? '', won: game.lastSetWinnerId === game.lastSet.pair[1].id },
+          ]}
+          scores={game.lastSet.scores}
+          onNextSet={handleNextSet}
+          onFinish={finish}
+          onClose={() => setSheetOpen(false)}
+          busy={startSet.isPending || endGame.isPending}
+        />
+      ) : null}
     </View>
   );
 }
@@ -572,19 +613,29 @@ function GameOver({ matchId, game }: { matchId: string; game: LiveGame }) {
         ))}
       </View>
 
-      <View className="self-stretch gap-3">
-        <Button
-          variant="grad"
-          onPress={() =>
-            router.replace({ pathname: '/matches/[id]/mvp-vote', params: { id: matchId } })
-          }
-          testID="go-mvp-vote"
-        >
-          Votar no <Text className="font-num">MVP</Text>
-        </Button>
-        {game.isOrganizer ? <StatsLink matchId={matchId} /> : null}
-      </View>
+      <EndedActions matchId={matchId} isOrganizer={game.isOrganizer} />
     </Centered>
+  );
+}
+
+/**
+ * After the match: the organizer goes on to the stats (which lead to the MVP
+ * vote) and may skip straight to the vote; everyone else votes.
+ */
+function EndedActions({ matchId, isOrganizer }: { matchId: string; isOrganizer: boolean }) {
+  const goToVote = () =>
+    router.replace({ pathname: '/matches/[id]/mvp-vote', params: { id: matchId } });
+  return (
+    <View className="self-stretch gap-3">
+      {isOrganizer ? (
+        <Button variant="grad" onPress={() => goToEndStats(matchId)} testID="go-stats">
+          Registrar estatísticas
+        </Button>
+      ) : null}
+      <Button variant={isOrganizer ? 'outlineW' : 'grad'} onPress={goToVote} testID="go-mvp-vote">
+        Votar no <Text className="font-num">MVP</Text>
+      </Button>
+    </View>
   );
 }
 
@@ -603,8 +654,8 @@ function StatsLink({ matchId }: { matchId: string }) {
 
 /**
  * A match without fixed teams: no teams on screen and no score. The organizer
- * starts it, records the stats along the way and ends it; then it is the MVP
- * vote, as in any match.
+ * starts it, records the stats along the way and ends it; then come the stats
+ * and the MVP vote, as in any match.
  */
 function FreeGame({ matchId, game }: { matchId: string; game: LiveGame }) {
   const start = useStartFreeGame(matchId);
@@ -612,13 +663,14 @@ function FreeGame({ matchId, game }: { matchId: string; game: LiveGame }) {
   const elapsed = useElapsed(game.startedAt);
 
   const handleEnd = () => {
-    dialog.alert('Encerrar a partida?', 'Depois vem a votação do MVP.', [
+    dialog.alert('Encerrar a partida?', 'Depois vêm as estatísticas e a votação do MVP.', [
       { text: 'Continuar jogando', style: 'cancel' },
       {
         text: 'Encerrar',
         style: 'destructive',
         onPress: () =>
           endGame.mutate(undefined, {
+            onSuccess: () => goToEndStats(matchId),
             onError: (error) => dialog.alert('Não foi possível encerrar', error.message),
           }),
       },
@@ -632,16 +684,7 @@ function FreeGame({ matchId, game }: { matchId: string; game: LiveGame }) {
         <Text className="mt-2 mb-8 text-center font-display text-display text-text-on-dark uppercase" testID="free-game-over">
           Partida encerrada
         </Text>
-        <View className="self-stretch gap-3">
-          <Button
-            variant="grad"
-            onPress={() => router.replace({ pathname: '/matches/[id]/mvp-vote', params: { id: matchId } })}
-            testID="go-mvp-vote"
-          >
-            Votar no <Text className="font-num">MVP</Text>
-          </Button>
-          {game.isOrganizer ? <StatsLink matchId={matchId} /> : null}
-        </View>
+        <EndedActions matchId={matchId} isOrganizer={game.isOrganizer} />
       </Centered>
     );
   }
