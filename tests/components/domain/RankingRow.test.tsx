@@ -9,7 +9,7 @@
  *  - exposes a single accessibilityLabel (position/name/score/trend, + "você");
  *  - is NOT navigable (no accessibilityRole="button", no onPress).
  *
- * Native modules (expo-image, lucide) are stubbed inline — tests/__mocks__ are
+ * Native modules (expo-image) are stubbed inline — tests/__mocks__ are
  * not auto-applied.
  */
 import React from 'react';
@@ -19,19 +19,6 @@ jest.mock('expo-image', () => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
   return { Image: (props: any) => ReactLocal.createElement(View, props) };
-});
-
-// lucide trend icons -> inert testID'd nodes.
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    ArrowUp: stub('arrow-up'),
-    ArrowDown: stub('arrow-down'),
-    Minus: stub('minus'),
-  };
 });
 
 import { render, screen } from '@testing-library/react-native';
@@ -81,7 +68,7 @@ describe('RankingRow', () => {
   it('renders an up trend as a green delta with the up arrow', async () => {
     await render(<RankingRow row={{ ...BASE, trend: { direction: 'up', delta: 3 } }} isMe={false} />);
 
-    expect(screen.getByTestId('icon-arrow-up')).toBeTruthy();
+    expect(screen.getByTestId('icon-subir')).toBeTruthy();
     const delta = screen.getByText('3');
     expect(delta.props.className).toContain('text-success');
   });
@@ -89,7 +76,7 @@ describe('RankingRow', () => {
   it('renders a down trend as a red delta with the down arrow', async () => {
     await render(<RankingRow row={{ ...BASE, trend: { direction: 'down', delta: 2 } }} isMe={false} />);
 
-    expect(screen.getByTestId('icon-arrow-down')).toBeTruthy();
+    expect(screen.getByTestId('icon-descer')).toBeTruthy();
     const delta = screen.getByText('2');
     expect(delta.props.className).toContain('text-danger');
   });
@@ -97,16 +84,16 @@ describe('RankingRow', () => {
   it('renders a flat trend as a muted "—" (Minus) with no delta number', async () => {
     await render(<RankingRow row={{ ...BASE, trend: { direction: 'flat', delta: 0 } }} isMe={false} />);
 
-    expect(screen.getByTestId('icon-minus')).toBeTruthy();
-    expect(screen.queryByTestId('icon-arrow-up')).toBeNull();
-    expect(screen.queryByTestId('icon-arrow-down')).toBeNull();
+    expect(screen.getByTestId('icon-diminuir')).toBeTruthy();
+    expect(screen.queryByTestId('icon-subir')).toBeNull();
+    expect(screen.queryByTestId('icon-descer')).toBeNull();
   });
 
   it('renders "—" (Minus) when trend is absent', async () => {
     const { trend, ...noTrend } = BASE;
     await render(<RankingRow row={noTrend} isMe={false} />);
 
-    expect(screen.getByTestId('icon-minus')).toBeTruthy();
+    expect(screen.getByTestId('icon-diminuir')).toBeTruthy();
   });
 
   it('is not navigable (no button role, no onPress)', async () => {

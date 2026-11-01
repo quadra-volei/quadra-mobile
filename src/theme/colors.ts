@@ -1,5 +1,5 @@
 // Mirrors tailwind.config.js theme.extend.colors — one source of truth for
-// color values needed at runtime by non-NativeWind props (lucide `color`,
+// color values needed at runtime by non-NativeWind props (icon `color`,
 // LinearGradient `colors`). Screens NEVER inline hex; they import from here.
 export const colors = {
   surfaceDark: '#0A0A3C', // surface-dark / navy (court-image gradient end)
@@ -11,7 +11,7 @@ export const colors = {
   accentLight: '#C6F135', // accent-light / brightLime (nearby distance + price)
   tertiary: '#FF6B00', // tertiary / orange (advanced-level badge)
   textOnDark: '#FFFFFF', // text-on-dark / white (icon on dark)
-  textMuted: '#62628A', // text-muted (muted lucide icons: clock, users)
+  textMuted: '#62628A', // text-muted (muted icons: clock, users)
   line: 'rgba(10,10,60,0.10)', // line (fill of a disabled button)
   success: '#16A34A', // success (trend-up arrow)
   danger: '#DC2626', // danger (trend-down arrow)

@@ -1,7 +1,7 @@
 import * as Sharing from "expo-sharing";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { Check, ChevronLeft, Download, Lock, Maximize2, Plus, RefreshCw } from "lucide-react-native";
+import { IconAdicionar, IconAmpliar, IconBaixar, IconConfirmar, IconPrivado, IconVirarCarta, IconVoltar } from '@/components/icons/quadra';
 import { type ReactNode, useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -213,11 +213,11 @@ function SeasonTitles({ profile, save, shown }: { profile: MyProfile; save: Save
               </Text>
             </View>
             {on ? (
-              <Check size={18} color={colors.accentLight} />
+              <IconConfirmar size={18} color={colors.accentLight} />
             ) : open ? (
-              <Plus size={18} color={colors.textMuted} />
+              <IconAdicionar size={18} color={colors.textMuted} />
             ) : (
-              <Lock size={16} color={colors.textMuted} />
+              <IconPrivado size={16} color={colors.textMuted} />
             )}
           </PressableScale>
         );
@@ -245,7 +245,7 @@ function TitlePicker({ profile, save }: { profile: MyProfile; save: Save }) {
               <Text className="font-body-bold text-body text-text-on-dark">{title.name}</Text>
               <Text className="font-body text-caption text-white/60 mt-1">{title.description}</Text>
             </View>
-            {on ? <Check size={18} color={colors.accentLight} /> : <Plus size={18} color={colors.textMuted} />}
+            {on ? <IconConfirmar size={18} color={colors.accentLight} /> : <IconAdicionar size={18} color={colors.textMuted} />}
           </PressableScale>
         );
       })}
@@ -350,19 +350,19 @@ function CardBody({ profile }: { profile: MyProfile }) {
       <View className="flex-row gap-2 mb-4">
         <ToolButton
           label={flipped ? "Ver frente" : "Ver verso"}
-          icon={<RefreshCw size={14} color={colors.textOnDark} />}
+          icon={<IconVirarCarta size={14} color={colors.textOnDark} />}
           onPress={flip}
           testID="flip-card"
         />
         <ToolButton
           label="Ampliar"
-          icon={<Maximize2 size={14} color={colors.textOnDark} />}
+          icon={<IconAmpliar size={14} color={colors.textOnDark} />}
           onPress={() => setInspecting(true)}
           testID="inspect-card"
         />
         <ToolButton
           label={exporting ? "Exportando…" : "Salvar PNG"}
-          icon={<Download size={14} color={colors.textOnDark} />}
+          icon={<IconBaixar size={14} color={colors.textOnDark} />}
           onPress={exportPng}
           disabled={exporting}
           testID="export-card"
@@ -420,8 +420,8 @@ function CardBody({ profile }: { profile: MyProfile }) {
           <Text className="font-mono text-mono text-white/60 tracking-widest mb-4">SUA CARTA</Text>
           <PlayerCard {...cardProps} width={Math.min(screenWidth - 40, 380)} testID="player-card-inspect" />
           <View className="flex-row gap-2 self-stretch mt-6">
-            <ToolButton label="Virar" icon={<RefreshCw size={14} color={colors.textOnDark} />} onPress={flip} />
-            <ToolButton label="Concluir" icon={<Check size={14} color={colors.textOnDark} />} onPress={() => setInspecting(false)} />
+            <ToolButton label="Virar" icon={<IconVirarCarta size={14} color={colors.textOnDark} />} onPress={flip} />
+            <ToolButton label="Concluir" icon={<IconConfirmar size={14} color={colors.textOnDark} />} onPress={() => setInspecting(false)} />
           </View>
         </View>
       </Modal>
@@ -447,7 +447,7 @@ export default function CardScreen() {
           onPress={() => router.back()}
           className="h-9 w-9 items-center justify-center rounded-chip bg-white/10"
         >
-          <ChevronLeft size={22} color={colors.textOnDark} />
+          <IconVoltar size={22} color={colors.textOnDark} />
         </Pressable>
         <Text className="flex-1 text-center font-body-bold text-body-bold text-text-on-dark">Sua carta</Text>
         <View className="w-9" />

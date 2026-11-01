@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from "expo-router";
-import { ChevronLeft } from "lucide-react-native";
+import { IconVoltar } from '@/components/icons/quadra';
 import { useEffect, useRef, useState } from "react";
 import { Dimensions, Pressable, Text, View } from "react-native";
 import Animated, {
@@ -154,7 +154,7 @@ export default function SmsOtpScreen() {
           className="ml-4 mt-2 h-10 w-10 rounded-full bg-surface-dark/40 items-center justify-center"
           testID="otp-back"
         >
-          <ChevronLeft size={24} color={colors.textOnDark} />
+          <IconVoltar size={24} color={colors.textOnDark} />
         </Pressable>
       </SafeAreaView>
 

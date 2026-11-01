@@ -1,4 +1,4 @@
-import { Bell } from 'lucide-react-native';
+import { IconNotificacoes } from '@/components/icons/quadra';
 import { Text, View } from 'react-native';
 
 import { useUnreadCount } from '@/features/notifications/api/notificationsApi';
@@ -14,7 +14,7 @@ export function BellWithBadge() {
   const { data: count = 0 } = useUnreadCount();
   return (
     <View>
-      <Bell size={20} color={colors.surfaceDark} />
+      <IconNotificacoes size={20} color={colors.surfaceDark} />
       {count > 0 ? (
         <View
           className="absolute -right-3 -top-3 h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-surface-dark bg-accent px-1"

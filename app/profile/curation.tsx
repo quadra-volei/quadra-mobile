@@ -1,4 +1,4 @@
-import { ExternalLink, X } from 'lucide-react-native';
+import { IconAbrirExterno, IconFechar } from '@/components/icons/quadra';
 import { useState } from 'react';
 import { FlatList, Linking, Pressable, Text, View } from 'react-native';
 import MapView, { Marker, type Region } from 'react-native-maps';
@@ -149,7 +149,7 @@ function CandidateCard({
           )}
         </View>
         <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Fechar" testID="curation-close">
-          <X size={22} color={colors.surfaceDark} />
+          <IconFechar size={22} color={colors.surfaceDark} />
         </Pressable>
       </View>
 
@@ -159,7 +159,7 @@ function CandidateCard({
         className="mt-2 flex-row items-center gap-1"
         testID="curation-open-maps"
       >
-        <ExternalLink size={16} color={colors.primary} />
+        <IconAbrirExterno size={16} color={colors.primary} />
         <Text className="font-body-bold text-caption text-primary">Abrir no Google Maps</Text>
       </Pressable>
 

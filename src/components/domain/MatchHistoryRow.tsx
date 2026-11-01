@@ -1,4 +1,4 @@
-import { ChevronRight, Star, Volleyball } from 'lucide-react-native';
+import { IconAvancar, IconMvp, IconPartida } from '@/components/icons/quadra';
 import { Text, View } from 'react-native';
 
 import { PressableScale } from '@/components/ui/PressableScale';
@@ -71,7 +71,7 @@ export function MatchHistoryRow({ match, onPress, testID }: MatchHistoryRowProps
       className="flex-row items-center px-4 py-3"
     >
       <View className="h-10 w-10 rounded-full bg-bg-light-alt items-center justify-center">
-        <Volleyball size={20} color={colors.surfaceDark} />
+        <IconPartida size={20} color={colors.surfaceDark} />
       </View>
 
       <View className="flex-1 ml-3">
@@ -81,7 +81,7 @@ export function MatchHistoryRow({ match, onPress, testID }: MatchHistoryRowProps
           </Text>
           {match.isMvp ? (
             <View testID="mvp-badge" className="ml-2 flex-row items-center rounded-full bg-accent px-1.5">
-              <Star size={10} color={colors.surfaceDark} fill={colors.surfaceDark} />
+              <IconMvp size={12} color={colors.surfaceDark} />
               <Text className="ml-0.5 font-mono text-mono text-surface-dark">MVP</Text>
             </View>
           ) : null}
@@ -96,7 +96,7 @@ export function MatchHistoryRow({ match, onPress, testID }: MatchHistoryRowProps
         <Text className="font-num text-text-primary text-body">{match.setScore}</Text>
       </View>
 
-      <ChevronRight size={20} color={colors.textMuted} />
+      <IconAvancar size={20} color={colors.textMuted} />
     </PressableScale>
   );
 }

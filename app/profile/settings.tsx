@@ -1,22 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import {
-  Bell,
-  Check,
-  ChevronLeft,
-  Compass,
-  ChevronRight,
-  Download,
-  FileText,
-  Globe,
-  MapPin,
-  MessageSquare,
-  Shield,
-  Trash2,
-  User,
-  UserX,
-  Users,
-} from 'lucide-react-native';
+import { IconAvancar, IconBaixar, IconBloquearJogador, IconConfirmar, IconCuradoria, IconExcluir, IconFeedback, IconNotificacoes, IconParticipantes, IconPerfil, IconPermissoes, IconPrivacidade, IconSair, IconSobre, IconTermos, IconTour } from '@/components/icons/quadra';
 import { type ReactNode, useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
@@ -106,7 +90,7 @@ function SettingsRow({
       {rightText ? (
         <Text className="font-num text-caption text-text-muted">{rightText}</Text>
       ) : (
-        <ChevronRight size={20} color={colors.textMuted} />
+        <IconAvancar size={20} color={colors.textMuted} />
       )}
     </Pressable>
   );
@@ -146,7 +130,7 @@ function ThemeTile({
         {swatch}
         {selected ? (
           <View className="absolute right-1 top-1 h-5 w-5 items-center justify-center rounded-full bg-primary">
-            <Check size={12} color={colors.textOnDark} />
+            <IconConfirmar size={12} color={colors.textOnDark} />
           </View>
         ) : null}
       </View>
@@ -225,7 +209,7 @@ function ActivitySharingToggle() {
   const value = setSharing.isPending ? (setSharing.variables ?? true) : (data?.shareActivity ?? true);
   return (
     <ToggleField
-      icon={<Users size={24} color={colors.surfaceDark} />}
+      icon={<IconParticipantes size={24} color={colors.surfaceDark} />}
       title="Mostrar minhas atividades"
       caption="Quem te segue vê quando você joga, é MVP ou sobe de nível"
       value={value}
@@ -287,14 +271,14 @@ export default function SettingsScreen() {
           <SectionLabel>Conta</SectionLabel>
           <View className="mx-4 bg-white rounded-card shadow-card overflow-hidden">
             <SettingsRow
-              icon={<User size={24} color={colors.surfaceDark} />}
+              icon={<IconPerfil size={24} color={colors.surfaceDark} />}
               title="Editar perfil"
               subtitle="Nome, nascimento, telefone"
               onPress={() => router.push('/profile/edit')}
             />
             <Divider />
             <SettingsRow
-              icon={<Download size={24} color={colors.surfaceDark} />}
+              icon={<IconBaixar size={24} color={colors.surfaceDark} />}
               title="Exportar meus dados"
               subtitle="Tudo o que o Quadra guarda sobre você"
               onPress={onExport}
@@ -302,7 +286,7 @@ export default function SettingsScreen() {
             />
             <Divider />
             <SettingsRow
-              icon={<Trash2 size={24} color={colors.danger} />}
+              icon={<IconExcluir size={24} color={colors.danger} />}
               title="Excluir conta"
               subtitle="Apaga sua conta e seus dados"
               onPress={onDelete}
@@ -356,14 +340,14 @@ export default function SettingsScreen() {
 
           <View className="mx-4 mt-3 bg-white rounded-card shadow-card overflow-hidden">
             <SettingsRow
-              icon={<Bell size={24} color={colors.surfaceDark} />}
+              icon={<IconNotificacoes size={24} color={colors.surfaceDark} />}
               title="Notificações"
               subtitle="Convites, lembretes, ranking"
               onPress={() => router.push('/profile/notifications')}
             />
             <Divider />
             <SettingsRow
-              icon={<MapPin size={24} color={colors.surfaceDark} />}
+              icon={<IconPermissoes size={24} color={colors.surfaceDark} />}
               title="Permissões do app"
               subtitle="Localização e notificações"
               onPress={() => {
@@ -379,7 +363,7 @@ export default function SettingsScreen() {
           </View>
           <View className="mx-4 mt-3 bg-white rounded-card shadow-card overflow-hidden">
             <SettingsRow
-              icon={<UserX size={24} color={colors.surfaceDark} />}
+              icon={<IconBloquearJogador size={24} color={colors.surfaceDark} />}
               title="Jogadores bloqueados"
               subtitle="Quem você bloqueou na Rede"
               onPress={() => router.push('/profile/blocked')}
@@ -392,7 +376,7 @@ export default function SettingsScreen() {
               <SectionLabel>Equipe</SectionLabel>
               <View className="mx-4 bg-white rounded-card shadow-card overflow-hidden">
                 <SettingsRow
-                  icon={<MapPin size={24} color={colors.surfaceDark} />}
+                  icon={<IconCuradoria size={24} color={colors.surfaceDark} />}
                   title="Curadoria de arenas"
                   subtitle="Aprovar os lugares que aparecem no mapa"
                   onPress={() => router.push('/profile/curation')}
@@ -405,33 +389,33 @@ export default function SettingsScreen() {
           <SectionLabel>Suporte</SectionLabel>
           <View className="mx-4 bg-white rounded-card shadow-card overflow-hidden">
             <SettingsRow
-              icon={<MessageSquare size={24} color={colors.surfaceDark} />}
+              icon={<IconFeedback size={24} color={colors.surfaceDark} />}
               title="Enviar feedback"
               subtitle="Sugestões, problemas e elogios"
               onPress={() => router.push('/profile/feedback')}
             />
             <Divider />
             <SettingsRow
-              icon={<Compass size={24} color={colors.surfaceDark} />}
+              icon={<IconTour size={24} color={colors.surfaceDark} />}
               title="Ver o tour de novo"
               subtitle="Os atalhos do app em 4 toques"
               onPress={replayTour}
             />
             <Divider />
             <SettingsRow
-              icon={<FileText size={24} color={colors.surfaceDark} />}
+              icon={<IconTermos size={24} color={colors.surfaceDark} />}
               title="Termos de Uso"
               onPress={() => void Linking.openURL(LEGAL_URLS.terms)}
             />
             <Divider />
             <SettingsRow
-              icon={<Shield size={24} color={colors.surfaceDark} />}
+              icon={<IconPrivacidade size={24} color={colors.surfaceDark} />}
               title="Política de Privacidade"
               onPress={() => void Linking.openURL(LEGAL_URLS.privacy)}
             />
             <Divider />
             <SettingsRow
-              icon={<Globe size={24} color={colors.surfaceDark} />}
+              icon={<IconSobre size={24} color={colors.surfaceDark} />}
               title="Sobre o Quadra"
               rightText={`v${APP_VERSION}`}
               disabled
@@ -445,7 +429,7 @@ export default function SettingsScreen() {
             onPress={onLogout}
             className="mx-4 mt-6 bg-white rounded-card shadow-card px-4 py-4 flex-row items-center"
           >
-            <ChevronLeft size={24} color={colors.danger} />
+            <IconSair size={24} color={colors.danger} />
             <Text className="font-body-semibold text-body-bold text-danger ml-2">
               Sair da conta
             </Text>

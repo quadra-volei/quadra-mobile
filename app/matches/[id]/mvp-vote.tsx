@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, House, Trophy } from 'lucide-react-native';
+import { IconInicio, IconMvp, IconVoltar } from '@/components/icons/quadra';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -39,7 +39,7 @@ function Frame({ hint, children }: { hint?: string; children: ReactNode }) {
             accessibilityLabel="Voltar"
             hitSlop={ICON_HIT_SLOP}
           >
-            <ChevronLeft size={24} color={colors.textOnDark} />
+            <IconVoltar size={24} color={colors.textOnDark} />
           </Pressable>
         </View>
 
@@ -327,7 +327,7 @@ function VoteRegistered({
               <Avatar uri={player.avatarUrl} name={player.name} size="xl" />
             </View>
             <View className="absolute -bottom-1 left-6 h-10 w-10 items-center justify-center rounded-full border-2 border-surface-dark bg-accent">
-              <Trophy size={18} color={colors.surfaceDark} />
+              <IconMvp size={18} color={colors.surfaceDark} />
             </View>
           </View>
           <Text className="mt-6 font-mono text-mono uppercase tracking-widest text-accent">
@@ -349,7 +349,7 @@ function VoteRegistered({
             <Button
               variant="grad"
               onPress={() => router.replace('/(tabs)')}
-              leftIcon={<House size={18} color={colors.surfaceDark} />}
+              leftIcon={<IconInicio size={18} color={colors.surfaceDark} />}
               testID="mvp-go-home"
             >
               Voltar ao início

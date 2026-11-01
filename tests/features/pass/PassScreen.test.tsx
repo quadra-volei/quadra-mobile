@@ -17,13 +17,6 @@ jest.mock('react-native-gesture-handler', () => {
   };
 });
 
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (props: any) => ReactLocal.createElement(View, props);
-  return { Check: stub, ChevronLeft: stub, Lock: stub };
-});
-
 jest.mock('@/components/ui/Button', () => {
   const ReactLocal = require('react');
   const { Pressable, Text } = require('react-native');

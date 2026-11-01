@@ -3,7 +3,7 @@ import { Asset } from "expo-asset";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { Pencil } from "lucide-react-native";
+import { IconEditar } from '@/components/icons/quadra';
 import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 
@@ -187,7 +187,7 @@ function EditProfileForm({
               defaultSource={DEFAULT_AVATAR}
             />
             <View className="absolute -bottom-1 -right-1 h-7 w-7 items-center justify-center rounded-full bg-primary border-2 border-bg-light">
-              <Pencil size={14} color={colors.textOnDark} />
+              <IconEditar size={14} color={colors.textOnDark} />
             </View>
           </Pressable>
           {permissionDenied ? (

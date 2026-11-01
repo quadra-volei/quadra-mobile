@@ -1,4 +1,4 @@
-import { Car, Navigation, X } from 'lucide-react-native';
+import { IconCarro, IconFechar, IconRota } from '@/components/icons/quadra';
 import { Modal, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -14,7 +14,7 @@ export type DirectionsSheetProps = {
 };
 
 function OptionRow({ option, onPress }: { option: RideOption; onPress: () => void }) {
-  const Icon = option.kind === 'ride' ? Car : Navigation;
+  const Icon = option.kind === 'ride' ? IconCarro : IconRota;
   return (
     <Pressable
       onPress={onPress}
@@ -81,7 +81,7 @@ export function DirectionsSheet({ destination, distanceLabel, onClose }: Directi
               onPress={onClose}
               className="h-9 w-9 items-center justify-center rounded-chip bg-white shadow-card"
             >
-              <X size={20} color={colors.surfaceDark} />
+              <IconFechar size={20} color={colors.surfaceDark} />
             </Pressable>
           </View>
 

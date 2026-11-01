@@ -31,13 +31,6 @@ jest.mock('expo-sharing', () => ({
   shareAsync: (...args: any[]) => mockShare(...args),
 }));
 
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (props: any) => ReactLocal.createElement(View, props);
-  return { Check: stub, ChevronLeft: stub, ChevronRight: stub, Download: stub, Lock: stub, Maximize2: stub, Plus: stub, RefreshCw: stub };
-});
-
 jest.mock('@/components/ui/Button', () => {
   const ReactLocal = require('react');
   const { Pressable, Text } = require('react-native');

@@ -25,13 +25,6 @@ jest.mock('react-native-safe-area-context', () => {
   };
 });
 
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const Icon = (props: any) => ReactLocal.createElement(View, props);
-  return { ChevronLeft: Icon, ChevronRight: Icon, Glasses: Icon, Trophy: Icon, Volleyball: Icon };
-});
-
 jest.mock('expo-blur', () => ({ BlurView: () => null }));
 
 jest.mock('@/components/ui/Button', () => {

@@ -1,6 +1,6 @@
 import { BlurTargetView } from 'expo-blur';
 import { Redirect, router, Tabs } from 'expo-router';
-import { Plus } from 'lucide-react-native';
+import { IconAdicionar } from '@/components/icons/quadra';
 import type { ComponentType } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Keyboard, Pressable, View } from 'react-native';
@@ -162,7 +162,7 @@ function CenterButton({ onPress }: { onPress: () => void }) {
         style={{ width: CENTER_SIZE, height: CENTER_SIZE }}
         testID="tab-create"
       >
-        <Plus size={30} color={colors.surfaceDark} strokeWidth={2.6} />
+        <IconAdicionar size={30} color={colors.surfaceDark} />
       </Pressable>
     </Animated.View>
     </View>

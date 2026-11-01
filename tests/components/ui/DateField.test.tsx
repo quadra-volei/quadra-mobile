@@ -9,11 +9,6 @@ import React from 'react';
 
 import { DateField } from '@/components/ui/DateField';
 
-// lucide Calendar -> inert node (avoids svg internals).
-jest.mock('lucide-react-native', () => ({
-  Calendar: () => null,
-}));
-
 afterEach(async () => {
   cleanup();
   await act(async () => {});

@@ -1,5 +1,5 @@
 jest.mock('@/components/domain/BellWithBadge', () => ({
-  BellWithBadge: () => require('react').createElement(require('react-native').View, { testID: 'icon-bell' }),
+  BellWithBadge: () => require('react').createElement(require('react-native').View, { testID: 'icon-notificacoes' }),
 }));
 /**
  * S8 — Profile screen tests.
@@ -28,7 +28,7 @@ jest.mock('@/components/domain/BellWithBadge', () => ({
  * The three read hooks are mocked at the hook boundary so the four query states
  * (pending / error / empty / populated) are controlled deterministically per
  * section, with no network and no MSW. Navigation is mocked via expo-router.
- * Native modules (gradient, safe-area, expo-image, lucide) are stubbed inline —
+ * Native modules (gradient, safe-area, expo-image) are stubbed inline —
  * the repo's tests/__mocks__ are NOT auto-applied. The auth store is a real
  * zustand store; tests set userId via setState to exercise the `isMe` highlight.
  *
@@ -72,22 +72,6 @@ jest.mock('expo-image', () => {
   const { View } = require('react-native');
   return {
     Image: (props: any) => ReactLocal.createElement(View, props),
-  };
-});
-
-// lucide icons -> inert nodes (header bell/sun/settings, row chevron/volleyball).
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    Bell: stub('bell'),
-    Sun: stub('sun'),
-    Settings: stub('settings'),
-    ChevronRight: stub('chevron-right'),
-    Volleyball: stub('volleyball'),
-    Star: stub('star'),
   };
 });
 
@@ -315,7 +299,7 @@ describe('S8 — Profile screen', () => {
 
     // bell is an accessible button
     expect(screen.getByLabelText('Notificações')).toBeTruthy();
-    expect(screen.getByTestId('icon-bell')).toBeTruthy();
+    expect(screen.getByTestId('icon-notificacoes')).toBeTruthy();
     // theme toggle moved to Settings — not in the header.
     expect(screen.queryByLabelText('Alternar tema')).toBeNull();
     expect(screen.queryByTestId('icon-sun')).toBeNull();

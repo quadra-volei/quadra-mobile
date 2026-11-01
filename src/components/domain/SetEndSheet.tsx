@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur';
-import type { LucideIcon } from 'lucide-react-native';
-import { ChevronRight, Glasses, Volleyball } from 'lucide-react-native';
+import { IconAvancar, IconEncerrar, IconProximoSet, type QuadraIcon } from '@/components/icons/quadra';
+
 import { useCallback, useEffect } from 'react';
 import { BackHandler, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, {
@@ -112,7 +112,7 @@ export function SetEndSheet({
 
         <View className="mt-6 gap-3">
           <SheetOption
-            icon={Volleyball}
+            icon={IconProximoSet}
             title="Próximo set"
             hint="O vencedor fica e você escolhe quem entra"
             onPress={onNextSet}
@@ -121,7 +121,7 @@ export function SetEndSheet({
             testID="set-end-next"
           />
           <SheetOption
-            icon={Glasses}
+            icon={IconEncerrar}
             title="Finalizar partida"
             hint="Registrar as estatísticas e escolher o MVP"
             onPress={onFinish}
@@ -169,7 +169,7 @@ function SheetOption({
   primary = false,
   testID,
 }: {
-  icon: LucideIcon;
+  icon: QuadraIcon;
   title: string;
   hint: string;
   onPress: () => void;
@@ -207,7 +207,7 @@ function SheetOption({
           {hint}
         </Text>
       </View>
-      <ChevronRight size={20} color={ink} />
+      <IconAvancar size={20} color={ink} />
     </PressableScale>
   );
 }

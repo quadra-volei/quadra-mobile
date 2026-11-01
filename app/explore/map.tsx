@@ -1,6 +1,6 @@
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import { ArrowRight, ChevronLeft, Clock, LocateFixed, MapPin, Navigation, Users } from 'lucide-react-native';
+import { IconCentralizar, IconHorario, IconIr, IconLocal, IconParticipantes, IconRota, IconVoltar } from '@/components/icons/quadra';
 import { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
@@ -211,7 +211,7 @@ function VenueSheet({
             testID="map-venue-directions"
             className="mt-2 self-start flex-row items-center gap-1 rounded-pill border-2 border-surface-dark bg-accent px-3 py-1"
           >
-            <Navigation size={14} color={colors.surfaceDark} />
+            <IconRota size={14} color={colors.surfaceDark} />
             <Text className="font-body-bold text-caption text-surface-dark">Como chegar</Text>
           </Pressable>
         </View>
@@ -246,7 +246,7 @@ function VenueSheet({
                   style={{ width: cardWidth, minHeight: 168 }}
                 >
                   <View>
-                    <MapPin size={20} color={colors.primary} />
+                    <IconLocal size={20} color={colors.primary} />
                     <Text className="mt-2 font-body-bold text-body text-text-primary">Outra arena com jogos</Text>
                     <Text className="font-body text-caption text-text-muted">
                       {`a ${formatKm(nextKm)} daqui · ${gamesThisWeek(item.venue.gamesCount)}`}
@@ -254,7 +254,7 @@ function VenueSheet({
                   </View>
                   <View className="mt-3 flex-row items-center gap-2">
                     <Text className="font-body-bold text-body text-primary">Ir para lá</Text>
-                    <ArrowRight size={18} color={colors.primary} />
+                    <IconIr size={18} color={colors.primary} />
                   </View>
                 </Pressable>
               );
@@ -571,7 +571,7 @@ export default function MapScreen() {
       testID="map-back"
       className={`rounded-full items-center justify-center ${className}`}
     >
-      <ChevronLeft size={24} color={colors.surfaceDark} />
+      <IconVoltar size={24} color={colors.surfaceDark} />
     </Pressable>
   );
 
@@ -736,7 +736,7 @@ export default function MapScreen() {
             className="h-12 w-12 rounded-full border-2 border-surface-dark bg-white items-center justify-center"
             style={HARD_SHADOW}
           >
-            <LocateFixed size={22} color={colors.surfaceDark} />
+            <IconCentralizar size={22} color={colors.surfaceDark} />
           </Pressable>
         </View>
 
@@ -921,14 +921,14 @@ export default function MapScreen() {
                 <View className="mt-3 flex-row flex-wrap items-center gap-x-4 gap-y-1">
                   {selected.startsAt ? (
                     <View className="flex-row items-center gap-1">
-                      <Clock size={14} color={colors.primary} />
+                      <IconHorario size={14} color={colors.primary} />
                       <Text className="font-body-semibold text-caption text-text-primary">
                         {formatWhen(selected.startsAt)}
                       </Text>
                     </View>
                   ) : null}
                   <View className="flex-row items-center gap-1">
-                    <MapPin size={14} color={colors.primary} />
+                    <IconLocal size={14} color={colors.primary} />
                     <Text className="font-body-semibold text-caption text-text-primary">
                       {/* From the user, not from the map centre the search used. */}
                       {(userLocation
@@ -944,7 +944,7 @@ export default function MapScreen() {
                     </Text>
                   </View>
                   <View className="flex-row items-center gap-1">
-                    <Users size={14} color={colors.primary} />
+                    <IconParticipantes size={14} color={colors.primary} />
                     <Text className="font-body-semibold text-caption text-text-primary">
                       {selected.confirmed}/{selected.capacity} confirmados
                     </Text>

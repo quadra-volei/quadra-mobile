@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { router } from 'expo-router';
-import { Flame, Heart, Share2, Zap } from 'lucide-react-native';
+import { IconCurtir, IconEnviar, IconProblema, IconSugestao } from '@/components/icons/quadra';
 import { type ComponentType, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -42,9 +42,9 @@ const TYPE_OPTIONS: {
   label: string;
   Icon: ComponentType<{ size?: number; color?: string }>;
 }[] = [
-  { value: 'suggestion', label: 'Sugestão', Icon: Flame },
-  { value: 'problem', label: 'Problema', Icon: Zap },
-  { value: 'praise', label: 'Elogio', Icon: Heart },
+  { value: 'suggestion', label: 'Sugestão', Icon: IconSugestao },
+  { value: 'problem', label: 'Problema', Icon: IconProblema },
+  { value: 'praise', label: 'Elogio', Icon: IconCurtir },
 ];
 
 // ── One feedback-type tile — selected = blue fill + white icon/label ──
@@ -237,7 +237,7 @@ export default function FeedbackScreen() {
               disabled={!canSubmit}
               loading={sendFeedback.isPending}
               leftIcon={
-                <Share2
+                <IconEnviar
                   size={18}
                   color={colors.surfaceDark}
                 />

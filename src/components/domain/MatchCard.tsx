@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapPin, Users } from 'lucide-react-native';
+import { IconLocal, IconParticipantes } from '@/components/icons/quadra';
 import { Text, View } from 'react-native';
 
 import { CourtImage } from '@/components/ui/CourtImage';
@@ -59,7 +59,7 @@ export function MatchCard({ match, onPress, testID }: MatchCardProps) {
         {/* bottom info block */}
         <View className="absolute left-[11px] right-[11px] bottom-[10px]">
           <View className="flex-row items-center gap-1 mb-[3px]">
-            <MapPin size={11} color={colors.accentLight} />
+            <IconLocal size={11} color={colors.accentLight} />
             <Text
               className="font-mono text-accent-light"
               style={{ fontSize: 9.5, letterSpacing: 0.5 }}
@@ -76,7 +76,7 @@ export function MatchCard({ match, onPress, testID }: MatchCardProps) {
           </Text>
           <View className="flex-row items-center justify-between mt-[6px]">
             <View className="flex-row items-center gap-1">
-              <Users size={13} color="rgba(255,255,255,0.8)" />
+              <IconParticipantes size={13} color="rgba(255,255,255,0.8)" />
               <Text
                 className="font-body-bold text-caption"
                 style={{ color: 'rgba(255,255,255,0.8)' }}

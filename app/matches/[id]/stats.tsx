@@ -1,7 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import type { LucideIcon } from 'lucide-react-native';
-import { Check, ChevronLeft, Fence, HandHelping, Lock, Minus, Plus, Volleyball, Zap } from 'lucide-react-native';
+import { IconAces, IconAdicionar, IconAssistencias, IconBlocks, IconConfirmar, IconCortadas, IconDiminuir, IconSalvadas, IconVoltar, type QuadraIcon } from '@/components/icons/quadra';
+
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -28,12 +28,12 @@ import { colors, withAlpha } from '@/theme/colors';
 import { ICON_HIT_SLOP } from '@/theme/layout';
 
 /** The icon of each action's row, in the designer's style. */
-const ACTION_ICON: Record<PlayerActionKey, LucideIcon> = {
-  kills: Volleyball,
-  blocks: Fence,
-  aces: Zap,
-  digs: Lock,
-  assists: HandHelping,
+const ACTION_ICON: Record<PlayerActionKey, QuadraIcon> = {
+  kills: IconCortadas,
+  blocks: IconBlocks,
+  aces: IconAces,
+  digs: IconSalvadas,
+  assists: IconAssistencias,
 };
 
 /**
@@ -131,7 +131,7 @@ export default function StatsScreen() {
             className="h-11 w-11 items-center justify-center rounded-chip bg-white/10"
             testID="stats-back"
           >
-            <ChevronLeft size={22} color={colors.textOnDark} />
+            <IconVoltar size={22} color={colors.textOnDark} />
           </Pressable>
           <View className="flex-1">
             <Text className="font-mono text-mono uppercase tracking-widest text-white/60">
@@ -223,7 +223,7 @@ export default function StatsScreen() {
                   onPress={canEdit ? onConfirm : goOn}
                   disabled={canEdit && !endFlow && !changed}
                   loading={save.isPending}
-                  leftIcon={<Check size={18} color={colors.surfaceDark} />}
+                  leftIcon={<IconConfirmar size={18} color={colors.surfaceDark} />}
                   testID="stats-save"
                 >
                   {canEdit ? 'Confirmar estatísticas' : 'Ir para o MVP'}
@@ -337,7 +337,7 @@ function StatRow({
   playerName,
   testKey,
 }: {
-  icon: LucideIcon;
+  icon: QuadraIcon;
   label: string;
   value: number | undefined;
   editable: boolean;
@@ -362,7 +362,7 @@ function StatRow({
           style={{ opacity: value ? 1 : 0.4 }}
           testID={`stats-minus-${testKey}`}
         >
-          <Minus size={18} color={colors.textOnDark} />
+          <IconDiminuir size={18} color={colors.textOnDark} />
         </Pressable>
       ) : null}
       <Text
@@ -383,7 +383,7 @@ function StatRow({
           className="h-10 w-10 items-center justify-center rounded-chip bg-accent"
           testID={`stats-add-${testKey}`}
         >
-          <Plus size={18} color={colors.surfaceDark} />
+          <IconAdicionar size={18} color={colors.surfaceDark} />
         </Pressable>
       ) : null}
     </View>

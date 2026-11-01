@@ -1,15 +1,7 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import {
-  Clock,
-  Heart,
-  MessageCircle,
-  MoreHorizontal,
-  Settings,
-  Trash2,
-  Trophy,
-} from 'lucide-react-native';
+import { IconComentar, IconConfiguracoes, IconCurtir, IconCurtirAtivo, IconExcluir, IconHorario, IconMaisOpcoes, IconPartida } from '@/components/icons/quadra';
 import { useState } from 'react';
 import { FlatList, Pressable, Text, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -101,7 +93,7 @@ function MatchInvite({
               {match.name}
             </Text>
             <View className="flex-row items-center gap-1 mt-1">
-              <Clock size={14} color={colors.textOnDark} />
+              <IconHorario size={14} color={colors.textOnDark} />
               <Text className="font-body text-caption text-text-on-dark">
                 {formatWhen(match.startsAt)}
               </Text>
@@ -177,7 +169,7 @@ function PostCard({
             hitSlop={ICON_HIT_SLOP}
             onPress={onDelete}
           >
-            <Trash2 size={20} color={colors.textMuted} />
+            <IconExcluir size={20} color={colors.textMuted} />
           </PressableScale>
         ) : (
           <PressableScale
@@ -186,7 +178,7 @@ function PostCard({
             hitSlop={ICON_HIT_SLOP}
             onPress={onMore}
           >
-            <MoreHorizontal size={20} color={colors.textMuted} />
+            <IconMaisOpcoes size={20} color={colors.textMuted} />
           </PressableScale>
         )}
       </View>
@@ -208,7 +200,7 @@ function PostCard({
         <MatchInvite match={invitesTo} />
       ) : match && !activity ? (
         <View className="flex-row items-center gap-2 px-4 py-3 border-t border-line">
-          <Trophy size={16} color={colors.primary} />
+          <IconPartida size={16} color={colors.primary} />
           <Text className="flex-1 font-body-semibold text-caption text-primary" numberOfLines={1}>
             {match.name}
           </Text>
@@ -224,11 +216,11 @@ function PostCard({
           onPress={onToggleLike}
           className="flex-row items-center gap-2"
         >
-          <Heart
-            size={20}
-            color={post.likedByMe ? colors.danger : colors.textMuted}
-            fill={post.likedByMe ? colors.danger : 'none'}
-          />
+          {post.likedByMe ? (
+            <IconCurtirAtivo size={20} color={colors.danger} />
+          ) : (
+            <IconCurtir size={20} color={colors.textMuted} />
+          )}
           <Text className="font-body-semibold text-caption text-text-muted">{post.likeCount}</Text>
         </PressableScale>
         <PressableScale
@@ -238,7 +230,7 @@ function PostCard({
           onPress={() => goComments(post.id)}
           className="flex-row items-center gap-2"
         >
-          <MessageCircle size={20} color={colors.textMuted} />
+          <IconComentar size={20} color={colors.textMuted} />
           <Text className="font-body-semibold text-caption text-text-muted">{post.commentCount}</Text>
         </PressableScale>
       </View>
@@ -380,7 +372,7 @@ export default function NetworkScreen() {
               <BellWithBadge />
             </IconButton>
             <IconButton label="Configurações" onPress={goSettings}>
-              <Settings size={20} color={colors.surfaceDark} />
+              <IconConfiguracoes size={20} color={colors.surfaceDark} />
             </IconButton>
           </View>
         </View>

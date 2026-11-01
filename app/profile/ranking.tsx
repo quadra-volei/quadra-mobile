@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, CircleHelp, Crown, X } from 'lucide-react-native';
+import { IconAjuda, IconAvancar, IconCampeao, IconExpandir, IconFechar, IconRecolher, IconVoltar } from '@/components/icons/quadra';
 import { useState } from 'react';
 import { Modal, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -218,7 +218,7 @@ function PodiumColumn({
         accessibilityLabel={`${row.position}º, ${row.name}, ${score} ${UNIT[sort].long}`}
         onPress={() => openPlayer(row.playerId)}
       >
-        {champion ? <Crown size={22} color={colors.accent} /> : <View className="h-6" />}
+        {champion ? <IconCampeao size={22} color={colors.accent} /> : <View className="h-6" />}
         <Avatar uri={row.photoUrl} name={row.name} size="lg" level={row.level} />
         <Text
           numberOfLines={1}
@@ -279,7 +279,7 @@ function Hero({
             testID="ranking-season-prev"
             style={{ opacity: canGoBack ? 1 : 0.3 }}
           >
-            <ChevronLeft size={24} color={colors.textOnDark} />
+            <IconVoltar size={24} color={colors.textOnDark} />
           </PressableScale>
           <View className="items-center">
             <Text
@@ -302,7 +302,7 @@ function Hero({
             testID="ranking-season-next"
             style={{ opacity: isCurrent ? 0.3 : 1 }}
           >
-            <ChevronRight size={24} color={colors.textOnDark} />
+            <IconAvancar size={24} color={colors.textOnDark} />
           </PressableScale>
         </View>
         {children ?? (
@@ -478,7 +478,7 @@ function HowToScoreSheet({ visible, onClose }: { visible: boolean; onClose: () =
               onPress={onClose}
               className="h-9 w-9 items-center justify-center rounded-chip bg-white shadow-card"
             >
-              <X size={20} color={colors.surfaceDark} />
+              <IconFechar size={20} color={colors.surfaceDark} />
             </Pressable>
           </View>
           <Text className="mt-1 font-body text-caption text-text-muted">
@@ -521,7 +521,7 @@ function ExpandableRow({
   onToggle: () => void;
   divider: boolean;
 }) {
-  const Chevron = open ? ChevronUp : ChevronDown;
+  const Chevron = open ? IconRecolher : IconExpandir;
   return (
     <View>
       {divider ? <View className="h-px bg-line mx-4" /> : null}
@@ -739,7 +739,7 @@ export default function RankingScreen() {
         onHeight={setHeaderHeight}
         right={
           <IconButton label="Como pontuar" onPress={() => setHelpOpen(true)} testID="ranking-help">
-            <CircleHelp size={20} color={colors.surfaceDark} />
+            <IconAjuda size={20} color={colors.surfaceDark} />
           </IconButton>
         }
       />

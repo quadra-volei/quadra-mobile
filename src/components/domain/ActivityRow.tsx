@@ -1,4 +1,4 @@
-import { ArrowUp, Check, Star, Volleyball } from 'lucide-react-native';
+import { IconConfirmar, IconMvp, IconPartida, IconSubir } from '@/components/icons/quadra';
 import { Text, View } from 'react-native';
 
 import { Avatar } from '@/components/ui/Avatar';
@@ -14,7 +14,7 @@ export type ActivityRowProps = {
   testID?: string;
 };
 
-const ICONS = { levelUp: ArrowUp, finished: Check, live: Volleyball, mvp: Star };
+const ICONS = { levelUp: IconSubir, finished: IconConfirmar, live: IconPartida, mvp: IconMvp };
 
 const PART_CLASS = {
   name: 'font-body-bold text-text-primary',
@@ -61,7 +61,7 @@ export function ActivityRow({ activity, onPress, now, testID }: ActivityRowProps
         </Text>
       </View>
       <View className="h-9 w-9 items-center justify-center rounded-chip bg-quaternary/10">
-        <Icon size={18} color={colors.primary} strokeWidth={2.4} />
+        <Icon size={18} color={colors.primary} />
       </View>
     </PressableScale>
   );

@@ -1,18 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import {
-  Check,
-  ChevronLeft,
-  Clock,
-  Heart,
-  Lock,
-  MapPin,
-  Search,
-  Share2,
-  Users,
-  Zap,
-} from 'lucide-react-native';
+import { IconAberta, IconAvulso, IconCompartilhar, IconConfirmar, IconGratuito, IconLocal, IconNivel, IconPrivado, IconRateio, IconRecorrente, IconVoltar } from '@/components/icons/quadra';
 import type { ReactNode } from 'react';
 import { useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -246,7 +235,7 @@ function CreatedView({ match }: { match: CreatedMatch }) {
   return (
     <View className="flex-1 items-center justify-center bg-surface-dark px-6">
       <View className="h-20 w-20 items-center justify-center rounded-full bg-accent">
-        <Check size={36} color={colors.surfaceDark} />
+        <IconConfirmar size={36} color={colors.surfaceDark} />
       </View>
       <Text className="mt-6 text-center font-display text-display text-text-on-dark uppercase">
         Partida criada!
@@ -267,7 +256,7 @@ function CreatedView({ match }: { match: CreatedMatch }) {
           {input.name}
         </Text>
         <View className="mt-1 flex-row items-center gap-1">
-          <MapPin size={16} color={colors.textOnDark} />
+          <IconLocal size={16} color={colors.textOnDark} />
           <View className="flex-1" testID="created-recap-location">
             <Text className="font-body-bold text-body text-text-on-dark">
               {splitVenue(input.location).name}
@@ -336,7 +325,7 @@ function CreatedView({ match }: { match: CreatedMatch }) {
         <Button
           variant="outlineW"
           onPress={goToInvite}
-          leftIcon={<Share2 size={18} color={colors.textOnDark} />}
+          leftIcon={<IconCompartilhar size={18} color={colors.textOnDark} />}
           testID="created-invite"
         >
           Convidar jogadores
@@ -573,7 +562,7 @@ export default function CreateMatchScreen() {
             onPress={() => router.back()}
             className="h-10 w-10 items-center justify-center rounded-chip bg-white shadow-card"
           >
-            <ChevronLeft size={24} color={colors.surfaceDark} />
+            <IconVoltar size={24} color={colors.surfaceDark} />
           </Pressable>
           <Text className="font-display text-h1 text-text-primary uppercase">
             Criar partida
@@ -695,7 +684,7 @@ export default function CreateMatchScreen() {
                   className="mt-3 flex-row items-center gap-3 rounded-card border-2 border-primary bg-white p-3"
                   testID="place-picked"
                 >
-                  <MapPin size={20} color={colors.primary} />
+                  <IconLocal size={20} color={colors.primary} />
                   <View className="flex-1">
                     <Text className="font-body-bold text-body text-text-primary" numberOfLines={1}>
                       {splitVenue(location).name}
@@ -761,7 +750,7 @@ export default function CreateMatchScreen() {
                     advanceTo('when');
                   }}
                   icon={
-                    <Zap
+                    <IconAvulso
                       size={20}
                       color={type === 'OneOff' ? colors.textOnDark : colors.primary}
                     />
@@ -777,7 +766,7 @@ export default function CreateMatchScreen() {
                     advanceTo('when');
                   }}
                   icon={
-                    <Clock
+                    <IconRecorrente
                       size={20}
                       color={
                         type === 'Recurring' ? colors.textOnDark : colors.primary
@@ -1089,7 +1078,7 @@ export default function CreateMatchScreen() {
               </View>
               <Reveal show={!!level}>
                 <View className="flex-row items-start gap-2 rounded-chip bg-primary/5 p-3">
-                  <Zap size={16} color={colors.primary} />
+                  <IconNivel size={16} color={colors.primary} />
                   <Text className="flex-1 font-body text-caption text-text-primary">
                     {levelDesc}
                   </Text>
@@ -1178,9 +1167,9 @@ export default function CreateMatchScreen() {
                 }`}
               >
                 {isFree ? (
-                  <Heart size={16} color={colors.primary} />
+                  <IconGratuito size={16} color={colors.primary} />
                 ) : (
-                  <Users size={16} color={colors.primary} />
+                  <IconRateio size={16} color={colors.primary} />
                 )}
                 <Text className="flex-1 font-body-bold text-caption text-text-primary">
                   {isFree
@@ -1207,7 +1196,7 @@ export default function CreateMatchScreen() {
                     advanceTo('end');
                   }}
                   icon={
-                    <Users
+                    <IconAberta
                       size={20}
                       color={privacy === 'open' ? colors.textOnDark : colors.primary}
                     />
@@ -1223,7 +1212,7 @@ export default function CreateMatchScreen() {
                     advanceTo('end');
                   }}
                   icon={
-                    <Lock
+                    <IconPrivado
                       size={20}
                       color={privacy === 'private' ? colors.textOnDark : colors.primary}
                     />

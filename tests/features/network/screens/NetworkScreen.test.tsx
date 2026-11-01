@@ -1,5 +1,5 @@
 jest.mock('@/components/domain/BellWithBadge', () => ({
-  BellWithBadge: () => require('react').createElement(require('react-native').View, { testID: 'icon-bell' }),
+  BellWithBadge: () => require('react').createElement(require('react-native').View, { testID: 'icon-notificacoes' }),
 }));
 /**
  * S7 — Rede: the feed of posts.
@@ -16,24 +16,6 @@ jest.mock('react-native-safe-area-context', () => {
     SafeAreaView: ({ children, ...props }: any) =>
       ReactLocal.createElement(View, props, children),
     useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
-  };
-});
-
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    Clock: stub('clock'),
-    Heart: stub('heart'),
-    MessageCircle: stub('message'),
-    MoreHorizontal: stub('more'),
-    Search: stub('search'),
-    Bell: stub('bell'),
-    Settings: stub('settings'),
-    Trash2: stub('trash'),
-    Trophy: stub('trophy'),
   };
 });
 

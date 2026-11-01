@@ -1,5 +1,5 @@
 import { router } from 'expo-router';
-import { ChevronRight } from 'lucide-react-native';
+import { IconAvancar } from '@/components/icons/quadra';
 import { useState } from 'react';
 import { FlatList, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -56,7 +56,7 @@ export default function UpcomingMatchesScreen() {
             {item.confirmed ? (
               <Text className="font-body-bold text-caption text-success">Confirmado</Text>
             ) : null}
-            <ChevronRight size={18} color={colors.textMuted} />
+            <IconAvancar size={18} color={colors.textMuted} />
           </PressableScale>
         )}
         ListEmptyComponent={

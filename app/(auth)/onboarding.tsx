@@ -2,13 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import {
-  BarChart3,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Globe,
-} from "lucide-react-native";
+import { IconAvancar, IconConfirmar, IconEntrar, IconModalidade, IconNivel, IconVoltar } from '@/components/icons/quadra';
 import { useEffect, useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 
@@ -314,7 +308,7 @@ function PersonalDataStep({
             className="ml-4 mt-2 h-10 w-10 items-center justify-center rounded-full bg-surface-dark/40"
             testID="onboarding-back"
           >
-            <ChevronLeft size={24} color={colors.textOnDark} />
+            <IconVoltar size={24} color={colors.textOnDark} />
           </Pressable>
         </SafeAreaView>
       </LinearGradient>
@@ -554,7 +548,7 @@ function WizardStep({
           onPress={onContinue}
           disabled={!canContinue}
           leftIcon={
-            <ChevronRight
+            <IconAvancar
               size={20}
               color={canContinue ? colors.surfaceDark : colors.textMuted}
             />
@@ -601,7 +595,7 @@ function LevelList({
                 selected ? "bg-accent" : "bg-bg-light-alt"
               }`}
             >
-              <BarChart3 size={24} color={colors.primary} />
+              <IconNivel size={24} color={colors.primary} />
             </View>
             <View className="ml-4 flex-1">
               <Text className="font-body-extrabold text-h3 text-text-primary">
@@ -617,7 +611,7 @@ function LevelList({
               }`}
             >
               {selected ? (
-                <Check size={14} color={colors.surfaceDark} strokeWidth={3} />
+                <IconConfirmar size={14} color={colors.surfaceDark} />
               ) : null}
             </View>
           </Pressable>
@@ -753,7 +747,7 @@ function CompletionStep({
 
           <View className="mt-10 items-center">
             <View className="h-20 w-20 items-center justify-center rounded-full bg-accent">
-              <Check size={40} color={colors.surfaceDark} />
+              <IconConfirmar size={40} color={colors.surfaceDark} />
             </View>
             <Text className="mt-6 text-center font-display text-display text-text-on-dark uppercase">
               PERFIL PRONTO!
@@ -774,12 +768,12 @@ function CompletionStep({
             <SummaryRow
               label="Nível"
               value={levelOption?.name ?? "—"}
-              icon={<BarChart3 size={18} color={colors.textOnDark} />}
+              icon={<IconNivel size={18} color={colors.textOnDark} />}
             />
             <SummaryRow
               label="Modalidade"
               value={modalityOption?.name ?? "—"}
-              icon={<Globe size={18} color={colors.textOnDark} />}
+              icon={<IconModalidade size={18} color={colors.textOnDark} />}
             />
           </View>
 
@@ -799,7 +793,7 @@ function CompletionStep({
               variant="grad"
               onPress={onEnter}
               loading={loading}
-              leftIcon={<Globe size={20} color={colors.surfaceDark} />}
+              leftIcon={<IconEntrar size={20} color={colors.surfaceDark} />}
               testID="onboarding-enter"
             >
               Entrar na quadra

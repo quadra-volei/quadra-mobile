@@ -24,7 +24,7 @@
  * The nearby read hook is mocked at the boundary so the four query states
  * (pending / error / empty / populated) are controlled deterministically, with
  * no network and no MSW. Navigation is mocked via expo-router. Native modules
- * (gradient, safe-area, expo-image, lucide) are stubbed inline — the repo's
+ * (gradient, safe-area, expo-image) are stubbed inline — the repo's
  * tests/__mocks__ are NOT auto-applied.
  *
  * The bottom tab bar + "Explorar" active tab are owned by app/(tabs)/_layout.tsx
@@ -66,26 +66,6 @@ jest.mock('expo-image', () => {
   const { View } = require('react-native');
   return {
     Image: (props: any) => ReactLocal.createElement(View, props),
-  };
-});
-
-// lucide icons -> inert nodes (header bell/sun, search, map-pin, grid/list, X).
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    Bell: stub('bell'),
-    Settings: stub('settings'),
-    Sun: stub('sun'),
-    Search: stub('search'),
-    X: stub('x'),
-    MapPin: stub('map-pin'),
-    LayoutGrid: stub('layout-grid'),
-    List: stub('list'),
-    Users: stub('users'),
-    SlidersHorizontal: stub('sliders'),
   };
 });
 
@@ -261,13 +241,13 @@ describe('S6 — Explore screen', () => {
 
     expect(screen.getByText('EXPLORAR')).toBeTruthy();
     expect(screen.getByLabelText('Notificações')).toBeTruthy();
-    expect(screen.getByTestId('icon-bell')).toBeTruthy();
+    expect(screen.getByTestId('icon-notificacoes')).toBeTruthy();
     // theme toggle moved to Settings — not in the header.
     expect(screen.queryByLabelText('Alternar tema')).toBeNull();
     expect(screen.queryByTestId('icon-sun')).toBeNull();
     // settings affordance is present in every screen header.
     expect(screen.getByLabelText('Configurações')).toBeTruthy();
-    expect(screen.getByTestId('icon-settings')).toBeTruthy();
+    expect(screen.getByTestId('icon-configuracoes')).toBeTruthy();
 
     // NO greeting / avatar on Explore.
     expect(screen.queryByText(/olá/i)).toBeNull();
@@ -527,13 +507,13 @@ describe('S6 — Explore screen', () => {
 
     // default = Grade
     expect(screen.getByText('Grade')).toBeTruthy();
-    expect(screen.getByTestId('icon-layout-grid')).toBeTruthy();
+    expect(screen.getByTestId('icon-grade')).toBeTruthy();
 
     await press(screen.getByText('Grade'));
 
     // now Lista
     expect(screen.getByText('Lista')).toBeTruthy();
-    expect(screen.getByTestId('icon-list')).toBeTruthy();
+    expect(screen.getByTestId('icon-lista')).toBeTruthy();
     // same data still rendered
     expect(screen.getByText('Arena Sky Beach')).toBeTruthy();
     expect(screen.getByText('Quadra do Parque')).toBeTruthy();

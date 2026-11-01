@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Minus } from 'lucide-react-native';
+import { IconDescer, IconDiminuir, IconSubir } from '@/components/icons/quadra';
 import { Pressable, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/ui/Avatar';
@@ -21,14 +21,14 @@ export type RankingRowProps = {
 
 const ICON_SIZE = 14;
 
-/** Maps the trend direction to its lucide arrow, semantic color, and a11y word. */
+/** Maps the trend direction to its arrow, semantic color, and a11y word. */
 function TrendBadge({ trend }: { trend: RankingRowData['trend'] }) {
   const direction = trend?.direction ?? 'flat';
 
   if (direction === 'up') {
     return (
       <View className="flex-row items-center gap-1">
-        <ArrowUp size={ICON_SIZE} color={colors.success} />
+        <IconSubir size={ICON_SIZE} color={colors.success} />
         <Text className="font-num text-success text-caption">{trend?.delta ?? 0}</Text>
       </View>
     );
@@ -36,12 +36,12 @@ function TrendBadge({ trend }: { trend: RankingRowData['trend'] }) {
   if (direction === 'down') {
     return (
       <View className="flex-row items-center gap-1">
-        <ArrowDown size={ICON_SIZE} color={colors.danger} />
+        <IconDescer size={ICON_SIZE} color={colors.danger} />
         <Text className="font-num text-danger text-caption">{trend?.delta ?? 0}</Text>
       </View>
     );
   }
-  return <Minus size={ICON_SIZE} color={colors.textMuted} />;
+  return <IconDiminuir size={ICON_SIZE} color={colors.textMuted} />;
 }
 
 function trendLabel(trend: RankingRowData['trend']): string {

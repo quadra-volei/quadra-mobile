@@ -1,6 +1,6 @@
 import { BlurView } from 'expo-blur';
 import * as Location from 'expo-location';
-import { MapPin } from 'lucide-react-native';
+import { IconLocal } from '@/components/icons/quadra';
 import { type RefObject, useEffect, useState } from 'react';
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, ZoomIn } from 'react-native-reanimated';
@@ -108,7 +108,7 @@ export function LocationPrompt({ onGranted, blurTarget, onSettled }: LocationPro
           <View
             className="h-14 w-14 items-center justify-center self-center rounded-full border-2 border-surface-dark bg-accent"
           >
-            <MapPin size={26} color={colors.surfaceDark} strokeWidth={2.4} />
+            <IconLocal size={26} color={colors.surfaceDark} />
           </View>
 
           {state === 'ask' ? (

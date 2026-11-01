@@ -18,30 +18,6 @@ import type { MatchSummary } from '@/features/matches/api/getMatchSummary';
 
 // --- Mocks ----------------------------------------------------------------
 
-// lucide icons -> plain Views tagged with a stable testID (icon-<name>).
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    ChevronLeft: stub('chevron-left'),
-    MapPin: stub('map-pin'),
-    Share2: stub('share2'),
-    Trophy: stub('trophy'),
-    User: stub('user'),
-    Flame: stub('flame'),
-    Target: stub('target'),
-    Goal: stub('goal'),
-    Lock: stub('lock'),
-    Zap: stub('zap'),
-    Handshake: stub('handshake'),
-    BarChart3: stub('bar-chart'),
-    Plus: stub('plus'),
-    Minus: stub('minus'),
-  };
-});
-
 // expo-router: spyable back / replace + injectable params.
 const mockBack = jest.fn();
 const mockReplace = jest.fn();
@@ -241,13 +217,13 @@ describe('S16 — Match Summary', () => {
 
     const back = screen.getByLabelText('Voltar');
     expect(back.props.accessibilityRole).toBe('button');
-    expect(screen.getByTestId('icon-chevron-left')).toBeTruthy();
+    expect(screen.getByTestId('icon-voltar')).toBeTruthy();
 
     expect(screen.getByText('Resumo da partida')).toBeTruthy();
 
     const share = screen.getByLabelText('Compartilhar resumo');
     expect(share.props.accessibilityRole).toBe('button');
-    expect(screen.getByTestId('icon-share2')).toBeTruthy();
+    expect(screen.getByTestId('icon-compartilhar')).toBeTruthy();
   });
 
   /**
@@ -310,7 +286,7 @@ describe('S16 — Match Summary', () => {
     await renderScreen();
     expect(screen.getByText('Arena Pinheiros')).toBeTruthy();
     expect(screen.getByText('10 jun 2026')).toBeTruthy();
-    expect(screen.getByTestId('icon-map-pin')).toBeTruthy();
+    expect(screen.getByTestId('icon-local')).toBeTruthy();
   });
 
   /**
@@ -349,7 +325,7 @@ describe('S16 — Match Summary', () => {
     await renderScreen();
 
     expect(screen.getByText('Mais votado')).toBeTruthy();
-    expect(screen.getAllByTestId('icon-trophy').length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId('icon-trofeu').length).toBeGreaterThan(0);
 
     // lime-bordered highlight card
     expect(allByClassName('border-accent').length).toBeGreaterThan(0);
@@ -487,8 +463,8 @@ describe('S16 — Match Summary', () => {
     await renderScreen();
 
     expect(screen.queryByText(/Confirmar estatísticas/i)).toBeNull();
-    expect(screen.queryByTestId('icon-plus')).toBeNull();
-    expect(screen.queryByTestId('icon-minus')).toBeNull();
+    expect(screen.queryByTestId('icon-adicionar')).toBeNull();
+    expect(screen.queryByTestId('icon-diminuir')).toBeNull();
   });
 
   /**

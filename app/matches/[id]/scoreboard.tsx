@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, Trophy } from 'lucide-react-native';
+import { IconTrofeu, IconVoltar } from '@/components/icons/quadra';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
@@ -143,7 +143,7 @@ function BackButton() {
       hitSlop={ICON_HIT_SLOP}
       testID="scoreboard-back"
     >
-      <ChevronLeft size={24} color={colors.textOnDark} />
+      <IconVoltar size={24} color={colors.textOnDark} />
     </Pressable>
   );
 }
@@ -605,7 +605,7 @@ function GameOver({ matchId, game }: { matchId: string; game: LiveGame }) {
             <Text className="flex-1 font-body-semibold text-body-bold text-text-on-dark">
               {team.name}
             </Text>
-            {team.id === winner?.id ? <Trophy size={16} color={colors.accent} /> : null}
+            {team.id === winner?.id ? <IconTrofeu size={16} color={colors.accent} /> : null}
             <Text className={`font-num text-body ${team.id === winner?.id ? 'text-accent' : 'text-text-on-dark'}`}>
               {setsLabel(game.setsWon[team.id] ?? 0)}
             </Text>

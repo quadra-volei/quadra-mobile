@@ -42,31 +42,8 @@ jest.mock('expo-image', () => {
   };
 });
 
-// lucide icons -> inert testID'd nodes (header bell/sun/back, selector chevron,
-// trend arrows).
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  const icons: Record<string, unknown> = {
-    Bell: stub('bell'),
-    Sun: stub('sun'),
-    ChevronLeft: stub('chevron-left'),
-    ChevronDown: stub('chevron-down'),
-    ArrowUp: stub('arrow-up'),
-    ArrowDown: stub('arrow-down'),
-    Minus: stub('minus'),
-    ChevronRight: stub('chevron-right'),
-    ChevronUp: stub('chevron-up'),
-    Crown: stub('crown'),
-    CircleHelp: stub('circle-help'),
-    X: stub('x'),
-  };
-  const fallback = (props: any) => require('react').createElement(require('react-native').View, props);
-  return new Proxy(icons, { get: (target, key: string) => (key in target ? target[key] : fallback) });
-});
 
+// trend arrows).
 // Button is a NativeWind (css-interop) Pressable; pressing the real one schedules
 // an async interaction-state update that escapes fireEvent's sync act() and leaks
 // an "overlapping act()" into the next test. Stub it as a plain Pressable — the

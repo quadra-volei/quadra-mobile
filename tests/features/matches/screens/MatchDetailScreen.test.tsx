@@ -72,35 +72,6 @@ jest.mock('expo-linear-gradient', () => {
   };
 });
 
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  const icons: Record<string, unknown> = {
-    Banknote: stub('banknote'),
-    Calendar: stub('calendar'),
-    Check: stub('check'),
-    ChevronLeft: stub('chevron-left'),
-    MapPin: stub('map-pin'),
-    Megaphone: stub('megaphone'),
-    Navigation: stub('navigation'),
-    Pencil: stub('pencil'),
-    Play: stub('play'),
-    Share2: stub('share2'),
-    UserPlus: stub('user-plus'),
-    Users: stub('users'),
-    Volleyball: stub('volleyball'),
-    Zap: stub('zap'),
-    Minus: stub('minus'),
-    Plus: stub('plus'),
-    X: stub('x'),
-    XCircle: stub('x-circle'),
-  };
-  const fallback = (props: any) => require('react').createElement(require('react-native').View, props);
-  return new Proxy(icons, { get: (target, key: string) => (key in target ? target[key] : fallback) });
-});
-
 // Button: a plain Pressable that surfaces `variant` (so the grad-vs-primary
 // criterion is assertable) and forwards loading/disabled -> accessibilityState.
 jest.mock('@/components/ui/Button', () => {
