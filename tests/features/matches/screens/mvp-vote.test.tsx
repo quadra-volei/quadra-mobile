@@ -9,21 +9,6 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 
 // --- Mocks ----------------------------------------------------------------
 
-jest.mock('lucide-react-native', () => {
-  const React = require('react');
-  const { Pressable, Text } = require('react-native');
-  const icons: Record<string, unknown> = {
-    ChevronLeft: (props: any) =>
-      React.createElement(Pressable, {
-        ...props,
-        testID: 'chevron-left-btn',
-        children: React.createElement(Text, null, 'Back'),
-      }),
-  };
-  const fallback = (props: any) => require('react').createElement(require('react-native').View, props);
-  return new Proxy(icons, { get: (target, key: string) => (key in target ? target[key] : fallback) });
-});
-
 jest.mock('expo-blur', () => ({ BlurView: () => null }));
 
 const mockBack = jest.fn();
@@ -252,7 +237,7 @@ describe('S15 — Post-Match MVP Vote', () => {
   it('back button is present and navigable', async () => {
     await render(<MvpVoteScreen />, { wrapper });
 
-    const backButton = screen.getByTestId('chevron-left-btn');
+    const backButton = screen.getByTestId('icon-voltar');
     expect(backButton).toBeTruthy();
   });
 

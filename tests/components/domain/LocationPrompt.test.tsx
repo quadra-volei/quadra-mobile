@@ -22,11 +22,6 @@ jest.mock('expo-blur', () => {
   return { BlurView: View };
 });
 
-// lucide MapPin -> inert node (avoids svg internals).
-jest.mock('lucide-react-native', () => ({
-  MapPin: () => null,
-}));
-
 import { LocationPrompt } from '@/components/domain/LocationPrompt';
 
 const onGranted = jest.fn();

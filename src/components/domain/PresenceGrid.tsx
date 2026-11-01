@@ -1,4 +1,4 @@
-import { ChevronRight, UserPlus } from 'lucide-react-native';
+import { IconAdicionarJogador, IconAvancar } from '@/components/icons/quadra';
 import { Text, View } from 'react-native';
 
 import { PositionTag } from '@/components/domain/PositionPicker';
@@ -86,7 +86,7 @@ export function PresenceGrid({
                 ) : null}
               </View>
               {player.position ? <PositionTag code={player.position} /> : null}
-              {pressable ? <ChevronRight size={18} color={colors.textMuted} /> : null}
+              {pressable ? <IconAvancar size={18} color={colors.textMuted} /> : null}
             </PressableScale>
           );
         })}
@@ -97,7 +97,7 @@ export function PresenceGrid({
           <Button
             variant="grad"
             onPress={onAddGuest}
-            leftIcon={<UserPlus size={18} color={colors.surfaceDark} />}
+            leftIcon={<IconAdicionarJogador size={18} color={colors.surfaceDark} />}
             testID={testID ? `${testID}-add-guest` : undefined}
           >
             Adicionar convidado

@@ -1,7 +1,7 @@
 import DateTimePicker, {
   DateTimePickerAndroid,
 } from '@react-native-community/datetimepicker';
-import { Calendar, Clock } from 'lucide-react-native';
+import { IconData, IconHorario } from '@/components/icons/quadra';
 import { useState } from 'react';
 import { Modal, Platform, Pressable, Text, View } from 'react-native';
 
@@ -109,7 +109,7 @@ export function DateTimePickerField({
   const [open, setOpen] = useState(false);
   const [temp, setTemp] = useState<Date>(current);
 
-  const Icon = mode === 'date' ? Calendar : Clock;
+  const Icon = mode === 'date' ? IconData : IconHorario;
   const hasValue = value.length > 0;
   const hasError = Boolean(error);
   const displayPlaceholder =

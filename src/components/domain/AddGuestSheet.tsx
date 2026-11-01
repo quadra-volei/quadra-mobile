@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X } from 'lucide-react-native';
+import { IconFechar } from '@/components/icons/quadra';
 import { useEffect } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { KeyboardAvoidingView, Modal, Pressable, Text, View } from 'react-native';
@@ -99,7 +99,7 @@ export function AddGuestSheet({
               onPress={onClose}
               className="h-9 w-9 items-center justify-center rounded-chip bg-white shadow-card"
             >
-              <X size={20} color={colors.surfaceDark} />
+              <IconFechar size={20} color={colors.surfaceDark} />
             </Pressable>
           </View>
 

@@ -1,4 +1,4 @@
-import { Check, Scale, Shuffle } from 'lucide-react-native';
+import { IconConfirmar, IconEquilibrarTimes, IconMontarTimes } from '@/components/icons/quadra';
 import type { ReactNode } from 'react';
 import { Pressable, Text, View } from 'react-native';
 
@@ -34,8 +34,8 @@ const DRAW_MODES: {
 ];
 
 const DRAW_MODE_ICON: Record<DrawMode, ReactNode> = {
-  MANUAL: <Shuffle size={20} color={colors.primary} />,
-  AUTO: <Scale size={20} color={colors.primary} />,
+  MANUAL: <IconMontarTimes size={20} color={colors.primary} />,
+  AUTO: <IconEquilibrarTimes size={20} color={colors.primary} />,
 };
 
 export type TeamsSetupProps = {
@@ -167,7 +167,7 @@ export function TeamsSetup({ setup, testID = 'teams-setup' }: TeamsSetupProps) {
                 <Text className="font-body-extrabold text-h3 text-text-primary">{title}</Text>
                 <Text className="font-body text-caption text-text-muted">{caption}</Text>
               </View>
-              {drawMode === mode ? <Check size={20} color={colors.primary} /> : null}
+              {drawMode === mode ? <IconConfirmar size={20} color={colors.primary} /> : null}
             </Pressable>
           ))}
 

@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react-native';
+import { IconConfirmar } from '@/components/icons/quadra';
 import { Text, View } from 'react-native';
 import Svg, { ClipPath, Defs, G, LinearGradient, Polygon, RadialGradient, Rect, Stop } from 'react-native-svg';
 
@@ -73,7 +73,7 @@ export function CollectionCard({ card, width, testID }: { card: CollectionCardDa
         </View>
         {card.complete ? (
           <View className="absolute items-center justify-center rounded-full bg-accent-light" style={{ right: 6, bottom: 6, width: 22, height: 22 }}>
-            <Check size={14} color={colors.surfaceDark} />
+            <IconConfirmar size={14} color={colors.surfaceDark} />
           </View>
         ) : null}
       </View>

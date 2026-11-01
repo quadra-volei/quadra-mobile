@@ -1,6 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft, RefreshCw } from 'lucide-react-native';
+import { IconVirarCarta, IconVoltar } from '@/components/icons/quadra';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,7 +41,7 @@ export default function PlayerCardScreen() {
           onPress={() => router.back()}
           className="h-9 w-9 items-center justify-center rounded-chip bg-white/10"
         >
-          <ChevronLeft size={22} color={colors.textOnDark} />
+          <IconVoltar size={22} color={colors.textOnDark} />
         </Pressable>
         <Text className="flex-1 text-center font-body-bold text-body-bold text-text-on-dark" numberOfLines={1}>
           {player.data ? `Carta de ${player.data.firstName}` : 'Carta'}
@@ -78,7 +78,7 @@ export default function PlayerCardScreen() {
               className="flex-row items-center justify-center gap-2 rounded-chip border border-white/15 bg-white/5 py-3 mb-4"
               testID="friend-card-flip"
             >
-              <RefreshCw size={14} color={colors.textOnDark} />
+              <IconVirarCarta size={14} color={colors.textOnDark} />
               <Text className="font-body-bold text-body text-text-on-dark">{flipped ? 'Ver frente' : 'Ver verso'}</Text>
             </Pressable>
             <StatsList profile={profile} />

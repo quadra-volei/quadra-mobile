@@ -1,20 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
-import {
-  Banknote,
-  Calendar,
-  Check,
-  ChevronLeft,
-  MapPin,
-  Megaphone,
-  Navigation,
-  Pencil,
-  Play,
-  Share2,
-  Shuffle,
-  Trophy,
-  XCircle,
-} from 'lucide-react-native';
+import { IconCancelarPartida, IconCompartilhar, IconConfirmar, IconData, IconDivulgar, IconEditar, IconIniciar, IconLocal, IconRanking, IconRota, IconSortearTimes, IconValor, IconVoltar } from '@/components/icons/quadra';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Linking, Pressable, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
@@ -448,14 +434,14 @@ export default function MatchDetailScreen() {
             style={{ top: Math.max(insets.top, 12) }}
           >
             <HeroAction label="Voltar" onPress={() => router.back()}>
-              <ChevronLeft size={24} color={colors.textOnDark} />
+              <IconVoltar size={24} color={colors.textOnDark} />
             </HeroAction>
             <HeroAction
               label="Compartilhar partida"
               onPress={onShare}
               testID="hero-share"
             >
-              <Share2 size={24} color={colors.textOnDark} />
+              <IconCompartilhar size={24} color={colors.textOnDark} />
             </HeroAction>
           </View>
 
@@ -537,7 +523,7 @@ export default function MatchDetailScreen() {
           className="px-5 pb-5 pt-3"
         >
           {/* ── Essentials: when, where, price, who organizes ── */}
-          <InfoRow icon={<Calendar size={22} color={colors.primary} />}>
+          <InfoRow icon={<IconData size={22} color={colors.primary} />}>
             <Text className="font-body-semibold text-body-bold text-text-primary">
               {formatWhen(match.startsAt)}
             </Text>
@@ -550,7 +536,7 @@ export default function MatchDetailScreen() {
           </InfoRow>
 
           <InfoRow
-            icon={<MapPin size={22} color={colors.primary} />}
+            icon={<IconLocal size={22} color={colors.primary} />}
             trailing={
               <PressableScale
                 onPress={() =>
@@ -566,7 +552,7 @@ export default function MatchDetailScreen() {
                 testID="match-directions"
                 className="flex-row items-center gap-2 overflow-hidden rounded-pill bg-bg-light px-3 py-2"
               >
-                <Navigation size={15} color={colors.primary} />
+                <IconRota size={15} color={colors.primary} />
                 <Text className="font-body-semibold text-body-bold text-primary">
                   Como chegar
                 </Text>
@@ -588,7 +574,7 @@ export default function MatchDetailScreen() {
             </Text>
           </InfoRow>
 
-          <InfoRow icon={<Banknote size={22} color={colors.primary} />}>
+          <InfoRow icon={<IconValor size={22} color={colors.primary} />}>
             {/* Drop-in price first; a recurring match adds the regulars' price. */}
             <Text className="font-body-semibold text-body-bold text-text-primary">
               <Text
@@ -639,7 +625,7 @@ export default function MatchDetailScreen() {
                 variant="outline"
                 onPress={onShareToFeed}
                 loading={shareMatch.isPending}
-                leftIcon={<Megaphone size={18} color={colors.surfaceDark} />}
+                leftIcon={<IconDivulgar size={18} color={colors.surfaceDark} />}
                 testID="share-to-feed"
               >
                 Compartilhar na Rede
@@ -658,7 +644,7 @@ export default function MatchDetailScreen() {
                     params: { scope: 'group', groupId: match.id },
                   })
                 }
-                leftIcon={<Trophy size={18} color={colors.surfaceDark} />}
+                leftIcon={<IconRanking size={18} color={colors.surfaceDark} />}
                 testID="group-ranking"
               >
                 Ranking do grupo
@@ -675,7 +661,7 @@ export default function MatchDetailScreen() {
                   onPress={() =>
                     router.push({ pathname: '/matches/[id]/edit', params: { id: match.id } })
                   }
-                  leftIcon={<Pencil size={18} color={colors.surfaceDark} />}
+                  leftIcon={<IconEditar size={18} color={colors.surfaceDark} />}
                   testID="edit-match"
                 >
                   Editar
@@ -686,7 +672,7 @@ export default function MatchDetailScreen() {
                   variant="outline"
                   onPress={onCancelMatch}
                   loading={cancelMatch.isPending}
-                  leftIcon={<XCircle size={18} color={colors.surfaceDark} />}
+                  leftIcon={<IconCancelarPartida size={18} color={colors.surfaceDark} />}
                   testID="cancel-match"
                 >
                   Cancelar
@@ -786,7 +772,7 @@ export default function MatchDetailScreen() {
                 onPress={teamsSetup.handleDraw}
                 loading={teamsSetup.drawing}
                 disabled={teamsSetup.tooFew || teamsSetup.loading}
-                leftIcon={<Shuffle size={20} color={colors.surfaceDark} />}
+                leftIcon={<IconSortearTimes size={20} color={colors.surfaceDark} />}
                 testID="draw-teams"
               >
                 Sortear times
@@ -826,7 +812,7 @@ export default function MatchDetailScreen() {
               onPress={() => confirmPresence.mutate()}
               loading={confirmPresence.isPending}
               disabled={mutationBusy && !confirmPresence.isPending}
-              leftIcon={<Check size={18} color={colors.surfaceDark} />}
+              leftIcon={<IconConfirmar size={18} color={colors.surfaceDark} />}
               testID="confirm-presence"
             >
               Confirmar presença
@@ -851,7 +837,7 @@ export default function MatchDetailScreen() {
               variant="primary"
               onPress={() => {}}
               disabled
-              leftIcon={<Play size={18} color={colors.textOnDark} />}
+              leftIcon={<IconIniciar size={18} color={colors.textOnDark} />}
               testID="start-match"
             >
               Aguardando o início da partida

@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { Settings, Volleyball } from "lucide-react-native";
+import { IconConfiguracoes, IconPartida } from '@/components/icons/quadra';
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { FlatList, RefreshControl, ScrollView, Text, View } from "react-native";
@@ -165,7 +165,7 @@ function NextGameCard({ match }: { match: UpcomingMatch }) {
       style={HARD_SHADOW}
     >
       <View className="h-12 w-12 items-center justify-center rounded-chip bg-accent">
-        <Volleyball size={24} color={colors.surfaceDark} strokeWidth={2.2} />
+        <IconPartida size={24} color={colors.surfaceDark} />
       </View>
       <View className="ml-3 flex-1">
         <Text
@@ -416,7 +416,7 @@ export default function HomeScreen() {
               <BellWithBadge />
             </IconButton>
             <IconButton label="Configurações" onPress={goSettings}>
-              <Settings size={20} color={colors.surfaceDark} />
+              <IconConfiguracoes size={20} color={colors.surfaceDark} />
             </IconButton>
           </View>
         </View>

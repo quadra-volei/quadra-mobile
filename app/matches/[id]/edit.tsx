@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
+import { IconVoltar } from '@/components/icons/quadra';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -190,7 +190,7 @@ function EditMatchForm({
             onPress={() => router.back()}
             className="h-10 w-10 items-center justify-center rounded-chip bg-white shadow-card"
           >
-            <ChevronLeft size={24} color={colors.surfaceDark} />
+            <IconVoltar size={24} color={colors.surfaceDark} />
           </Pressable>
           <Text className="font-display text-h1 text-text-primary uppercase">Editar partida</Text>
         </View>

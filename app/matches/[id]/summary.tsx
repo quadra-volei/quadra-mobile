@@ -1,20 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import {
-  BarChart3,
-  ChevronLeft,
-  Flame,
-  Goal,
-  Handshake,
-  Lock,
-  type LucideIcon,
-  MapPin,
-  Share2,
-  Target,
-  Trophy,
-  User,
-  Zap,
-} from 'lucide-react-native';
+import { IconAces, IconAssistencias, IconBlocks, IconCompartilhar, IconCortadas, IconEstatisticas, IconLocal, IconMvp, IconPerfil, IconPontos, IconSalvadas, IconTrofeu, IconVoltar, type QuadraIcon } from '@/components/icons/quadra';
 import * as Sharing from 'expo-sharing';
 import { useRef, useState } from 'react';
 import { Pressable, ScrollView, Share, Text, View } from 'react-native';
@@ -102,7 +88,7 @@ function SummaryHeader({ onShare, isSharing }: { onShare?: () => void; isSharing
         accessibilityLabel="Voltar"
         testID="summary-back"
       >
-        <ChevronLeft size={24} color={colors.textOnDark} />
+        <IconVoltar size={24} color={colors.textOnDark} />
       </Pressable>
       <Text className="font-body-semibold text-body-bold text-text-on-dark">Resumo da partida</Text>
       {onShare ? (
@@ -113,7 +99,7 @@ function SummaryHeader({ onShare, isSharing }: { onShare?: () => void; isSharing
           accessibilityLabel="Compartilhar resumo"
           testID="summary-share"
         >
-          <Share2 size={22} color={colors.textOnDark} />
+          <IconCompartilhar size={22} color={colors.textOnDark} />
         </Pressable>
       ) : (
         <View style={{ width: 22 }} />
@@ -207,7 +193,7 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
                 (owner's 4th review, item 17). */}
             <View className="items-center mt-3" testID="summary-venue">
               <View className="flex-row items-center gap-1">
-                <MapPin size={16} color={colors.accent} />
+                <IconLocal size={16} color={colors.accent} />
                 <Text className="font-body-bold text-body-bold text-text-on-dark" numberOfLines={1}>
                   {splitVenue(summary.venue).name}
                 </Text>
@@ -237,7 +223,7 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
                   {team.name}
                   {team.mine ? <Text className="text-caption text-accent font-mono"> · seu time</Text> : null}
                 </Text>
-                {team.winner ? <Trophy size={16} color={colors.accent} /> : null}
+                {team.winner ? <IconTrofeu size={16} color={colors.accent} /> : null}
                 <Text className={`font-num ${team.winner ? 'text-accent' : 'text-text-on-dark'}`} style={{ fontSize: 24 }}>
                   {team.wins}
                 </Text>
@@ -262,7 +248,7 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
                   <Text className="flex-1 font-body-semibold text-caption text-text-on-dark" numberOfLines={1}>
                     {gameLabel(game)}
                   </Text>
-                  {game.winner ? <Trophy size={12} color={colors.accent} /> : null}
+                  {game.winner ? <IconTrofeu size={12} color={colors.accent} /> : null}
                   <Text className="font-num text-caption text-text-on-dark">
                     {game.points[0]}–{game.points[1]}
                   </Text>
@@ -273,7 +259,7 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
 
           {hasVoting ? (
             <View className="px-4 mt-6 flex-row items-center gap-3" testID="summary-mvp-line">
-              <Trophy size={16} color={colors.accent} />
+              <IconMvp size={16} color={colors.accent} />
               <Text className="flex-1 font-body-bold text-body-bold text-text-on-dark" numberOfLines={1}>
                 {`MVP: ${summary.mvp.name}`}
               </Text>
@@ -289,7 +275,7 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
           {hasVoting ? (
             <View className="px-4 mt-8">
               <View className="flex-row items-center gap-2 mb-3">
-                <Trophy size={16} color={colors.accent} />
+                <IconMvp size={16} color={colors.accent} />
                 <Text className="font-body-bold text-eyebrow text-accent uppercase">Mais votado</Text>
               </View>
 
@@ -365,12 +351,12 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
   );
 }
 
-const ACTION_ICON: Record<PlayerActionKey, LucideIcon> = {
-  kills: Target,
-  blocks: Goal,
-  aces: Zap,
-  digs: Lock,
-  assists: Handshake,
+const ACTION_ICON: Record<PlayerActionKey, QuadraIcon> = {
+  kills: IconCortadas,
+  blocks: IconBlocks,
+  aces: IconAces,
+  digs: IconSalvadas,
+  assists: IconAssistencias,
 };
 
 /** A single stat tile in the "MEU DESEMPENHO" grid; "—" when nothing was recorded. */
@@ -380,7 +366,7 @@ function StatTile({
   label,
   testID,
 }: {
-  icon: LucideIcon;
+  icon: QuadraIcon;
   value: number | null;
   label: string;
   testID?: string;
@@ -403,7 +389,7 @@ function SheetSection({ rows, userId }: { rows: SheetRow[]; userId: string | nul
   return (
     <View className="px-4 mt-8" testID="summary-sheet">
       <View className="flex-row items-center gap-2 mb-3">
-        <BarChart3 size={16} color={colors.accent} />
+        <IconEstatisticas size={16} color={colors.accent} />
         <Text className="font-body-bold text-eyebrow text-accent uppercase">Estatísticas da partida</Text>
       </View>
       <View className="flex-row items-center pb-2">
@@ -436,14 +422,14 @@ function PerformanceSection({ performance }: { performance: MatchPerformance }) 
   return (
     <View className="px-4 mt-8" testID="summary-performance">
       <View className="flex-row items-center gap-2 mb-3">
-        <User size={16} color={colors.accent} />
+        <IconPerfil size={16} color={colors.accent} />
         <Text className="font-body-bold text-eyebrow text-accent uppercase">Meu desempenho</Text>
       </View>
 
       {/* XP-gained card */}
       <View className="flex-row items-center gap-4 p-4 rounded-card bg-white/5">
         <View className="h-12 w-12 rounded-card bg-white/10 items-center justify-center">
-          <Flame size={22} color={colors.accent} />
+          <IconPontos size={22} color={colors.accent} />
         </View>
         <View className="flex-1">
           <Text className="font-body-semibold text-body-bold text-text-on-dark">Pontos nesta partida</Text>

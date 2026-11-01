@@ -53,26 +53,6 @@ jest.mock('react-native-safe-area-context', () => {
   };
 });
 
-// lucide icons -> inert nodes (back chevron, pin volleyball, card map-pin/users).
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  const icons: Record<string, unknown> = {
-    ChevronLeft: stub('chevron-left'),
-    Clock: stub('clock'),
-    Flame: stub('flame'),
-    LandPlot: stub('land-plot'),
-    LocateFixed: stub('locate-fixed'),
-    Volleyball: stub('volleyball'),
-    MapPin: stub('map-pin'),
-    Users: stub('users'),
-  };
-  const fallback = (props: any) => require('react').createElement(require('react-native').View, props);
-  return new Proxy(icons, { get: (target, key: string) => (key in target ? target[key] : fallback) });
-});
-
 // react-native-maps -> View stubs. Marker is a Pressable so fireEvent.press
 // triggers its onPress (pin selection) without a native map.
 // The camera calls the screen makes through the map's ref.

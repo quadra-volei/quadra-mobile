@@ -19,11 +19,6 @@ jest.mock('expo-image', () => {
   };
 });
 
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  return new Proxy({}, { get: () => (props: any) => ReactLocal.createElement(View, props) });
-});
 jest.mock('react-native-svg', () => {
   const ReactLocal = require('react');
   const { View } = require('react-native');

@@ -13,12 +13,6 @@ jest.mock('react-native-safe-area-context', () => {
   };
 });
 
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  return new Proxy({}, { get: () => (props: any) => ReactLocal.createElement(View, props) });
-});
-
 jest.mock('@/components/ui/Button', () => {
   const ReactLocal = require('react');
   const { Pressable, Text } = require('react-native');

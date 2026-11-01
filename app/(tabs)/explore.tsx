@@ -1,12 +1,5 @@
 import { router } from "expo-router";
-import {
-  Bell,
-  LayoutGrid,
-  List,
-  MapPin,
-  Settings,
-  SlidersHorizontal,
-} from "lucide-react-native";
+import { IconConfiguracoes, IconFiltros, IconGrade, IconLista, IconLocal, IconNotificacoes } from '@/components/icons/quadra';
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, Text, useWindowDimensions, View } from "react-native";
@@ -131,7 +124,7 @@ function FiltersButton({
           : HARD_SHADOW
       }
     >
-      <SlidersHorizontal
+      <IconFiltros
         size={18}
         color={on ? colors.textOnDark : colors.surfaceDark}
       />
@@ -325,7 +318,7 @@ function ResultsArea({
         )}
         <View className="p-3 flex-row items-center gap-3">
           <View className="h-10 w-10 rounded-chip bg-primary items-center justify-center">
-            <MapPin size={20} color={colors.textOnDark} />
+            <IconLocal size={20} color={colors.textOnDark} />
           </View>
           <View className="flex-1">
             <Text
@@ -368,9 +361,9 @@ function ResultsArea({
           onPress={() => setView(view === "grid" ? "list" : "grid")}
           leftIcon={
             view === "grid" ? (
-              <LayoutGrid size={18} color={colors.primary} />
+              <IconGrade size={18} color={colors.primary} />
             ) : (
-              <List size={18} color={colors.primary} />
+              <IconLista size={18} color={colors.primary} />
             )
           }
         >
@@ -548,10 +541,10 @@ export default function ExploreScreen() {
           </Text>
           <View className="flex-row items-center gap-3">
             <IconButton label="Notificações" onPress={() => {}}>
-              <Bell size={20} color={colors.surfaceDark} />
+              <IconNotificacoes size={20} color={colors.surfaceDark} />
             </IconButton>
             <IconButton label="Configurações" onPress={goSettings}>
-              <Settings size={20} color={colors.surfaceDark} />
+              <IconConfiguracoes size={20} color={colors.surfaceDark} />
             </IconButton>
           </View>
         </View>

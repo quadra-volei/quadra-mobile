@@ -4,7 +4,7 @@ import { Switch, Text, View } from 'react-native';
 import { colors } from '@/theme/colors';
 
 export type ToggleFieldProps = {
-  /** Optional leading icon (e.g. a lucide `Lock`). */
+  /** Optional leading icon (e.g. `IconPrivado`). */
   icon?: ReactNode;
   title: string;
   caption?: string;

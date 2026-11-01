@@ -20,7 +20,7 @@
  *
  * Profile creation is mocked at the hook boundary (no network, no real timer) so
  * the loading/success/error branches are deterministic. Navigation is mocked via
- * expo-router. Native modules (gradient, safe-area, lucide) are stubbed inline —
+ * expo-router. Native modules (gradient, safe-area) are stubbed inline —
  * the repo's tests/__mocks__ are NOT auto-applied.
  */
 import React from 'react';
@@ -48,27 +48,6 @@ jest.mock('react-native-safe-area-context', () => {
   return {
     SafeAreaView: ({ children, ...props }: any) =>
       ReactLocal.createElement(View, props, children),
-  };
-});
-
-// lucide icons -> inert nodes (avoids pulling svg internals).
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    ArrowUp: stub('arrow-up'),
-    BarChart3: stub('bar-chart'),
-    Share2: stub('share'),
-    ShieldCheck: stub('shield-check'),
-    Shuffle: stub('shuffle'),
-    Zap: stub('zap'),
-    Check: stub('check'),
-    ChevronLeft: stub('chevron-left'),
-    ChevronRight: stub('chevron-right'),
-    Globe: stub('globe'),
-    Calendar: stub('calendar'),
   };
 });
 

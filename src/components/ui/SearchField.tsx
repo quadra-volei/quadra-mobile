@@ -1,4 +1,4 @@
-import { Search, X } from 'lucide-react-native';
+import { IconBuscar, IconFechar } from '@/components/icons/quadra';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { colors } from '@/theme/colors';
@@ -17,7 +17,7 @@ export type SearchFieldProps = {
 };
 
 /**
- * Label-less search input (pill container, leading lucide `Search`, optional
+ * Label-less search input (pill container, leading search icon, optional
  * trailing clear). Used by S6 Explore to filter the match list as the user
  * types; reused by S11 ("Buscar quadra ou endereço") and S10.
  *
@@ -46,7 +46,7 @@ export function SearchField({
         testID={testID}
         className="h-12 px-4 rounded-pill bg-white shadow-card flex-row items-center"
       >
-        <Search size={20} color={colors.textMuted} />
+        <IconBuscar size={20} color={colors.textMuted} />
         <Text className="flex-1 ml-2 font-body text-body text-text-muted" numberOfLines={1}>
           {placeholder}
         </Text>
@@ -56,7 +56,7 @@ export function SearchField({
 
   return (
     <View className="h-12 px-4 rounded-pill bg-white shadow-card flex-row items-center">
-      <Search size={20} color={colors.textMuted} />
+      <IconBuscar size={20} color={colors.textMuted} />
       <TextInput
         value={value}
         onChangeText={onChangeText}
@@ -77,7 +77,7 @@ export function SearchField({
           accessibilityLabel="Limpar busca"
           className="ml-2"
         >
-          <X size={18} color={colors.textMuted} />
+          <IconFechar size={18} color={colors.textMuted} />
         </Pressable>
       ) : null}
     </View>

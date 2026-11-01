@@ -98,11 +98,6 @@ jest.mock('expo-linear-gradient', () => {
   };
 });
 
-// lucide icon -> inert node (avoids pulling svg internals).
-jest.mock('lucide-react-native', () => ({
-  ChevronLeft: () => null,
-}));
-
 // expo-router: spyable router.push / router.replace.
 const mockPush = jest.fn();
 const mockReplace = jest.fn();

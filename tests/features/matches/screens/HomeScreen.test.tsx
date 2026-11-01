@@ -1,5 +1,5 @@
 jest.mock('@/components/domain/BellWithBadge', () => ({
-  BellWithBadge: () => require('react').createElement(require('react-native').View, { testID: 'icon-bell' }),
+  BellWithBadge: () => require('react').createElement(require('react-native').View, { testID: 'icon-notificacoes' }),
 }));
 /**
  * S5 — Home screen tests.
@@ -18,7 +18,7 @@ jest.mock('@/components/domain/BellWithBadge', () => ({
  * Both read hooks are mocked at the hook boundary so the four query states
  * (pending / error / empty / populated) are controlled deterministically per
  * section, with no network and no MSW. Navigation is mocked via expo-router.
- * Native modules (gradient, safe-area, expo-image, lucide) are stubbed inline —
+ * Native modules (gradient, safe-area, expo-image) are stubbed inline —
  * the repo's tests/__mocks__ are NOT auto-applied.
  *
  * The bottom tab bar is owned by app/(tabs)/_layout.tsx (not by this screen).
@@ -60,29 +60,6 @@ jest.mock('expo-image', () => {
   const { View } = require('react-native');
   return {
     Image: (props: any) => ReactLocal.createElement(View, props),
-  };
-});
-
-// lucide icons -> inert nodes (header bell/sun, card meta icons).
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    Bell: stub('bell'),
-    Settings: stub('settings'),
-    Sun: stub('sun'),
-    Clock: stub('clock'),
-    MapPin: stub('map-pin'),
-    Users: stub('users'),
-    Plus: stub('plus'),
-    Search: stub('search'),
-    Volleyball: stub('volleyball'),
-    ArrowUp: stub('arrow-up'),
-    Check: stub('check'),
-    Star: stub('star'),
-    ChevronRight: stub('chevron-right'),
   };
 });
 
@@ -305,13 +282,13 @@ describe('S5 — Home screen', () => {
     // bell is an accessible button
     expect(screen.getByLabelText('Notificações')).toBeTruthy();
     // the bell icon renders
-    expect(screen.getByTestId('icon-bell')).toBeTruthy();
+    expect(screen.getByTestId('icon-notificacoes')).toBeTruthy();
     // theme toggle moved to Settings — not on Home
     expect(screen.queryByLabelText('Alternar tema')).toBeNull();
     expect(screen.queryByTestId('icon-sun')).toBeNull();
     // settings affordance is present in every screen header
     expect(screen.getByLabelText('Configurações')).toBeTruthy();
-    expect(screen.getByTestId('icon-settings')).toBeTruthy();
+    expect(screen.getByTestId('icon-configuracoes')).toBeTruthy();
 
     // NO greeting / avatar (that header is S8 Profile, not Home)
     expect(screen.queryByText(/olá/i)).toBeNull();

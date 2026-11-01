@@ -25,7 +25,7 @@
  * synchronous, stateful stub (its real AsyncStorage persistence is covered by the
  * dedicated store unit test, tests/features/profile/stores/theme.test.ts) — this
  * keeps the screen test deterministic and free of async rehydration. Native
- * modules (safe-area, expo-image, lucide, Button) are stubbed inline — the repo's
+ * modules (safe-area, expo-image, Button) are stubbed inline — the repo's
  * tests/__mocks__ are NOT auto-applied.
  */
 import React from 'react';
@@ -76,31 +76,6 @@ jest.mock('expo-image', () => {
   const { View } = require('react-native');
   return {
     Image: (props: any) => ReactLocal.createElement(View, props),
-  };
-});
-
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    Bell: stub('bell'),
-    Check: stub('check'),
-    ChevronLeft: stub('chevron-left'),
-    X: stub('x'),
-    ChevronRight: stub('chevron-right'),
-    Compass: stub('compass'),
-    Download: stub('download'),
-    FileText: stub('file-text'),
-    Globe: stub('globe'),
-    MapPin: stub('map-pin'),
-    MessageSquare: stub('message-square'),
-    Shield: stub('shield'),
-    Trash2: stub('trash'),
-    User: stub('user'),
-    UserX: stub('user-x'),
-    Users: stub('users'),
   };
 });
 

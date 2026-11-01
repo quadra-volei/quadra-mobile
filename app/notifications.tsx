@@ -1,15 +1,5 @@
 import { router } from 'expo-router';
-import {
-  Bell,
-  CalendarCheck,
-  CalendarClock,
-  ClipboardList,
-  type LucideIcon,
-  Settings,
-  Star,
-  Ticket,
-  Trash2,
-} from 'lucide-react-native';
+import { IconConfiguracoes, IconConfirmarPresenca, IconExcluir, IconLembrete, IconMvp, IconNotificacoes, IconResumo, IconVaga, type QuadraIcon } from '@/components/icons/quadra';
 import { useRef, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import Swipeable, { type SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
@@ -36,14 +26,14 @@ import { ICON_HIT_SLOP } from '@/theme/layout';
 const RECENT_MS = 24 * 60 * 60 * 1000;
 
 /** The tile of each kind: reminders in blue, ranking moments in lime (priority order). */
-const KIND: Record<string, { icon: LucideIcon; tile: string; color: string }> = {
-  WaitingListSpot: { icon: Ticket, tile: 'bg-primary/10', color: colors.primary },
-  ConfirmPresence: { icon: CalendarCheck, tile: 'bg-primary/10', color: colors.primary },
-  MatchTomorrow: { icon: CalendarClock, tile: 'bg-primary/10', color: colors.primary },
-  MvpVotingOpen: { icon: Star, tile: 'bg-accent/20', color: colors.surfaceDark },
-  SummaryReady: { icon: ClipboardList, tile: 'bg-accent/20', color: colors.surfaceDark },
+const KIND: Record<string, { icon: QuadraIcon; tile: string; color: string }> = {
+  WaitingListSpot: { icon: IconVaga, tile: 'bg-primary/10', color: colors.primary },
+  ConfirmPresence: { icon: IconConfirmarPresenca, tile: 'bg-primary/10', color: colors.primary },
+  MatchTomorrow: { icon: IconLembrete, tile: 'bg-primary/10', color: colors.primary },
+  MvpVotingOpen: { icon: IconMvp, tile: 'bg-accent/20', color: colors.surfaceDark },
+  SummaryReady: { icon: IconResumo, tile: 'bg-accent/20', color: colors.surfaceDark },
 };
-const DEFAULT_KIND = { icon: Bell, tile: 'bg-primary/10', color: colors.primary };
+const DEFAULT_KIND = { icon: IconNotificacoes, tile: 'bg-primary/10', color: colors.primary };
 
 /** An unread row: a pale blue wash, apart from the screen's own pale blue. */
 const UNREAD_FILL = { backgroundColor: withAlpha(colors.primary, 0.06) };
@@ -168,7 +158,7 @@ export default function NotificationsListScreen() {
           <>
             {items.length > 0 ? (
               <IconButton label="Limpar todas" onPress={clearAll} testID="clear-all">
-                <Trash2 size={20} color={colors.surfaceDark} />
+                <IconExcluir size={20} color={colors.surfaceDark} />
               </IconButton>
             ) : null}
             <IconButton
@@ -176,7 +166,7 @@ export default function NotificationsListScreen() {
               onPress={() => router.push('/profile/notifications')}
               testID="notification-settings"
             >
-              <Settings size={20} color={colors.surfaceDark} />
+              <IconConfiguracoes size={20} color={colors.surfaceDark} />
             </IconButton>
           </>
         }
@@ -219,7 +209,7 @@ function NotificationRow({ notification: n, divider, onPress, onDelete, onOpenRo
             testID="notification-delete"
             className="w-24 items-center justify-center gap-1 bg-danger"
           >
-            <Trash2 size={20} color={colors.textOnDark} />
+            <IconExcluir size={20} color={colors.textOnDark} />
             <Text className="font-body-bold text-caption text-text-on-dark">Excluir</Text>
           </PressableScale>
         )}
@@ -237,7 +227,7 @@ function NotificationRow({ notification: n, divider, onPress, onDelete, onOpenRo
             testID="notification"
           >
             <View className={`h-10 w-10 items-center justify-center rounded-chip ${kind.tile}`}>
-              <Icon size={20} color={kind.color} strokeWidth={2.2} />
+              <Icon size={20} color={kind.color} />
             </View>
             <View className="flex-1">
               <Text className={`text-body text-text-primary ${n.read ? 'font-body' : 'font-body-bold'}`}>{n.title}</Text>

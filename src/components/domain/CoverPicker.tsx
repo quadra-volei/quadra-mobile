@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pencil } from 'lucide-react-native';
+import { IconAdicionarFoto, IconEditar } from '@/components/icons/quadra';
 import { Pressable, Text, View } from 'react-native';
 
 import { HERO_GRADIENT, colors } from '@/theme/colors';
@@ -37,7 +37,7 @@ export function CoverPicker({ uri, onPress, testID }: CoverPickerProps) {
             testID={testID ? `${testID}-image` : undefined}
           />
           <View className="absolute right-3 bottom-3 h-9 w-9 items-center justify-center rounded-full bg-surface-dark/60">
-            <Pencil size={16} color={colors.textOnDark} />
+            <IconEditar size={16} color={colors.textOnDark} />
           </View>
         </>
       ) : (
@@ -53,7 +53,7 @@ export function CoverPicker({ uri, onPress, testID }: CoverPickerProps) {
           <View className="flex-1 items-center justify-center p-4">
             <View className="w-full flex-1 items-center justify-center rounded-card border border-dashed border-white/40">
               <View className="flex-row items-center gap-2">
-                <Pencil size={16} color={colors.textOnDark} />
+                <IconAdicionarFoto size={16} color={colors.textOnDark} />
                 <Text className="font-body-semibold text-body-bold text-text-on-dark">
                   Adicionar capa
                 </Text>

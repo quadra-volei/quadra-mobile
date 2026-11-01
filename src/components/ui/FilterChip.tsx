@@ -1,4 +1,4 @@
-import type { LucideIcon } from 'lucide-react-native';
+import { type QuadraIcon } from '@/components/icons/quadra';
 import { Text } from 'react-native';
 
 import { PressableScale } from '@/components/ui/PressableScale';
@@ -11,7 +11,7 @@ export type FilterChipProps = {
   /** When true the chip is inert (no-op press, muted style, a11y disabled). */
   disabled?: boolean;
   /** Drawn before the label, in the label's color. */
-  icon?: LucideIcon;
+  icon?: QuadraIcon;
   testID?: string;
 };
 

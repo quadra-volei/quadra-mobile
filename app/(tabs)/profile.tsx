@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { ChevronRight, Settings } from "lucide-react-native";
+import { IconAvancar, IconConfiguracoes } from '@/components/icons/quadra';
 import { useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -113,7 +113,7 @@ function ProfileHeader() {
           <BellWithBadge />
         </IconButton>
         <IconButton label="Configurações" onPress={goSettings}>
-          <Settings size={20} color={colors.surfaceDark} />
+          <IconConfiguracoes size={20} color={colors.surfaceDark} />
         </IconButton>
       </View>
     </View>
@@ -216,7 +216,7 @@ function PassLine() {
     >
       <CardPiecesMini collected={won} width={18} />
       <Text className="flex-1 font-body-bold text-caption text-text-on-dark">{`Passe ${pass.season} · ${progress}`}</Text>
-      <ChevronRight size={16} color={colors.textOnDark} />
+      <IconAvancar size={16} color={colors.textOnDark} />
     </PressableScale>
   );
 }

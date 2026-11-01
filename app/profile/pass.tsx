@@ -1,7 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { Check, ChevronLeft, Lock } from "lucide-react-native";
+import { IconConfirmar, IconPrivado, IconVoltar } from '@/components/icons/quadra';
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Text, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -174,9 +174,9 @@ function LevelRow({
           </Pressable>
         )
       ) : piece?.unlocked ? (
-        <Check size={18} color={colors.accentLight} />
+        <IconConfirmar size={18} color={colors.accentLight} />
       ) : (
-        <Lock size={16} color={colors.textMuted} />
+        <IconPrivado size={16} color={colors.textMuted} />
       )}
     </View>
   );
@@ -262,7 +262,7 @@ function PassBody({ pass, profile }: { pass: SeasonPass; profile: MyProfile }) {
         <View className="mt-5">
           {equipped ? (
             <View className="flex-row items-center justify-center gap-2 py-3">
-              <Check size={18} color={colors.accentLight} />
+              <IconConfirmar size={18} color={colors.accentLight} />
               <Text className="font-body-bold text-body text-accent-light">Equipada na sua carta</Text>
             </View>
           ) : (
@@ -344,7 +344,7 @@ export default function SeasonPassScreen() {
           onPress={() => router.back()}
           className="h-9 w-9 items-center justify-center rounded-chip bg-white/10"
         >
-          <ChevronLeft size={22} color={colors.textOnDark} />
+          <IconVoltar size={22} color={colors.textOnDark} />
         </Pressable>
         <Text className="flex-1 text-center font-body-bold text-body-bold text-text-on-dark">Passe da temporada</Text>
         <View className="w-9" />

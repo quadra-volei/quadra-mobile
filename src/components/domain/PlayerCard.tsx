@@ -1,4 +1,4 @@
-import { Lock } from 'lucide-react-native';
+import { IconPrivado } from '@/components/icons/quadra';
 import { type RefObject, useEffect } from 'react';
 import { Text, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -282,7 +282,7 @@ function PieceCovers({ t, k, pieces, side }: { t: CardFinishTokens; k: number; p
             if (pieces.locked?.includes(p)) {
               return (
                 <View key={p} className="absolute" style={{ left: (c.x - 9) * k, top: (c.y - 9) * k }} testID="piece-locked">
-                  <Lock size={18 * k} color={PIECE_COVER.next} />
+                  <IconPrivado size={18 * k} color={PIECE_COVER.next} />
                 </View>
               );
             }

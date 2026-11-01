@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react-native';
+import { IconAvancar } from '@/components/icons/quadra';
 import { Text, View } from 'react-native';
 
 import { CardPiecesMini } from '@/components/domain/CardPiecesMini';
@@ -62,7 +62,7 @@ export function PassProgressCard({ onPress }: { onPress: () => void }) {
           ))}
         </View>
       </View>
-      <ChevronRight size={20} color={colors.textOnDark} />
+      <IconAvancar size={20} color={colors.textOnDark} />
     </PressableScale>
   );
 }

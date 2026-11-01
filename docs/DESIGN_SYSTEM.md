@@ -268,10 +268,10 @@ stayed on the blue fill (DECISIONS #87).
 
 ## Iconography
 
-Hybrid approach:
+All icons are SVG components in `src/components/icons/`, no icon library:
 
-- **General UI icons** (bell, search, chevrons, settings, etc.): `lucide-react-native`, default size 24, stroke 1.75, color via NativeWind token.
-- **Brand-specific icons** (logo mark, bottom-nav icons): SVG components in `src/components/icons/` (ported from the prototype's SVGs, which are no longer in the repo).
+- **UI icons**: the designer's family in `quadra.tsx` (`IconVoltar`, `IconPartida`...), generated from the approved SVGs: 32 grid, fixed stroke, only `size` (default 24) and `color`. Position emblems: prefer 32 px, always with the name in reach.
+- **Brand marks** (logo, Google): SVG components in `src/components/icons/` (ported from the prototype's SVGs, which are no longer in the repo).
 
 Forbidden: importing PNG icons inline.
 

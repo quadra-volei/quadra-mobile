@@ -81,31 +81,6 @@ jest.mock('expo-linear-gradient', () => {
   };
 });
 
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    ChevronLeft: stub('chevron-left'),
-    Check: stub('check'),
-    Clock: stub('clock'),
-    Copy: stub('copy'),
-    Heart: stub('heart'),
-    Lock: stub('lock'),
-    MapPin: stub('map-pin'),
-    Pencil: stub('pencil'),
-    Search: stub('search'),
-    Share2: stub('share2'),
-    Users: stub('users'),
-    Zap: stub('zap'),
-    Minus: stub('minus'),
-    Plus: stub('plus'),
-    Calendar: stub('calendar'),
-    X: stub('x'),
-  };
-});
-
 // Button stub: a plain Pressable that respects disabled/loading so the
 // "Responda pra continuar" gate is testable (RNTL blocks press on disabled).
 jest.mock('@/components/ui/Button', () => {
