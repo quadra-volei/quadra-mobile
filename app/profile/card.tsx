@@ -19,19 +19,11 @@ import { useSaveCardStyle } from "@/features/profile/api/saveCardStyle";
 import { CARD_TITLES, SEASON_TITLES, cardTitleCode, type CardTitleCode } from "@/features/profile/card/cardTitles";
 import type { MyProfile } from "@/features/profile/types/profile";
 import { ActionsSummary } from "@/components/domain/ActionsSummary";
-import {
-  CARD_FINISHES,
-  CARD_FINISH_ORDER,
-  CARD_SCREEN,
-  CARD_TIERS,
-  CARD_TIER_ORDER,
-  cardFinishTokens,
-  cardTier,
-  type CardFinish,
-} from "@/theme/cardFinish";
+import { BASIC_FINISH, CARD_SCREEN, isSeasonFinish, type CardFinish } from "@/theme/cardFinish";
 import { colors } from "@/theme/colors";
 
-const TABS = ["Acabamento", "Título", "Coleção", "Estatísticas"] as const;
+// No "Acabamento" tab (DECISIONS #199): everyone has the basic card, and the season card comes from the pass.
+const TABS = ["Título", "Coleção", "Estatísticas"] as const;
 type Tab = (typeof TABS)[number];
 
 function ErrorBlock({ onRetry }: { onRetry: () => void }) {
@@ -66,18 +58,6 @@ function ToolButton({ label, icon, onPress, disabled, testID }: { label: string;
 
 type Save = ReturnType<typeof useSaveCardStyle>;
 
-// Which tier the level gives and when the next one comes (placeholders, see CARD_TIERS).
-function TierNote({ level }: { level: number }) {
-  const tier = cardTier(level);
-  const next = CARD_TIER_ORDER[CARD_TIER_ORDER.indexOf(tier) + 1];
-  return (
-    <Text className="font-body text-caption text-white/60 my-4">
-      {`Carta ${CARD_TIERS[tier].name} no nível ${level}.`}
-      {next ? ` No nível ${CARD_TIERS[next].from} ela vira ${CARD_TIERS[next].name}.` : ""}
-    </Text>
-  );
-}
-
 function goPass() {
   router.push("/profile/pass");
 }
@@ -101,11 +81,14 @@ function CollectionTab({
   const { width: screenWidth } = useWindowDimensions();
   const cardWidth = (Math.min(screenWidth, 480) - 40 - 12) / 2 - 18;
   const equipped = chosen != null && profile.cardStyle.finish === chosen.finish;
+  const wearingSeason = isSeasonFinish(profile.cardStyle.finish);
 
   return (
     <>
       <Text className="font-body text-caption text-white/60 mb-3">
-        Cada temporada, e cada evento, tem uma carta que só existe ali. A que ficar pela metade fica assim na sua coleção.
+        {wearingSeason
+          ? "Cada temporada, e cada evento, tem uma carta que só existe ali. A que ficar pela metade fica assim na sua coleção."
+          : "Sua carta é a básica. Com o passe, você monta a carta da temporada pedaço por pedaço e, completa, ela é só sua."}
       </Text>
       <View className="flex-row flex-wrap gap-3">
         {cards.map((card) => (
@@ -128,7 +111,17 @@ function CollectionTab({
         <View className="mt-4 mb-4">
           {chosen.complete ? (
             equipped ? (
-              <Text className="font-body-bold text-body text-accent-light text-center">Equipada na sua carta</Text>
+              <>
+                <Text className="font-body-bold text-body text-accent-light text-center">Equipada na sua carta</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => save.mutate({ finish: BASIC_FINISH, title: profile.cardStyle.title })}
+                  className="mt-3 items-center py-2"
+                  testID="collection-basic"
+                >
+                  <Text className="font-body text-caption text-white/60 underline">Voltar para a carta básica</Text>
+                </Pressable>
+              </>
             ) : (
               <Button
                 variant="grad"
@@ -149,37 +142,6 @@ function CollectionTab({
           )}
         </View>
       ) : null}
-    </>
-  );
-}
-
-function FinishPicker({ profile, save }: { profile: MyProfile; save: Save }) {
-  const current = profile.cardStyle;
-  return (
-    <>
-      <View className="flex-row gap-2">
-        {CARD_FINISH_ORDER.map((finish) => {
-          const t = CARD_FINISHES[finish];
-          const equipped = current.finish === finish;
-          return (
-            <PressableScale
-              key={finish}
-              accessibilityRole="button"
-              accessibilityState={{ selected: equipped }}
-              onPress={() => save.mutate({ finish, title: current.title })}
-              testID={`finish-${finish}`}
-              className={`flex-1 rounded-chip border p-2 ${equipped ? "border-accent-light" : "border-white/15"}`}
-              style={{ backgroundColor: CARD_SCREEN.bg }}
-            >
-              {/* Text only: the card above already shows the finish (owner's 4th review, item 11). */}
-              <Text className="font-body-bold text-caption text-text-on-dark">{t.name}</Text>
-              <Text className="font-mono text-mono text-white/60 mt-1">{equipped ? "EQUIPADO" : "EXPERIMENTAR"}</Text>
-            </PressableScale>
-          );
-        })}
-      </View>
-      {/* A season finish shines the same at any level: the tier note does not apply. */}
-      {cardFinishTokens(current.finish).tier ? <View className="h-4" /> : <TierNote level={profile.level} />}
     </>
   );
 }
@@ -282,7 +244,7 @@ export function StatsList({ profile }: { profile: MyProfile }) {
         </View>
       ))}
       <Text className="font-body text-caption text-white/60 my-3">
-        Acabamentos e títulos não dão pontos nem vantagem no sorteio.
+        Cartas e títulos não dão pontos nem vantagem no sorteio.
       </Text>
     </>
   );
@@ -291,7 +253,7 @@ export function StatsList({ profile }: { profile: MyProfile }) {
 function CardBody({ profile }: { profile: MyProfile }) {
   const { width: screenWidth } = useWindowDimensions();
   const [flipped, setFlipped] = useState(false);
-  const [tab, setTab] = useState<Tab>("Acabamento");
+  const [tab, setTab] = useState<Tab>("Título");
   const [inspecting, setInspecting] = useState(false);
   const save = useSaveCardStyle();
   const flip = () => setFlipped((v) => !v);
@@ -401,9 +363,7 @@ function CardBody({ profile }: { profile: MyProfile }) {
         ))}
       </ScrollView>
 
-      {tab === "Acabamento" ? (
-        <FinishPicker profile={profile} save={save} />
-      ) : tab === "Título" ? (
+      {tab === "Título" ? (
         <TitlePicker profile={profile} save={save} />
       ) : tab === "Coleção" ? (
         collection.isPending ? (
