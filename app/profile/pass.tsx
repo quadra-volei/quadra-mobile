@@ -151,7 +151,7 @@ function LevelRow({
         {title ? (
           <Text className="font-body text-caption text-accent-light mt-1">{`Título "${cardTitleName(title.code as CardTitleCode)}"`}</Text>
         ) : null}
-        {finish ? <Text className="font-body text-caption text-accent-light mt-1">Acabamento Pioneira</Text> : null}
+        {finish ? <Text className="font-body text-caption text-accent-light mt-1">Carta Pioneira completa</Text> : null}
         {next && missingPoints > 0 ? (
           <Text className="font-body text-caption text-white/60 mt-1">{`Faltam ${missingPoints} pts`}</Text>
         ) : null}

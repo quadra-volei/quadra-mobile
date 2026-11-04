@@ -1,6 +1,6 @@
 /**
  * "Sua carta" (S8b) screen tests: the card's front and back from the real
- * profile, flipping, the finish / title / stats tabs and saving a choice.
+ * profile, flipping, the title / collection / stats tabs and saving a choice.
  * Native pieces (safe-area, gesture handler, image picker, icons) are stubbed;
  * the profile and save hooks are mocked at the hook boundary.
  */
@@ -160,11 +160,48 @@ describe('S8b — Sua carta', () => {
     expect(mockShare).toHaveBeenCalledWith('file:///tmp/carta.png', expect.objectContaining({ mimeType: 'image/png' }));
   });
 
-  it('equips a finish and keeps the title', async () => {
+  it('has no Acabamento: everyone starts with the plain basic card (DECISIONS #199)', async () => {
     await render(<CardScreen />);
 
-    fireEvent.press(screen.getByTestId('finish-Eclipse'));
-    expect(mockMutate).toHaveBeenCalledWith({ finish: 'Eclipse', title: null });
+    expect(screen.queryByText('Acabamento')).toBeNull();
+    expect(screen.queryByTestId('finish-Eclipse')).toBeNull();
+    expect(screen.getByText(/CARTA BÁSICA/)).toBeTruthy();
+    expect(screen.queryByTestId('card-seal')).toBeNull();
+    expect(screen.queryByTestId('card-sparkles')).toBeNull();
+    expect(screen.queryByTestId('card-aura')).toBeNull();
+  });
+
+  it('an old free finish draws as the basic card', async () => {
+    mockProfile.data = { ...PROFILE_FIXTURE, cardStyle: { finish: 'Eclipse', title: null, photoObjectKey: null } };
+    await render(<CardScreen />);
+
+    expect(screen.getByText(/CARTA BÁSICA/)).toBeTruthy();
+  });
+
+  it('the complete season card shines: seal, stars and aura; it can go back to the basic card', async () => {
+    mockProfile.data = { ...PROFILE_FIXTURE, cardStyle: { finish: 'Pioneira', title: null, photoObjectKey: null } };
+    mockPass.cards = [{ ...T1, pieces: 12, complete: true }];
+    await render(<CardScreen />);
+
+    expect(screen.getByText('★ T1 · PIONEIRA')).toBeTruthy();
+    expect(screen.getAllByTestId('card-sparkles').length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId('card-aura').length).toBeGreaterThan(0);
+    expect(screen.getByText(/CARTA PIONEIRA/)).toBeTruthy();
+
+    await fireEvent.press(screen.getByText('Coleção'));
+    expect(screen.getByText('Equipada na sua carta')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('collection-basic'));
+    expect(mockMutate).toHaveBeenCalledWith({ finish: 'Prisma', title: null });
+  });
+
+  it('the season card being built shows its pieces, without the extras', async () => {
+    mockPass.cards = [T1];
+    await render(<CardScreen />);
+
+    await fireEvent.press(screen.getByText('Coleção'));
+    expect(screen.getAllByTestId('card-pieces').length).toBeGreaterThan(0);
+    expect(screen.queryByTestId('card-seal')).toBeNull();
+    expect(screen.queryByTestId('card-sparkles')).toBeNull();
   });
 
   it('picks a title on the Título tab', async () => {
@@ -178,7 +215,6 @@ describe('S8b — Sua carta', () => {
   it('shows the collection on its own tab, the season card on the big card with its missing pieces (DECISIONS #194)', async () => {
     mockPass.cards = [T1];
     await render(<CardScreen />);
-    expect(screen.queryByTestId('finish-Pioneira')).toBeNull(); // not among the finishes any more
 
     await fireEvent.press(screen.getByText('Coleção'));
 
