@@ -190,6 +190,16 @@ jest.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({ refetchQueries: mockRefetchQueries }),
 }));
 
+// Ads (DECISIONS #200): none on the air unless a test puts one.
+const mockServedAd: { value: { data: unknown; isSuccess: boolean } } = { value: { data: null, isSuccess: false } };
+const mockRecordAdView = jest.fn(async () => undefined);
+jest.mock('@/features/ads/api/ads', () => ({
+  ...jest.requireActual('@/features/ads/api/ads'),
+  useServedAd: () => mockServedAd.value,
+  recordAdView: (...args: unknown[]) => mockRecordAdView(...(args as [])),
+}));
+jest.mock('@/features/matches/lib/useDeviceCoords', () => ({ useDeviceCoords: () => null }));
+
 jest.mock('@/features/matches/api/getUpcoming', () => ({
   useUpcomingMatches: () => ({
     data: mockUpcoming.data,
@@ -378,6 +388,7 @@ describe('S5 — Home screen', () => {
    * Criterion: "no stories/feed/weather/ads render."
    */
   it('renders no stories, feed, weather, or ad elements', async () => {
+    mockServedAd.value = { data: null, isSuccess: false };
     await render(<HomeScreen />);
 
     expect(screen.queryByTestId('stories')).toBeNull();
@@ -387,6 +398,30 @@ describe('S5 — Home screen', () => {
     expect(screen.queryByText(/stories/i)).toBeNull();
     expect(screen.queryByText(/previs[ãa]o/i)).toBeNull();
     expect(screen.queryByText(/patrocinad/i)).toBeNull();
+  });
+
+  /** An ad on the air around the player shows marked as sponsored (DECISIONS #200). */
+  it('shows the ad on the air around the player, marked as sponsored', async () => {
+    mockServedAd.value = {
+      data: { id: 'ad-1', placement: 'Home', title: 'Arena Sol', body: null, photoUrl: null, linkKind: 'None', linkValue: null },
+      isSuccess: true,
+    };
+    await render(<HomeScreen />);
+
+    expect(screen.getByTestId('home-ad')).toBeTruthy();
+    expect(screen.getByText('Patrocinado')).toBeTruthy();
+    expect(mockRecordAdView).toHaveBeenCalledWith('ad-1', 'Impression');
+    mockServedAd.value = { data: null, isSuccess: false };
+  });
+
+  /** With no ad on the air, a quiet line invites to advertise. */
+  it('invites to advertise when no ad is on the air', async () => {
+    mockServedAd.value = { data: null, isSuccess: true };
+    await render(<HomeScreen />);
+
+    await fireEvent.press(screen.getByTestId('home-ad-placeholder'));
+    expect(mockPush).toHaveBeenCalledWith('/ads/new');
+    mockServedAd.value = { data: null, isSuccess: false };
   });
 
   /** The bell opens the notification settings (the closest existing screen). */

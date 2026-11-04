@@ -17,6 +17,8 @@ import React from 'react';
 // The location prompt (own test: LocationPrompt.test.tsx) -> nothing; a test
 // can make it say it is settled (nothing left to ask), which lets the tour open.
 let mockLocationSettled = false;
+// The opening ad (DECISIONS #200) has its own tests.
+jest.mock('@/components/domain/OpeningAd', () => ({ OpeningAd: () => null }));
 jest.mock('@/components/domain/LocationPrompt',() => ({
   LocationPrompt: ({ onSettled }: { onSettled?: () => void }) => {
     const ReactLocal = require('react');

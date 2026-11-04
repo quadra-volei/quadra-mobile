@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import { IconAvancar, IconBaixar, IconBloquearJogador, IconConfirmar, IconCuradoria, IconExcluir, IconFeedback, IconNotificacoes, IconParticipantes, IconPerfil, IconPermissoes, IconPrivacidade, IconSair, IconSobre, IconTermos, IconTour } from '@/components/icons/quadra';
+import { IconAvancar, IconBaixar, IconBloquearJogador, IconConfirmar, IconCuradoria, IconDivulgar, IconEstatisticas, IconExcluir, IconFeedback, IconNotificacoes, IconParticipantes, IconPerfil, IconPermissoes, IconPrivacidade, IconSair, IconSobre, IconTermos, IconTour } from '@/components/icons/quadra';
 import { type ReactNode, useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
@@ -294,6 +294,24 @@ export default function SettingsScreen() {
             />
           </View>
 
+          {/* ANÚNCIOS — self-service ads (DECISIONS #200) */}
+          <SectionLabel>Anúncios</SectionLabel>
+          <View className="mx-4 bg-white rounded-card shadow-card overflow-hidden">
+            <SettingsRow
+              icon={<IconDivulgar size={24} color={colors.surfaceDark} />}
+              title="Anunciar no Quadra"
+              subtitle="Sua arena, aula ou loja para quem joga perto"
+              onPress={() => router.push('/ads/new')}
+            />
+            <Divider />
+            <SettingsRow
+              icon={<IconEstatisticas size={24} color={colors.surfaceDark} />}
+              title="Meus anúncios"
+              subtitle="Situação, quem viu e quem tocou"
+              onPress={() => router.push('/ads')}
+            />
+          </View>
+
           {/* PREFERÊNCIAS */}
           <SectionLabel>Preferências</SectionLabel>
           <View className="mx-4 bg-white rounded-card shadow-card p-4">
@@ -380,6 +398,13 @@ export default function SettingsScreen() {
                   title="Curadoria de arenas"
                   subtitle="Aprovar os lugares que aparecem no mapa"
                   onPress={() => router.push('/profile/curation')}
+                />
+                <Divider />
+                <SettingsRow
+                  icon={<IconDivulgar size={24} color={colors.surfaceDark} />}
+                  title="Anúncios"
+                  subtitle="Confirmar pagamentos e aprovar anúncios"
+                  onPress={() => router.push('/profile/ads-review')}
                 />
               </View>
             </>

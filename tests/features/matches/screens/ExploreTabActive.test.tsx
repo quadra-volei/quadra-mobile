@@ -16,6 +16,8 @@ import React from 'react';
 // --- Native / module mocks ------------------------------------------------
 
 // The location prompt (own test: LocationPrompt.test.tsx) -> nothing.
+// The opening ad (DECISIONS #200) has its own tests.
+jest.mock('@/components/domain/OpeningAd', () => ({ OpeningAd: () => null }));
 jest.mock('@/components/domain/LocationPrompt',() => ({
   LocationPrompt: () => null,
 }));

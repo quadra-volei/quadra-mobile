@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CreateSheet } from '@/components/domain/CreateSheet';
 import { LocationPrompt } from '@/components/domain/LocationPrompt';
+import { OpeningAd } from '@/components/domain/OpeningAd';
 import { TourOverlay } from '@/components/domain/TourOverlay';
 import { TabExploreIcon } from '@/components/icons/TabExploreIcon';
 import { TabHomeIcon } from '@/components/icons/TabHomeIcon';
@@ -360,6 +361,8 @@ function SignedInTabs() {
     <LocationPrompt blurTarget={blurTarget} onGranted={remountTabs} onSettled={settleLocation} />
     {/* The first-access tour, once nothing else is being asked (DECISIONS #190). */}
     <TourOverlay />
+    {/* The opening ad, after the location prompt and never over the tour (DECISIONS #200). */}
+    <OpeningAd ready={locationSettled && !cameByLink} />
     </View>
   );
 }
