@@ -9,6 +9,8 @@ export type CoverPickerProps = {
   /** Local URI of the picked cover image; when absent the placeholder shows. */
   uri?: string;
   onPress: () => void;
+  /** What the picture is, for the empty state and screen readers (default: the match cover). */
+  subject?: { add: string; a11y: string };
   testID?: string;
 };
 
@@ -19,13 +21,13 @@ export type CoverPickerProps = {
  * alone, with a small pencil in the corner to change it. The consuming screen
  * runs `expo-image-picker` on press.
  */
-export function CoverPicker({ uri, onPress, testID }: CoverPickerProps) {
+export function CoverPicker({ uri, onPress, subject, testID }: CoverPickerProps) {
   return (
     <Pressable
       onPress={onPress}
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={uri ? "Trocar capa da partida" : "Adicionar capa da partida"}
+      accessibilityLabel={uri ? `Trocar ${subject?.a11y ?? "capa da partida"}` : `Adicionar ${subject?.a11y ?? "capa da partida"}`}
       className="h-40 overflow-hidden rounded-card"
     >
       {uri ? (
@@ -55,7 +57,7 @@ export function CoverPicker({ uri, onPress, testID }: CoverPickerProps) {
               <View className="flex-row items-center gap-2">
                 <IconAdicionarFoto size={16} color={colors.textOnDark} />
                 <Text className="font-body-semibold text-body-bold text-text-on-dark">
-                  Adicionar capa
+                  {subject?.add ?? "Adicionar capa"}
                 </Text>
               </View>
             </View>

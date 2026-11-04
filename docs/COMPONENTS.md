@@ -373,6 +373,20 @@ More UI primitives will live here:
 - **Used in**: `app/(tabs)/_layout.tsx` (over the tabs, next to `CreateSheet`)
 - **Notes**: Asks for the location permission once, only while it was never answered (DECISIONS #72, #188): a card centred on the screen over the tabs, blurred and dimmed behind it like `CreateSheet` (white card, 2px navy border, `HARD_SHADOW`, lime pin badge, wide options). The veil does not close it. Allowed: calls `onGranted` (the layout remounts the tabs so they read the position). Denied: explains what is lost, offers the phone settings, then lets the user in. Renders nothing otherwise. `onSettled` fires once nothing is left to ask (the first-access tour waits for it).
 
+### `AdBanner`
+- **Path**: `src/components/domain/AdBanner.tsx`
+- **Category**: domain
+- **Props**: `{ ad: ServedAd; size?: 'card' | 'compact'; preview?: boolean; testID?: string }`
+- **Used in**: `app/(tabs)/index.tsx` (Home), `app/explore/map.tsx` (corner, `compact`), `app/ads/new.tsx` and `app/profile/ads-review.tsx` (`preview`)
+- **Notes**: A self-service ad (DECISIONS #200): white card, photo on the left (navy block with the Divulgar icon without one), the "Patrocinado" tag, title and up to two lines of text (`card` only). Shown: counts a view; tap: counts a tap and opens the WhatsApp or https site (an Arena link opens the map). `preview` counts nothing and does not open.
+
+### `OpeningAd`
+- **Path**: `src/components/domain/OpeningAd.tsx`
+- **Category**: domain
+- **Props**: `{ ready: boolean }`
+- **Used in**: `app/(tabs)/_layout.tsx` (after `TourOverlay`)
+- **Notes**: The opening card (DECISIONS #200): an ad on the air around the player in a centred card over a navy veil (photo, "Patrocinado", title, text, "Quero saber mais" / "Agora não", close). Waits for `ready` (location settled) plus 4 s, never while the tour is open, and shows each ad at most once a week on this phone (`useOpeningAdStore`, AsyncStorage).
+
 ### `TourOverlay`
 - **Path**: `src/components/domain/TourOverlay.tsx`
 - **Category**: domain

@@ -199,6 +199,12 @@ const mockItems: { lastParams: unknown; fetching: boolean; arenaCount: number; g
 };
 
 // The map's one request: like the API, a game listed under an arena is not a loose game.
+// Ads (DECISIONS #200): none on the air in these tests.
+jest.mock('@/features/ads/api/ads', () => ({
+  ...jest.requireActual('@/features/ads/api/ads'),
+  useServedAd: () => ({ data: null, isSuccess: true }),
+}));
+
 jest.mock('@/features/explore/api/mapItems', () => ({
   ...jest.requireActual('@/features/explore/api/mapItems'),
   useMapItems: (params: unknown) => {

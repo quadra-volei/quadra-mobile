@@ -22,6 +22,7 @@ import { CourtImage } from '@/components/ui/CourtImage';
 import { Tag } from '@/components/ui/Tag';
 import { MatchCard } from '@/components/domain/MatchCard';
 import { DirectionsSheet } from '@/components/domain/DirectionsSheet';
+import { AdBanner } from '@/components/domain/AdBanner';
 import { MapListSheet } from '@/components/domain/MapListSheet';
 import {
   CLUSTER_ANCHOR,
@@ -40,6 +41,7 @@ import {
   type MapBox,
 } from '@/features/explore/api/mapItems';
 import { useVenueDetails, VENUE_KINDS, type VenueKind } from '@/features/explore/api/venues';
+import { useServedAd } from '@/features/ads/api/ads';
 import { NO_CLUSTER_DELTA, clusterPoints, type MapPoint } from '@/features/explore/lib/cluster';
 import { arcBetween, type Destination } from '@/features/explore/lib/directions';
 import { useNearbyMatches } from '@/features/matches/api/getNearby';
@@ -357,6 +359,7 @@ export default function MapScreen() {
   const center = userLocation ?? DEFAULT_CENTER;
   const loadedBox = box ?? initialMapBox(center);
   const located = !checkingPermission && !resolvingLocation;
+  const mapAd = useServedAd('Map', located ? center : null);
   // One request per rectangle: arenas with their games and the games with no arena (#179).
   const items = useMapItems(
     { ...loadedBox, kinds, lat: center.latitude, lon: center.longitude },
@@ -823,6 +826,13 @@ export default function MapScreen() {
             </View>
           </View>
         )}
+
+        {/* An ad on the air around the player, in the corner (DECISIONS #200); never over an open pin. */}
+        {mapAd.data && !selectedVenue && !selected ? (
+          <View pointerEvents="box-none" className="items-end px-4 pt-3">
+            <AdBanner ad={mapAd.data} size="compact" testID="map-ad" />
+          </View>
+        ) : null}
       </SafeAreaView>
 
       {/* The list of the area in a panel dragged up from the bottom (#180), while no pin is open. */}

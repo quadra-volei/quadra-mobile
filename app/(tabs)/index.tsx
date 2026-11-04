@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { FlatList, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AdBanner } from '@/components/domain/AdBanner';
 import { BellWithBadge } from '@/components/domain/BellWithBadge';
 import { ActivityRow } from "@/components/domain/ActivityRow";
 import { MatchCardCompact } from "@/components/domain/MatchCardCompact";
@@ -16,9 +17,11 @@ import { StateMessage } from "@/components/ui/StateMessage";
 import { IconButton } from "@/components/ui/IconButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { type ActivityLine, activityQueryKey, useFriendsActivity } from "@/features/activity/api/activityApi";
+import { useServedAd } from "@/features/ads/api/ads";
 import { useUpcomingMatches } from "@/features/matches/api/getUpcoming";
 import { formatStartsAt } from "@/features/matches/lib/formatWhen";
 import { countdownLabel, pickNextGame } from "@/features/matches/lib/nextGame";
+import { useDeviceCoords } from "@/features/matches/lib/useDeviceCoords";
 import { splitVenue } from "@/features/matches/lib/venueName";
 import type { UpcomingMatch } from "@/features/matches/types/match";
 import { useFollowState } from "@/features/network/api/postsApi";
@@ -337,6 +340,32 @@ function PassSection() {
   );
 }
 
+// An ad on the air around the player (DECISIONS #200); without one, a quiet way to advertise.
+function AdSection() {
+  const ad = useServedAd("Home", useDeviceCoords());
+  if (ad.data) {
+    return (
+      <View className="mx-4 mt-6">
+        <AdBanner ad={ad.data} testID="home-ad" />
+      </View>
+    );
+  }
+  if (!ad.isSuccess) return null;
+  return (
+    <PressableScale
+      onPress={() => router.push("/ads/new")}
+      accessibilityRole="button"
+      accessibilityLabel="Anuncie no Quadra"
+      testID="home-ad-placeholder"
+      className="mx-4 mt-6 rounded-card border border-dashed border-line px-4 py-3"
+    >
+      <Text className="font-body text-caption text-text-muted text-center">
+        Sua arena, aula ou loja aqui? <Text className="font-body-bold text-primary">Anuncie no Quadra</Text>
+      </Text>
+    </PressableScale>
+  );
+}
+
 export default function HomeScreen() {
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
@@ -379,6 +408,7 @@ export default function HomeScreen() {
           <>
             <HomeHero />
             <PassSection />
+            <AdSection />
           </>
         ) : (
           <>
@@ -399,6 +429,7 @@ export default function HomeScreen() {
               </>
             ) : null}
             <PassSection />
+            <AdSection />
             <UpcomingSection query={upcoming} nextGame={nextGame} />
           </>
         )}
