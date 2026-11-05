@@ -10,8 +10,9 @@ import { authorizedApiClient } from '@/lib/api/authorizedClient';
 /**
  * Self-service ads (DECISIONS #200, API DECISIONS #102). A player builds an ad (where it shows,
  * around which point, for how many weeks) at the server's price; it only goes on the air once it
- * is paid and the team approved it. Store payment is not wired yet: the ad is reserved and the
- * team confirms the payment.
+ * is paid and the team approved it. Store payment is not wired yet: the ad is reserved, and the
+ * team's approval also confirms the payment received by hand. Several ads in the same space take
+ * turns (the server picks one the player has not seen today, then the least shown).
  */
 
 export type AdPlacement = 'Home' | 'Map' | 'Opening';
@@ -226,15 +227,10 @@ export function useTeamAds() {
   return useQuery({ queryKey: teamAdsKey, queryFn: () => authorizedApiClient<AdminAd[]>('/api/v1/admin/ads') });
 }
 
-export function useMarkAdPaid() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) =>
-      authorizedApiClient<Ad>(`/api/v1/admin/ads/${id}/paid`, { method: 'POST', body: JSON.stringify({ note: null }) }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: teamAdsKey }),
-  });
-}
-
+/**
+ * Approve or refuse in one step (API DECISIONS #103): approving an ad still awaiting payment also
+ * records the payment the team received by hand.
+ */
 export function useReviewAd() {
   const queryClient = useQueryClient();
   return useMutation({

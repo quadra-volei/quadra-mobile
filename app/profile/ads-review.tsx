@@ -14,7 +14,6 @@ import {
   formatPrice,
   lastDay,
   shortDate,
-  useMarkAdPaid,
   useReviewAd,
   useTeamAds,
   type AdminAd,
@@ -23,14 +22,13 @@ import {
 import { ApiError } from '@/lib/api/client';
 
 /*
- * Ads for the team (DECISIONS #200, API DECISIONS #102): confirm a payment received (until store
- * payment exists) and approve or refuse a paid ad before it goes on the air. Only the team's
- * accounts reach these routes; the API checks it on every call.
+ * Ads for the team (DECISIONS #200, #201; API DECISIONS #102, #103): approve or refuse an ad before
+ * it goes on the air. Until store payment exists, approving also confirms the payment received by
+ * hand, in one step. Only the team's accounts reach these routes; the API checks it on every call.
  */
 
 const FILTERS: { label: string; phases: AdPhase[] }[] = [
-  { label: 'A pagar', phases: ['AwaitingPayment'] },
-  { label: 'Em análise', phases: ['InReview'] },
+  { label: 'Para aprovar', phases: ['AwaitingPayment', 'InReview'] },
   { label: 'Aprovados', phases: ['Scheduled', 'Live'] },
   { label: 'Todos', phases: [] },
 ];
@@ -45,17 +43,23 @@ function failure(error: Error): string {
 
 function TeamAdRow({ item }: { item: AdminAd }) {
   const { ad } = item;
-  const markPaid = useMarkAdPaid();
   const review = useReviewAd();
-  const busy = markPaid.isPending || review.isPending;
+  const busy = review.isPending;
   const onError = (error: Error) => dialog.alert('Anúncios', failure(error));
   const placement = PLACEMENTS.find((p) => p.placement === ad.placement)?.label ?? ad.placement;
 
-  const confirmPaid = () =>
-    dialog.alert('Pagamento recebido?', `${formatPrice(ad.priceCents)} de "${ad.title}". Depois disso ele vai para análise.`, [
-      { text: 'Voltar', style: 'cancel' },
-      { text: 'Confirmar', onPress: () => markPaid.mutate(ad.id, { onError }) },
-    ]);
+  const awaitingPayment = ad.phase === 'AwaitingPayment';
+  const approve = () =>
+    awaitingPayment
+      ? dialog.alert(
+          'Aprovar anúncio?',
+          `Confirme que recebeu ${formatPrice(ad.priceCents)} de "${ad.title}". Ele entra no ar na data marcada.`,
+          [
+            { text: 'Voltar', style: 'cancel' },
+            { text: 'Aprovar', onPress: () => review.mutate({ id: ad.id, approve: true }, { onError }) },
+          ],
+        )
+      : review.mutate({ id: ad.id, approve: true }, { onError });
   const refuse = () =>
     dialog.alert('Recusar anúncio', 'Qual o motivo? Ele aparece para o anunciante.', [
       ...REFUSE_REASONS.map((reason) => ({
@@ -82,17 +86,12 @@ function TeamAdRow({ item }: { item: AdminAd }) {
           Anunciante: {item.advertiserId}
         </Text>
       ) : null}
-      {ad.phase === 'AwaitingPayment' ? (
-        <Button variant="primary" onPress={confirmPaid} disabled={busy} testID={`team-ad-paid-${ad.id}`}>
-          Marcar como pago
-        </Button>
-      ) : null}
-      {ad.phase === 'InReview' ? (
+      {awaitingPayment || ad.phase === 'InReview' ? (
         <View className="flex-row gap-2">
           <View className="flex-1">
             <Button
               variant="grad"
-              onPress={() => review.mutate({ id: ad.id, approve: true }, { onError })}
+              onPress={approve}
               disabled={busy}
               testID={`team-ad-approve-${ad.id}`}
             >
