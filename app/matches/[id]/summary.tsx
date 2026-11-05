@@ -521,7 +521,7 @@ function SummaryError({ matchId, message }: { matchId: string; message?: string 
 
 /**
  * "+46 pts no ranking": what this match gave me (quadra-api DECISIONS #95). A
- * one-off match's points count for the season pass only (#103): no group ranking.
+ * one-off match's points count for the season pass only (API DECISIONS #104): no group ranking.
  */
 function RankingPointsCard({ matchId }: { matchId: string }) {
   const { data } = useMatchPoints(matchId);
