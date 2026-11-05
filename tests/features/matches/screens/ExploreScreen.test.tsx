@@ -1,3 +1,6 @@
+jest.mock('@/components/domain/BellWithBadge', () => ({
+  BellWithBadge: () => require('react').createElement(require('react-native').View, { testID: 'icon-notificacoes' }),
+}));
 /**
  * S6 — Explore screen tests.
  *
@@ -260,12 +263,12 @@ describe('S6 — Explore screen', () => {
    * Criterion: the bell is a no-op this iteration (documented divergence) —
    *  tapping it navigates nowhere.
    */
-  it('does not navigate when the bell is tapped (no-op)', async () => {
+  it('opens the notifications when the bell is tapped', async () => {
     await render(<ExploreScreen />);
 
     await press(screen.getByLabelText('Notificações'));
 
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith('/notifications');
   });
 
   /**
@@ -316,7 +319,7 @@ describe('S6 — Explore screen', () => {
     expect(screen.queryByText('Quadra do Parque')).toBeNull();
     expect(screen.queryByText('Centro Olímpico')).toBeNull();
     // count reflects the filtered length
-    expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
+    expect(screen.getByText('1 partida encontrada')).toBeTruthy();
   });
 
   /**
@@ -363,7 +366,7 @@ describe('S6 — Explore screen', () => {
     expect(screen.getByText('Quadra do Parque')).toBeTruthy();
     expect(screen.queryByText('Arena Sky Beach')).toBeNull();
     expect(screen.queryByText('Centro Olímpico')).toBeNull();
-    expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
+    expect(screen.getByText('1 partida encontrada')).toBeTruthy();
     // the quick chip counts as an active filter on the Filtros button
     expect(screen.getByLabelText('Filtros, 1 ativos')).toBeTruthy();
   });
@@ -375,7 +378,7 @@ describe('S6 — Explore screen', () => {
     expect(screen.getByText('2 partidas encontradas')).toBeTruthy();
 
     await press(screen.getAllByText('Grátis')[0]!);
-    expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
+    expect(screen.getByText('1 partida encontrada')).toBeTruthy();
     expect(screen.getByText('Quadra do Parque')).toBeTruthy();
 
     // tapping again turns it off
@@ -406,7 +409,7 @@ describe('S6 — Explore screen', () => {
     expect(screen.getByText('3 partidas encontradas')).toBeTruthy();
 
     await press(screen.getByText('Ver 1 partida'));
-    expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
+    expect(screen.getByText('1 partida encontrada')).toBeTruthy();
     expect(screen.getByText('Centro Olímpico')).toBeTruthy();
     expect(screen.getByLabelText('Filtros, 1 ativos')).toBeTruthy();
   });
@@ -425,7 +428,7 @@ describe('S6 — Explore screen', () => {
     await press(screen.getByText('Ver 1 partida'));
 
     expect(screen.getByText('Quadra do Parque')).toBeTruthy();
-    expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
+    expect(screen.getByText('1 partida encontrada')).toBeTruthy();
   });
 
   it('opens with the games up to 15 km, and offers the whole 50 km when none is that close', async () => {
@@ -494,7 +497,7 @@ describe('S6 — Explore screen', () => {
 
     // [0] is the chip; the level badge of a card carries the same text
     await press(screen.getAllByText('Iniciante')[0]!);
-    expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
+    expect(screen.getByText('1 partida encontrada')).toBeTruthy();
   });
 
   /**

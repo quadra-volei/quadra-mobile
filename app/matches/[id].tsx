@@ -419,7 +419,6 @@ export default function MatchDetailScreen() {
           imageUri={match.coverUrl}
           height={HERO_HEIGHT}
           radius={0}
-          label="FOTO DA QUADRA"
         >
           {/* Scrim: keeps the actions (top) and the title block (bottom) legible
               over any tint. */}
@@ -592,9 +591,11 @@ export default function MatchDetailScreen() {
               ) : null}
               {isRecurring ? ' recorrente' : ''}
             </Text>
-            <Text className="font-body text-caption text-text-muted">
-              Valor combinado direto com o organizador da partida.
-            </Text>
+            {match.priceLabel === 'Grátis' && !isRecurring ? null : (
+              <Text className="font-body text-caption text-text-muted">
+                Valor combinado direto com o organizador da partida.
+              </Text>
+            )}
           </InfoRow>
 
           <InfoRow

@@ -73,11 +73,13 @@ jest.mock('@/features/pass/api/seasonPass', () => ({
 // expo-router: spyable router.push + useFocusEffect (used by
 // useRegisterNavBlurTarget) delegated to a plain effect so the screen mounts.
 const mockPush = jest.fn();
+const mockNavigate = jest.fn();
 jest.mock('expo-router', () => {
   const ReactLocal = require('react');
   return {
     router: {
       push: (...args: any[]) => mockPush(...args),
+      navigate: (...args: any[]) => mockNavigate(...args),
     },
     useFocusEffect: (cb: () => void | (() => void)) =>
       ReactLocal.useEffect(() => cb(), [cb]),
@@ -483,8 +485,11 @@ describe('S5 — Home screen', () => {
     expect(screen.queryByText('PRÓXIMAS PARTIDAS')).toBeNull();
     expect(screen.getByTestId('home-hero-art')).toBeTruthy();
     expect(screen.getByTestId('home-hero').props.style).toEqual(
-      expect.objectContaining({ aspectRatio: 4 / 5 }),
+      expect.arrayContaining([expect.objectContaining({ aspectRatio: 4 / 5 })]),
     );
+    // The hero leads to Explorar (relatório 05/11).
+    await fireEvent.press(screen.getByTestId('home-hero'));
+    expect(mockNavigate).toHaveBeenCalledWith('/(tabs)/explore');
     expect(screen.getByText('INÍCIO')).toBeTruthy();
   });
 

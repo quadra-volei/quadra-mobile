@@ -528,6 +528,7 @@ function LiveScoreboard({
           <View className="px-4 pb-4 gap-3">
             <Text className="font-body text-caption text-white/70 text-center">
               Toque no time para marcar o ponto
+              {game.pointsToWin ? `\nPara fechar o jogo, são ${game.pointsToWin} pontos com 2 de vantagem` : ''}
             </Text>
             <StatsLink matchId={matchId} />
             <View className="flex-row gap-3">

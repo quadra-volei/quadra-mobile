@@ -18,7 +18,8 @@ export function formatWhen(startsAt: string): string {
 
 /**
  * "Hoje · 19h30" / "Amanhã · 20h00" / "20/06 · 19h30", relative to the current
- * day (Home cards).
+ * day (Home cards). A match still listed after its time has started: "Começou ·
+ * 19h30", so a game being played does not read as one still to come.
  */
 export function formatStartsAt(iso: string): string {
   const date = new Date(iso);
@@ -34,6 +35,7 @@ export function formatStartsAt(iso: string): string {
   const mm = String(date.getMinutes()).padStart(2, '0');
   const time = `${hh}h${mm}`;
 
+  if (date.getTime() <= now.getTime() && dayDiff >= -1) return `Começou · ${time}`;
   if (dayDiff === 0) return `Hoje · ${time}`;
   if (dayDiff === 1) return `Amanhã · ${time}`;
 

@@ -336,8 +336,8 @@ describe('S8 — Profile screen', () => {
     expect(overall.props.className).toContain('font-num');
 
     // Level/XP bar
-    expect(screen.getByText('Level 15')).toBeTruthy();
-    expect(screen.getByText('XP: 2.450 / 5.000')).toBeTruthy();
+    expect(screen.getByText('Nível 15')).toBeTruthy();
+    expect(screen.getByText('2.450 / 5.000 XP')).toBeTruthy();
   });
 
   /**

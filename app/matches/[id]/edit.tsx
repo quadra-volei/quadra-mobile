@@ -239,6 +239,7 @@ function EditMatchForm({
             <SearchField
               value={location}
               placeholder="Buscar quadra ou endereço"
+              accessibilityLabel="Buscar quadra ou endereço"
               onChangeText={(t) => {
                 setLocation(t);
                 setValue('location', t);
