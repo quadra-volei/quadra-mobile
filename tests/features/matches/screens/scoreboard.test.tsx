@@ -199,7 +199,7 @@ describe('end of set — "O que vem agora?"', () => {
     await show(afterSet(3));
 
     expect(screen.getByTestId('set-end-sheet')).toBeTruthy();
-    expect(screen.getByText('Set 1 encerrado')).toBeTruthy();
+    expect(screen.getByText('Jogo 1 encerrado')).toBeTruthy();
     expect(screen.getByText('21')).toBeTruthy();
     expect(screen.getByText('17')).toBeTruthy();
   });

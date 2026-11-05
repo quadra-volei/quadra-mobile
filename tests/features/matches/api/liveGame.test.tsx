@@ -29,6 +29,7 @@ import {
   type LiveGameData,
   gameLabel,
   toLiveGame,
+  SCORE_REQUEST_TIMEOUT_MS,
   useAddPoint,
   useLiveGame,
   useStartSet,
@@ -405,6 +406,47 @@ describe('teams and live game', () => {
     // The server refuses them: the screen goes back to what the server has.
     await act(async () => release());
     await waitFor(() => expect(result.current.game.data?.scores).toEqual([a, b]));
+  });
+
+  it('a point that never answers is given up, so the taps behind it still reach the server', async () => {
+    const after = scoreboard();
+    after.sets[0]!.teamAPoints = 4;
+    serve({
+      'GET /detail': { status: 200, body: apiDetail },
+      'GET /teams': { status: 200, body: { teams: apiTeams } },
+      'GET /scoreboard': { status: 200, body: scoreboard() },
+      'POST /scoreboard/sets/1/points': { status: 200, body: after },
+    });
+    const served = fetchMock.getMockImplementation()!;
+    let posts = 0;
+    fetchMock.mockImplementation(async (url: string, init: RequestInit) => {
+      if (init.method === 'POST' && ++posts === 1) {
+        return new Promise(() => {}); // the first point hangs forever
+      }
+      return served(url, init);
+    });
+    const { result } = await renderHook(
+      () => ({ game: useLiveGame(MATCH), addPoint: useAddPoint(MATCH) }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.game.isSuccess).toBe(true));
+
+    jest.useFakeTimers();
+    try {
+      await act(async () => {
+        result.current.addPoint.mutate({ setNumber: 1, teamId: 'team-a' });
+        result.current.addPoint.mutate({ setNumber: 1, teamId: 'team-a' });
+      });
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(SCORE_REQUEST_TIMEOUT_MS + 100);
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+
+    await waitFor(() => expect(posts).toBe(2));
+    await waitFor(() => expect(result.current.addPoint.isPending).toBe(false));
+    await waitFor(() => expect(result.current.game.data?.scores).toEqual([4, 2]));
   });
 
   it('a point writes the scoreboard the server answers with into the cache', async () => {

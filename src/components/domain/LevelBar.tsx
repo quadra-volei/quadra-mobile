@@ -32,9 +32,9 @@ export function LevelBar({ level, xp, xpToNext, testID }: LevelBarProps) {
   return (
     <View testID={testID}>
       <View className="flex-row items-center justify-between">
-        <Text className="font-num text-text-primary text-body">Level {level}</Text>
+        <Text className="font-num text-text-primary text-body">Nível {level}</Text>
         <Text className="font-body text-caption text-text-muted">
-          XP: {formatXp(xp)} / {formatXp(xpToNext)}
+          {formatXp(xp)} / {formatXp(xpToNext)} XP
         </Text>
       </View>
       <View className="h-2 rounded-pill bg-bg-light-alt mt-2 overflow-hidden">

@@ -10,6 +10,7 @@ import { StepperField } from '@/components/ui/StepperField';
 import type { TeamsSetup as TeamsSetupState } from '@/features/matches/lib/useTeamsSetup';
 import type { DrawMode } from '@/features/matches/types/matchDetail';
 import { colors } from '@/theme/colors';
+import { plural } from '@/lib/plural';
 
 // What each draw mode asks the backend for (drawTeams.ts): MANUAL is a random
 // draw, AUTO balances the teams by level.
@@ -129,7 +130,7 @@ export function TeamsSetup({ setup, testID = 'teams-setup' }: TeamsSetupProps) {
             />
           </View>
           <Text className="mt-1 font-body text-caption text-text-muted">
-            {confirmedCount} confirmados no total
+            {plural(confirmedCount, 'confirmado', 'confirmados')} no total
           </Text>
           {capacityHint ? (
             <Text

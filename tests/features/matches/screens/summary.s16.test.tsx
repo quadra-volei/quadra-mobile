@@ -433,8 +433,8 @@ describe('S16 — Match Summary', () => {
     expect(screen.getByText('Meu desempenho')).toBeTruthy();
 
     // Points card
-    expect(screen.getByText('Pontos nesta partida')).toBeTruthy();
-    expect(textOf(screen.getByTestId('summary-xp'))).toBe('+24');
+    expect(screen.getByText('XP nesta partida')).toBeTruthy();
+    expect(textOf(screen.getByTestId('summary-xp'))).toBe('+24 XP');
 
     // The five actions (API DECISIONS #84), in the app's order
     for (const label of ['Cortadas', 'Blocks', 'Aces', 'Salvadas', 'Assistências']) {
@@ -469,19 +469,19 @@ describe('S16 — Match Summary', () => {
 
   /**
    * Covers: S16 — Match Summary
-   * Criterion: "'Voltar para o perfil' navigates to the Profile tab (S8) and
-   *  resets the match stack." (router.replace('/(tabs)/profile'))
+   * Criterion: "'Concluir' goes back to the Início tab and
+   *  resets the match stack." (router.replace('/(tabs)'))
    */
-  it('navigates to the Profile tab (replace) from the bottom CTA', async () => {
+  it('goes back home (replace) from the bottom CTA', async () => {
     await renderScreen();
 
-    const cta = screen.getByTestId('summary-back-to-profile');
+    const cta = screen.getByTestId('summary-done');
     expect(cta.props['data-variant']).toBe('grad');
     expect(cta.props.accessibilityRole).toBe('button');
 
     fireEvent.press(cta);
     expect(mockReplace).toHaveBeenCalledTimes(1);
-    expect(mockReplace).toHaveBeenCalledWith('/(tabs)/profile');
+    expect(mockReplace).toHaveBeenCalledWith('/(tabs)');
   });
 
   /**
@@ -506,7 +506,7 @@ describe('S16 — Match Summary', () => {
     expect(screen.getByText('Resumo da partida')).toBeTruthy();
     expect(screen.queryByText('Vôlei de Quinta')).toBeNull();
     expect(screen.queryByTestId('summary-standings')).toBeNull();
-    expect(screen.queryByTestId('summary-back-to-profile')).toBeNull();
+    expect(screen.queryByTestId('summary-done')).toBeNull();
   });
 
   /**

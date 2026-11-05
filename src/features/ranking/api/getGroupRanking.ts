@@ -168,6 +168,8 @@ export type MatchPoints = {
   gamesWon: number;
   votes: number;
   mvp: boolean;
+  /** One-off match: the points count for the season pass only (API DECISIONS #103). */
+  oneOff?: boolean;
 };
 
 export function useMatchPoints(matchId: string | undefined) {

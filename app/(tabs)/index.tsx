@@ -109,9 +109,13 @@ function FriendsChip({ userId }: { userId: string }) {
  */
 function HomeHero() {
   const userId = useAuthStore((s) => s.userId);
+  // The whole card leads to the games nearby (relatório 05/11: it did nothing).
   return (
-    <View
+    <PressableScale
       testID="home-hero"
+      accessibilityRole="button"
+      accessibilityLabel="Bora pra quadra? Encontrar um jogo perto de você"
+      onPress={() => router.navigate("/(tabs)/explore")}
       className="mx-4 justify-between rounded-card bg-primary p-6 overflow-hidden"
       style={{ aspectRatio: 4 / 5 }}
     >
@@ -129,13 +133,12 @@ function HomeHero() {
         <Text className="font-display text-display text-accent uppercase">
           Quadra?
         </Text>
-        {userId ? (
-          <View className="mt-6 flex-row flex-wrap gap-2">
-            <FriendsChip userId={userId} />
-          </View>
-        ) : null}
+        <View className="mt-6 flex-row flex-wrap gap-2">
+          <HeroChip>Encontrar um jogo →</HeroChip>
+          {userId ? <FriendsChip userId={userId} /> : null}
+        </View>
       </View>
-    </View>
+    </PressableScale>
   );
 }
 

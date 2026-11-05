@@ -180,6 +180,33 @@ export function useLiveGame(matchId: string) {
   });
 }
 
+/**
+ * A score request that has not answered in this time is given up: the screen
+ * takes the point back and re-reads the score. Without it one request that
+ * never answers holds every later tap in the queue (relatório 05/11: the screen
+ * showed 13×11 while the server had 4×4). If the late request did reach the
+ * server, the re-read (or the SignalR signal) shows it.
+ */
+export const SCORE_REQUEST_TIMEOUT_MS = 8000;
+
+export const SCORE_TIMEOUT_MESSAGE = 'O placar não respondeu a tempo. Confira o placar e tente de novo.';
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(SCORE_TIMEOUT_MESSAGE)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error: unknown) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 const GAME_ERRORS = {
   403: 'Só quem organiza a partida pode fazer isso.',
   404: 'Monte os times antes de começar a partida.',
@@ -196,7 +223,7 @@ function useGameMutation<TInput>(
   return useMutation<ApiScoreboard, Error, TInput>({
     mutationFn: async (input) => {
       try {
-        return await action(input);
+        return await withTimeout(action(input), SCORE_REQUEST_TIMEOUT_MS);
       } catch (error) {
         throw toMatchError(error, { ...GAME_ERRORS, ...errors });
       }
@@ -301,14 +328,16 @@ export function useAddPoint(matchId: string) {
     scope: { id: mutationKey.join('/') },
     mutationFn: async (input) => {
       try {
-        return await postPoint(matchId, input.setNumber, input.teamId);
+        return await withTimeout(postPoint(matchId, input.setNumber, input.teamId), SCORE_REQUEST_TIMEOUT_MS);
       } catch (error) {
         throw toMatchError(error, GAME_ERRORS);
       }
     },
     onMutate: async (input) => {
-      // A read in flight would bring back the score from before this tap.
-      await queryClient.cancelQueries({ queryKey: gameKey });
+      // A read in flight would bring back the score from before this tap. The
+      // cancel happens at the call; not awaiting it keeps a slow read from
+      // holding this tap and every tap queued behind it.
+      void queryClient.cancelQueries({ queryKey: gameKey });
       queryClient.setQueryData<LiveGameData>(gameKey, (previous) =>
         previous ? withPoint(previous, input, 1) : previous,
       );

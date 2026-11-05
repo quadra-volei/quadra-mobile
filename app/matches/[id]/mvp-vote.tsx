@@ -212,6 +212,24 @@ export default function MvpVoteScreen() {
     );
   }
 
+  // Only guests besides me (they have no account, so no MVP): nothing to vote
+  // for, so say so and leave only the way to the summary (relatório 05/11).
+  if (!players.some((player) => player.id !== userId)) {
+    return (
+      <Frame>
+        <View className="flex-1 items-center justify-center px-6" testID="mvp-no-candidates">
+          <Text className="font-body-extrabold text-h3 text-text-on-dark text-center">
+            Ninguém para votar nesta partida.
+          </Text>
+          <Text className="font-body text-body text-white/70 text-center mt-2">
+            Só quem tem conta no Quadra pode ser MVP.
+          </Text>
+        </View>
+        <WrapUp matchId={matchId} emphasis />
+      </Frame>
+    );
+  }
+
   // Pre-vote state: player selection. After the vote it stays behind, blurred,
   // under the confirmation (VoteRegistered).
   const picker = (

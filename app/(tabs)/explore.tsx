@@ -1,5 +1,6 @@
 import { router } from "expo-router";
-import { IconConfiguracoes, IconFiltros, IconGrade, IconLista, IconLocal, IconNotificacoes } from '@/components/icons/quadra';
+import { IconConfiguracoes, IconFiltros, IconGrade, IconLista, IconLocal } from '@/components/icons/quadra';
+import { BellWithBadge } from '@/components/domain/BellWithBadge';
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { RefreshControl, ScrollView, Text, useWindowDimensions, View } from "react-native";
@@ -45,6 +46,7 @@ import { HARD_SHADOW, colors } from "@/theme/colors";
 import { MAP_STYLE } from "@/theme/mapStyle";
 import { usePullToRefresh, useRefreshOnFocus } from "@/hooks/useRefresh";
 import { TAB_BAR_CLEARANCE } from "@/theme/layout";
+import { plural } from "@/lib/plural";
 
 // Where Explore searches when the device location is not available: São Paulo
 // centre. Explore never prompts for location (S6 spec "Permissions"). The
@@ -325,7 +327,7 @@ function ResultsArea({
               className="font-body-bold text-body text-text-primary"
               numberOfLines={1}
             >
-              {results.length} jogos por perto
+              {plural(results.length, "jogo por perto", "jogos por perto")}
             </Text>
             {nearest ? (
               <View className="flex-row gap-1">
@@ -354,7 +356,7 @@ function ResultsArea({
           className="font-body-semibold text-body-bold text-text-primary"
           accessibilityLiveRegion="polite"
         >
-          {results.length} partidas encontradas
+          {plural(results.length, "partida encontrada", "partidas encontradas")}
         </Text>
         <Button
           variant="ghost"
@@ -532,16 +534,16 @@ export default function ExploreScreen() {
         </ScrollView>
       </View>
 
-      {/* Screen header — no avatar/greeting. Bell is a no-op this iteration
-          (no notifications screen). */}
+      {/* Screen header — no avatar/greeting; the bell opens the notifications
+          with the unread count, as on the other tabs. */}
       <ScreenHeader onHeight={setHeaderHeight}>
         <View className="flex-row items-center justify-between px-4 pt-2 pb-4">
           <Text className="font-display text-h1 text-text-primary uppercase">
             EXPLORAR
           </Text>
           <View className="flex-row items-center gap-3">
-            <IconButton label="Notificações" onPress={() => {}}>
-              <IconNotificacoes size={20} color={colors.surfaceDark} />
+            <IconButton label="Notificações" onPress={() => router.push('/notifications')}>
+              <BellWithBadge />
             </IconButton>
             <IconButton label="Configurações" onPress={goSettings}>
               <IconConfiguracoes size={20} color={colors.surfaceDark} />

@@ -98,7 +98,7 @@ export function SetEndSheet({
         <View className="mb-5 h-1 w-10 self-center rounded-full bg-white/30" />
 
         <Text className="text-center font-mono text-mono uppercase tracking-widest text-white/60">
-          Set {setNumber} encerrado
+          Jogo {setNumber} encerrado
         </Text>
         <Text className="mt-2 text-center font-display text-display uppercase text-text-on-dark">
           O que vem agora?
@@ -113,7 +113,7 @@ export function SetEndSheet({
         <View className="mt-6 gap-3">
           <SheetOption
             icon={IconProximoSet}
-            title="Próximo set"
+            title="Próximo jogo"
             hint="O vencedor fica e você escolhe quem entra"
             onPress={onNextSet}
             disabled={busy}
@@ -137,7 +137,7 @@ export function SetEndSheet({
           className="mt-4 items-center py-2"
           testID="set-end-keep-playing"
         >
-          <Text className="font-body-bold text-body-bold text-white/60">Continuar jogando</Text>
+          <Text className="font-body-bold text-body-bold text-white/60">Voltar ao placar</Text>
         </Pressable>
       </Animated.View>
     </View>

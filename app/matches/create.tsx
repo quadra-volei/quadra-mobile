@@ -628,6 +628,7 @@ export default function CreateMatchScreen() {
               <SearchField
                 value={location}
                 placeholder="Buscar quadra ou endereço"
+                accessibilityLabel="Buscar quadra ou endereço"
                 onChangeText={(t) => {
                   setLocation(t);
                   setValue('location', t, { shouldValidate: true });

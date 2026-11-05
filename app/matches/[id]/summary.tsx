@@ -154,8 +154,9 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
     }
   };
 
-  const handleBackToProfile = () => {
-    router.replace('/(tabs)/profile');
+  // The summary ends the match flow (scoreboard, stats, vote): back home.
+  const handleDone = () => {
+    router.replace('/(tabs)');
   };
 
   const resultA11yLabel = `${resultLabel(summary.result)}${
@@ -342,8 +343,8 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
 
         {/* ── Bottom CTA ── */}
         <View className="px-4 pb-4">
-          <Button variant="grad" onPress={handleBackToProfile} testID="summary-back-to-profile">
-            Voltar para o perfil
+          <Button variant="grad" onPress={handleDone} testID="summary-done">
+            Concluir
           </Button>
         </View>
       </SafeAreaView>
@@ -432,11 +433,11 @@ function PerformanceSection({ performance }: { performance: MatchPerformance }) 
           <IconPontos size={22} color={colors.accent} />
         </View>
         <View className="flex-1">
-          <Text className="font-body-semibold text-body-bold text-text-on-dark">Pontos nesta partida</Text>
-          <Text className="font-body text-caption text-white/70">Presença, vitória e MVP</Text>
+          <Text className="font-body-semibold text-body-bold text-text-on-dark">XP nesta partida</Text>
+          <Text className="font-body text-caption text-white/70">Faz seu nível subir</Text>
         </View>
         <Text className="font-num text-accent" style={{ fontSize: 32 }} testID="summary-xp">
-          +{performance.xpGained}
+          +{performance.xpGained} XP
         </Text>
       </View>
 
@@ -518,7 +519,10 @@ function SummaryError({ matchId, message }: { matchId: string; message?: string 
   );
 }
 
-/** "+46 pts no ranking": what this match gave me (quadra-api DECISIONS #95); nothing for one-offs. */
+/**
+ * "+46 pts no ranking": what this match gave me (quadra-api DECISIONS #95). A
+ * one-off match's points count for the season pass only (#103): no group ranking.
+ */
 function RankingPointsCard({ matchId }: { matchId: string }) {
   const { data } = useMatchPoints(matchId);
   if (!data) return null;
@@ -530,12 +534,20 @@ function RankingPointsCard({ matchId }: { matchId: string }) {
   return (
     <View className="px-4 mt-6" testID="summary-ranking-points">
       <View className="p-4 rounded-card border-2 border-accent bg-white/5">
-        <Text className="font-body-bold text-eyebrow text-accent uppercase">Ranking do grupo</Text>
+        <Text className="font-body-bold text-eyebrow text-accent uppercase">
+          {data.oneOff ? 'Pontos do passe' : 'Ranking do grupo'}
+        </Text>
         <Text className="font-num text-text-on-dark mt-1" style={{ fontSize: 32 }}>
           +{data.points} <Text className="font-body text-body text-white/70">pts</Text>
         </Text>
         <Text className="font-body text-caption text-white/70">{parts.join(' · ')}</Text>
+        {data.oneOff ? (
+          <Text className="font-body text-caption text-white/70 mt-1" testID="summary-one-off-note">
+            Partida avulsa: conta para o passe, não para o ranking.
+          </Text>
+        ) : null}
         <SeasonPassLine />
+        {data.oneOff ? null : (
         <View className="mt-3">
           <Button
             variant="outlineLime"
@@ -545,6 +557,7 @@ function RankingPointsCard({ matchId }: { matchId: string }) {
             Ver ranking do grupo
           </Button>
         </View>
+        )}
       </View>
     </View>
   );
