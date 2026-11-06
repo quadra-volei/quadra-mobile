@@ -1,21 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import {
-  Bell,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  FileText,
-  Globe,
-  MapPin,
-  MessageSquare,
-  Shield,
-  Trash2,
-  User,
-  UserX,
-  Users,
-} from 'lucide-react-native';
+import { IconAvancar, IconBaixar, IconBloquearJogador, IconConfirmar, IconCuradoria, IconDivulgar, IconEstatisticas, IconExcluir, IconFeedback, IconNotificacoes, IconParticipantes, IconPerfil, IconPermissoes, IconPrivacidade, IconSair, IconSobre, IconTermos, IconTour } from '@/components/icons/quadra';
 import { type ReactNode, useState } from 'react';
 import { Linking, Pressable, ScrollView, Text, View } from 'react-native';
 
@@ -27,16 +12,30 @@ import { ToggleField } from '@/components/ui/ToggleField';
 import { BackHeader } from '@/components/ui/BackHeader';
 import { useSetActivitySharing } from '@/features/activity/api/activityApi';
 import { useDeleteAccount, useExportAccount } from '@/features/auth/api/account';
+import { useAdminAccess } from '@/features/curation/api/curation';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
+import { useTourStore } from '@/features/tour/tourStore';
 import { positionLabel } from '@/features/profile/schema/onboarding';
 import { logout } from '@/lib/auth/logout';
 import { LEGAL_URLS } from '@/lib/legal';
 import { useThemeStore, type ThemePreference } from '@/stores/theme';
 import { colors } from '@/theme/colors';
 
-// App version shown on "Sobre o Quadra". Sourced as a module-local constant
-// (expo-constants/expo-application are not in the locked stack); update on bumps.
-const APP_VERSION = '1.0.0';
+import appConfig from '../../app.json';
+
+// App version shown on "Sobre o Quadra": the same `app.json` version the update check compares.
+const APP_VERSION = appConfig.expo.version;
+
+// How long the stack takes to slide back to the tabs before the tour measures the tab bar.
+const TOUR_REPLAY_DELAY_MS = 400;
+
+/** Back to the tabs, then the first-access tour from the start (DECISIONS #190). */
+function replayTour() {
+  if (router.canDismiss()) {
+    router.dismissAll();
+  }
+  setTimeout(() => useTourStore.getState().open(), TOUR_REPLAY_DELAY_MS);
+}
 
 // ── Eyebrow section label (CONTA / PREFERÊNCIAS / SUPORTE) ──
 function SectionLabel({ children }: { children: ReactNode }) {
@@ -91,7 +90,7 @@ function SettingsRow({
       {rightText ? (
         <Text className="font-num text-caption text-text-muted">{rightText}</Text>
       ) : (
-        <ChevronRight size={20} color={colors.textMuted} />
+        <IconAvancar size={20} color={colors.textMuted} />
       )}
     </Pressable>
   );
@@ -131,7 +130,7 @@ function ThemeTile({
         {swatch}
         {selected ? (
           <View className="absolute right-1 top-1 h-5 w-5 items-center justify-center rounded-full bg-primary">
-            <Check size={12} color={colors.textOnDark} />
+            <IconConfirmar size={12} color={colors.textOnDark} />
           </View>
         ) : null}
       </View>
@@ -210,7 +209,7 @@ function ActivitySharingToggle() {
   const value = setSharing.isPending ? (setSharing.variables ?? true) : (data?.shareActivity ?? true);
   return (
     <ToggleField
-      icon={<Users size={24} color={colors.surfaceDark} />}
+      icon={<IconParticipantes size={24} color={colors.surfaceDark} />}
       title="Mostrar minhas atividades"
       caption="Quem te segue vê quando você joga, é MVP ou sobe de nível"
       value={value}
@@ -227,6 +226,7 @@ export default function SettingsScreen() {
   const [headerHeight, setHeaderHeight] = useState(0);
 
   const exportAccount = useExportAccount();
+  const admin = useAdminAccess();
   const deleteAccount = useDeleteAccount();
 
   const onLogout = () => {
@@ -271,14 +271,14 @@ export default function SettingsScreen() {
           <SectionLabel>Conta</SectionLabel>
           <View className="mx-4 bg-white rounded-card shadow-card overflow-hidden">
             <SettingsRow
-              icon={<User size={24} color={colors.surfaceDark} />}
+              icon={<IconPerfil size={24} color={colors.surfaceDark} />}
               title="Editar perfil"
               subtitle="Nome, nascimento, telefone"
               onPress={() => router.push('/profile/edit')}
             />
             <Divider />
             <SettingsRow
-              icon={<Download size={24} color={colors.surfaceDark} />}
+              icon={<IconBaixar size={24} color={colors.surfaceDark} />}
               title="Exportar meus dados"
               subtitle="Tudo o que o Quadra guarda sobre você"
               onPress={onExport}
@@ -286,11 +286,29 @@ export default function SettingsScreen() {
             />
             <Divider />
             <SettingsRow
-              icon={<Trash2 size={24} color={colors.danger} />}
+              icon={<IconExcluir size={24} color={colors.danger} />}
               title="Excluir conta"
               subtitle="Apaga sua conta e seus dados"
               onPress={onDelete}
               disabled={deleteAccount.isPending}
+            />
+          </View>
+
+          {/* ANÚNCIOS — self-service ads (DECISIONS #200) */}
+          <SectionLabel>Anúncios</SectionLabel>
+          <View className="mx-4 bg-white rounded-card shadow-card overflow-hidden">
+            <SettingsRow
+              icon={<IconDivulgar size={24} color={colors.surfaceDark} />}
+              title="Anunciar no Quadra"
+              subtitle="Sua arena, aula ou loja para quem joga perto"
+              onPress={() => router.push('/ads/new')}
+            />
+            <Divider />
+            <SettingsRow
+              icon={<IconEstatisticas size={24} color={colors.surfaceDark} />}
+              title="Meus anúncios"
+              subtitle="Situação, quem viu e quem tocou"
+              onPress={() => router.push('/ads')}
             />
           </View>
 
@@ -340,14 +358,14 @@ export default function SettingsScreen() {
 
           <View className="mx-4 mt-3 bg-white rounded-card shadow-card overflow-hidden">
             <SettingsRow
-              icon={<Bell size={24} color={colors.surfaceDark} />}
+              icon={<IconNotificacoes size={24} color={colors.surfaceDark} />}
               title="Notificações"
               subtitle="Convites, lembretes, ranking"
               onPress={() => router.push('/profile/notifications')}
             />
             <Divider />
             <SettingsRow
-              icon={<MapPin size={24} color={colors.surfaceDark} />}
+              icon={<IconPermissoes size={24} color={colors.surfaceDark} />}
               title="Permissões do app"
               subtitle="Localização e notificações"
               onPress={() => {
@@ -363,37 +381,66 @@ export default function SettingsScreen() {
           </View>
           <View className="mx-4 mt-3 bg-white rounded-card shadow-card overflow-hidden">
             <SettingsRow
-              icon={<UserX size={24} color={colors.surfaceDark} />}
+              icon={<IconBloquearJogador size={24} color={colors.surfaceDark} />}
               title="Jogadores bloqueados"
               subtitle="Quem você bloqueou na Rede"
               onPress={() => router.push('/profile/blocked')}
             />
           </View>
 
+          {/* EQUIPE — only for the team's accounts; the API checks it on every call (#181) */}
+          {admin.data ? (
+            <>
+              <SectionLabel>Equipe</SectionLabel>
+              <View className="mx-4 bg-white rounded-card shadow-card overflow-hidden">
+                <SettingsRow
+                  icon={<IconCuradoria size={24} color={colors.surfaceDark} />}
+                  title="Curadoria de arenas"
+                  subtitle="Aprovar os lugares que aparecem no mapa"
+                  onPress={() => router.push('/profile/curation')}
+                />
+                <Divider />
+                <SettingsRow
+                  icon={<IconDivulgar size={24} color={colors.surfaceDark} />}
+                  title="Anúncios"
+                  subtitle="Confirmar pagamentos e aprovar anúncios"
+                  onPress={() => router.push('/profile/ads-review')}
+                />
+              </View>
+            </>
+          ) : null}
+
           {/* SUPORTE */}
           <SectionLabel>Suporte</SectionLabel>
           <View className="mx-4 bg-white rounded-card shadow-card overflow-hidden">
             <SettingsRow
-              icon={<MessageSquare size={24} color={colors.surfaceDark} />}
+              icon={<IconFeedback size={24} color={colors.surfaceDark} />}
               title="Enviar feedback"
               subtitle="Sugestões, problemas e elogios"
               onPress={() => router.push('/profile/feedback')}
             />
             <Divider />
             <SettingsRow
-              icon={<FileText size={24} color={colors.surfaceDark} />}
+              icon={<IconTour size={24} color={colors.surfaceDark} />}
+              title="Ver o tour de novo"
+              subtitle="Os atalhos do app em 4 toques"
+              onPress={replayTour}
+            />
+            <Divider />
+            <SettingsRow
+              icon={<IconTermos size={24} color={colors.surfaceDark} />}
               title="Termos de Uso"
               onPress={() => void Linking.openURL(LEGAL_URLS.terms)}
             />
             <Divider />
             <SettingsRow
-              icon={<Shield size={24} color={colors.surfaceDark} />}
+              icon={<IconPrivacidade size={24} color={colors.surfaceDark} />}
               title="Política de Privacidade"
               onPress={() => void Linking.openURL(LEGAL_URLS.privacy)}
             />
             <Divider />
             <SettingsRow
-              icon={<Globe size={24} color={colors.surfaceDark} />}
+              icon={<IconSobre size={24} color={colors.surfaceDark} />}
               title="Sobre o Quadra"
               rightText={`v${APP_VERSION}`}
               disabled
@@ -407,7 +454,7 @@ export default function SettingsScreen() {
             onPress={onLogout}
             className="mx-4 mt-6 bg-white rounded-card shadow-card px-4 py-4 flex-row items-center"
           >
-            <ChevronLeft size={24} color={colors.danger} />
+            <IconSair size={24} color={colors.danger} />
             <Text className="font-body-semibold text-body-bold text-danger ml-2">
               Sair da conta
             </Text>

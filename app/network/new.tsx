@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { ImagePlus, X } from 'lucide-react-native';
+import { IconAdicionarFoto, IconFechar } from '@/components/icons/quadra';
 import { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
@@ -132,7 +132,7 @@ export default function NewPostScreen() {
               onPress={() => setValue('photoUri', undefined, { shouldValidate: true })}
               className="absolute top-3 right-3 h-8 w-8 rounded-full bg-surface-dark items-center justify-center"
             >
-              <X size={18} color={colors.textOnDark} />
+              <IconFechar size={18} color={colors.textOnDark} />
             </Pressable>
           </View>
         ) : (
@@ -143,7 +143,7 @@ export default function NewPostScreen() {
             testID="post-pick-photo"
             className="h-24 rounded-card border border-line bg-white items-center justify-center overflow-hidden"
           >
-            <ImagePlus size={24} color={colors.primary} />
+            <IconAdicionarFoto size={24} color={colors.primary} />
             <Text className="mt-2 font-body text-caption text-text-primary">Escolher foto</Text>
           </PressableScale>
         )}

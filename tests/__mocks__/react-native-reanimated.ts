@@ -127,6 +127,8 @@ module.exports = {
   interpolateColor,
   FadeIn: layoutAnimation,
   FadeInDown: layoutAnimation,
+  FadeOut: layoutAnimation,
+  ZoomIn: layoutAnimation,
   Animated,
   // Also export as named to support both import styles
   View: AnimatedView,

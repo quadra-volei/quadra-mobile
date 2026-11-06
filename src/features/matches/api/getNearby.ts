@@ -22,11 +22,11 @@ async function getNearbyMatches(params: NearbyMatchesParams): Promise<NearbyMatc
   return (await fetchNearbyMatches(params)).map(toNearbyMatch);
 }
 
-export function useNearbyMatches(
-  params: NearbyMatchesParams) {
+export function useNearbyMatches(params: NearbyMatchesParams, enabled = true) {
   return useQuery({
     queryKey: nearbyMatchesQueryKey(params),
     queryFn: () => getNearbyMatches(params),
+    enabled,
     staleTime: 60_000,
     // Keep the current matches on screen while another area loads (the map
     // re-queries as it moves and must not fall back to its loading state).

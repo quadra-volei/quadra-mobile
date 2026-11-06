@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Clock } from 'lucide-react-native';
+import { IconHorario } from '@/components/icons/quadra';
 import { Text, View } from 'react-native';
 
 import { CourtImage } from '@/components/ui/CourtImage';
@@ -64,7 +64,7 @@ export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactPro
         </Text>
 
         <View className="flex-row items-center mt-[6px]">
-          <Clock size={14} color={colors.textMuted} />
+          <IconHorario size={14} color={colors.textMuted} />
           <Text
             className="font-body-semibold text-text-muted ml-[5px]"
             style={{ fontSize: 12.5 }}

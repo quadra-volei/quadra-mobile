@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Dimensions, Linking, Pressable, Text, View } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { ChevronLeft } from "lucide-react-native";
+import { IconVoltar } from '@/components/icons/quadra';
 import Animated, {
   runOnJS,
   useAnimatedKeyboard,
@@ -192,7 +192,7 @@ export default function LoginScreen() {
               className="ml-4 mt-2 h-10 w-10 rounded-full bg-surface-dark/40 items-center justify-center"
               testID="sheet-back"
             >
-              <ChevronLeft size={24} color={colors.textOnDark} />
+              <IconVoltar size={24} color={colors.textOnDark} />
             </Pressable>
           </SafeAreaView>
 

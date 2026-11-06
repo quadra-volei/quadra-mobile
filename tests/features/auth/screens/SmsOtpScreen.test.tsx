@@ -20,7 +20,7 @@
  *
  * All auth is mocked at the hook boundary (no network, no MSW). Navigation and
  * route params are mocked via expo-router. Native modules (gradient, reanimated,
- * safe-area, lucide) are stubbed inline — the repo's tests/__mocks__ are NOT
+ * safe-area) are stubbed inline — the repo's tests/__mocks__ are NOT
  * auto-applied. The countdown is driven by jest fake timers.
  */
 import React from 'react';
@@ -68,16 +68,6 @@ jest.mock('react-native-safe-area-context', () => {
   return {
     SafeAreaView: ({ children, ...props }: any) =>
       ReactLocal.createElement(View, props, children),
-  };
-});
-
-// lucide icons -> inert nodes tagged so the strip glyphs are queryable.
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  return {
-    ChevronLeft: (props: any) =>
-      ReactLocal.createElement(View, { ...props, testID: 'icon-chevron-left' }),
   };
 });
 
@@ -248,7 +238,7 @@ describe('S3 — SMS Verification screen', () => {
 
     // The hero strip gradient (the Button grad variant also renders one).
     expect(screen.getAllByTestId('linear-gradient').length).toBeGreaterThan(0);
-    expect(screen.getByTestId('icon-chevron-left')).toBeTruthy();
+    expect(screen.getByTestId('icon-voltar')).toBeTruthy();
     // Owner's review 2026-10-21 (item 16): no logo, the login's headline stays behind.
     expect(screen.queryByLabelText('quadra')).toBeNull();
     expect(screen.getByText('AQUI.')).toBeTruthy();

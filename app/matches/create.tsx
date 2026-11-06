@@ -1,18 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import {
-  Check,
-  ChevronLeft,
-  Clock,
-  Heart,
-  Lock,
-  MapPin,
-  Search,
-  Share2,
-  Users,
-  Zap,
-} from 'lucide-react-native';
+import { IconAberta, IconAvulso, IconCompartilhar, IconConfirmar, IconGratuito, IconLocal, IconNivel, IconPrivado, IconRateio, IconRecorrente, IconVoltar } from '@/components/icons/quadra';
 import type { ReactNode } from 'react';
 import { useMemo, useRef, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -45,7 +34,7 @@ import MapView, { Marker } from 'react-native-maps';
 import { isMapAvailable } from '@/features/matches/lib/isMapAvailable';
 import { useDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
 import { splitVenue } from '@/features/matches/lib/venueName';
-import { findArenaAt } from '@/features/explore/api/venues';
+import { confirmArenaAt } from '@/features/matches/lib/confirmArena';
 import { formatPriceLabel } from '@/features/matches/api/matchesApi';
 import {
   resolveMatchStartsAt,
@@ -62,7 +51,7 @@ import {
   TIME_PRESETS,
   type CreateMatchInput,
 } from '@/features/matches/schema/createMatch';
-import type { MatchFormat, MatchLevel } from '@/features/matches/types/match';
+import { GENDER_LABEL, SURFACE_LABEL, type MatchFormat, type MatchGender, type MatchLevel, type MatchSurface } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
 import { MAP_STYLE } from '@/theme/mapStyle';
 import { useAuthStore } from '@/stores/auth';
@@ -246,7 +235,7 @@ function CreatedView({ match }: { match: CreatedMatch }) {
   return (
     <View className="flex-1 items-center justify-center bg-surface-dark px-6">
       <View className="h-20 w-20 items-center justify-center rounded-full bg-accent">
-        <Check size={36} color={colors.surfaceDark} />
+        <IconConfirmar size={36} color={colors.surfaceDark} />
       </View>
       <Text className="mt-6 text-center font-display text-display text-text-on-dark uppercase">
         Partida criada!
@@ -267,7 +256,7 @@ function CreatedView({ match }: { match: CreatedMatch }) {
           {input.name}
         </Text>
         <View className="mt-1 flex-row items-center gap-1">
-          <MapPin size={16} color={colors.textOnDark} />
+          <IconLocal size={16} color={colors.textOnDark} />
           <View className="flex-1" testID="created-recap-location">
             <Text className="font-body-bold text-body text-text-on-dark">
               {splitVenue(input.location).name}
@@ -336,7 +325,7 @@ function CreatedView({ match }: { match: CreatedMatch }) {
         <Button
           variant="outlineW"
           onPress={goToInvite}
-          leftIcon={<Share2 size={18} color={colors.textOnDark} />}
+          leftIcon={<IconCompartilhar size={18} color={colors.textOnDark} />}
           testID="created-invite"
         >
           Convidar jogadores
@@ -422,7 +411,8 @@ export default function CreateMatchScreen() {
     freeTeams,
     level,
     privacy,
-    inviteMode,
+    gender,
+    surface,
   } = values;
 
   // ── Progressive-disclosure reveal conditions (mirror the prototype) ──
@@ -442,7 +432,6 @@ export default function CreateMatchScreen() {
   const showValor = showNivel && !!level;
   // The price has a default, so privacy shows together with it.
   const showPrivacidade = showValor;
-  const showInvite = showPrivacidade && privacy === 'private';
 
   const complete = isCreateMatchComplete(values);
 
@@ -524,17 +513,13 @@ export default function CreateMatchScreen() {
     setPlacePicked(true);
     setLocation(label);
     setValue('location', label, { shouldValidate: true });
+    setValue('placeId', place.id);
+    setValue('arenaId', undefined);
     const coords = await resolvePlace(place, placeSession);
     setValue('latitude', coords?.latitude);
     setValue('longitude', coords?.longitude);
     advanceTo('tipo');
-    // A plain address on top of a mapped arena takes the arena's name.
-    const arena = coords ? await findArenaAt(coords) : null;
-    if (arena && arena.title !== place.title) {
-      const arenaLabel = `${arena.title} · ${arena.address}`;
-      setLocation(arenaLabel);
-      setValue('location', arenaLabel, { shouldValidate: true });
-    }
+    if (coords) await confirmArenaAt(coords, place.id, (arenaId) => setValue('arenaId', arenaId));
   };
 
   const onSubmit = (formValues: CreateMatchInput) => {
@@ -577,7 +562,7 @@ export default function CreateMatchScreen() {
             onPress={() => router.back()}
             className="h-10 w-10 items-center justify-center rounded-chip bg-white shadow-card"
           >
-            <ChevronLeft size={24} color={colors.surfaceDark} />
+            <IconVoltar size={24} color={colors.surfaceDark} />
           </Pressable>
           <Text className="font-display text-h1 text-text-primary uppercase">
             Criar partida
@@ -643,6 +628,7 @@ export default function CreateMatchScreen() {
               <SearchField
                 value={location}
                 placeholder="Buscar quadra ou endereço"
+                accessibilityLabel="Buscar quadra ou endereço"
                 onChangeText={(t) => {
                   setLocation(t);
                   setValue('location', t, { shouldValidate: true });
@@ -650,6 +636,8 @@ export default function CreateMatchScreen() {
                   setPlacePicked(false);
                   setValue('latitude', undefined);
                   setValue('longitude', undefined);
+                  setValue('placeId', undefined);
+                  setValue('arenaId', undefined);
                 }}
                 testID="match-location"
               />
@@ -697,7 +685,7 @@ export default function CreateMatchScreen() {
                   className="mt-3 flex-row items-center gap-3 rounded-card border-2 border-primary bg-white p-3"
                   testID="place-picked"
                 >
-                  <MapPin size={20} color={colors.primary} />
+                  <IconLocal size={20} color={colors.primary} />
                   <View className="flex-1">
                     <Text className="font-body-bold text-body text-text-primary" numberOfLines={1}>
                       {splitVenue(location).name}
@@ -763,7 +751,7 @@ export default function CreateMatchScreen() {
                     advanceTo('when');
                   }}
                   icon={
-                    <Zap
+                    <IconAvulso
                       size={20}
                       color={type === 'OneOff' ? colors.textOnDark : colors.primary}
                     />
@@ -779,7 +767,7 @@ export default function CreateMatchScreen() {
                     advanceTo('when');
                   }}
                   icon={
-                    <Clock
+                    <IconRecorrente
                       size={20}
                       color={
                         type === 'Recurring' ? colors.textOnDark : colors.primary
@@ -1091,12 +1079,37 @@ export default function CreateMatchScreen() {
               </View>
               <Reveal show={!!level}>
                 <View className="flex-row items-start gap-2 rounded-chip bg-primary/5 p-3">
-                  <Zap size={16} color={colors.primary} />
+                  <IconNivel size={16} color={colors.primary} />
                   <Text className="flex-1 font-body text-caption text-text-primary">
                     {levelDesc}
                   </Text>
                 </View>
               </Reveal>
+              {/* Optional: the match says where and for whom (shown on its cover). */}
+            <Text className="mt-4 mb-2 font-body-semibold text-caption text-text-muted">Onde é</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {(Object.keys(SURFACE_LABEL) as MatchSurface[]).map((s) => (
+                <FilterChip
+                  key={s}
+                  label={SURFACE_LABEL[s]}
+                  selected={surface === s}
+                  onPress={() => setValue('surface', s)}
+                  testID={`surface-${s}`}
+                />
+              ))}
+            </View>
+            <Text className="mt-4 mb-2 font-body-semibold text-caption text-text-muted">Para quem</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {(Object.keys(GENDER_LABEL) as MatchGender[]).map((g) => (
+                <FilterChip
+                  key={g}
+                  label={GENDER_LABEL[g]}
+                  selected={gender === g}
+                  onPress={() => setValue('gender', g)}
+                  testID={`gender-${g}`}
+                />
+              ))}
+            </View>
             </Reveal>
           </View>
 
@@ -1155,9 +1168,9 @@ export default function CreateMatchScreen() {
                 }`}
               >
                 {isFree ? (
-                  <Heart size={16} color={colors.primary} />
+                  <IconGratuito size={16} color={colors.primary} />
                 ) : (
-                  <Users size={16} color={colors.primary} />
+                  <IconRateio size={16} color={colors.primary} />
                 )}
                 <Text className="flex-1 font-body-bold text-caption text-text-primary">
                   {isFree
@@ -1184,7 +1197,7 @@ export default function CreateMatchScreen() {
                     advanceTo('end');
                   }}
                   icon={
-                    <Users
+                    <IconAberta
                       size={20}
                       color={privacy === 'open' ? colors.textOnDark : colors.primary}
                     />
@@ -1200,40 +1213,16 @@ export default function CreateMatchScreen() {
                     advanceTo('end');
                   }}
                   icon={
-                    <Lock
+                    <IconPrivado
                       size={20}
                       color={privacy === 'private' ? colors.textOnDark : colors.primary}
                     />
                   }
                   title="Privada"
-                  desc="Só quem você deixar"
+                  desc="Só entra quem tiver o link de convite"
                   testID="privacy-private"
                 />
               </View>
-              <Reveal show={showInvite}>
-                <View className="gap-2">
-                  <OptionCard
-                    selected={inviteMode === 'code'}
-                    onPress={() => {
-                      setValue('inviteMode', 'code', { shouldValidate: true });
-                      advanceTo('end');
-                    }}
-                    title="Código de convite"
-                    desc="Quem tiver o código pode entrar"
-                    testID="invite-code"
-                  />
-                  <OptionCard
-                    selected={inviteMode === 'guests'}
-                    onPress={() => {
-                      setValue('inviteMode', 'guests', { shouldValidate: true });
-                      advanceTo('end');
-                    }}
-                    title="Somente convidados"
-                    desc="Só quem você chamar direto"
-                    testID="invite-guests"
-                  />
-                </View>
-              </Reveal>
             </Reveal>
           </View>
 

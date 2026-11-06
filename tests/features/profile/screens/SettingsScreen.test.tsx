@@ -25,7 +25,7 @@
  * synchronous, stateful stub (its real AsyncStorage persistence is covered by the
  * dedicated store unit test, tests/features/profile/stores/theme.test.ts) — this
  * keeps the screen test deterministic and free of async rehydration. Native
- * modules (safe-area, expo-image, lucide, Button) are stubbed inline — the repo's
+ * modules (safe-area, expo-image, Button) are stubbed inline — the repo's
  * tests/__mocks__ are NOT auto-applied.
  */
 import React from 'react';
@@ -79,30 +79,6 @@ jest.mock('expo-image', () => {
   };
 });
 
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    Bell: stub('bell'),
-    Check: stub('check'),
-    ChevronLeft: stub('chevron-left'),
-    X: stub('x'),
-    ChevronRight: stub('chevron-right'),
-    Download: stub('download'),
-    FileText: stub('file-text'),
-    Globe: stub('globe'),
-    MapPin: stub('map-pin'),
-    MessageSquare: stub('message-square'),
-    Shield: stub('shield'),
-    Trash2: stub('trash'),
-    User: stub('user'),
-    UserX: stub('user-x'),
-    Users: stub('users'),
-  };
-});
-
 // Button is a NativeWind (css-interop) Pressable; pressing the real one schedules
 // an async interaction-state update that escapes fireEvent's sync act(). Stub it
 // as a plain Pressable — its internals are covered by its own tests.
@@ -126,8 +102,11 @@ jest.mock('expo-router', () => ({
   router: {
     push: (...args: any[]) => mockPush(...args),
     back: (...args: any[]) => mockBack(...args),
+    canDismiss: () => true,
+    dismissAll: (...args: any[]) => mockDismissAll(...args),
   },
 }));
+const mockDismissAll = jest.fn();
 
 // Linking (OS settings + mailto) — spied on the real react-native export in
 // beforeEach (mocking the internal Libraries/Linking path leaves the public
@@ -194,6 +173,12 @@ jest.mock('@/features/auth/api/account', () => ({
   useDeleteAccount: () => ({ mutate: mockDelete, isPending: false }),
 }));
 
+// Whether the account is on the team (arena curation, #181): no by default.
+const mockAdmin: { data: boolean | undefined } = { data: false };
+jest.mock('@/features/curation/api/curation', () => ({
+  useAdminAccess: () => ({ data: mockAdmin.data }),
+}));
+
 jest.mock('@/features/profile/api/getMyProfile', () => ({
   useMyProfile: () => ({
     data: mockProfile.data,
@@ -207,8 +192,9 @@ import { Linking } from 'react-native';
 
 import { dialog } from '@/components/ui/Dialog';
 
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
+import { useTourStore } from '@/features/tour/tourStore';
 import { useThemeStore } from '@/stores/theme';
 
 import SettingsScreen from '../../../../app/profile/settings';
@@ -532,6 +518,28 @@ describe('S10 — Settings list screen', () => {
     expect(mockPush).toHaveBeenCalledWith('/profile/blocked');
   });
 
+  it('hides arena curation from players', async () => {
+    await renderScreen();
+    expect(screen.getByText('Jogadores bloqueados')).toBeTruthy();
+    expect(screen.queryByText('Curadoria de arenas')).toBeNull();
+  });
+
+  it('shows arena curation to the team, and opens it', async () => {
+    mockAdmin.data = true;
+    await renderScreen();
+    fireEvent.press(screen.getByText('Curadoria de arenas'));
+    expect(mockPush).toHaveBeenCalledWith('/profile/curation');
+    mockAdmin.data = false;
+  });
+
+  it('"Ver o tour de novo" goes back to the tabs and opens the tour (DECISIONS #190)', async () => {
+    await renderScreen();
+
+    fireEvent.press(screen.getByText('Ver o tour de novo'));
+    expect(mockDismissAll).toHaveBeenCalled();
+    await waitFor(() => expect(useTourStore.getState().phase).toBe(0));
+  });
+
   it('opens the Terms and the Privacy Policy pages', async () => {
     await renderScreen();
 
@@ -540,4 +548,5 @@ describe('S10 — Settings list screen', () => {
     fireEvent.press(screen.getByText('Política de Privacidade'));
     expect(mockOpenURL).toHaveBeenCalledWith('https://quadra-volei.app/privacidade');
   });
+
 });

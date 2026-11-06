@@ -1,4 +1,4 @@
-import { Minus, Plus } from 'lucide-react-native';
+import { IconAdicionar, IconDiminuir } from '@/components/icons/quadra';
 import { Pressable, Text, View } from 'react-native';
 
 import { colors } from '@/theme/colors';
@@ -60,7 +60,7 @@ export function StepperField({
           className="h-8 w-8 items-center justify-center rounded-full border-2 border-surface-dark bg-white"
           style={atMin ? { opacity: 0.5 } : undefined}
         >
-          <Minus size={16} color={colors.surfaceDark} />
+          <IconDiminuir size={16} color={colors.surfaceDark} />
         </Pressable>
 
         <Text
@@ -82,7 +82,7 @@ export function StepperField({
           className="h-8 w-8 items-center justify-center rounded-full border-2 border-surface-dark bg-accent"
           style={atMax ? { opacity: 0.5 } : undefined}
         >
-          <Plus size={16} color={colors.surfaceDark} />
+          <IconAdicionar size={16} color={colors.surfaceDark} />
         </Pressable>
       </View>
     </View>

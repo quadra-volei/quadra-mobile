@@ -16,7 +16,7 @@ jest.mock('@/features/notifications/api/notificationsApi', () => ({
  *
  * The prefs store is mocked at the boundary with a synchronous, stateful stub
  * (no AsyncStorage, no async rehydration) so the screen test stays deterministic.
- * Native modules (safe-area, lucide) are stubbed inline — tests/__mocks__ are NOT
+ * Native modules (safe-area) are stubbed inline — tests/__mocks__ are NOT
  * auto-applied.
  */
 import React from 'react';
@@ -31,14 +31,6 @@ jest.mock('react-native-safe-area-context', () => {
       ReactLocal.createElement(View, props, children),
     useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
   };
-});
-
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return { ChevronLeft: stub('chevron-left') };
 });
 
 // expo-router: spyable router.back.

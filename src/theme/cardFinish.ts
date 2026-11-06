@@ -1,13 +1,20 @@
-// Player-card finishes ("Sua carta", DECISIONS #119) — the token layer for the
-// collectible card. The player picks one; it is saved on the account. Components
-// read `CARD_FINISHES[finish]`; screens never inline these hex values.
+// The player card's look (DECISIONS #199). Everyone has the basic card; the only
+// other look is the season card, built piece by piece on the season pass and
+// equipped once complete. The free finishes (Prisma, Íon, Eclipse) and the level
+// tiers are gone for now: the API still stores those names, and any of them
+// draws as the basic card. Components read `cardFinishTokens(finish)`; screens
+// never inline these hex values.
 
-export type CardFinish = 'Prisma' | 'Ion' | 'Eclipse';
+/** What the API stores: the old free finishes (all drawn as the basic card) and the season finishes. */
+export type CardFinish = 'Prisma' | 'Ion' | 'Eclipse' | 'Pioneira';
+
+/** The name sent to go back to the basic card: the API's default finish. */
+export const BASIC_FINISH: CardFinish = 'Prisma';
 
 type Gradient = readonly [string, string, ...string[]];
 
 export type CardFinishTokens = {
-  /** Shown on the picker. */
+  /** Shown on the back and in the collection. */
   name: string;
   /** Card body behind the text. */
   surface: string;
@@ -17,71 +24,20 @@ export type CardFinishTokens = {
   muted: string;
   /** Hairlines and the position pill border. */
   edge: string;
-  /** Title eyebrow, big numbers, picker check. */
+  /** Title eyebrow, big numbers. */
   accent: string;
-  /** Metallic frame, diagonal. */
+  /** Frame, diagonal. */
   frame: Gradient;
-  /** Holographic band that slides over the frame with the finger. */
+  /** Band that slides over the frame with the light. */
   foil: Gradient;
-  /** Prisma and Eclipse have cut corners; Íon is rounded. */
   shape: 'chamfer' | 'rounded';
-  /** Picker swatch background. */
-  swatch: Gradient;
+  /** How strong the light is. */
+  light: CardLight;
+  /** The finished season card's extras (sparkles, aura, seal, light that moves by itself). */
+  extravagant?: Extravagant;
 };
 
-export const CARD_FINISHES: Record<CardFinish, CardFinishTokens> = {
-  Prisma: {
-    name: 'Prisma',
-    surface: '#111A42',
-    ink: '#FFFFFF',
-    muted: '#C2CBE4',
-    edge: 'rgba(255,255,255,0.14)',
-    accent: '#C6F135',
-    frame: ['#BED5FF', '#687EE4', '#F2FCFF', '#BDD98A', '#DFBDFF', '#7CD6F0'],
-    foil: ['rgba(152,227,245,0)', 'rgba(152,227,245,0.9)', 'rgba(213,172,255,0.9)', 'rgba(241,215,149,0.9)', 'rgba(172,248,196,0.9)', 'rgba(172,248,196,0)'],
-    shape: 'chamfer',
-    swatch: ['#141749', '#4157D4', '#18163D'],
-  },
-  Ion: {
-    name: 'Íon',
-    surface: '#E0F0EB',
-    ink: '#123A39',
-    muted: '#466661',
-    edge: 'rgba(18,58,57,0.15)',
-    accent: '#18685F',
-    frame: ['#F5FFF9', '#67BBA9', '#DDFFF3', '#608C96'],
-    foil: ['rgba(255,255,255,0)', 'rgba(255,255,255,0.95)', 'rgba(188,233,223,0.9)', 'rgba(255,255,255,0)'],
-    shape: 'rounded',
-    swatch: ['#D5EDE4', '#96CDBF'],
-  },
-  Eclipse: {
-    name: 'Eclipse',
-    surface: '#251D28',
-    ink: '#FFF3E6',
-    muted: '#D4BFCA',
-    edge: 'rgba(237,197,150,0.19)',
-    accent: '#EDC596',
-    frame: ['#FFF0D1', '#A57B59', '#E6C591', '#80637A', '#FFF0D1'],
-    foil: ['rgba(239,199,147,0)', 'rgba(239,199,147,0.9)', 'rgba(188,145,168,0.85)', 'rgba(239,199,147,0)'],
-    shape: 'chamfer',
-    swatch: ['#765143', '#251D28'],
-  },
-};
-
-export const CARD_FINISH_ORDER: CardFinish[] = ['Prisma', 'Ion', 'Eclipse'];
-
-/** The screen behind the card ("Sua carta"): deep navy with a blue glow. */
-export const CARD_SCREEN = { bg: '#080924', glow: 'rgba(37,40,134,0.5)' } as const;
-
-/** Light on the card: the glare and the darkening at the top of the photo. */
-export const CARD_LIGHT = { glare: '#FFFFFF', photoTop: '#03091D' } as const;
-
-export type CardTier = 'Classico' | 'Prisma' | 'Holografico';
-
-export type CardTierTokens = {
-  name: string;
-  /** First level of the range; the next tier's `from` closes it. */
-  from: number;
+export type CardLight = {
   /** Opacity of the foil band on the frame, of the foil over the face and of the glare. */
   frameFoil: number;
   faceFoil: number;
@@ -90,31 +46,88 @@ export type CardTierTokens = {
   rainbow: boolean;
 };
 
-// The card's look grows with the player's level (Johny, 2026-10-21). Placeholders
-// until the designer's art (normal, foil, reverse foil...): Clássica is matte,
-// Prisma has a foil on the frame, Holográfica a rainbow. The light enhances the
-// card without covering it (DECISIONS #160): the frame shows through its foil,
-// the face foil is only a tint over photo and text, the glare is small.
-export const CARD_TIERS: Record<CardTier, CardTierTokens> = {
-  Classico: { name: 'Clássica', from: 1, frameFoil: 0, faceFoil: 0, glare: 0.14, rainbow: false },
-  Prisma: { name: 'Prisma', from: 10, frameFoil: 0.5, faceFoil: 0.06, glare: 0.22, rainbow: false },
-  Holografico: { name: 'Holográfica', from: 20, frameFoil: 0.6, faceFoil: 0.12, glare: 0.28, rainbow: true },
+export type Extravagant = {
+  /** The seal on the front: season and card name. */
+  seal: string;
+  /** Glow around the card. */
+  aura: Gradient;
+  /** Twinkling stars over the frame and the photo. */
+  sparkle: string;
 };
-
-export const CARD_TIER_ORDER: CardTier[] = ['Classico', 'Prisma', 'Holografico'];
 
 // Pastel rainbow, spread evenly with soft ends: no single color dominates.
 export const HOLO_FOIL: Gradient = [
   'rgba(255,150,200,0)',
-  'rgba(255,150,200,0.55)',
-  'rgba(255,224,150,0.55)',
-  'rgba(160,250,200,0.55)',
-  'rgba(150,205,255,0.55)',
-  'rgba(205,170,255,0.55)',
+  'rgba(255,150,200,0.7)',
+  'rgba(255,224,150,0.7)',
+  'rgba(160,250,200,0.7)',
+  'rgba(150,205,255,0.7)',
+  'rgba(205,170,255,0.7)',
   'rgba(205,170,255,0)',
 ];
 
-/** The tier a level falls in: 1–9 Clássica, 10–19 Prisma, 20+ Holográfica. */
-export function cardTier(level: number): CardTier {
-  return CARD_TIER_ORDER.reduce<CardTier>((tier, t) => (level >= CARD_TIERS[t].from ? t : tier), 'Classico');
+// Plain and matte on purpose: the season card is the one that shines.
+const BASICA: CardFinishTokens = {
+  name: 'Básica',
+  surface: '#161A33',
+  ink: '#FFFFFF',
+  muted: '#AEB4CC',
+  edge: 'rgba(255,255,255,0.12)',
+  accent: '#C6F135',
+  frame: ['#5A6080', '#3A3F5C', '#5A6080'],
+  foil: ['rgba(255,255,255,0)', 'rgba(255,255,255,0)'],
+  shape: 'chamfer',
+  light: { frameFoil: 0, faceFoil: 0, glare: 0.08, rainbow: false },
+};
+
+// The first season's card, complete: gold and chrome with the brand's lime and
+// purple, a strong rainbow foil and the extras. Placeholder until the
+// designer's art (Johny, 04/11: "extravagância" for the finished card).
+const PIONEIRA: CardFinishTokens = {
+  name: 'Pioneira',
+  surface: '#0B1238',
+  ink: '#FFFFFF',
+  muted: '#D4DBFF',
+  edge: 'rgba(255,214,102,0.35)',
+  accent: '#FFD666',
+  frame: ['#FFF6C8', '#E0A526', '#C6F135', '#FFF6C8', '#8E4BFF', '#FFD666', '#FFFFFF', '#C6F135'],
+  foil: ['rgba(255,214,102,0)', 'rgba(255,214,102,0.9)', 'rgba(198,241,53,0.85)', 'rgba(170,110,255,0.85)', 'rgba(255,214,102,0)'],
+  shape: 'chamfer',
+  light: { frameFoil: 0.95, faceFoil: 0.2, glare: 0.34, rainbow: true },
+  extravagant: {
+    seal: 'T1 · PIONEIRA',
+    aura: ['rgba(255,214,102,0.55)', 'rgba(198,241,53,0.35)', 'rgba(142,75,255,0.45)'],
+    sparkle: '#FFF6C8',
+  },
+};
+
+const SEASON_FINISHES: Partial<Record<CardFinish, CardFinishTokens>> = { Pioneira: PIONEIRA };
+
+/** Whether a finish is a season card (only a complete pass gives it). */
+export function isSeasonFinish(finish: string): boolean {
+  return finish in SEASON_FINISHES;
 }
+
+/** The look of a finish: a season card, else the basic card (also for a finish this version does not know). */
+export function cardFinishTokens(finish: string): CardFinishTokens {
+  return SEASON_FINISHES[finish as CardFinish] ?? BASICA;
+}
+
+/** The screen behind the card ("Sua carta"): deep navy with a blue glow. */
+export const CARD_SCREEN = { bg: '#080924', glow: 'rgba(37,40,134,0.5)' } as const;
+
+/** Light on the card: the glare and the darkening at the top of the photo. */
+export const CARD_LIGHT = { glare: '#FFFFFF', photoTop: '#03091D' } as const;
+
+/** A missing piece of the season card: dark glass with a hairline; the next one to win is outlined in lime. */
+export const PIECE_COVER = {
+  fill: '#0D0F33',
+  // A hint of the art shows through; the name and photo do not.
+  fillOpacity: 0.97,
+  edge: 'rgba(255,255,255,0.14)',
+  next: '#C6F135',
+  number: 'rgba(255,255,255,0.4)',
+  // The small outline of the card (CardPiecesMini), on navy and on light.
+  miniLine: { dark: 'rgba(255,255,255,0.28)', light: 'rgba(10,10,60,0.22)' },
+  miniGlass: { dark: 'rgba(255,255,255,0.06)', light: 'rgba(10,10,60,0.05)' },
+} as const;

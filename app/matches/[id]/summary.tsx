@@ -1,22 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { router, useLocalSearchParams } from 'expo-router';
-import {
-  BarChart3,
-  ChevronLeft,
-  Flame,
-  Goal,
-  Handshake,
-  Lock,
-  type LucideIcon,
-  MapPin,
-  Share2,
-  Target,
-  Trophy,
-  User,
-  Zap,
-} from 'lucide-react-native';
-import { useState } from 'react';
+import { IconAces, IconAssistencias, IconBlocks, IconCompartilhar, IconCortadas, IconEstatisticas, IconLocal, IconMvp, IconPerfil, IconPontos, IconSalvadas, IconTrofeu, IconVoltar, type QuadraIcon } from '@/components/icons/quadra';
+import * as Sharing from 'expo-sharing';
+import { useRef, useState } from 'react';
 import { Pressable, ScrollView, Share, Text, View } from 'react-native';
+import { captureRef } from 'react-native-view-shot';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { Avatar } from '@/components/ui/Avatar';
@@ -32,6 +20,10 @@ import {
   type MatchSummary,
   type SheetRow,
 } from '@/features/matches/api/getMatchSummary';
+import { CardPiecesMini } from '@/components/domain/CardPiecesMini';
+import { piecesWon, useSeasonPass } from '@/features/pass/api/seasonPass';
+import { PIECE_COUNT } from '@/features/pass/lib/cardPieces';
+import { useMatchPoints } from '@/features/ranking/api/getGroupRanking';
 import { useAuthStore } from '@/stores/auth';
 import { colors } from '@/theme/colors';
 
@@ -64,6 +56,16 @@ export default function MatchSummaryScreen() {
   return <SummaryContent matchId={matchId} summary={summaryQuery.data} />;
 }
 
+/**
+ * Who took a game: the winner's short name; "Empate" for a level score; "Sem
+ * vencedor" for a game cut short with a lead before the API gave it to the
+ * leader (summaries from before 28/10).
+ */
+function gameLabel(game: MatchSummary['games'][number]): string {
+  if (game.winner) return shortTeamName(game.winner.name);
+  return game.points[0] === game.points[1] ? 'Empate' : 'Sem vencedor';
+}
+
 /** Portuguese label for the result pill / share text. */
 function resultLabel(result: MatchResult): string {
   return result === 'VITORIA' ? 'Vitória' : result === 'DERROTA' ? 'Derrota' : 'Sem placar';
@@ -86,7 +88,7 @@ function SummaryHeader({ onShare, isSharing }: { onShare?: () => void; isSharing
         accessibilityLabel="Voltar"
         testID="summary-back"
       >
-        <ChevronLeft size={24} color={colors.textOnDark} />
+        <IconVoltar size={24} color={colors.textOnDark} />
       </Pressable>
       <Text className="font-body-semibold text-body-bold text-text-on-dark">Resumo da partida</Text>
       {onShare ? (
@@ -97,7 +99,7 @@ function SummaryHeader({ onShare, isSharing }: { onShare?: () => void; isSharing
           accessibilityLabel="Compartilhar resumo"
           testID="summary-share"
         >
-          <Share2 size={22} color={colors.textOnDark} />
+          <IconCompartilhar size={22} color={colors.textOnDark} />
         </Pressable>
       ) : (
         <View style={{ width: 22 }} />
@@ -119,20 +121,42 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
         .map((team) => `${team.name} ${team.wins}`)
         .join(' × ')}`;
 
+  // The share is a picture of the result (header, teams, games, MVP, the site);
+  // a phone that cannot share files gets the full text instead.
+  const shotRef = useRef<View>(null);
+  const shareText = [
+    `🏐 ${summary.name}`,
+    [splitVenue(summary.venue).name, summary.dateLabel].filter(Boolean).join(' · '),
+    '',
+    standingsText,
+    ...summary.games.map((game) => `Jogo ${game.number}: ${gameLabel(game)} ${game.points[0]}–${game.points[1]}`),
+    hasVoting ? '' : null,
+    hasVoting ? `⭐ MVP: ${summary.mvp.name} (${summary.mvp.votes} de ${summary.totalVotes} votos)` : null,
+    '',
+    'Organize a sua no Quadra: https://quadra-volei.app',
+  ]
+    .filter((line) => line !== null)
+    .join('\n');
   const handleShare = async () => {
     if (isSharing) return;
     setIsSharing(true);
     try {
-      await Share.share({
-        message: `${summary.name} — ${standingsText}.${hasVoting ? ` MVP: ${summary.mvp.name}.` : ''}`,
-      });
+      const uri = shotRef.current && (await Sharing.isAvailableAsync())
+        ? await captureRef(shotRef.current, { format: 'png', result: 'tmpfile' }).catch(() => null)
+        : null;
+      if (uri) {
+        await Sharing.shareAsync(uri, { mimeType: 'image/png', dialogTitle: shareText, UTI: 'public.png' });
+      } else {
+        await Share.share({ message: shareText });
+      }
     } finally {
       setIsSharing(false);
     }
   };
 
-  const handleBackToProfile = () => {
-    router.replace('/(tabs)/profile');
+  // The summary ends the match flow (scoreboard, stats, vote): back home.
+  const handleDone = () => {
+    router.replace('/(tabs)');
   };
 
   const resultA11yLabel = `${resultLabel(summary.result)}${
@@ -145,6 +169,8 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
         <SummaryHeader onShare={handleShare} isSharing={isSharing} />
 
         <ScrollView className="flex-1" contentContainerClassName="pb-6">
+          {/* What the shared picture shows: the result, the teams, the games, the MVP. */}
+          <View ref={shotRef} collapsable={false} className="bg-surface-dark pb-4">
           {/* ── Result header ── */}
           <View
             className="items-center px-4 pt-2"
@@ -168,7 +194,7 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
                 (owner's 4th review, item 17). */}
             <View className="items-center mt-3" testID="summary-venue">
               <View className="flex-row items-center gap-1">
-                <MapPin size={16} color={colors.accent} />
+                <IconLocal size={16} color={colors.accent} />
                 <Text className="font-body-bold text-body-bold text-text-on-dark" numberOfLines={1}>
                   {splitVenue(summary.venue).name}
                 </Text>
@@ -198,7 +224,7 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
                   {team.name}
                   {team.mine ? <Text className="text-caption text-accent font-mono"> · seu time</Text> : null}
                 </Text>
-                {team.winner ? <Trophy size={16} color={colors.accent} /> : null}
+                {team.winner ? <IconTrofeu size={16} color={colors.accent} /> : null}
                 <Text className={`font-num ${team.winner ? 'text-accent' : 'text-text-on-dark'}`} style={{ fontSize: 24 }}>
                   {team.wins}
                 </Text>
@@ -221,9 +247,9 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
                   ) : null}
                   {/* The winner by its color and short name; the score says the rest. */}
                   <Text className="flex-1 font-body-semibold text-caption text-text-on-dark" numberOfLines={1}>
-                    {game.winner ? shortTeamName(game.winner.name) : 'Empate'}
+                    {gameLabel(game)}
                   </Text>
-                  {game.winner ? <Trophy size={12} color={colors.accent} /> : null}
+                  {game.winner ? <IconTrofeu size={12} color={colors.accent} /> : null}
                   <Text className="font-num text-caption text-text-on-dark">
                     {game.points[0]}–{game.points[1]}
                   </Text>
@@ -232,11 +258,25 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
             </View>
           ) : null}
 
+          {hasVoting ? (
+            <View className="px-4 mt-6 flex-row items-center gap-3" testID="summary-mvp-line">
+              <IconMvp size={16} color={colors.accent} />
+              <Text className="flex-1 font-body-bold text-body-bold text-text-on-dark" numberOfLines={1}>
+                {`MVP: ${summary.mvp.name}`}
+              </Text>
+              <Text className="font-num text-caption text-white/70">{`${summary.mvp.votes} votos`}</Text>
+            </View>
+          ) : null}
+          <Text className="mt-4 text-center font-mono text-mono text-white/40">quadra-volei.app</Text>
+          </View>
+
+          <RankingPointsCard matchId={matchId} />
+
           {/* ── Mais votado ── */}
           {hasVoting ? (
             <View className="px-4 mt-8">
               <View className="flex-row items-center gap-2 mb-3">
-                <Trophy size={16} color={colors.accent} />
+                <IconMvp size={16} color={colors.accent} />
                 <Text className="font-body-bold text-eyebrow text-accent uppercase">Mais votado</Text>
               </View>
 
@@ -303,8 +343,8 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
 
         {/* ── Bottom CTA ── */}
         <View className="px-4 pb-4">
-          <Button variant="grad" onPress={handleBackToProfile} testID="summary-back-to-profile">
-            Voltar para o perfil
+          <Button variant="grad" onPress={handleDone} testID="summary-done">
+            Concluir
           </Button>
         </View>
       </SafeAreaView>
@@ -312,12 +352,12 @@ function SummaryContent({ matchId, summary }: { matchId: string; summary: MatchS
   );
 }
 
-const ACTION_ICON: Record<PlayerActionKey, LucideIcon> = {
-  kills: Target,
-  blocks: Goal,
-  aces: Zap,
-  digs: Lock,
-  assists: Handshake,
+const ACTION_ICON: Record<PlayerActionKey, QuadraIcon> = {
+  kills: IconCortadas,
+  blocks: IconBlocks,
+  aces: IconAces,
+  digs: IconSalvadas,
+  assists: IconAssistencias,
 };
 
 /** A single stat tile in the "MEU DESEMPENHO" grid; "—" when nothing was recorded. */
@@ -327,7 +367,7 @@ function StatTile({
   label,
   testID,
 }: {
-  icon: LucideIcon;
+  icon: QuadraIcon;
   value: number | null;
   label: string;
   testID?: string;
@@ -350,7 +390,7 @@ function SheetSection({ rows, userId }: { rows: SheetRow[]; userId: string | nul
   return (
     <View className="px-4 mt-8" testID="summary-sheet">
       <View className="flex-row items-center gap-2 mb-3">
-        <BarChart3 size={16} color={colors.accent} />
+        <IconEstatisticas size={16} color={colors.accent} />
         <Text className="font-body-bold text-eyebrow text-accent uppercase">Estatísticas da partida</Text>
       </View>
       <View className="flex-row items-center pb-2">
@@ -383,21 +423,21 @@ function PerformanceSection({ performance }: { performance: MatchPerformance }) 
   return (
     <View className="px-4 mt-8" testID="summary-performance">
       <View className="flex-row items-center gap-2 mb-3">
-        <User size={16} color={colors.accent} />
+        <IconPerfil size={16} color={colors.accent} />
         <Text className="font-body-bold text-eyebrow text-accent uppercase">Meu desempenho</Text>
       </View>
 
       {/* XP-gained card */}
       <View className="flex-row items-center gap-4 p-4 rounded-card bg-white/5">
         <View className="h-12 w-12 rounded-card bg-white/10 items-center justify-center">
-          <Flame size={22} color={colors.accent} />
+          <IconPontos size={22} color={colors.accent} />
         </View>
         <View className="flex-1">
-          <Text className="font-body-semibold text-body-bold text-text-on-dark">Pontos nesta partida</Text>
-          <Text className="font-body text-caption text-white/70">Presença, vitória e MVP</Text>
+          <Text className="font-body-semibold text-body-bold text-text-on-dark">XP nesta partida</Text>
+          <Text className="font-body text-caption text-white/70">Faz seu nível subir</Text>
         </View>
         <Text className="font-num text-accent" style={{ fontSize: 32 }} testID="summary-xp">
-          +{performance.xpGained}
+          +{performance.xpGained} XP
         </Text>
       </View>
 
@@ -476,5 +516,70 @@ function SummaryError({ matchId, message }: { matchId: string; message?: string 
         </View>
       </SafeAreaView>
     </View>
+  );
+}
+
+/**
+ * "+46 pts no ranking": what this match gave me (quadra-api DECISIONS #95). A
+ * one-off match's points count for the season pass only (API DECISIONS #104): no group ranking.
+ */
+function RankingPointsCard({ matchId }: { matchId: string }) {
+  const { data } = useMatchPoints(matchId);
+  if (!data) return null;
+  const parts = [
+    `Presença ${data.attendancePoints}`,
+    data.winPoints > 0 ? `${data.gamesWon} ${data.gamesWon === 1 ? 'jogo ganho' : 'jogos ganhos'} ${data.winPoints}` : null,
+    data.mvpPoints > 0 ? `${data.mvp ? 'MVP + ' : ''}${data.votes} ${data.votes === 1 ? 'voto' : 'votos'} ${data.mvpPoints}` : null,
+  ].filter(Boolean);
+  return (
+    <View className="px-4 mt-6" testID="summary-ranking-points">
+      <View className="p-4 rounded-card border-2 border-accent bg-white/5">
+        <Text className="font-body-bold text-eyebrow text-accent uppercase">
+          {data.oneOff ? 'Pontos do passe' : 'Ranking do grupo'}
+        </Text>
+        <Text className="font-num text-text-on-dark mt-1" style={{ fontSize: 32 }}>
+          +{data.points} <Text className="font-body text-body text-white/70">pts</Text>
+        </Text>
+        <Text className="font-body text-caption text-white/70">{parts.join(' · ')}</Text>
+        {data.oneOff ? (
+          <Text className="font-body text-caption text-white/70 mt-1" testID="summary-one-off-note">
+            Partida avulsa: conta para o passe, não para o ranking.
+          </Text>
+        ) : null}
+        <SeasonPassLine />
+        {data.oneOff ? null : (
+        <View className="mt-3">
+          <Button
+            variant="outlineLime"
+            onPress={() => router.push({ pathname: '/profile/ranking', params: { scope: 'group', groupId: data.groupId } })}
+            testID="summary-ranking-open"
+          >
+            Ver ranking do grupo
+          </Button>
+        </View>
+        )}
+      </View>
+    </View>
+  );
+}
+
+/** The same points build the season card (API DECISIONS #98): how many pieces, and the way in. */
+function SeasonPassLine() {
+  const { data: pass } = useSeasonPass();
+  if (!pass || pass.status !== 'Active') return null;
+  const won = piecesWon(pass);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      onPress={() => router.push('/profile/pass')}
+      className="mt-3 flex-row items-center gap-3 rounded-chip bg-white/5 px-3 py-2"
+      testID="summary-pass"
+    >
+      <CardPiecesMini collected={won} width={20} />
+      <Text className="flex-1 font-body-bold text-caption text-text-on-dark">
+        {`Passe da temporada · ${won} de ${PIECE_COUNT} pedaços`}
+      </Text>
+      <Text className="font-body-bold text-caption text-accent-light">Ver</Text>
+    </Pressable>
   );
 }

@@ -3,7 +3,7 @@ import { Asset } from "expo-asset";
 import { Image } from "expo-image";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
-import { Pencil } from "lucide-react-native";
+import { IconEditar } from '@/components/icons/quadra';
 import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 
@@ -30,6 +30,14 @@ import {
 import type { MyProfile } from "@/features/profile/types/profile";
 import { colors } from "@/theme/colors";
 import { DEFAULT_AVATAR, PRESET_AVATARS } from "@/theme/defaultAvatars";
+
+// In a release APK a bundled image's `localUri` is a bare drawable name
+// ("assets_avatars_preset01"), which the photo resizer cannot open: the preset
+// avatar never saved. As an `android.resource://` URI any Android loader reads it.
+const ANDROID_PACKAGE = "com.quadra.app";
+function fileUriOfAsset(localUri: string): string {
+  return localUri.includes(":") ? localUri : `android.resource://${ANDROID_PACKAGE}/drawable/${localUri}`;
+}
 
 function EditSkeleton() {
   return (
@@ -144,7 +152,7 @@ function EditProfileForm({
     const [asset] = await Asset.loadAsync(PRESET_AVATARS[index]!);
     if (asset?.localUri) {
       setPreset(index);
-      setValue("avatarUri", asset.localUri, { shouldDirty: true });
+      setValue("avatarUri", fileUriOfAsset(asset.localUri), { shouldDirty: true });
     }
   };
 
@@ -179,7 +187,7 @@ function EditProfileForm({
               defaultSource={DEFAULT_AVATAR}
             />
             <View className="absolute -bottom-1 -right-1 h-7 w-7 items-center justify-center rounded-full bg-primary border-2 border-bg-light">
-              <Pencil size={14} color={colors.textOnDark} />
+              <IconEditar size={14} color={colors.textOnDark} />
             </View>
           </Pressable>
           {permissionDenied ? (

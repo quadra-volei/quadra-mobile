@@ -9,15 +9,6 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react-native';
 import React from 'react';
 
-// lucide icons -> inert nodes (leading Search, trailing X).
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return { Search: stub('search'), X: stub('x') };
-});
-
 import { SearchField } from '@/components/ui/SearchField';
 
 afterEach(async () => {

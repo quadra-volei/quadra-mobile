@@ -2,7 +2,16 @@ import type { Position } from '@/features/profile/schema/onboarding';
 
 // Identity titles for the card (API CardTitles). Cosmetic: they are not a
 // technical rating. The API stores the code; the wording lives here.
-export type CardTitleCode = 'MAESTRO' | 'LANCEIRO' | 'DEFENSOR' | 'MURALHA' | 'CORINGA' | 'SAQUE_DE_FERRO';
+// Season pass titles (API DECISIONS #98): only who reached their level equips them.
+export type SeasonTitleCode = 'SEMPRE_PRESENTE' | 'CRIA_DA_QUADRA' | 'LENDA_T1';
+
+export type CardTitleCode = 'MAESTRO' | 'LANCEIRO' | 'DEFENSOR' | 'MURALHA' | 'CORINGA' | 'SAQUE_DE_FERRO' | SeasonTitleCode;
+
+export const SEASON_TITLES: { code: SeasonTitleCode; name: string; description: string }[] = [
+  { code: 'SEMPRE_PRESENTE', name: 'Sempre Presente', description: 'Não falta a um racha.' },
+  { code: 'CRIA_DA_QUADRA', name: 'Cria da Quadra', description: 'Cresceu jogando com a turma.' },
+  { code: 'LENDA_T1', name: 'Lenda da T1', description: 'Jogou a primeira temporada do Quadra.' },
+];
 
 export const CARD_TITLES: { code: CardTitleCode; name: string; description: string }[] = [
   { code: 'MAESTRO', name: 'O Maestro', description: 'O ritmo do jogo passa pelas suas mãos.' },
@@ -29,5 +38,5 @@ export function cardTitleCode(chosen: CardTitleCode | null | undefined, position
 }
 
 export function cardTitleName(code: CardTitleCode): string {
-  return CARD_TITLES.find((t) => t.code === code)?.name ?? 'O Coringa';
+  return [...CARD_TITLES, ...SEASON_TITLES].find((t) => t.code === code)?.name ?? 'O Coringa';
 }

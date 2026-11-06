@@ -8,11 +8,6 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
   SafeAreaView: ({ children }: any) => children,
 }));
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  return new Proxy({}, { get: () => (props: any) => ReactLocal.createElement(View, props) });
-});
 jest.mock('expo-image', () => {
   const ReactLocal = require('react');
   const { View } = require('react-native');

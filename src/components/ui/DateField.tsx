@@ -1,4 +1,4 @@
-import { Calendar } from 'lucide-react-native';
+import { IconData } from '@/components/icons/quadra';
 import { Text, TextInput, View } from 'react-native';
 
 import { colors } from '@/theme/colors';
@@ -59,7 +59,7 @@ export function DateField({
         }`}
       >
         <View className="mr-2">
-          <Calendar size={20} color={colors.primary} />
+          <IconData size={20} color={colors.primary} />
         </View>
         <TextInput
           testID={testID}

@@ -9,7 +9,9 @@
  *  - players wait while the organizer picks;
  *  - during a set the organizer scores, undoes and ends the set; players only
  *    watch (no controls);
- *  - when the game ends the screen leads to the MVP vote.
+ *  - right after a set, "O que vem agora?" offers the next set or finishing;
+ *    finishing leads the organizer to the stats sheet;
+ *  - when the game ends the screen leads to the stats (organizer) and the MVP vote.
  */
 import React from 'react';
 
@@ -19,15 +21,11 @@ jest.mock('react-native-safe-area-context', () => {
   return {
     SafeAreaView: ({ children, ...props }: any) =>
       ReactLocal.createElement(View, props, children),
+    useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
   };
 });
 
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const Icon = (props: any) => ReactLocal.createElement(View, props);
-  return { ChevronLeft: Icon, Trophy: Icon };
-});
+jest.mock('expo-blur', () => ({ BlurView: () => null }));
 
 jest.mock('@/components/ui/Button', () => {
   const ReactLocal = require('react');
@@ -110,6 +108,7 @@ function game(overrides: Partial<LiveGame>): LiveGame {
     canUndo: false,
     setStartedAt: null,
     lastSetWinnerId: null,
+    lastSet: null,
     winnerTeamId: null,
     ...overrides,
   };
@@ -184,6 +183,63 @@ describe('S13.5 — set team picker', () => {
   });
 });
 
+describe('end of set — "O que vem agora?"', () => {
+  const afterSet = (count: number): Partial<LiveGame> => {
+    const some = teams.slice(0, count);
+    return {
+      phase: 'PICK_NEXT',
+      setNumber: 2,
+      teams: some,
+      lastSetWinnerId: 'team-1',
+      lastSet: { pair: [some[0]!, some[1]!], scores: [21, 17] },
+    };
+  };
+
+  it('opens over the picker with the set that ended and its score', async () => {
+    await show(afterSet(3));
+
+    expect(screen.getByTestId('set-end-sheet')).toBeTruthy();
+    expect(screen.getByText('Jogo 1 encerrado')).toBeTruthy();
+    expect(screen.getByText('21')).toBeTruthy();
+    expect(screen.getByText('17')).toBeTruthy();
+  });
+
+  it('with two teams "Próximo set" starts the same pair again', async () => {
+    await show(afterSet(2));
+
+    await press('set-end-next');
+    expect(mockStartSet.mutate).toHaveBeenCalledWith(['team-1', 'team-2'], expect.anything());
+  });
+
+  it('with more teams "Próximo set" closes the sheet so the organizer picks who comes in', async () => {
+    await show(afterSet(3));
+
+    await press('set-end-next');
+    expect(mockStartSet.mutate).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('set-end-sheet')).toBeNull();
+  });
+
+  it('"Finalizar partida" ends the match and goes to the stats sheet', async () => {
+    mockEndGame.mutate.mockImplementationOnce((_input: unknown, options: { onSuccess: () => void }) =>
+      options.onSuccess(),
+    );
+    await show(afterSet(2));
+
+    await press('set-end-finish');
+    expect(mockEndGame.mutate).toHaveBeenCalled();
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: '/matches/[id]/stats',
+      params: { id: 'match-1', flow: 'end' },
+    });
+  });
+
+  it('is not shown to players', async () => {
+    await show({ ...afterSet(2), isOrganizer: false });
+
+    expect(screen.queryByTestId('set-end-sheet')).toBeNull();
+  });
+});
+
 describe('S14 — live scoreboard', () => {
   const playing: Partial<LiveGame> = {
     phase: 'PLAYING',
@@ -207,18 +263,21 @@ describe('S14 — live scoreboard', () => {
       expect.anything(),
     );
 
+    // Undo asks whose point to take back (only teams with points), then sends it.
     await press('undo-button');
-    expect(mockUndoPoint.mutate).toHaveBeenCalledWith({ setNumber: 2 }, expect.anything());
+    const undoButtons = (dialog.alert as jest.Mock).mock.calls[0][2] as { onPress?: () => void }[];
+    await act(async () => undoButtons[1]?.onPress?.());
+    expect(mockUndoPoint.mutate).toHaveBeenCalledWith({ setNumber: 2, teamId: 'team-3' }, expect.anything());
 
     // Ending the set asks first; confirming sends it.
     await press('end-set-button');
-    const buttons = (dialog.alert as jest.Mock).mock.calls[0][2] as { onPress?: () => void }[];
+    const buttons = (dialog.alert as jest.Mock).mock.calls[1][2] as { onPress?: () => void }[];
     await act(async () => buttons[1]?.onPress?.());
     expect(mockEndSet.mutate).toHaveBeenCalledWith({ setNumber: 2 }, expect.anything());
   });
 
   it('disables undo when there is no point to take back', async () => {
-    await show({ ...playing, canUndo: false });
+    await show({ ...playing, scores: [0, 0] });
 
     expect(screen.getByTestId('undo-button').props.accessibilityState.disabled).toBe(true);
   });
@@ -244,6 +303,16 @@ describe('game over', () => {
     expect(mockReplace).toHaveBeenCalledWith({
       pathname: '/matches/[id]/mvp-vote',
       params: { id: 'match-1' },
+    });
+  });
+
+  it('takes the organizer on to the stats sheet first', async () => {
+    await show({ phase: 'ENDED', winnerTeamId: 'team-2' });
+
+    await press('go-stats');
+    expect(mockReplace).toHaveBeenCalledWith({
+      pathname: '/matches/[id]/stats',
+      params: { id: 'match-1', flow: 'end' },
     });
   });
 });

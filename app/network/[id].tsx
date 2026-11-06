@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { Send, Trash2 } from 'lucide-react-native';
+import { IconEnviar, IconExcluir } from '@/components/icons/quadra';
 import { useState } from 'react';
 import { FlatList, KeyboardAvoidingView, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -39,7 +39,7 @@ function CommentRow({ comment, onDelete }: { comment: PostComment; onDelete: () 
           hitSlop={ICON_HIT_SLOP}
           onPress={onDelete}
         >
-          <Trash2 size={18} color={colors.textMuted} />
+          <IconExcluir size={18} color={colors.textMuted} />
         </PressableScale>
       ) : null}
     </View>
@@ -122,7 +122,7 @@ export default function PostCommentsScreen() {
         {/* Always the same solid button: a colour that changed with the text made it vanish on
             the phone. An empty comment is simply not sent. */}
         <IconButton label="Enviar comentário" onPress={send} testID="comment-send">
-          <Send size={20} color={colors.surfaceDark} />
+          <IconEnviar size={20} color={colors.surfaceDark} />
         </IconButton>
       </View>
 

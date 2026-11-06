@@ -1,3 +1,6 @@
+jest.mock('@/components/domain/BellWithBadge', () => ({
+  BellWithBadge: () => require('react').createElement(require('react-native').View, { testID: 'icon-notificacoes' }),
+}));
 /**
  * S6 — Explore screen tests.
  *
@@ -24,7 +27,7 @@
  * The nearby read hook is mocked at the boundary so the four query states
  * (pending / error / empty / populated) are controlled deterministically, with
  * no network and no MSW. Navigation is mocked via expo-router. Native modules
- * (gradient, safe-area, expo-image, lucide) are stubbed inline — the repo's
+ * (gradient, safe-area, expo-image) are stubbed inline — the repo's
  * tests/__mocks__ are NOT auto-applied.
  *
  * The bottom tab bar + "Explorar" active tab are owned by app/(tabs)/_layout.tsx
@@ -66,26 +69,6 @@ jest.mock('expo-image', () => {
   const { View } = require('react-native');
   return {
     Image: (props: any) => ReactLocal.createElement(View, props),
-  };
-});
-
-// lucide icons -> inert nodes (header bell/sun, search, map-pin, grid/list, X).
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    Bell: stub('bell'),
-    Settings: stub('settings'),
-    Sun: stub('sun'),
-    Search: stub('search'),
-    X: stub('x'),
-    MapPin: stub('map-pin'),
-    LayoutGrid: stub('layout-grid'),
-    List: stub('list'),
-    Users: stub('users'),
-    SlidersHorizontal: stub('sliders'),
   };
 });
 
@@ -184,9 +167,9 @@ jest.mock('@tanstack/react-query', () => ({
 }));
 
 // The preview map's arenas: none here (the map's own tests cover the pins).
-jest.mock('@/features/explore/api/venues', () => ({
-  ...jest.requireActual('@/features/explore/api/venues'),
-  useNearbyVenues: () => ({ data: { venues: [], hasMore: false } }),
+jest.mock('@/features/explore/api/mapItems', () => ({
+  ...jest.requireActual('@/features/explore/api/mapItems'),
+  useMapItems: () => ({ data: { arenas: [], games: [], arenaCount: 0, gameCount: 0, truncated: false } }),
 }));
 
 jest.mock('@/features/matches/api/getNearby', () => ({
@@ -261,13 +244,13 @@ describe('S6 — Explore screen', () => {
 
     expect(screen.getByText('EXPLORAR')).toBeTruthy();
     expect(screen.getByLabelText('Notificações')).toBeTruthy();
-    expect(screen.getByTestId('icon-bell')).toBeTruthy();
+    expect(screen.getByTestId('icon-notificacoes')).toBeTruthy();
     // theme toggle moved to Settings — not in the header.
     expect(screen.queryByLabelText('Alternar tema')).toBeNull();
     expect(screen.queryByTestId('icon-sun')).toBeNull();
     // settings affordance is present in every screen header.
     expect(screen.getByLabelText('Configurações')).toBeTruthy();
-    expect(screen.getByTestId('icon-settings')).toBeTruthy();
+    expect(screen.getByTestId('icon-configuracoes')).toBeTruthy();
 
     // NO greeting / avatar on Explore.
     expect(screen.queryByText(/olá/i)).toBeNull();
@@ -280,12 +263,12 @@ describe('S6 — Explore screen', () => {
    * Criterion: the bell is a no-op this iteration (documented divergence) —
    *  tapping it navigates nowhere.
    */
-  it('does not navigate when the bell is tapped (no-op)', async () => {
+  it('opens the notifications when the bell is tapped', async () => {
     await render(<ExploreScreen />);
 
     await press(screen.getByLabelText('Notificações'));
 
-    expect(mockPush).not.toHaveBeenCalled();
+    expect(mockPush).toHaveBeenCalledWith('/notifications');
   });
 
   /**
@@ -336,7 +319,7 @@ describe('S6 — Explore screen', () => {
     expect(screen.queryByText('Quadra do Parque')).toBeNull();
     expect(screen.queryByText('Centro Olímpico')).toBeNull();
     // count reflects the filtered length
-    expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
+    expect(screen.getByText('1 partida encontrada')).toBeTruthy();
   });
 
   /**
@@ -383,7 +366,7 @@ describe('S6 — Explore screen', () => {
     expect(screen.getByText('Quadra do Parque')).toBeTruthy();
     expect(screen.queryByText('Arena Sky Beach')).toBeNull();
     expect(screen.queryByText('Centro Olímpico')).toBeNull();
-    expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
+    expect(screen.getByText('1 partida encontrada')).toBeTruthy();
     // the quick chip counts as an active filter on the Filtros button
     expect(screen.getByLabelText('Filtros, 1 ativos')).toBeTruthy();
   });
@@ -395,7 +378,7 @@ describe('S6 — Explore screen', () => {
     expect(screen.getByText('2 partidas encontradas')).toBeTruthy();
 
     await press(screen.getAllByText('Grátis')[0]!);
-    expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
+    expect(screen.getByText('1 partida encontrada')).toBeTruthy();
     expect(screen.getByText('Quadra do Parque')).toBeTruthy();
 
     // tapping again turns it off
@@ -426,7 +409,7 @@ describe('S6 — Explore screen', () => {
     expect(screen.getByText('3 partidas encontradas')).toBeTruthy();
 
     await press(screen.getByText('Ver 1 partida'));
-    expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
+    expect(screen.getByText('1 partida encontrada')).toBeTruthy();
     expect(screen.getByText('Centro Olímpico')).toBeTruthy();
     expect(screen.getByLabelText('Filtros, 1 ativos')).toBeTruthy();
   });
@@ -435,17 +418,27 @@ describe('S6 — Explore screen', () => {
     await render(<ExploreScreen />);
 
     await press(screen.getByLabelText('Filtros'));
-    // The distance is a slider now: from "any" (50) down to 2 km, step by step.
-    expect(screen.getByText('Qualquer distância')).toBeTruthy();
+    // The distance is a slider: from the default 15 km down to 2 km, step by step.
+    expect(screen.getByText('Até 15 km')).toBeTruthy();
     const slider = screen.getByLabelText('Distância máxima');
-    for (let i = 0; i < 48; i++) {
+    for (let i = 0; i < 13; i++) {
       await fireEvent(slider, 'accessibilityAction', { nativeEvent: { actionName: 'decrement' } });
     }
     expect(screen.getByText('Até 2 km')).toBeTruthy();
     await press(screen.getByText('Ver 1 partida'));
 
     expect(screen.getByText('Quadra do Parque')).toBeTruthy();
-    expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
+    expect(screen.getByText('1 partida encontrada')).toBeTruthy();
+  });
+
+  it('opens with the games up to 15 km, and offers the whole 50 km when none is that close', async () => {
+    mockNearby.data = NEARBY_FIXTURE.map((m) => ({ ...m, distanceKm: m.distanceKm + 20 }));
+    await render(<ExploreScreen />);
+
+    expect(screen.getByText('0 partidas encontradas')).toBeTruthy();
+    expect(screen.getByText('Nenhuma partida até 15 km')).toBeTruthy();
+    await press(screen.getByText('Ver até 50 km'));
+    expect(screen.getByText('3 partidas encontradas')).toBeTruthy();
   });
 
   // --------------------------------------------------------------- map preview
@@ -504,7 +497,7 @@ describe('S6 — Explore screen', () => {
 
     // [0] is the chip; the level badge of a card carries the same text
     await press(screen.getAllByText('Iniciante')[0]!);
-    expect(screen.getByText('1 partidas encontradas')).toBeTruthy();
+    expect(screen.getByText('1 partida encontrada')).toBeTruthy();
   });
 
   /**
@@ -517,13 +510,13 @@ describe('S6 — Explore screen', () => {
 
     // default = Grade
     expect(screen.getByText('Grade')).toBeTruthy();
-    expect(screen.getByTestId('icon-layout-grid')).toBeTruthy();
+    expect(screen.getByTestId('icon-grade')).toBeTruthy();
 
     await press(screen.getByText('Grade'));
 
     // now Lista
     expect(screen.getByText('Lista')).toBeTruthy();
-    expect(screen.getByTestId('icon-list')).toBeTruthy();
+    expect(screen.getByTestId('icon-lista')).toBeTruthy();
     // same data still rendered
     expect(screen.getByText('Arena Sky Beach')).toBeTruthy();
     expect(screen.getByText('Quadra do Parque')).toBeTruthy();

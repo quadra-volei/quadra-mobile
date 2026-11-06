@@ -81,31 +81,6 @@ jest.mock('expo-linear-gradient', () => {
   };
 });
 
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    ChevronLeft: stub('chevron-left'),
-    Check: stub('check'),
-    Clock: stub('clock'),
-    Copy: stub('copy'),
-    Heart: stub('heart'),
-    Lock: stub('lock'),
-    MapPin: stub('map-pin'),
-    Pencil: stub('pencil'),
-    Search: stub('search'),
-    Share2: stub('share2'),
-    Users: stub('users'),
-    Zap: stub('zap'),
-    Minus: stub('minus'),
-    Plus: stub('plus'),
-    Calendar: stub('calendar'),
-    X: stub('x'),
-  };
-});
-
 // Button stub: a plain Pressable that respects disabled/loading so the
 // "Responda pra continuar" gate is testable (RNTL blocks press on disabled).
 jest.mock('@/components/ui/Button', () => {
@@ -217,6 +192,14 @@ jest.mock('react-native-maps', () => {
 
 jest.mock('@/features/matches/lib/useDeviceCoords', () => ({
   useDeviceCoords: () => null,
+}));
+
+// "É no …?" after a pick: the test decides whether an arena is offered and confirmed.
+const mockArenaAnswer: { arenaId: string | null } = { arenaId: null };
+jest.mock('@/features/matches/lib/confirmArena', () => ({
+  confirmArenaAt: async (_coords: unknown, _placeId: string, onConfirm: (id: string) => void) => {
+    if (mockArenaAnswer.arenaId) onConfirm(mockArenaAnswer.arenaId);
+  },
 }));
 
 jest.mock('@/features/matches/api/createMatch', () => ({
@@ -493,7 +476,7 @@ describe('S11 — Create-match (formulário vivo)', () => {
     expect(screen.getByTestId('time-19h00')).toBeTruthy();
   });
 
-  it('completes a Recurring · private (guests) flow and submits its payload', async () => {
+  it('completes a Recurring · private flow (joined by the invite link) and submits its payload', async () => {
     await renderScreen();
     await type('match-name', 'Racha Fixo');
     await type('match-location', 'Arena Central');
@@ -503,12 +486,10 @@ describe('S11 — Create-match (formulário vivo)', () => {
     await press('time-20h00');
     await press('format-6X6');
     await press('level-AVANCADO');
+    await press('surface-Beach');
+    await press('gender-Female');
+    // Private needs nothing else: every private match is joined by its invite link.
     await press('privacy-private');
-    // Private requires an invite mode before the flow is complete.
-    expect(screen.getByTestId('create-submit').props.accessibilityState?.disabled).toBe(
-      true,
-    );
-    await press('invite-guests');
 
     await press('create-submit');
     expect(mockCreate.mutate.mock.calls[0]?.[0]).toMatchObject({
@@ -519,7 +500,8 @@ describe('S11 — Create-match (formulário vivo)', () => {
       format: '6X6',
       level: 'AVANCADO',
       privacy: 'private',
-      inviteMode: 'guests',
+      surface: 'Beach',
+      gender: 'Female',
     });
   });
 
@@ -606,6 +588,27 @@ describe('S11 — LOCAL address search', () => {
       location: 'Arena Sky Beach · Pinheiros · São Paulo',
       latitude: -23.56,
       longitude: -46.69,
+      placeId: 'osm:W123',
+    });
+    expect(submitted().arenaId).toBeUndefined();
+  });
+
+  it('a "Sim" to the arena question sends that arena and keeps the picked address', async () => {
+    mockPlaces.data = [arena];
+    mockPlaces.coords = { latitude: -23.56, longitude: -46.69 };
+    mockArenaAnswer.arenaId = 'arena-1';
+    await renderScreen();
+    await completeOneOffFlow();
+
+    await type('match-location', 'arena sky');
+    await press('place-osm:W123');
+    await press('create-submit');
+    mockArenaAnswer.arenaId = null;
+
+    expect(submitted()).toMatchObject({
+      location: 'Arena Sky Beach · Pinheiros · São Paulo',
+      placeId: 'osm:W123',
+      arenaId: 'arena-1',
     });
   });
 
@@ -625,5 +628,7 @@ describe('S11 — LOCAL address search', () => {
     expect(sent.location).toBe('Quadra do meu prédio');
     expect(sent.latitude).toBeUndefined();
     expect(sent.longitude).toBeUndefined();
+    expect(sent.placeId).toBeUndefined();
+    expect(sent.arenaId).toBeUndefined();
   });
 });

@@ -1,4 +1,4 @@
-import { X } from 'lucide-react-native';
+import { IconFechar } from '@/components/icons/quadra';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -97,7 +97,7 @@ export function ExploreFilterSheet({ visible, value, source, onApply, onClose }:
               onPress={onClose}
               className="h-9 w-9 items-center justify-center rounded-chip bg-white shadow-card"
             >
-              <X size={20} color={colors.surfaceDark} />
+              <IconFechar size={20} color={colors.surfaceDark} />
             </Pressable>
           </View>
 

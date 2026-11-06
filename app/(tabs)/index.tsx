@@ -1,34 +1,38 @@
 import { router } from "expo-router";
-import { Settings, Volleyball } from "lucide-react-native";
+import { IconConfiguracoes, IconPartida } from '@/components/icons/quadra';
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { FlatList, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { AdBanner } from '@/components/domain/AdBanner';
 import { BellWithBadge } from '@/components/domain/BellWithBadge';
 import { ActivityRow } from "@/components/domain/ActivityRow";
 import { MatchCardCompact } from "@/components/domain/MatchCardCompact";
+import { PassProgressCard } from "@/components/domain/PassProgressCard";
 import { HomeHeroArt } from "@/components/icons/HomeHeroArt";
-import { Button } from "@/components/ui/Button";
 import { PressableScale } from "@/components/ui/PressableScale";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { StateMessage } from "@/components/ui/StateMessage";
 import { IconButton } from "@/components/ui/IconButton";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { type ActivityLine, activityQueryKey, useFriendsActivity } from "@/features/activity/api/activityApi";
+import { useServedAd } from "@/features/ads/api/ads";
 import { useUpcomingMatches } from "@/features/matches/api/getUpcoming";
 import { formatStartsAt } from "@/features/matches/lib/formatWhen";
 import { countdownLabel, pickNextGame } from "@/features/matches/lib/nextGame";
+import { useDeviceCoords } from "@/features/matches/lib/useDeviceCoords";
 import { splitVenue } from "@/features/matches/lib/venueName";
 import type { UpcomingMatch } from "@/features/matches/types/match";
 import { useFollowState } from "@/features/network/api/postsApi";
+import { useSeasonPass } from "@/features/pass/api/seasonPass";
 import { usePullToRefresh, useRefreshOnFocus } from "@/hooks/useRefresh";
 import { useAuthStore } from "@/stores/auth";
 import { HARD_SHADOW, colors } from "@/theme/colors";
 import { TAB_BAR_CLEARANCE } from "@/theme/layout";
 
-function goExplore() {
-  router.push("/explore");
+function goUpcoming() {
+  router.push("/matches/upcoming");
 }
 function goMatch(id: string) {
   router.push({ pathname: "/matches/[id]", params: { id } });
@@ -38,6 +42,9 @@ function goSettings() {
 }
 function goNotifications() {
   router.push("/notifications");
+}
+function goPass() {
+  router.push("/profile/pass");
 }
 
 function SectionHeader({
@@ -50,13 +57,20 @@ function SectionHeader({
   onAction: () => void;
 }) {
   return (
-    <View className="flex-row items-center justify-between px-4 mt-6">
-      <Text className="font-display text-h2 text-text-primary uppercase">
+    <View className="flex-row items-center justify-between gap-3 px-4 mt-6">
+      {/* A long title shrinks to one line instead of being cut ("PASSE DA"). */}
+      <Text
+        className="flex-1 font-display text-h2 text-text-primary uppercase"
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
         {title}
       </Text>
-      <Button variant="ghost" onPress={onAction}>
-        {actionLabel}
-      </Button>
+      {/* A bare link, not the ghost Button: its px-6 pushed every action off
+          the cards' right edge. */}
+      <PressableScale accessibilityRole="button" onPress={onAction} hitSlop={12}>
+        <Text className="font-body-semibold text-body-bold text-primary">{actionLabel}</Text>
+      </PressableScale>
     </View>
   );
 }
@@ -95,9 +109,13 @@ function FriendsChip({ userId }: { userId: string }) {
  */
 function HomeHero() {
   const userId = useAuthStore((s) => s.userId);
+  // The whole card leads to the games nearby (relatório 05/11: it did nothing).
   return (
-    <View
+    <PressableScale
       testID="home-hero"
+      accessibilityRole="button"
+      accessibilityLabel="Bora pra quadra? Encontrar um jogo perto de você"
+      onPress={() => router.navigate("/(tabs)/explore")}
       className="mx-4 justify-between rounded-card bg-primary p-6 overflow-hidden"
       style={{ aspectRatio: 4 / 5 }}
     >
@@ -115,13 +133,12 @@ function HomeHero() {
         <Text className="font-display text-display text-accent uppercase">
           Quadra?
         </Text>
-        {userId ? (
-          <View className="mt-6 flex-row flex-wrap gap-2">
-            <FriendsChip userId={userId} />
-          </View>
-        ) : null}
+        <View className="mt-6 flex-row flex-wrap gap-2">
+          <HeroChip>Encontrar um jogo →</HeroChip>
+          {userId ? <FriendsChip userId={userId} /> : null}
+        </View>
       </View>
-    </View>
+    </PressableScale>
   );
 }
 
@@ -154,7 +171,7 @@ function NextGameCard({ match }: { match: UpcomingMatch }) {
       style={HARD_SHADOW}
     >
       <View className="h-12 w-12 items-center justify-center rounded-chip bg-accent">
-        <Volleyball size={24} color={colors.surfaceDark} strokeWidth={2.2} />
+        <IconPartida size={24} color={colors.surfaceDark} />
       </View>
       <View className="ml-3 flex-1">
         <Text
@@ -193,7 +210,7 @@ function UpcomingSection({
   if (isPending) {
     return (
       <>
-        <SectionHeader title="PRÓXIMAS PARTIDAS" actionLabel="Ver todas" onAction={goExplore} />
+        <SectionHeader title="PRÓXIMAS PARTIDAS" actionLabel="Ver todas" onAction={goUpcoming} />
         <View className="flex-row px-4 gap-3 mt-2">
           <SkeletonBlock className="w-[262px] h-[248px]" />
           <SkeletonBlock className="w-[262px] h-[248px]" />
@@ -205,7 +222,7 @@ function UpcomingSection({
   if (isError) {
     return (
       <>
-        <SectionHeader title="PRÓXIMAS PARTIDAS" actionLabel="Ver todas" onAction={goExplore} />
+        <SectionHeader title="PRÓXIMAS PARTIDAS" actionLabel="Ver todas" onAction={goUpcoming} />
         <StateMessage
           message="Não foi possível carregar"
           actionLabel="Tentar novamente"
@@ -221,7 +238,7 @@ function UpcomingSection({
 
   return (
     <>
-      <SectionHeader title="PRÓXIMAS PARTIDAS" actionLabel="Ver todas" onAction={goExplore} />
+      <SectionHeader title="PRÓXIMAS PARTIDAS" actionLabel="Ver todas" onAction={goUpcoming} />
       <FlatList<UpcomingMatch>
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -311,6 +328,47 @@ function FriendsActivitySection({
   );
 }
 
+// The season pass where the app opens every day (DECISIONS #194): hidden when no
+// season is set up, it cannot load or the season is over (the card stays in the collection).
+function PassSection() {
+  const { data, isPending } = useSeasonPass();
+  if (!isPending && (!data || data.status === "Ended")) {
+    return null;
+  }
+  return (
+    <>
+      <SectionHeader title="SEU PASSE" actionLabel="Ver passe" onAction={goPass} />
+      <PassProgressCard onPress={goPass} />
+    </>
+  );
+}
+
+// An ad on the air around the player (DECISIONS #200); without one, a quiet way to advertise.
+function AdSection() {
+  const ad = useServedAd("Home", useDeviceCoords());
+  if (ad.data) {
+    return (
+      <View className="mx-4 mt-6">
+        <AdBanner ad={ad.data} testID="home-ad" />
+      </View>
+    );
+  }
+  if (!ad.isSuccess) return null;
+  return (
+    <PressableScale
+      onPress={() => router.push("/ads/new")}
+      accessibilityRole="button"
+      accessibilityLabel="Anuncie no Quadra"
+      testID="home-ad-placeholder"
+      className="mx-4 mt-6 rounded-card border border-dashed border-line px-4 py-3"
+    >
+      <Text className="font-body text-caption text-text-muted text-center">
+        Sua arena, aula ou loja aqui? <Text className="font-body-bold text-primary">Anuncie no Quadra</Text>
+      </Text>
+    </PressableScale>
+  );
+}
+
 export default function HomeScreen() {
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
@@ -350,7 +408,11 @@ export default function HomeScreen() {
         }
       >
         {empty ? (
-          <HomeHero />
+          <>
+            <HomeHero />
+            <PassSection />
+            <AdSection />
+          </>
         ) : (
           <>
             {upcoming.isPending ? (
@@ -369,6 +431,8 @@ export default function HomeScreen() {
                 <NextGameCard match={nextGame} />
               </>
             ) : null}
+            <PassSection />
+            <AdSection />
             <UpcomingSection query={upcoming} nextGame={nextGame} />
           </>
         )}
@@ -386,7 +450,7 @@ export default function HomeScreen() {
               <BellWithBadge />
             </IconButton>
             <IconButton label="Configurações" onPress={goSettings}>
-              <Settings size={20} color={colors.surfaceDark} />
+              <IconConfiguracoes size={20} color={colors.surfaceDark} />
             </IconButton>
           </View>
         </View>

@@ -177,6 +177,8 @@ const DARK_ROUTES = [
   /^\/$/,
   /^\/(login|sms-otp|onboarding)$/,
   /\/(scoreboard|mvp-vote|summary)$/,
+  // The match screen opens on its cover photo, under the status bar.
+  /^\/matches\/(?!create$|upcoming$)[^/]+$/,
   /^\/profile\/card$/,
   /^\/players\/[^/]+\/card$/,
   /^\/p\//,

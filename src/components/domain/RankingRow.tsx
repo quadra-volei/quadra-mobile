@@ -1,5 +1,5 @@
-import { ArrowDown, ArrowUp, Minus } from 'lucide-react-native';
-import { Text, View } from 'react-native';
+import { IconDescer, IconDiminuir, IconSubir } from '@/components/icons/quadra';
+import { Pressable, Text, View } from 'react-native';
 
 import { Avatar } from '@/components/ui/Avatar';
 import type { RankingRow as RankingRowData } from '@/features/ranking/types/ranking';
@@ -10,19 +10,25 @@ export type RankingRowProps = {
   row: RankingRowData;
   /** Derived by the screen from `useAuthStore().userId === row.playerId`. */
   isMe: boolean;
+  /** What `row.score` counts, read by screen readers; default "pontos". */
+  scoreUnit?: string;
+  /** Draw the "me" tint on the row itself; off when the parent tints a wider box. Default true. */
+  highlight?: boolean;
+  /** When set, the photo and name open the player (the rest of the row stays the parent's). */
+  onPressPlayer?: () => void;
   testID?: string;
 };
 
 const ICON_SIZE = 14;
 
-/** Maps the trend direction to its lucide arrow, semantic color, and a11y word. */
+/** Maps the trend direction to its arrow, semantic color, and a11y word. */
 function TrendBadge({ trend }: { trend: RankingRowData['trend'] }) {
   const direction = trend?.direction ?? 'flat';
 
   if (direction === 'up') {
     return (
       <View className="flex-row items-center gap-1">
-        <ArrowUp size={ICON_SIZE} color={colors.success} />
+        <IconSubir size={ICON_SIZE} color={colors.success} />
         <Text className="font-num text-success text-caption">{trend?.delta ?? 0}</Text>
       </View>
     );
@@ -30,12 +36,12 @@ function TrendBadge({ trend }: { trend: RankingRowData['trend'] }) {
   if (direction === 'down') {
     return (
       <View className="flex-row items-center gap-1">
-        <ArrowDown size={ICON_SIZE} color={colors.danger} />
+        <IconDescer size={ICON_SIZE} color={colors.danger} />
         <Text className="font-num text-danger text-caption">{trend?.delta ?? 0}</Text>
       </View>
     );
   }
-  return <Minus size={ICON_SIZE} color={colors.textMuted} />;
+  return <IconDiminuir size={ICON_SIZE} color={colors.textMuted} />;
 }
 
 function trendLabel(trend: RankingRowData['trend']): string {
@@ -54,26 +60,43 @@ function trendLabel(trend: RankingRowData['trend']): string {
  * single `accessibilityLabel` announces position/name/score/trend (+ "você").
  * Receives plain data via props; never fetches.
  */
-export function RankingRow({ row, isMe, testID }: RankingRowProps) {
-  return (
-    <View
-      testID={testID}
-      accessibilityLabel={`${row.position == null ? 'sem posição' : `${row.position}º`}, ${row.name}${
-        isMe ? ', você' : ''
-      }, ${row.score} pontos, ${trendLabel(row.trend)}`}
-      className={`flex-row items-center px-4 py-3 ${
-        isMe ? 'bg-primary/10 rounded-card' : ''
-      }`}
-    >
-      <Text className="font-num text-primary text-body w-8">{row.position ?? '–'}</Text>
+export function RankingRow({ row, isMe, scoreUnit = 'pontos', highlight = true, onPressPlayer, testID }: RankingRowProps) {
+  const who = (
+    <>
       <Avatar uri={row.photoUrl} name={row.name} size="sm" level={row.level} />
       <View className="flex-1 ml-3">
         <Text className="font-body-semibold text-body-bold text-text-primary">
           {row.name}
           {isMe ? <Text className="text-primary"> · você</Text> : null}
         </Text>
-        <Text className="font-body text-caption text-text-muted">{row.subtitle}</Text>
+        <Text numberOfLines={1} className="font-body text-caption text-text-muted">{row.subtitle}</Text>
       </View>
+    </>
+  );
+  return (
+    <View
+      testID={testID}
+      accessibilityLabel={`${row.position == null ? 'sem posição' : `${row.position}º`}, ${row.name}${
+        isMe ? ', você' : ''
+      }, ${row.score} ${scoreUnit}, ${trendLabel(row.trend)}`}
+      className={`flex-row items-center px-4 py-3 ${
+        isMe && highlight ? 'bg-primary/10 rounded-card' : ''
+      }`}
+    >
+      <Text className="font-num text-primary text-body w-8">{row.position ?? '–'}</Text>
+      {onPressPlayer ? (
+        <Pressable
+          onPress={onPressPlayer}
+          accessibilityRole="link"
+          accessibilityLabel={`Ver perfil de ${row.name}`}
+          testID={testID ? `${testID}-player` : undefined}
+          className="flex-1 flex-row items-center"
+        >
+          {who}
+        </Pressable>
+      ) : (
+        who
+      )}
       <View className="items-end">
         <Text className="font-num text-primary text-body">{row.score}</Text>
         <View className="mt-1">

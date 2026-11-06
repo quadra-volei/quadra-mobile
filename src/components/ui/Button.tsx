@@ -95,7 +95,9 @@ export function Button({
       disabled={isDisabled}
       testID={testID}
       accessibilityRole="button"
-      accessibilityState={{ disabled: isDisabled, busy: loading }}
+      // "busy" only while loading: a busy: false still made Android describe every
+      // button as "busy" (relatório 05/11).
+      accessibilityState={loading ? { disabled: isDisabled, busy: true } : { disabled: isDisabled }}
       className={`${BASE} ${VARIANT_CLASS[variant]}`}
       style={
         greyed

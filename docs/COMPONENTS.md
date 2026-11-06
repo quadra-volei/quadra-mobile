@@ -114,7 +114,7 @@ Each entry follows this structure:
   ```tsx
   <DateField label="DATA DE NASCIMENTO" value={value} onChangeText={onChange} error={errors.birthDate?.message} />
   ```
-- **Notes**: Masked `DD/MM/AAAA` date field with a leading lucide `Calendar` icon (`primary` color). Holds/raises the **masked string** (`DD/MM/AAAA`); masking is applied internally as the user types digits (`number-pad`, max 10 chars). It does NOT validate — the consuming Zod schema validates/parses the string into a real past date. No native date-picker dependency (the mockup shows a plain masked field). Error surfacing mirrors `TextField`/`PhoneInput` (`border-danger` + danger caption, `accessibilityLiveRegion="polite"`). Used by S4 Onboarding + S10 Edit-profile for **birth date** (free typing suits a far-past date better than a picker). For a *future* date/time the user selects rather than types (S11 create-match), use `DateTimePickerField` instead.
+- **Notes**: Masked `DD/MM/AAAA` date field with a leading calendar icon (`primary` color). Holds/raises the **masked string** (`DD/MM/AAAA`); masking is applied internally as the user types digits (`number-pad`, max 10 chars). It does NOT validate — the consuming Zod schema validates/parses the string into a real past date. No native date-picker dependency (the mockup shows a plain masked field). Error surfacing mirrors `TextField`/`PhoneInput` (`border-danger` + danger caption, `accessibilityLiveRegion="polite"`). Used by S4 Onboarding + S10 Edit-profile for **birth date** (free typing suits a far-past date better than a picker). For a *future* date/time the user selects rather than types (S11 create-match), use `DateTimePickerField` instead.
 
 ### `DateTimePickerField`
 - **Path**: `src/components/ui/DateTimePickerField.tsx`
@@ -131,8 +131,8 @@ Each entry follows this structure:
 ### `FilterChip`
 - **Path**: `src/components/ui/FilterChip.tsx`
 - **Category**: ui
-- **Props**: `{ label: string; selected: boolean; onPress: () => void; disabled?: boolean; testID?: string }`
-- **Used in**: S6 Explore (filter row "Todos / Perto / Hoje / Iniciante / 6x6"), S9 Ranking (scope tabs — "Amigos" active; "Bairro"/"Geral" `disabled`), S11 Create Match (date/format/level/type chips), S13 Teams (organizer "2 times / 3 times / 4 times" team-count group, single-select)
+- **Props**: `{ label: string; selected: boolean; onPress: () => void; disabled?: boolean; icon?: LucideIcon; testID?: string }` (`icon` is drawn before the label, in the label's color)
+- **Used in**: S17 Map and arena curation (kind of place chips, with the kind's icon), S6 Explore (filter row "Todos / Perto / Hoje / Iniciante / 6x6"), S9 Ranking (scope tabs — "Amigos" active; "Bairro"/"Geral" `disabled`), S11 Create Match (date/format/level/type chips), S13 Teams (organizer "2 times / 3 times / 4 times" team-count group, single-select)
 - **Example**:
   ```tsx
   <FilterChip label="Perto" selected={activeFilter === 'perto'} onPress={() => setActiveFilter('perto')} />
@@ -149,7 +149,7 @@ Each entry follows this structure:
   ```tsx
   <SearchField value={query} onChangeText={setQuery} placeholder="Buscar quadra, bairro ou horário..." onClear={() => setQuery('')} />
   ```
-- **Notes**: Label-less search input — controlled and purely presentational (holds no state, never fetches). `h-12 px-4 rounded-pill bg-white shadow-card` container with a leading lucide `Search` (`text-muted`) and an optional trailing clear (`X`) shown only when `value` is non-empty and `onClear` is provided. `accessibilityLabel` defaults to "Buscar partidas". Distinct from `TextField` (an RHF-controlled **labeled** form field with error caption/adornments) — `SearchField` is an ephemeral filter control, not a form input (no RHF/Zod). Designed for reuse by S11 ("Buscar quadra ou endereço") and S10. **Deferred catalog note (from S11):** S11's "LOCAL" mockup shows a leading `MapPin`, but the leading icon is currently hardcoded to lucide `Search`. S11 uses it as-is; a future change may add an optional `leftIcon`/`icon` prop so consumers can swap the leading glyph — not done as part of S11 to avoid touching a shared component's API mid-screen.
+- **Notes**: Label-less search input — controlled and purely presentational (holds no state, never fetches). `h-12 px-4 rounded-pill bg-white shadow-card` container with a leading icon (`text-muted`) and an optional trailing clear (`X`) shown only when `value` is non-empty and `onClear` is provided. `accessibilityLabel` defaults to "Buscar partidas". Distinct from `TextField` (an RHF-controlled **labeled** form field with error caption/adornments) — `SearchField` is an ephemeral filter control, not a form input (no RHF/Zod). Designed for reuse by S11 ("Buscar quadra ou endereço") and S10. **Deferred catalog note (from S11):** S11's "LOCAL" mockup shows a leading `MapPin`, but the leading icon is currently hardcoded to icon. S11 uses it as-is; a future change may add an optional `leftIcon`/`icon` prop so consumers can swap the leading glyph — not done as part of S11 to avoid touching a shared component's API mid-screen.
 
 ### `Avatar`
 - **Path**: `src/components/ui/Avatar.tsx`
@@ -173,7 +173,7 @@ Each entry follows this structure:
   <StepperField label="Jogadores" value={value} onChange={onChange} min={2} testID="players-stepper" />
   <StepperField label="Valor / pessoa" value={value} onChange={onChange} min={0} prefix="R$ " testID="price-stepper" />
   ```
-- **Notes**: Boxed numeric stepper — eyebrow label, a large `font-num` value (with an optional `prefix` like `"R$ "`), and round `−` / `+` controls (lucide `Minus`/`Plus`). Fills the gap `TextField` (free text) doesn't cover. Controlled; clamps to `[min, max]` and disables the relevant control at the bound (50% opacity). The root `View` is `flex-1` so two steppers sit side-by-side in a `flex-row gap-4` row. Each control exposes `accessibilityRole="button"` + `accessibilityState={{ disabled }}` and the value exposes an `accessibilityLabel`. Receives plain data via props; never fetches.
+- **Notes**: Boxed numeric stepper — eyebrow label, a large `font-num` value (with an optional `prefix` like `"R$ "`), and round `−` / `+` controls (icon). Fills the gap `TextField` (free text) doesn't cover. Controlled; clamps to `[min, max]` and disables the relevant control at the bound (50% opacity). The root `View` is `flex-1` so two steppers sit side-by-side in a `flex-row gap-4` row. Each control exposes `accessibilityRole="button"` + `accessibilityState={{ disabled }}` and the value exposes an `accessibilityLabel`. Receives plain data via props; never fetches.
 
 ### `Slider`
 - **Path**: `src/components/ui/Slider.tsx`
@@ -191,7 +191,7 @@ Each entry follows this structure:
   ```tsx
   <ToggleField icon={<Lock size={20} color={colors.primary} />} title="Partida aberta" caption="Qualquer um pode entrar nas vagas" value={value} onValueChange={onChange} testID="open-toggle" />
   ```
-- **Notes**: Boolean switch row — optional leading icon + title + caption + a native RN `Switch` on a `bg-white rounded-card border border-line` row. The `Switch` carries the accessible `role="switch"` + `accessibilityState={{ checked }}` and label (title). RN core `Switch` styles via `trackColor`/`thumbColor` props (not className) — track/thumb colors mirror the `notifications.tsx` precedent (`#E8EEF8` bg-light-alt off / `colors.primary` on / `colors.textOnDark` thumb). Controlled; never fetches. **Row-chrome precedent**: S12's inlined Manual/Automático draw-mode radio rows mirror this exact row layout (icon + title + caption on a `bg-white rounded-card border` row) but with a trailing lucide `Check` instead of a `Switch` and `accessibilityRole="radio"` (single-select). That is a one-screen presentational variation — it is **inlined in `app/matches/[id].tsx`**, not extracted, and adds no `ToggleField` API change.
+- **Notes**: Boolean switch row — optional leading icon + title + caption + a native RN `Switch` on a `bg-white rounded-card border border-line` row. The `Switch` carries the accessible `role="switch"` + `accessibilityState={{ checked }}` and label (title). RN core `Switch` styles via `trackColor`/`thumbColor` props (not className) — track/thumb colors mirror the `notifications.tsx` precedent (`#E8EEF8` bg-light-alt off / `colors.primary` on / `colors.textOnDark` thumb). Controlled; never fetches. **Row-chrome precedent**: S12's inlined Manual/Automático draw-mode radio rows mirror this exact row layout (icon + title + caption on a `bg-white rounded-card border` row) but with a trailing icon instead of a `Switch` and `accessibilityRole="radio"` (single-select). That is a one-screen presentational variation — it is **inlined in `app/matches/[id].tsx`**, not extracted, and adds no `ToggleField` API change.
 
 ### `CourtImage`
 - **Path**: `src/components/ui/CourtImage.tsx`
@@ -364,14 +364,35 @@ More UI primitives will live here:
 - **Category**: domain
 - **Props**: none
 - **Used in**: the bell `IconButton` of Início, Rede and Perfil
-- **Notes**: Bell icon plus a red count of unread notifications (`useUnreadCount`, re-read every minute; "9+" above nine). Tests mock it (it needs a QueryClient).
+- **Notes**: Bell icon plus the count of unread notifications (`useUnreadCount`, re-read every minute; "9+" above nine) in a lime badge with a navy border on the button's top-right corner (DECISIONS #187). Tests mock it (it needs a QueryClient).
 
-### `LocationGate`
-- **Path**: `src/components/domain/LocationGate.tsx`
+### `LocationPrompt`
+- **Path**: `src/components/domain/LocationPrompt.tsx`
 - **Category**: domain
-- **Props**: `{ children: ReactNode }`
-- **Used in**: `app/(tabs)/_layout.tsx` (around the tabs)
-- **Notes**: Asks for the location permission before rendering its children, only while the permission was never answered (DECISIONS #72). Denied: explains what is lost, offers the phone settings, then lets the user in.
+- **Props**: `{ onGranted: () => void; blurTarget?: RefObject<View | null>; onSettled?: () => void }`
+- **Used in**: `app/(tabs)/_layout.tsx` (over the tabs, next to `CreateSheet`)
+- **Notes**: Asks for the location permission once, only while it was never answered (DECISIONS #72, #188): a card centred on the screen over the tabs, blurred and dimmed behind it like `CreateSheet` (white card, 2px navy border, `HARD_SHADOW`, lime pin badge, wide options). The veil does not close it. Allowed: calls `onGranted` (the layout remounts the tabs so they read the position). Denied: explains what is lost, offers the phone settings, then lets the user in. Renders nothing otherwise. `onSettled` fires once nothing is left to ask (the first-access tour waits for it).
+
+### `AdBanner`
+- **Path**: `src/components/domain/AdBanner.tsx`
+- **Category**: domain
+- **Props**: `{ ad: ServedAd; size?: 'card' | 'compact'; preview?: boolean; testID?: string }`
+- **Used in**: `app/(tabs)/index.tsx` (Home), `app/explore/map.tsx` (corner, `compact`), `app/ads/new.tsx` and `app/profile/ads-review.tsx` (`preview`)
+- **Notes**: A self-service ad (DECISIONS #200): white card, photo on the left (navy block with the Divulgar icon without one), the "Patrocinado" tag, title and up to two lines of text (`card` only). Shown: counts a view; tap: counts a tap and opens the WhatsApp or https site (an Arena link opens the map). `preview` counts nothing and does not open.
+
+### `OpeningAd`
+- **Path**: `src/components/domain/OpeningAd.tsx`
+- **Category**: domain
+- **Props**: `{ ready: boolean }`
+- **Used in**: `app/(tabs)/_layout.tsx` (after `TourOverlay`)
+- **Notes**: The opening card (DECISIONS #200): an ad on the air around the player in a centred card over a navy veil (photo, "Patrocinado", title, text, "Quero saber mais" / "Agora não", close). Waits for `ready` (location settled) plus 4 s, never while the tour is open, and shows each ad at most once a week on this phone (`useOpeningAdStore`, AsyncStorage).
+
+### `TourOverlay`
+- **Path**: `src/components/domain/TourOverlay.tsx`
+- **Category**: domain
+- **Props**: none (driven by `useTourStore`, `src/features/tour/tourStore.ts`)
+- **Used in**: `app/(tabs)/_layout.tsx` (over the tabs, after `LocationPrompt`)
+- **Notes**: The first-access tour (DECISIONS #190, #195), drawn over the tabs in their own window (an absolute overlay, not a `Modal`; Android back = Pular). Phase 0: a navy welcome card ("Bem-vindo ao Quadra", Começar / Agora não). Phases 1–4: the screen dimmed in navy with a round hole and a lime ring over one tab bar item, and a white card above it (2px navy border, `HARD_SHADOW`, "N de 4", title, text, Pular / Próximo, Concluir on the last). Targets mark themselves with `useTourTarget(id)` (`src/features/tour/tourTargets.ts`) on a plain `View` with `collapsable={false}` and are measured against the overlay (`measureTourTarget(id, overlay)`); a target not on screen skips its step, and with none left the tour ends. Leaving records the outcome (`useRecordTour`) and remembers it on the phone.
 
 ### `UpdateGate`
 - **Path**: `src/components/domain/UpdateGate.tsx`
@@ -394,9 +415,38 @@ More UI primitives will live here:
 ### `PlayerCard`
 - **Path**: `src/components/domain/PlayerCard.tsx`
 - **Category**: domain
-- **Props**: `{ profile: MyProfile; finish: CardFinish; title: CardTitleCode; photoUrl?: string; flipped: boolean; onFlip: () => void; width: number; faceRefs?: { front; back: RefObject<View> }; testID?: string }` (`faceRefs` gives the flat faces to `captureRef` for the PNG export)
-- **Used in**: S8b "Sua carta" (`app/profile/card.tsx`), on the screen and in the enlarged view
-- **Notes**: Collectible card with front and back (DECISIONS #119), drawn on a 292 × 406 grid and scaled to `width`. Finish tokens in `src/theme/cardFinish.ts` (Prisma and Eclipse chamfered, Íon rounded); titles in `src/features/profile/card/cardTitles.ts`. Material is SVG (frame gradient, body, photo clipped to the shape, a foil band and a glare that follow the finger through reanimated animated props); text is RN on top. Drag tilts it (±11° / ±14°) and settles back in 350 ms; a tap or a horizontal swipe over 65 px flips it in 600 ms, showing only the face towards the viewer. Gestures live on the card only. Reduced motion: no tilt, instant flip.
+- **Props**: `{ profile: MyProfile; finish: CardFinish; title: CardTitleCode; photoUrl?: string; flipped: boolean; onFlip: () => void; width: number; faceRefs?: { front; back: RefObject<View> }; pieces?: CardPieces; testID?: string }` (`faceRefs` gives the flat faces to `captureRef` for the PNG export; `pieces = { missing, next?, reveal?, locked? }` draws the season card unfinished)
+- **Used in**: S8b "Sua carta" (`app/profile/card.tsx`), on the screen and in the enlarged view; the season pass (`app/profile/pass.tsx`), with `pieces`
+- **Notes**: Collectible card with front and back (DECISIONS #119), drawn on a 292 × 406 grid and scaled to `width`. Look tokens in `src/theme/cardFinish.ts` (the matte basic card and the season card, DECISIONS #199); titles in `src/features/profile/card/cardTitles.ts`. Material is SVG (frame gradient, body, photo clipped to the shape, a foil band and a glare that follow the finger through reanimated animated props); text is RN on top. Drag tilts it (±11° / ±14°) and settles back in 350 ms; a tap or a horizontal swipe over 65 px flips it in 600 ms, showing only the face towards the viewer. Gestures live on the card only. Reduced motion: no tilt, instant flip. With `pieces` (season pass, DECISIONS #192) each missing piece of `src/features/pass/lib/cardPieces.ts` (12 shards on the same grid) is covered by dark glass with the level that gives it, the next one outlined in lime, on both faces (the back mirrored, without numbers); `reveal` flashes one piece lime and fades its cover away; `locked` (pieces reached without the paid track) shows a lime padlock instead of the level. Any finish that is not a season card (the old Prisma, Íon, Eclipse, or one this version does not know) draws as the basic card (`cardFinishTokens`). A complete season card (a finish with `extravagant`, no `pieces`) adds a breathing aura behind the card, twinkling stars, a gold seal on the front ("★ T1 · PIONEIRA") and a frame light that sweeps by itself; reduced motion keeps them still.
+
+### `CardPiecesMini`
+- **Path**: `src/components/domain/CardPiecesMini.tsx`
+- **Category**: domain
+- **Props**: `{ collected: number; highlight?: number; width?: number; tone?: 'dark' | 'light' }`
+- **Used in**: the season pass levels (`app/profile/pass.tsx`), `PassProgressCard`, the pass line in "Seu progresso" (S8)
+- **Example**:
+  ```tsx
+  <CardPiecesMini collected={4} highlight={pieceOfLevel(5)} width={26} />
+  ```
+- **Notes**: The season card's outline cut into its 12 pieces: the first `collected` pieces of `PIECE_ORDER` in lime, the rest as glass. With `highlight`, only that piece stands out (lime when won, a lime outline while not). Colors from `PIECE_COVER` in `src/theme/cardFinish.ts`.
+
+### `CollectionCard` / `CollectionCardSoon`
+- **Path**: `src/components/domain/CollectionCard.tsx`
+- **Category**: domain
+- **Props**: `{ card: CollectionCard; width: number; testID?: string }` (`CollectionCard` from `features/pass/api/seasonPass`); `CollectionCardSoon`: `{ width: number }`
+- **Used in**: the Coleção tab of S8b "Sua carta", another player's profile
+- **Example**:
+  ```tsx
+  <CollectionCard card={card} width={96} />
+  ```
+- **Notes**: A season card as a static thumbnail (DECISIONS #193): the finish's frame gradient and surface (`cardFinishTokens`), a glow, a foil when complete, the missing pieces covered (`PIECE_COVER`), the season code (`font-display`) and finish name over them, a lime check when complete; below, the season name and `collectionStatus(card)`. No photo, sensor or gesture, so many fit on a screen. `CollectionCardSoon` is the dashed "Próximas cartas" slot.
+
+### `PassProgressCard`
+- **Path**: `src/components/domain/PassProgressCard.tsx`
+- **Category**: domain
+- **Props**: `{ onPress: () => void }`
+- **Used in**: S5 Home ("Passe da temporada", DECISIONS #194)
+- **Notes**: Navy card with the season card's outline (`CardPiecesMini`), "N de 12 pedaços", the season and its days left, the points to the next piece and 12 segments; without the paid track, "N pedaços esperando por você" and those segments half lit. Reads `useSeasonPass` itself; renders nothing when no season is set up (204) and a skeleton while loading.
 
 ### `MatchCardCompact`
 - **Path**: `src/components/domain/MatchCardCompact.tsx`
@@ -438,12 +488,19 @@ More UI primitives will live here:
 - **Used in**: S8 Profile ("Seu progresso"), S8b "Sua carta" (below the card, dark)
 - **Notes**: The five recorded actions (CRT · BLK · ACE · SAL · AST, `PLAYER_ACTIONS`): the total in `font-num` and the average per match below ("1,5"; "—" when never recorded), plus how many matches had a sheet. With no sheet yet, one neutral line instead of zeros (#168).
 
-### `MapPins` (`VenuePin`, `MatchPin`)
+### `MapListSheet`
+- **Path**: `src/components/domain/MapListSheet.tsx`
+- **Category**: domain
+- **Props**: `{ arenas: MapArena[]; games: NearbyMatch[]; arenaCount: number; gameCount: number; onOpenArena: (arena: MapArena) => void; onOpenMatch: (id: string) => void }`; also exports `areaCountLabel` and `listRows`
+- **Used in**: S17 map (`app/explore/map.tsx`), while no pin is open
+- **Notes**: The list under the map (#180): a panel dragged up from the bottom (peek, half, full) with its own Reanimated + Gesture Handler pan on the handle (no bottom-sheet package). Collapsed it shows the area count; open, arenas (no name: a Google lookup costs, done only on open) and `MatchCard`s, closest first. Provisional layout until the designer's.
+
+### `MapPins` (`venuePinImage`, `clusterImage`, `MATCH_PIN`)
 - **Path**: `src/components/domain/MapPins.tsx`
 - **Category**: domain
-- **Props**: `VenuePin { venue: NearbyVenue; games: number; selected?: boolean; testID? }`, `MatchPin { openSlots: number; testID? }`; helpers `venuePinKey`, `venueActivityFor`, `pinColorFor`, `MATCH_PIN_ANCHOR`, `MATCH_PIN_CENTER_OFFSET`
+- **API**: `venuePinImage(arena)` (kind icon in the circle, games 1–4 then 5+ in a green badge; red ring when `live`) and `clusterImage(games, places)` (green with the games in the group, white with the places when none has a game, #183) return the image for a Marker's `image` prop; `MATCH_PIN` (a game with no arena: the green "1" disc), `VENUE_HALO` (selected arena ring), `venueActivityFor`, `CLUSTER_ANCHOR` (groups and games with no arena). Grouping itself is `clusterPoints` in `src/features/explore/lib/cluster.ts` (`supercluster`, #177, #179)
 - **Used in**: S17 map (`app/explore/map.tsx`), S6 Explore preview map
-- **Notes**: Plain views and text only, so Android draws the marker bitmap complete with `tracksViewChanges={false}` (#171); put `venuePinKey(...)` in the Marker `key` so a change of look mounts a new marker.
+- **Notes**: Pins are images in `assets/map-pins` (only `@3x`, drawn from `scripts/map-pins.html`), never views inside a Marker (#176). A new look is a new image: regenerate the PNGs from the HTML and add the `require` here. Arena pins are 48 dp squares centred on the point; discs (groups, games with no arena) are 47 dp with the disc centre on the point. Numbers are games, icons are places (#183).
 
 ### `MatchHistoryRow`
 - **Path**: `src/components/domain/MatchHistoryRow.tsx`
@@ -459,13 +516,13 @@ More UI primitives will live here:
 ### `RankingRow`
 - **Path**: `src/components/domain/RankingRow.tsx`
 - **Category**: domain
-- **Props**: `{ row: RankingRow; isMe: boolean; testID?: string }` where `RankingRow = { position: number | null; playerId: string; name: string; subtitle: string; score: number; photoUrl?: string; matches?: number; isMe?: boolean; trend?: { direction: 'up' | 'down' | 'flat'; delta: number } }` (from `@/features/ranking/types/ranking`)
+- **Props**: `{ row: RankingRow; isMe: boolean; scoreUnit?: string; highlight?: boolean; onPressPlayer?: () => void; testID?: string }` where `RankingRow` comes from `@/features/ranking/types/ranking` (position, player, score, counts, `breakdown`, `trend`). `scoreUnit` is read by screen readers ("pontos" by default); `highlight={false}` leaves the "me" tint to the parent; `onPressPlayer` makes the photo and name a link to the player while the rest of the row stays the parent's (the Ranking list toggles its detail there).
 - **Used in**: S9 Ranking (position-4+ list). Available to S8 to replace its inline preview rows later (not required yet).
 - **Example**:
   ```tsx
   <RankingRow row={row} isMe={userId === row.playerId} />
   ```
-- **Notes**: Single **non-navigable** ranking-list row: a large `font-num` `text-primary` position number, an `<Avatar size="sm" />`, the name (`text-body-bold`; appends "· você" in `text-primary` when `isMe`), an `@handle · Posição` `text-caption text-text-muted` subtitle, a right-aligned `font-num` score, and a `TrendBadge` (↑ `success` / ↓ `danger` / — `text-muted`, arrows via lucide `ArrowUp`/`ArrowDown`/`Minus` colored from `src/theme/colors.ts`, delta in `font-num`; absent `trend` → "—"). The `isMe` row gets a subtle `bg-primary/10 rounded-card` highlight. No `accessibilityRole="button"` (rows are display-only); a single `accessibilityLabel` announces position/name/score/trend (+ "você"). Receives plain data via props; never fetches. No hardcoded hex.
+- **Notes**: Single **non-navigable** ranking-list row: a large `font-num` `text-primary` position number, an `<Avatar size="sm" />`, the name (`text-body-bold`; appends "· você" in `text-primary` when `isMe`), an `@handle · Posição` `text-caption text-text-muted` subtitle, a right-aligned `font-num` score, and a `TrendBadge` (↑ `success` / ↓ `danger` / — `text-muted`, arrows via icon/`Minus` colored from `src/theme/colors.ts`, delta in `font-num`; absent `trend` → "—"). The `isMe` row gets a subtle `bg-primary/10 rounded-card` highlight. No `accessibilityRole="button"` (rows are display-only); a single `accessibilityLabel` announces position/name/score/trend (+ "você"). Receives plain data via props; never fetches. No hardcoded hex.
 
 ### `AuthHero`
 - **Path**: `src/components/domain/AuthHero.tsx`
@@ -503,12 +560,26 @@ More UI primitives will live here:
 - **Used in**: S6 Explore — the "Filtros" button.
 - **Notes**: Bottom sheet like `AddGuestSheet`. Sections of `FilterChip`s (Ordenar por, Quando, Distância, Formato, Nível, Preço) plus a "Só com vaga aberta" `ToggleField`. Edits a draft; the sticky footer has "Limpar" and "Ver N partidas", N counted live with `applyFilters` over `source`. Nothing applies until "Ver"; closing discards the draft.
 
+### `DirectionsSheet`
+- **Path**: `src/components/domain/DirectionsSheet.tsx`
+- **Category**: domain
+- **Props**: `{ destination: Destination | null; distanceLabel?: string; onClose: () => void }` (`Destination` from `@/features/explore/lib/directions`: coordinates plus an optional name)
+- **Used in**: S17 Map — "Como chegar" on the game card and the arena card.
+- **Notes**: Bottom sheet like `AddGuestSheet`, open while `destination` is not null. "Corrida" (Uber, 99) and "Rota" (Google Maps, Waze, Apple Maps on iOS) as white bordered rows; a tap closes the sheet and calls `openRide`, which falls back to the store page when the app link cannot be opened (DECISIONS #191).
+
 ### `CreateSheet`
 - **Path**: `src/components/domain/CreateSheet.tsx`
 - **Category**: domain
 - **Props**: `{ onClose: () => void; onCreateMatch: () => void; onCreatePost: () => void; blurTarget?: RefObject<View | null> }`
 - **Used in**: `app/(tabs)/_layout.tsx` (opened by the central "+")
 - **Notes**: "O que você quer criar?" overlay (DECISIONS #98): blurred and dimmed backdrop (tap closes), white card with 2px navy border and `HARD_SHADOW`, "Criar partida" (lime) and "Criar publicação" (white) wide options, "Cancelar" link. The card grows out of the tab bar (it starts with the bar's frame and opens upward, no overshoot) and folds back into it on close; the layout hides the bar meanwhile (DECISIONS #161). An overlay rather than a `Modal` so the Android blur can read the `BlurTargetView` passed as `blurTarget`; Android back closes it. Mount it only while open.
+
+### `SetEndSheet`
+- **Path**: `src/components/domain/SetEndSheet.tsx`
+- **Category**: domain
+- **Props**: `{ setNumber: number; teams: [{ name: string; won: boolean }, { name: string; won: boolean }]; scores: [number, number]; onNextSet: () => void; onFinish: () => void; onClose: () => void; busy?: boolean }`
+- **Used in**: S13.5 Scoreboard (`SetTeamPicker`), right after a set ends, organizer only
+- **Notes**: "O que vem agora?" bottom sheet from the designer's file (DECISIONS #197): blurred, navy-dimmed backdrop (tap closes), navy sheet with handle, "SET N ENCERRADO", the set's score (winner's name in lime), "Próximo set" (lime) and "Finalizar partida" (outline on navy) as wide options with icon tile and chevron, "Continuar jogando" link that only closes it. Slides up on open; Android back closes it. An overlay, not a `Modal`. Mount it only while open.
 
 ### `CoverPicker`
 - **Path**: `src/components/domain/CoverPicker.tsx`
@@ -539,12 +610,24 @@ More UI primitives will live here:
 - **Path**: `src/components/domain/TeamRoster.tsx`
 - **Category**: domain
 - **Props**: `{ teamId: string; teamName?: string; players: PresencePlayer[]; colorIndex?: number; onPlayerPress?: (player: PresencePlayer) => void; testID?: string }` where `PresencePlayer = { id: string; name: string; avatarUrl?: string; status: PresenceStatus; position?: PlayerPosition }` (from `@/features/matches/types/matchDetail`)
-- **Used in**: S13 In-Game Teams (one card per team)
+- **Used in**: `TeamsSetup` (S13, Confirmados tab of S12; one card per team)
 - **Example**:
   ```tsx
   <TeamRoster teamId="team-1" teamName="Time 1" players={team.players} colorIndex={0} testID="team-roster-1" />
   ```
 - **Notes**: One team as a white card: a dot in the team's color (`getTeamBgColor(colorIndex)`), the name, the player count, and one row per player (`<Avatar size="sm" />`, name, position in `primary` mono text). Presentational: receives plain data via props, never fetches. S13 stacks one card per team (`gap-3`). With `onPlayerPress` each player row is a button (`roster-player-<id>`), which S13 uses to move the player to another team.
+
+### `TeamsSetup`
+- **Path**: `src/components/domain/TeamsSetup.tsx`
+- **Category**: domain
+- **Props**: `{ setup: TeamsSetup; testID?: string }` where `TeamsSetup` is what `useTeamsSetup(matchId, match, { enabled })` (`src/features/matches/lib/useTeamsSetup.ts`) returns
+- **Used in**: S12 Match detail, Confirmados tab, organizer of a match with fixed teams (DECISIONS #189)
+- **Example**:
+  ```tsx
+  const teamsSetup = useTeamsSetup(matchId, match, { enabled: buildsTeams });
+  {buildsTeams ? <TeamsSetup setup={teamsSetup} /> : null}
+  ```
+- **Notes**: The "Times" section under the presence grid. Before a draw: team count chips, players-per-team stepper, who fits or sits out, the draw mode cards and "Jogar sem times fixos" (disabled with the waiting label until the kickoff window). After it: one `TeamRoster` per team (tap a player to move them), who sat out, "Refazer sorteio" / "Manter os times". The "Sortear times" and "Começar partida" buttons are the screen's footer, driven by the same hook.
 
 <!--
 ### `PlayerAvatar`         — circular avatar with position-colored ring

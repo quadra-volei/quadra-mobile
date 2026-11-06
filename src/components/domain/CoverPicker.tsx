@@ -1,6 +1,6 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Pencil } from 'lucide-react-native';
+import { IconAdicionarFoto, IconEditar } from '@/components/icons/quadra';
 import { Pressable, Text, View } from 'react-native';
 
 import { HERO_GRADIENT, colors } from '@/theme/colors';
@@ -9,6 +9,8 @@ export type CoverPickerProps = {
   /** Local URI of the picked cover image; when absent the placeholder shows. */
   uri?: string;
   onPress: () => void;
+  /** What the picture is, for the empty state and screen readers (default: the match cover). */
+  subject?: { add: string; a11y: string };
   testID?: string;
 };
 
@@ -19,13 +21,13 @@ export type CoverPickerProps = {
  * alone, with a small pencil in the corner to change it. The consuming screen
  * runs `expo-image-picker` on press.
  */
-export function CoverPicker({ uri, onPress, testID }: CoverPickerProps) {
+export function CoverPicker({ uri, onPress, subject, testID }: CoverPickerProps) {
   return (
     <Pressable
       onPress={onPress}
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={uri ? "Trocar capa da partida" : "Adicionar capa da partida"}
+      accessibilityLabel={uri ? `Trocar ${subject?.a11y ?? "capa da partida"}` : `Adicionar ${subject?.a11y ?? "capa da partida"}`}
       className="h-40 overflow-hidden rounded-card"
     >
       {uri ? (
@@ -37,7 +39,7 @@ export function CoverPicker({ uri, onPress, testID }: CoverPickerProps) {
             testID={testID ? `${testID}-image` : undefined}
           />
           <View className="absolute right-3 bottom-3 h-9 w-9 items-center justify-center rounded-full bg-surface-dark/60">
-            <Pencil size={16} color={colors.textOnDark} />
+            <IconEditar size={16} color={colors.textOnDark} />
           </View>
         </>
       ) : (
@@ -53,9 +55,9 @@ export function CoverPicker({ uri, onPress, testID }: CoverPickerProps) {
           <View className="flex-1 items-center justify-center p-4">
             <View className="w-full flex-1 items-center justify-center rounded-card border border-dashed border-white/40">
               <View className="flex-row items-center gap-2">
-                <Pencil size={16} color={colors.textOnDark} />
+                <IconAdicionarFoto size={16} color={colors.textOnDark} />
                 <Text className="font-body-semibold text-body-bold text-text-on-dark">
-                  Adicionar capa
+                  {subject?.add ?? "Adicionar capa"}
                 </Text>
               </View>
             </View>

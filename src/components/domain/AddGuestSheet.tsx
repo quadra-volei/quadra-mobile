@@ -1,8 +1,8 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X } from 'lucide-react-native';
-import { useEffect } from 'react';
+import { IconFechar } from '@/components/icons/quadra';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
-import { KeyboardAvoidingView, Modal, Pressable, Text, View } from 'react-native';
+import { Keyboard, Modal, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PositionTag } from '@/components/domain/PositionPicker';
@@ -66,6 +66,20 @@ export function AddGuestSheet({
 
   const position = watch('position');
 
+  // The sheet sits on the keyboard while it is open and goes back down when it
+  // closes. KeyboardAvoidingView kept its padding after the keyboard closed
+  // (edge-to-edge Modal), leaving the sheet floating over an unveiled strip
+  // with the screen's buttons tappable under it (relatório 05/11).
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  useEffect(() => {
+    const show = Keyboard.addListener('keyboardDidShow', (event) => setKeyboardHeight(event.endCoordinates.height));
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardHeight(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
   return (
     <Modal
       visible={visible}
@@ -73,8 +87,6 @@ export function AddGuestSheet({
       animationType="slide"
       onRequestClose={onClose}
     >
-      {/* Keeps the name field and the button above the keyboard (edge-to-edge: no resize). */}
-      <KeyboardAvoidingView behavior="padding" className="flex-1">
       {/* Backdrop — tap to dismiss. */}
       <Pressable
         accessibilityRole="button"
@@ -87,10 +99,10 @@ export function AddGuestSheet({
           testID={testID}
           onPress={() => {}}
           className="rounded-t-card bg-bg-light px-4 pt-4"
-          style={{ paddingBottom: insets.bottom + 16 }}
+          style={{ paddingBottom: (keyboardHeight || insets.bottom) + 16 }}
         >
           <View className="flex-row items-center justify-between">
-            <Text className="font-display text-h2 text-text-primary uppercase">
+            <Text className="flex-1 font-display text-h2 text-text-primary uppercase" numberOfLines={2}>
               Adicionar convidado
             </Text>
             <Pressable
@@ -99,7 +111,7 @@ export function AddGuestSheet({
               onPress={onClose}
               className="h-9 w-9 items-center justify-center rounded-chip bg-white shadow-card"
             >
-              <X size={20} color={colors.surfaceDark} />
+              <IconFechar size={20} color={colors.surfaceDark} />
             </Pressable>
           </View>
 
@@ -160,7 +172,6 @@ export function AddGuestSheet({
           </View>
         </Pressable>
       </Pressable>
-      </KeyboardAvoidingView>
     </Modal>
   );
 }

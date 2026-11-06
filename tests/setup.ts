@@ -10,6 +10,12 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
+// AsyncStorage is native: the package's in-memory mock, for stores persisted
+// through it (theme, notification prefs, the tour's "seen" record).
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
+
 // expo-notifications is native (push): a quiet stand-in keeps screens that import it testable.
 jest.mock('expo-notifications', () => ({
   setNotificationHandler: jest.fn(),
@@ -49,3 +55,20 @@ jest.mock('@react-native-firebase/auth', () => ({
   getIdToken: jest.fn(),
   signOut: jest.fn(async () => undefined),
 }));
+
+// Icons are inert in tests: IconVoltar renders a View with testID "icon-voltar".
+jest.mock('@/components/icons/quadra', () => {
+  const ReactLocal = require('react');
+  const { View } = require('react-native');
+  return new Proxy(
+    { __esModule: true },
+    {
+      get: (target: Record<string | symbol, unknown>, name) => {
+        if (typeof name !== 'string' || !name.startsWith('Icon')) return target[name];
+        const id = name.slice(4).replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+        return (props: { testID?: string }) =>
+          ReactLocal.createElement(View, { ...props, testID: props.testID ?? `icon-${id}` });
+      },
+    },
+  );
+});

@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { ChevronLeft, X } from "lucide-react-native";
+import { IconFechar, IconVoltar } from '@/components/icons/quadra';
 import type { ReactNode } from "react";
 import { Text, View } from "react-native";
 
@@ -52,7 +52,7 @@ export function BackHeader({
           <View className="flex-row items-center gap-3">
             {right}
             <IconButton label="Fechar" onPress={() => router.back()}>
-              <X size={20} color={colors.surfaceDark} />
+              <IconFechar size={20} color={colors.surfaceDark} />
             </IconButton>
           </View>
         </View>
@@ -70,7 +70,7 @@ export function BackHeader({
             hitSlop={ICON_HIT_SLOP}
             onPress={() => router.back()}
           >
-            <ChevronLeft size={24} color={iconColor} />
+            <IconVoltar size={24} color={iconColor} />
           </PressableScale>
           <Text
             numberOfLines={1}

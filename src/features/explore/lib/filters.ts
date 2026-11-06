@@ -5,6 +5,14 @@ import type { MatchFormat, MatchLevel, NearbyMatch } from '@/features/matches/ty
  * (max 200, nearest first) once, and everything here filters that list on the
  * device, so the filter sheet can count results live without a request.
  */
+
+/**
+ * How far Explore looks when it opens, and the area its preview map frames
+ * (owner, 22/10/2026: 50 km of cards was too much to start with). The distance
+ * filter still goes up to the 50 km the API fetched.
+ */
+export const NEARBY_KM = 15;
+
 export type When = 'any' | 'today' | 'tomorrow' | 'weekend';
 export type Sort = 'near' | 'soon';
 
@@ -12,7 +20,7 @@ export type ExploreFilters = {
   query: string;
   sort: Sort;
   when: When;
-  /** null = no limit (the 50 km the API already caps). */
+  /** null = no limit (the 50 km the API already caps); NEARBY_KM by default. */
   maxKm: number | null;
   formats: MatchFormat[];
   levels: MatchLevel[];
@@ -25,7 +33,7 @@ export const DEFAULT_FILTERS: ExploreFilters = {
   query: '',
   sort: 'near',
   when: 'any',
-  maxKm: null,
+  maxKm: NEARBY_KM,
   formats: [],
   levels: [],
   maxPrice: null,
@@ -78,7 +86,7 @@ export function applyFilters(
 export function countActive(f: ExploreFilters): number {
   return (
     Number(f.when !== 'any') +
-    Number(f.maxKm != null) +
+    Number(f.maxKm !== DEFAULT_FILTERS.maxKm) +
     Number(f.formats.length > 0) +
     Number(f.levels.length > 0) +
     Number(f.maxPrice != null) +

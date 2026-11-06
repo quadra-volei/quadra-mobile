@@ -14,9 +14,37 @@ import React from 'react';
 
 // --- Native / module mocks ------------------------------------------------
 
-// The location gate (own test: LocationGate.test.tsx) -> passthrough.
-jest.mock('@/components/domain/LocationGate',() => ({
-  LocationGate: ({ children }: any) => children,
+// The location prompt (own test: LocationPrompt.test.tsx) -> nothing; a test
+// can make it say it is settled (nothing left to ask), which lets the tour open.
+let mockLocationSettled = false;
+// The opening ad (DECISIONS #200) has its own tests.
+jest.mock('@/components/domain/OpeningAd', () => ({ OpeningAd: () => null }));
+jest.mock('@/components/domain/LocationPrompt',() => ({
+  LocationPrompt: ({ onSettled }: { onSettled?: () => void }) => {
+    const ReactLocal = require('react');
+    ReactLocal.useEffect(() => {
+      if (mockLocationSettled) onSettled?.();
+    }, [onSettled]);
+    return null;
+  },
+}));
+
+// Which tab bar items mark themselves as tour targets (the real hook runs).
+const mockTargetIds = new Set<string>();
+jest.mock('@/features/tour/tourTargets', () => {
+  const actual = jest.requireActual('@/features/tour/tourTargets');
+  return {
+    ...actual,
+    useTourTarget: (id: string | undefined) => {
+      if (id) mockTargetIds.add(id);
+      return actual.useTourTarget(id);
+    },
+  };
+});
+
+// Recording how the tour ended goes to the API (own test: TourOverlay.test.tsx).
+jest.mock('@/features/tour/api/recordTour', () => ({
+  useRecordTour: () => ({ mutate: jest.fn() }),
 }));
 
 // Blur (native) -> plain Views.
@@ -27,13 +55,6 @@ jest.mock('expo-blur', () => {
     ReactLocal.createElement(View, { ...props, ref }),
   );
   return { BlurView: Plain, BlurTargetView: Plain };
-});
-
-// lucide "+" -> inert node.
-jest.mock('lucide-react-native', () => {
-  const { View } = require('react-native');
-  const ReactLocal = require('react');
-  return { Plus: (props: any) => ReactLocal.createElement(View, props) };
 });
 
 // safe-area insets -> zero (no provider under test).
@@ -56,7 +77,7 @@ jest.mock('@/components/icons/TabNetworkIcon', () => ({ TabNetworkIcon: tabIconS
 jest.mock('@/components/icons/TabProfileIcon', () => ({ TabProfileIcon: tabIconStub('profile') }));
 
 // Signed-in profile for the "Perfil" tab avatar; no photo by default.
-let mockProfile: { avatarUrl?: string; firstName: string } | undefined;
+let mockProfile: { avatarUrl?: string; firstName: string; tour?: { version: number } | null } | undefined;
 jest.mock('@/features/profile/api/getMyProfile', () => ({
   useMyProfile: () => ({ data: mockProfile }),
 }));
@@ -100,9 +121,12 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Keyboard } from 'react-native';
 
 import TabsLayout from '../../../../app/(tabs)/_layout';
+import { useTourStore } from '@/features/tour/tourStore';
 import { useAuthStore } from '@/stores/auth';
 
 beforeEach(() => {
+  mockLocationSettled = false;
+  useTourStore.setState({ phase: 'closed', seen: {} });
   useAuthStore.getState().setAuth({ userId: 'u1', accessToken: 'tok', hasProfile: true });
   mockProfile = undefined;
   mockPush.mockClear();
@@ -253,5 +277,50 @@ describe('S5 — Bottom tab bar', () => {
     expect(screen.getByTestId('tab-profile-avatar')).toBeTruthy();
     expect(screen.getByLabelText('Avatar de Ana')).toBeTruthy();
     expect(screen.queryByTestId('tab-icon-profile')).toBeNull();
+  });
+
+  describe('first-access tour (DECISIONS #190)', () => {
+    // Bug of 27/10: the tabs never passed their target, so steps 2–4 found nothing.
+    it('marks the "+" and the Explorar, Rede and Perfil tabs as tour targets', async () => {
+      mockTargetIds.clear();
+      await render(<TabsLayout />);
+
+      expect([...mockTargetIds].sort()).toEqual(['create', 'explore', 'network', 'profile']);
+    });
+
+    it('opens the welcome card once the location is settled, for an account that never saw it', async () => {
+      mockLocationSettled = true;
+      mockProfile = { firstName: 'Renan', tour: null };
+      await render(<TabsLayout />);
+
+      expect(await screen.findByTestId('tour-welcome')).toBeTruthy();
+    });
+
+    it('waits while the location card is up', async () => {
+      mockProfile = { firstName: 'Renan', tour: null };
+      await render(<TabsLayout />);
+
+      expect(screen.queryByTestId('tour-welcome')).toBeNull();
+      expect(useTourStore.getState().phase).toBe('closed');
+    });
+
+    it('stays closed when the account already finished or skipped this version', async () => {
+      mockLocationSettled = true;
+      mockProfile = { firstName: 'Renan', tour: { version: 1 } };
+      await render(<TabsLayout />);
+      await act(async () => {});
+
+      expect(screen.queryByTestId('tour-welcome')).toBeNull();
+    });
+
+    it('stays closed when this phone remembers it for the account', async () => {
+      mockLocationSettled = true;
+      mockProfile = { firstName: 'Renan', tour: null };
+      useTourStore.setState({ seen: { u1: 1 } });
+      await render(<TabsLayout />);
+      await act(async () => {});
+
+      expect(screen.queryByTestId('tour-welcome')).toBeNull();
+    });
   });
 });

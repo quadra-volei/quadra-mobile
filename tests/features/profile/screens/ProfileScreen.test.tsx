@@ -1,5 +1,5 @@
 jest.mock('@/components/domain/BellWithBadge', () => ({
-  BellWithBadge: () => require('react').createElement(require('react-native').View, { testID: 'icon-bell' }),
+  BellWithBadge: () => require('react').createElement(require('react-native').View, { testID: 'icon-notificacoes' }),
 }));
 /**
  * S8 — Profile screen tests.
@@ -15,7 +15,7 @@ jest.mock('@/components/domain/BellWithBadge', () => ({
  *    Vitória/Derrota colored success/danger, set score); tapping a row navigates
  *    to the S16 summary (/matches/[id]/summary) with its id. A "Ver tudo" button
  *    is present but inert (no full-history screen in MVP).
- *  - The dark "Ranking da temporada · amigos" card renders rows from
+ *  - The dark "Ranking da temporada · sua rede" card renders rows from
  *    useGroupRanking({ preview: true }) (position, avatar, name, subtitle, score);
  *    the current user's row is highlighted with "· você".
  *  - "Ver tudo" on the ranking section navigates to S9 (/profile/ranking).
@@ -28,7 +28,7 @@ jest.mock('@/components/domain/BellWithBadge', () => ({
  * The three read hooks are mocked at the hook boundary so the four query states
  * (pending / error / empty / populated) are controlled deterministically per
  * section, with no network and no MSW. Navigation is mocked via expo-router.
- * Native modules (gradient, safe-area, expo-image, lucide) are stubbed inline —
+ * Native modules (gradient, safe-area, expo-image) are stubbed inline —
  * the repo's tests/__mocks__ are NOT auto-applied. The auth store is a real
  * zustand store; tests set userId via setState to exercise the `isMe` highlight.
  *
@@ -41,7 +41,7 @@ import React from 'react';
 
 // --- Native / module mocks ------------------------------------------------
 
-// LinearGradient -> View that forwards props (dark "Ranking da temporada · amigos" card).
+// LinearGradient -> View that forwards props (dark "Ranking da temporada · sua rede" card).
 jest.mock('expo-linear-gradient', () => {
   const ReactLocal = require('react');
   const { View } = require('react-native');
@@ -72,22 +72,6 @@ jest.mock('expo-image', () => {
   const { View } = require('react-native');
   return {
     Image: (props: any) => ReactLocal.createElement(View, props),
-  };
-});
-
-// lucide icons -> inert nodes (header bell/sun/settings, row chevron/volleyball).
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    Bell: stub('bell'),
-    Sun: stub('sun'),
-    Settings: stub('settings'),
-    ChevronRight: stub('chevron-right'),
-    Volleyball: stub('volleyball'),
-    Star: stub('star'),
   };
 });
 
@@ -231,6 +215,13 @@ jest.mock('@/features/profile/api/getRecentMatches', () => ({
   }),
 }));
 
+// Season pass: none unless a test sets one.
+const mockPass: { data: unknown } = { data: null };
+jest.mock('@/features/pass/api/seasonPass', () => ({
+  ...jest.requireActual('@/features/pass/api/seasonPass'),
+  useSeasonPass: () => ({ data: mockPass.data, isPending: false, isError: false }),
+}));
+
 jest.mock('@/features/ranking/api/getGroupRanking', () => ({
   useGroupRanking: (params: unknown) => {
     mockRanking.lastParams = params;
@@ -247,6 +238,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { useAuthStore } from '@/stores/auth';
 
+import { seasonPassFixture } from '../../../support/seasonPass';
 import ProfileScreen from '../../../../app/(tabs)/profile';
 
 function resetProfile() {
@@ -273,6 +265,7 @@ function resetRanking() {
 
 beforeEach(() => {
   mockPush.mockClear();
+  mockPass.data = null;
   resetProfile();
   resetRecent();
   resetRanking();
@@ -306,7 +299,7 @@ describe('S8 — Profile screen', () => {
 
     // bell is an accessible button
     expect(screen.getByLabelText('Notificações')).toBeTruthy();
-    expect(screen.getByTestId('icon-bell')).toBeTruthy();
+    expect(screen.getByTestId('icon-notificacoes')).toBeTruthy();
     // theme toggle moved to Settings — not in the header.
     expect(screen.queryByLabelText('Alternar tema')).toBeNull();
     expect(screen.queryByTestId('icon-sun')).toBeNull();
@@ -343,8 +336,8 @@ describe('S8 — Profile screen', () => {
     expect(overall.props.className).toContain('font-num');
 
     // Level/XP bar
-    expect(screen.getByText('Level 15')).toBeTruthy();
-    expect(screen.getByText('XP: 2.450 / 5.000')).toBeTruthy();
+    expect(screen.getByText('Nível 15')).toBeTruthy();
+    expect(screen.getByText('2.450 / 5.000 XP')).toBeTruthy();
   });
 
   /**
@@ -460,14 +453,14 @@ describe('S8 — Profile screen', () => {
   // --------------------------------------------------- Ranking semanal section
   /**
    * Covers: S8 — Profile
-   * Criterion: "The dark 'Ranking da temporada · amigos' card renders ranking rows from
+   * Criterion: "The dark 'Ranking da temporada · sua rede' card renders ranking rows from
    *  useGroupRanking({ preview: true }) with position, avatar, name, subtitle,
    *  score; the current user's row is highlighted with '· você'."
    */
   it('renders the ranking preview rows with position, avatar, name, subtitle and score', async () => {
     await render(<ProfileScreen />);
 
-    expect(screen.getByText('Ranking da temporada · amigos')).toBeTruthy();
+    expect(screen.getByText('Ranking da temporada · sua rede')).toBeTruthy();
 
     // the hook was asked for the preview list
     expect(mockRanking.lastParams).toEqual({ preview: true });
@@ -489,7 +482,7 @@ describe('S8 — Profile screen', () => {
 
   /**
    * Covers: S8 — Profile (prototype parity)
-   * Criterion: the section is titled "Meus amigos" over the "Ranking da temporada · amigos"
+   * Criterion: the section is titled "Meus amigos" over the "Ranking da temporada · sua rede"
    *  card, and avatars (header + ranking rows) carry a tier-colored level badge.
    */
   it('renders the "Meus amigos" title and level badges on the avatars', async () => {
@@ -497,7 +490,10 @@ describe('S8 — Profile screen', () => {
 
     // Outer section title + inner card label.
     expect(screen.getByText('Meus amigos')).toBeTruthy();
-    expect(screen.getByText('Ranking da temporada · amigos')).toBeTruthy();
+    expect(screen.getByText('Ranking da temporada · sua rede')).toBeTruthy();
+    // The ranking comes before the match history (DECISIONS #186).
+    const tree = JSON.stringify(screen.toJSON());
+    expect(tree.indexOf('Meus amigos')).toBeLessThan(tree.indexOf('MINHAS PARTIDAS'));
 
     // Header avatar (level 15) + the three ranking rows (20/18/12) each show a badge.
     expect(
@@ -728,6 +724,35 @@ describe('S8 — Profile screen', () => {
    *  three mocked queries (no location/camera/contacts) and renders no permission
    *  copy on mount.
    */
+  // ------------------------------------------------------------- season pass
+  it('keeps the season pass to one line in "Seu progresso" that opens it (DECISIONS #194)', async () => {
+    mockPass.data = seasonPassFixture(4);
+
+    await render(<ProfileScreen />);
+
+    expect(screen.getByText('Passe T1 · 4 de 12')).toBeTruthy();
+    expect(screen.queryByTestId('pass-card')).toBeNull();
+    await fireEvent.press(screen.getByTestId('profile-pass-line'));
+    expect(mockPush).toHaveBeenCalledWith('/profile/pass');
+  });
+
+  it('says how many pieces wait for a player without the paid track', async () => {
+    mockPass.data = seasonPassFixture(5, {
+      premium: false,
+      rewards: seasonPassFixture(5).rewards.map((r) => (r.track === 'Premium' ? { ...r, unlocked: false } : r)),
+    });
+
+    await render(<ProfileScreen />);
+
+    expect(screen.getByText('Passe T1 · 5 pedaços esperando')).toBeTruthy();
+  });
+
+  it('has no season pass line when no season is set up', async () => {
+    await render(<ProfileScreen />);
+
+    expect(screen.queryByTestId('profile-pass-line')).toBeNull();
+  });
+
   it('fires no permission prompt and makes zero network requests on mount', async () => {
     const fetchSpy = jest.spyOn(globalThis, 'fetch' as never);
 

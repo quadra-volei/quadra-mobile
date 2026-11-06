@@ -15,20 +15,6 @@ jest.mock('react-native-safe-area-context', () => {
   };
 });
 
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    ChevronLeft: stub('back'),
-    ArrowUp: stub('arrow-up'),
-    Check: stub('check'),
-    Star: stub('star'),
-    Volleyball: stub('volleyball'),
-  };
-});
-
 jest.mock('expo-linear-gradient', () => {
   const { View } = require('react-native');
   return { LinearGradient: View };

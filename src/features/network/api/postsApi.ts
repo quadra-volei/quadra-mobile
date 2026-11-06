@@ -187,16 +187,21 @@ export function useInvitableMatches() {
  */
 export function useShareMatch() {
   const queryClient = useQueryClient();
-  return useMutation<Post, Error, string>({
+  return useMutation<{ alreadyShared: boolean }, Error, string>({
     mutationFn: async (matchId) => {
       try {
-        return await authorizedApiClient<Post>('/api/v1/posts', {
+        await authorizedApiClient<Post>('/api/v1/posts', {
           method: 'POST',
           body: JSON.stringify({ matchId }),
         });
+        return { alreadyShared: false };
       } catch (error) {
+        // A match goes to the Rede once (API DECISIONS #100): 409 means it is already there.
+        if (error instanceof ApiError && error.status === 409) {
+          return { alreadyShared: true };
+        }
         if (error instanceof ApiError && error.status === 422) {
-          throw new Error('Só dá para compartilhar uma partida aberta que ainda não começou.');
+          throw new Error('Só partidas abertas, não canceladas e que ainda não começaram vão para a Rede.');
         }
         if (error instanceof ApiError && error.status === 429) {
           throw new Error('Você já publicou muito hoje. Tente de novo amanhã.');

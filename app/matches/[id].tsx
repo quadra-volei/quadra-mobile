@@ -1,20 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient';
 import { router, useIsFocused, useLocalSearchParams } from 'expo-router';
-import {
-  Banknote,
-  Calendar,
-  Check,
-  ChevronLeft,
-  MapPin,
-  Megaphone,
-  Navigation,
-  Pencil,
-  Play,
-  Share2,
-  Trophy,
-  XCircle,
-  UserPlus,
-} from 'lucide-react-native';
+import { IconCancelarPartida, IconCompartilhar, IconConfirmar, IconData, IconDivulgar, IconEditar, IconIniciar, IconLocal, IconRanking, IconRota, IconSortearTimes, IconValor, IconVoltar } from '@/components/icons/quadra';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Linking, Pressable, RefreshControl, ScrollView, Share, Text, View } from 'react-native';
@@ -24,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddGuestSheet } from '@/components/domain/AddGuestSheet';
 import { PositionTag } from '@/components/domain/PositionPicker';
 import { PresenceGrid } from '@/components/domain/PresenceGrid';
+import { TeamsSetup } from '@/components/domain/TeamsSetup';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { CourtImage } from '@/components/ui/CourtImage';
@@ -31,7 +18,7 @@ import { dialog } from '@/components/ui/Dialog';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { TextField } from '@/components/ui/TextField';
 import { TabIndicator, TabLabel } from '@/components/ui/UnderlineTab';
-import { useAddGuest } from '@/features/matches/api/addGuest';
+import { useAddGuest, useRemoveFromMatch } from '@/features/matches/api/addGuest';
 import { useMatchDetail } from '@/features/matches/api/getMatchDetail';
 import { useShareMatch } from '@/features/network/api/postsApi';
 import { useCancelMatch } from '@/features/matches/api/editMatch';
@@ -39,6 +26,8 @@ import { useStartFreeGame } from '@/features/matches/api/liveGame';
 import { distanceKm } from '@/features/matches/lib/distanceKm';
 import { splitVenue } from '@/features/matches/lib/venueName';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
+import { kickoffWaitingLabel } from '@/features/matches/lib/kickoff';
+import { useTeamsSetup } from '@/features/matches/lib/useTeamsSetup';
 import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
 import { useDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
 import {
@@ -47,7 +36,8 @@ import {
   useJoinMatch,
 } from '@/features/matches/api/presence';
 import type { AddGuestInput } from '@/features/matches/schema/addGuest';
-import type { MatchDetail } from '@/features/matches/types/matchDetail';
+import { GENDER_LABEL, SURFACE_LABEL } from '@/features/matches/types/match';
+import type { MatchDetail, PresencePlayer } from '@/features/matches/types/matchDetail';
 import { usePullToRefresh, useRefreshOnFocus } from '@/hooks/useRefresh';
 import { inviteLink } from '@/lib/inviteLink';
 import { useAuthStore } from '@/stores/auth';
@@ -230,6 +220,7 @@ export default function MatchDetailScreen() {
   const declinePresence = useDeclinePresence(matchId);
   const joinMatch = useJoinMatch(matchId);
   const addGuest = useAddGuest(matchId);
+  const removePlayer = useRemoveFromMatch(matchId);
   const shareMatch = useShareMatch();
   const cancelMatch = useCancelMatch(matchId);
   const startFreeGame = useStartFreeGame(matchId);
@@ -242,6 +233,18 @@ export default function MatchDetailScreen() {
 
   // The screen opens on the match itself; who is going sits one tap away.
   const [tab, setTab] = useState<'details' | 'players'>('details');
+
+  // The organizer of a match with fixed teams draws them on the Confirmados
+  // tab, any time before the game; only the start waits for its window.
+  const loaded = matchQuery.data;
+  const buildsTeams = Boolean(
+    loaded &&
+      loaded.organizerId === userId &&
+      !loaded.freeTeams &&
+      !loaded.game &&
+      !loaded.cancelled,
+  );
+  const teamsSetup = useTeamsSetup(matchId, loaded, { enabled: buildsTeams });
 
   if (matchQuery.isPending) {
     return <MatchDetailSkeleton />;
@@ -271,12 +274,49 @@ export default function MatchDetailScreen() {
     });
   };
 
+  // Only an open match still to come goes to the Rede (the API refuses the rest).
+  const canShareToFeed = isOrganizer && !match.isPrivate && !match.cancelled && !match.game;
   const onShareToFeed = () => {
     shareMatch.mutate(match.id, {
-      onSuccess: () =>
-        dialog.alert('Partida compartilhada', 'Ela já aparece na Rede com o botão Participar.'),
+      onSuccess: ({ alreadyShared }) =>
+        alreadyShared
+          ? dialog.alert('Essa partida já está na Rede', 'Ela aparece uma vez só, com o botão Participar.')
+          : dialog.alert('Partida compartilhada', 'Ela já aparece na Rede com o botão Participar.'),
       onError: (error) => dialog.alert('Não deu para compartilhar', error.message),
     });
+  };
+
+  // The organizer takes someone off the list until the game starts (the API checks it too).
+  const canRemove = isOrganizer && !match.cancelled && !match.game;
+  const openProfile = (player: PresencePlayer) =>
+    player.id === userId
+      ? router.push('/(tabs)/profile')
+      : router.push({ pathname: '/players/[id]', params: { id: player.id } });
+  const onPressPlayer = (player: PresencePlayer) => {
+    if (!canRemove || player.id === match.organizerId) {
+      if (!player.isGuest) openProfile(player);
+      return;
+    }
+    dialog.alert(player.handle ? `@${player.handle}` : player.name, undefined, [
+      ...(player.isGuest ? [] : [{ text: 'Ver perfil', onPress: () => openProfile(player) }]),
+      {
+        text: 'Remover da partida',
+        style: 'destructive' as const,
+        onPress: () =>
+          dialog.alert(`Remover ${player.name} da partida?`, 'A vaga fica livre e o primeiro da lista de espera entra.', [
+            { text: 'Voltar', style: 'cancel' },
+            {
+              text: 'Remover',
+              style: 'destructive',
+              onPress: () =>
+                removePlayer.mutate(player, {
+                  onError: (error) => dialog.alert('Não deu para remover', error.message),
+                }),
+            },
+          ]),
+      },
+      { text: 'Cancelar', style: 'cancel' as const },
+    ]);
   };
 
   const onCancelMatch = () => {
@@ -305,9 +345,6 @@ export default function MatchDetailScreen() {
     });
   };
 
-  const goToTeams = () => {
-    router.push({ pathname: '/matches/[id]/teams', params: { id: match.id } });
-  };
   // No fixed teams: nothing to build, the organizer starts it from here.
   const startFree = () =>
     startFreeGame.mutate(undefined, {
@@ -382,7 +419,6 @@ export default function MatchDetailScreen() {
           imageUri={match.coverUrl}
           height={HERO_HEIGHT}
           radius={0}
-          label="FOTO DA QUADRA"
         >
           {/* Scrim: keeps the actions (top) and the title block (bottom) legible
               over any tint. */}
@@ -397,14 +433,14 @@ export default function MatchDetailScreen() {
             style={{ top: Math.max(insets.top, 12) }}
           >
             <HeroAction label="Voltar" onPress={() => router.back()}>
-              <ChevronLeft size={24} color={colors.textOnDark} />
+              <IconVoltar size={24} color={colors.textOnDark} />
             </HeroAction>
             <HeroAction
               label="Compartilhar partida"
               onPress={onShare}
               testID="hero-share"
             >
-              <Share2 size={24} color={colors.textOnDark} />
+              <IconCompartilhar size={24} color={colors.textOnDark} />
             </HeroAction>
           </View>
 
@@ -417,12 +453,19 @@ export default function MatchDetailScreen() {
               </View>
             ) : null}
 
-            <View className="flex-row gap-2">
+            <View className="flex-row flex-wrap gap-2">
               <View className="rounded-pill bg-white/90 px-3 py-1">
                 <Text className="font-mono text-mono text-text-primary uppercase">
                   {match.format}
                 </Text>
               </View>
+              {[match.surface ? SURFACE_LABEL[match.surface] : null, match.gender ? GENDER_LABEL[match.gender] : null]
+                .filter((label): label is string => label !== null)
+                .map((label) => (
+                  <View key={label} className="rounded-pill bg-white/90 px-3 py-1" testID="match-kind-badge">
+                    <Text className="font-mono text-mono text-text-primary uppercase">{label}</Text>
+                  </View>
+                ))}
               {match.freeTeams ? (
                 <View className="rounded-pill bg-white/90 px-3 py-1" testID="free-teams-badge">
                   <Text className="font-mono text-mono text-text-primary uppercase">Sem times fixos</Text>
@@ -479,7 +522,7 @@ export default function MatchDetailScreen() {
           className="px-5 pb-5 pt-3"
         >
           {/* ── Essentials: when, where, price, who organizes ── */}
-          <InfoRow icon={<Calendar size={22} color={colors.primary} />}>
+          <InfoRow icon={<IconData size={22} color={colors.primary} />}>
             <Text className="font-body-semibold text-body-bold text-text-primary">
               {formatWhen(match.startsAt)}
             </Text>
@@ -492,7 +535,7 @@ export default function MatchDetailScreen() {
           </InfoRow>
 
           <InfoRow
-            icon={<MapPin size={22} color={colors.primary} />}
+            icon={<IconLocal size={22} color={colors.primary} />}
             trailing={
               <PressableScale
                 onPress={() =>
@@ -508,7 +551,7 @@ export default function MatchDetailScreen() {
                 testID="match-directions"
                 className="flex-row items-center gap-2 overflow-hidden rounded-pill bg-bg-light px-3 py-2"
               >
-                <Navigation size={15} color={colors.primary} />
+                <IconRota size={15} color={colors.primary} />
                 <Text className="font-body-semibold text-body-bold text-primary">
                   Como chegar
                 </Text>
@@ -530,7 +573,7 @@ export default function MatchDetailScreen() {
             </Text>
           </InfoRow>
 
-          <InfoRow icon={<Banknote size={22} color={colors.primary} />}>
+          <InfoRow icon={<IconValor size={22} color={colors.primary} />}>
             {/* Drop-in price first; a recurring match adds the regulars' price. */}
             <Text className="font-body-semibold text-body-bold text-text-primary">
               <Text
@@ -548,9 +591,11 @@ export default function MatchDetailScreen() {
               ) : null}
               {isRecurring ? ' recorrente' : ''}
             </Text>
-            <Text className="font-body text-caption text-text-muted">
-              Valor combinado direto com o organizador da partida.
-            </Text>
+            {match.priceLabel === 'Grátis' && !isRecurring ? null : (
+              <Text className="font-body text-caption text-text-muted">
+                Valor combinado direto com o organizador da partida.
+              </Text>
+            )}
           </InfoRow>
 
           <InfoRow
@@ -575,13 +620,13 @@ export default function MatchDetailScreen() {
           </InfoRow>
 
           {/* The match only reaches the Rede feed when its organizer says so. */}
-          {isOrganizer ? (
+          {canShareToFeed ? (
             <View className="mt-5">
               <Button
                 variant="outline"
                 onPress={onShareToFeed}
                 loading={shareMatch.isPending}
-                leftIcon={<Megaphone size={18} color={colors.surfaceDark} />}
+                leftIcon={<IconDivulgar size={18} color={colors.surfaceDark} />}
                 testID="share-to-feed"
               >
                 Compartilhar na Rede
@@ -600,7 +645,7 @@ export default function MatchDetailScreen() {
                     params: { scope: 'group', groupId: match.id },
                   })
                 }
-                leftIcon={<Trophy size={18} color={colors.surfaceDark} />}
+                leftIcon={<IconRanking size={18} color={colors.surfaceDark} />}
                 testID="group-ranking"
               >
                 Ranking do grupo
@@ -617,7 +662,7 @@ export default function MatchDetailScreen() {
                   onPress={() =>
                     router.push({ pathname: '/matches/[id]/edit', params: { id: match.id } })
                   }
-                  leftIcon={<Pencil size={18} color={colors.surfaceDark} />}
+                  leftIcon={<IconEditar size={18} color={colors.surfaceDark} />}
                   testID="edit-match"
                 >
                   Editar
@@ -628,7 +673,7 @@ export default function MatchDetailScreen() {
                   variant="outline"
                   onPress={onCancelMatch}
                   loading={cancelMatch.isPending}
-                  leftIcon={<XCircle size={18} color={colors.surfaceDark} />}
+                  leftIcon={<IconCancelarPartida size={18} color={colors.surfaceDark} />}
                   testID="cancel-match"
                 >
                   Cancelar
@@ -643,42 +688,26 @@ export default function MatchDetailScreen() {
           entering={FadeIn.duration(MOTION.fadeIn)}
           className="px-5 pb-5 pt-4"
         >
-          {/* ── Who is going; the organizer invites and fills open slots ── */}
-          <View className="mb-5 flex-row items-center gap-3">
-            <View className="flex-1">
-              <Text
-                className="font-body-semibold text-body-bold text-text-primary"
-                testID="open-slots"
-              >
-                {openSlots === 0
-                  ? 'Sem vagas abertas'
-                  : openSlots === 1
-                    ? '1 vaga aberta'
-                    : `${openSlots} vagas abertas`}
-              </Text>
-            </View>
-            {isOrganizer ? (
-              <Button
-                variant="outline"
-                onPress={onShare}
-                leftIcon={<UserPlus size={18} color={colors.surfaceDark} />}
-                testID="invite"
-              >
-                Convidar
-              </Button>
-            ) : null}
-          </View>
+          {/* ── Who is going (inviting is the share icon on the cover) ── */}
+          <Text
+            className="mb-5 font-body-semibold text-body-bold text-text-primary"
+            testID="open-slots"
+          >
+            {openSlots === 0
+              ? 'Sem vagas abertas'
+              : openSlots === 1
+                ? '1 vaga aberta'
+                : `${openSlots} vagas abertas`}
+          </Text>
           <PresenceGrid
             players={match.players}
             capacity={match.capacity}
-            onPressPlayer={(player) =>
-              player.id === userId
-                ? router.push('/(tabs)/profile')
-                : router.push({ pathname: '/players/[id]', params: { id: player.id } })
-            }
+            onPressPlayer={onPressPlayer}
+            guestsPressable={canRemove}
             onAddGuest={isOrganizer ? () => setGuestSheetOpen(true) : undefined}
             testID="presence-grid"
           />
+          {buildsTeams ? <TeamsSetup setup={teamsSetup} /> : null}
         </Animated.View>
         )}
       </ScrollView>
@@ -717,18 +746,43 @@ export default function MatchDetailScreen() {
           </>
         ) : isOrganizer ? (
           <>
-            {/* Building teams works off the confirmed list, so it only shows on
-                that tab; the presence toggle below stays on every tab. A match
-                without fixed teams starts right away instead. */}
-            {match.freeTeams ? (
+            {/* The one next step: draw the teams (on the Confirmados tab, where
+                they are built), then start. The game only starts from 15 minutes
+                before the match time, so until then the button says when. The
+                presence toggle below stays on every tab. */}
+            {!teamsSetup.kickoffOpen && (match.freeTeams || !teamsSetup.configuring) ? (
+              <Button variant="primary" onPress={() => {}} disabled testID="kickoff-waiting">
+                {kickoffWaitingLabel(match.startsAt)}
+              </Button>
+            ) : match.freeTeams ? (
               <Button variant="grad" onPress={startFree} loading={startFreeGame.isPending} testID="start-free-match">
                 Começar partida
               </Button>
+            ) : !teamsSetup.configuring ? (
+              <Button
+                variant="grad"
+                onPress={teamsSetup.handleStartMatch}
+                loading={teamsSetup.isStarting}
+                testID="start-match"
+              >
+                Começar partida
+              </Button>
             ) : tab === 'players' ? (
-              <Button variant="grad" onPress={goToTeams} testID="build-teams">
+              <Button
+                variant="grad"
+                onPress={teamsSetup.handleDraw}
+                loading={teamsSetup.drawing}
+                disabled={teamsSetup.tooFew || teamsSetup.loading}
+                leftIcon={<IconSortearTimes size={20} color={colors.surfaceDark} />}
+                testID="draw-teams"
+              >
+                Sortear times
+              </Button>
+            ) : (
+              <Button variant="grad" onPress={() => setTab('players')} testID="build-teams">
                 Montar os times
               </Button>
-            ) : null}
+            )}
             {/* Organizing is not playing: the organizer opts into the confirmed
                 grid (and back out of it) here, without losing the forward CTA
                 they need whether or not they play. */}
@@ -759,7 +813,7 @@ export default function MatchDetailScreen() {
               onPress={() => confirmPresence.mutate()}
               loading={confirmPresence.isPending}
               disabled={mutationBusy && !confirmPresence.isPending}
-              leftIcon={<Check size={18} color={colors.surfaceDark} />}
+              leftIcon={<IconConfirmar size={18} color={colors.surfaceDark} />}
               testID="confirm-presence"
             >
               Confirmar presença
@@ -784,7 +838,7 @@ export default function MatchDetailScreen() {
               variant="primary"
               onPress={() => {}}
               disabled
-              leftIcon={<Play size={18} color={colors.textOnDark} />}
+              leftIcon={<IconIniciar size={18} color={colors.textOnDark} />}
               testID="start-match"
             >
               Aguardando o início da partida

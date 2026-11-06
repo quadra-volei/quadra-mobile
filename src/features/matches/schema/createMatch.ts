@@ -98,6 +98,9 @@ export const createMatchSchema = z
     // Set when the location was picked from the address search; absent for free text.
     latitude: z.number().optional(),
     longitude: z.number().optional(),
+    // The picked Google place, and the arena the organizer confirmed there (API DECISIONS #92).
+    placeId: z.string().optional(),
+    arenaId: z.string().optional(),
     // ── Bloco 3 · tipo + agenda ──
     type: z.enum(MATCH_TYPES),
     // OneOff scheduling
@@ -124,6 +127,8 @@ export const createMatchSchema = z
     // ── Bloco 7 · privacidade ──
     privacy: z.enum(PRIVACY_MODES),
     inviteMode: z.enum(INVITE_MODES).optional(),
+    gender: z.enum(['Mixed', 'Male', 'Female']).optional(),
+    surface: z.enum(['Beach', 'Court']).optional(),
   })
   .superRefine((v, ctx) => {
     if (v.type === 'OneOff') {
@@ -155,13 +160,6 @@ export const createMatchSchema = z
           message: 'Informe a data de início',
         });
       }
-    }
-    if (v.privacy === 'private' && !v.inviteMode) {
-      ctx.addIssue({
-        path: ['inviteMode'],
-        code: z.ZodIssueCode.custom,
-        message: 'Escolha como convidar',
-      });
     }
   });
 

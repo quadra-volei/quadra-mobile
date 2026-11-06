@@ -18,30 +18,6 @@ import type { MatchSummary } from '@/features/matches/api/getMatchSummary';
 
 // --- Mocks ----------------------------------------------------------------
 
-// lucide icons -> plain Views tagged with a stable testID (icon-<name>).
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    ChevronLeft: stub('chevron-left'),
-    MapPin: stub('map-pin'),
-    Share2: stub('share2'),
-    Trophy: stub('trophy'),
-    User: stub('user'),
-    Flame: stub('flame'),
-    Target: stub('target'),
-    Goal: stub('goal'),
-    Lock: stub('lock'),
-    Zap: stub('zap'),
-    Handshake: stub('handshake'),
-    BarChart3: stub('bar-chart'),
-    Plus: stub('plus'),
-    Minus: stub('minus'),
-  };
-});
-
 // expo-router: spyable back / replace + injectable params.
 const mockBack = jest.fn();
 const mockReplace = jest.fn();
@@ -241,13 +217,13 @@ describe('S16 — Match Summary', () => {
 
     const back = screen.getByLabelText('Voltar');
     expect(back.props.accessibilityRole).toBe('button');
-    expect(screen.getByTestId('icon-chevron-left')).toBeTruthy();
+    expect(screen.getByTestId('icon-voltar')).toBeTruthy();
 
     expect(screen.getByText('Resumo da partida')).toBeTruthy();
 
     const share = screen.getByLabelText('Compartilhar resumo');
     expect(share.props.accessibilityRole).toBe('button');
-    expect(screen.getByTestId('icon-share2')).toBeTruthy();
+    expect(screen.getByTestId('icon-compartilhar')).toBeTruthy();
   });
 
   /**
@@ -310,7 +286,7 @@ describe('S16 — Match Summary', () => {
     await renderScreen();
     expect(screen.getByText('Arena Pinheiros')).toBeTruthy();
     expect(screen.getByText('10 jun 2026')).toBeTruthy();
-    expect(screen.getByTestId('icon-map-pin')).toBeTruthy();
+    expect(screen.getByTestId('icon-local')).toBeTruthy();
   });
 
   /**
@@ -349,7 +325,7 @@ describe('S16 — Match Summary', () => {
     await renderScreen();
 
     expect(screen.getByText('Mais votado')).toBeTruthy();
-    expect(screen.getAllByTestId('icon-trophy').length).toBeGreaterThan(0);
+    expect(screen.getAllByTestId('icon-trofeu').length).toBeGreaterThan(0);
 
     // lime-bordered highlight card
     expect(allByClassName('border-accent').length).toBeGreaterThan(0);
@@ -436,9 +412,13 @@ describe('S16 — Match Summary', () => {
     });
 
     expect(Share.share).toHaveBeenCalledTimes(1);
-    expect((Share.share as jest.Mock).mock.calls[0][0]).toEqual({
-      message: 'Vôlei de Quinta — Time 1 venceu: Time 1 3 × Time 2 1. MVP: Érica Moraes.',
-    });
+    // No file sharing in the test environment: the text goes alone, with each game and the MVP.
+    const { message } = (Share.share as jest.Mock).mock.calls[0][0] as { message: string };
+    expect(message).toContain('Vôlei de Quinta');
+    expect(message).toContain('Time 1 venceu: Time 1 3 × Time 2 1');
+    expect(message).toContain('Jogo 2: 2 25–23');
+    expect(message).toContain('MVP: Érica Moraes (5 de 10 votos)');
+    expect(message).toContain('https://quadra-volei.app');
   });
 
   /**
@@ -453,8 +433,8 @@ describe('S16 — Match Summary', () => {
     expect(screen.getByText('Meu desempenho')).toBeTruthy();
 
     // Points card
-    expect(screen.getByText('Pontos nesta partida')).toBeTruthy();
-    expect(textOf(screen.getByTestId('summary-xp'))).toBe('+24');
+    expect(screen.getByText('XP nesta partida')).toBeTruthy();
+    expect(textOf(screen.getByTestId('summary-xp'))).toBe('+24 XP');
 
     // The five actions (API DECISIONS #84), in the app's order
     for (const label of ['Cortadas', 'Blocks', 'Aces', 'Salvadas', 'Assistências']) {
@@ -483,25 +463,25 @@ describe('S16 — Match Summary', () => {
     await renderScreen();
 
     expect(screen.queryByText(/Confirmar estatísticas/i)).toBeNull();
-    expect(screen.queryByTestId('icon-plus')).toBeNull();
-    expect(screen.queryByTestId('icon-minus')).toBeNull();
+    expect(screen.queryByTestId('icon-adicionar')).toBeNull();
+    expect(screen.queryByTestId('icon-diminuir')).toBeNull();
   });
 
   /**
    * Covers: S16 — Match Summary
-   * Criterion: "'Voltar para o perfil' navigates to the Profile tab (S8) and
-   *  resets the match stack." (router.replace('/(tabs)/profile'))
+   * Criterion: "'Concluir' goes back to the Início tab and
+   *  resets the match stack." (router.replace('/(tabs)'))
    */
-  it('navigates to the Profile tab (replace) from the bottom CTA', async () => {
+  it('goes back home (replace) from the bottom CTA', async () => {
     await renderScreen();
 
-    const cta = screen.getByTestId('summary-back-to-profile');
+    const cta = screen.getByTestId('summary-done');
     expect(cta.props['data-variant']).toBe('grad');
     expect(cta.props.accessibilityRole).toBe('button');
 
     fireEvent.press(cta);
     expect(mockReplace).toHaveBeenCalledTimes(1);
-    expect(mockReplace).toHaveBeenCalledWith('/(tabs)/profile');
+    expect(mockReplace).toHaveBeenCalledWith('/(tabs)');
   });
 
   /**
@@ -526,7 +506,7 @@ describe('S16 — Match Summary', () => {
     expect(screen.getByText('Resumo da partida')).toBeTruthy();
     expect(screen.queryByText('Vôlei de Quinta')).toBeNull();
     expect(screen.queryByTestId('summary-standings')).toBeNull();
-    expect(screen.queryByTestId('summary-back-to-profile')).toBeNull();
+    expect(screen.queryByTestId('summary-done')).toBeNull();
   });
 
   /**

@@ -1,14 +1,6 @@
-import {
-  ArrowUp,
-  Check,
-  Share2,
-  ShieldCheck,
-  Shuffle,
-  Zap,
-} from "lucide-react-native";
+import { IconCentral, IconConfirmar, IconCoringa, IconLevantador, IconLibero, IconOposto, IconPonteiro } from '@/components/icons/quadra';
 import { Pressable, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
-import Svg, { Circle, Path } from "react-native-svg";
 
 import {
   POSITION_OPTIONS,
@@ -35,11 +27,12 @@ function Rise({
 }
 
 const POSITION_ICONS = {
-  LEV: Share2,
-  PON: ArrowUp,
-  OPO: Zap,
-  LIB: ShieldCheck,
-  COR: Shuffle,
+  LEV: IconLevantador,
+  PON: IconPonteiro,
+  OPO: IconOposto,
+  CEN: IconCentral,
+  LIB: IconLibero,
+  COR: IconCoringa,
 } as const;
 
 export function PositionIcon({
@@ -51,26 +44,8 @@ export function PositionIcon({
   size: number;
   color: string;
 }) {
-  if (code === "CEN") {
-    // Net with a ball over it: the prototype's own drawing, lucide has none.
-    return (
-      <Svg
-        width={size}
-        height={size}
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke={color}
-        strokeWidth={1.9}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <Path d="M4 7.5V20M20 7.5V20M4 9.5h16M4 14h16M8.5 9.5V14M12 9.5V14M15.5 9.5V14" />
-        <Circle cx={12} cy={7} r={2} />
-      </Svg>
-    );
-  }
   const Icon = POSITION_ICONS[code];
-  return <Icon size={size} color={color} strokeWidth={1.9} />;
+  return <Icon size={size} color={color} />;
 }
 
 /**
@@ -111,7 +86,7 @@ export function PositionTag({
       >
         <PositionIcon
           code={code}
-          size={14}
+          size={18}
           color={selected || onDark ? colors.textOnDark : colors.surfaceDark}
         />
       </View>
@@ -167,7 +142,7 @@ function PositionCard({
         >
           <PositionIcon
             code={option.code}
-            size={21}
+            size={32}
             color={selected ? colors.textOnDark : colors.surfaceDark}
           />
         </View>
@@ -181,7 +156,7 @@ function PositionCard({
             }`}
           >
             {selected ? (
-              <Check size={11} color={colors.surfaceDark} strokeWidth={3} />
+              <IconConfirmar size={11} color={colors.surfaceDark} />
             ) : null}
           </View>
         </View>
@@ -229,7 +204,7 @@ export function PositionGrid({
           <View className="h-8 w-8 items-center justify-center rounded-lg bg-accent">
             <PositionIcon
               code={chosen.code}
-              size={17}
+              size={24}
               color={colors.surfaceDark}
             />
           </View>

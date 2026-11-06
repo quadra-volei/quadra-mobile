@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as ImagePicker from 'expo-image-picker';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ChevronLeft } from 'lucide-react-native';
+import { IconVoltar } from '@/components/icons/quadra';
 import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
@@ -11,6 +11,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { CoverPicker } from '@/components/domain/CoverPicker';
 import { Button } from '@/components/ui/Button';
 import { dialog } from '@/components/ui/Dialog';
+import { confirmArenaAt } from '@/features/matches/lib/confirmArena';
 import { SkeletonBlock } from '@/components/ui/Skeleton';
 import { DateTimePickerField } from '@/components/ui/DateTimePickerField';
 import { FilterChip } from '@/components/ui/FilterChip';
@@ -28,7 +29,7 @@ import {
 import { useDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
 import { GAME_POINTS, MATCH_DURATIONS } from '@/features/matches/schema/createMatch';
 import { editMatchSchema, type EditMatchInput } from '@/features/matches/schema/editMatch';
-import type { MatchLevel } from '@/features/matches/types/match';
+import { GENDER_LABEL, SURFACE_LABEL, type MatchGender, type MatchLevel, type MatchSurface } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
 
 const FORMATS = ['2X2', '4X4', '6X6'] as const;
@@ -48,7 +49,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 /**
- * Organizer edit of a match (API `PUT /matches/{id}`). Type and privacy stay as created;
+ * Organizer edit of a match (API `PUT /matches/{id}`). The type stays as created;
  * the slots cannot go below the players already in.
  */
 export default function EditMatchScreen() {
@@ -120,6 +121,9 @@ function EditMatchForm({
   });
   const format = watch('format');
   const level = watch('level');
+  const privacy = watch('privacy');
+  const gender = watch('gender');
+  const surface = watch('surface');
   const duration = watch('duration');
   const gamePoints = watch('gamePoints');
   const freeTeams = watch('freeTeams');
@@ -139,10 +143,13 @@ function EditMatchForm({
     setPlacePicked(true);
     setLocation(label);
     setValue('location', label, { shouldValidate: true });
+    setValue('placeId', place.id);
+    setValue('arenaId', undefined);
     const coords = await resolvePlace(place, placeSession);
     if (coords) {
       setValue('latitude', coords.latitude, { shouldValidate: true });
       setValue('longitude', coords.longitude, { shouldValidate: true });
+      await confirmArenaAt(coords, place.id, (arenaId) => setValue('arenaId', arenaId));
     }
   };
 
@@ -183,7 +190,7 @@ function EditMatchForm({
             onPress={() => router.back()}
             className="h-10 w-10 items-center justify-center rounded-chip bg-white shadow-card"
           >
-            <ChevronLeft size={24} color={colors.surfaceDark} />
+            <IconVoltar size={24} color={colors.surfaceDark} />
           </Pressable>
           <Text className="font-display text-h1 text-text-primary uppercase">Editar partida</Text>
         </View>
@@ -232,6 +239,7 @@ function EditMatchForm({
             <SearchField
               value={location}
               placeholder="Buscar quadra ou endereço"
+              accessibilityLabel="Buscar quadra ou endereço"
               onChangeText={(t) => {
                 setLocation(t);
                 setValue('location', t);
@@ -376,6 +384,42 @@ function EditMatchForm({
                 />
               ))}
             </View>
+            <Text className="mt-4 mb-2 font-body-semibold text-caption text-text-muted">Onde é</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {(Object.keys(SURFACE_LABEL) as MatchSurface[]).map((s) => (
+                <FilterChip
+                  key={s}
+                  label={SURFACE_LABEL[s]}
+                  selected={surface === s}
+                  onPress={() => setValue('surface', s)}
+                  testID={`edit-surface-${s}`}
+                />
+              ))}
+            </View>
+            <Text className="mt-4 mb-2 font-body-semibold text-caption text-text-muted">Para quem</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {(Object.keys(GENDER_LABEL) as MatchGender[]).map((g) => (
+                <FilterChip
+                  key={g}
+                  label={GENDER_LABEL[g]}
+                  selected={gender === g}
+                  onPress={() => setValue('gender', g)}
+                  testID={`edit-gender-${g}`}
+                />
+              ))}
+            </View>
+          </Section>
+
+          <Section title="Privacidade">
+            <View className="flex-row flex-wrap gap-2">
+              <FilterChip label="Aberta" selected={privacy === 'open'} onPress={() => setValue('privacy', 'open')} testID="edit-privacy-open" />
+              <FilterChip label="Privada" selected={privacy === 'private'} onPress={() => setValue('privacy', 'private')} testID="edit-privacy-private" />
+            </View>
+            <Text className="mt-2 font-body text-caption text-text-muted">
+              {privacy === 'private'
+                ? 'Fora do mapa e da Rede. Entra quem tiver o link de convite (o ícone de compartilhar da partida).'
+                : 'Aparece no mapa e qualquer jogador pode entrar.'}
+            </Text>
           </Section>
 
           <Section title="Valor">

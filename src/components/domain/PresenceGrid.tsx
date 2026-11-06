@@ -1,4 +1,4 @@
-import { ChevronRight, UserPlus } from 'lucide-react-native';
+import { IconAdicionarJogador, IconAvancar } from '@/components/icons/quadra';
 import { Text, View } from 'react-native';
 
 import { PositionTag } from '@/components/domain/PositionPicker';
@@ -13,8 +13,10 @@ export type PresenceGridProps = {
   players: PresencePlayer[];
   /** Total slots; the bar shows how many of them are taken. */
   capacity: number;
-  /** Opens a player's profile; guests (no account) are never pressable. */
+  /** Opens a player's profile (or the organizer's actions); guests only with `guestsPressable`. */
   onPressPlayer?: (player: PresencePlayer) => void;
+  /** Guests (no account, no profile) are pressable too: the organizer can remove them. */
+  guestsPressable?: boolean;
   /**
    * When set and a slot is open, an "Adicionar convidado" action closes the
    * list (organizer on S12). Omit to show only the open slots.
@@ -41,6 +43,7 @@ export function PresenceGrid({
   players,
   capacity,
   onPressPlayer,
+  guestsPressable = false,
   onAddGuest,
   testID,
 }: PresenceGridProps) {
@@ -59,7 +62,7 @@ export function PresenceGrid({
 
       <View className="gap-2">
         {players.map((player) => {
-          const pressable = Boolean(onPressPlayer) && !player.isGuest;
+          const pressable = Boolean(onPressPlayer) && (guestsPressable || !player.isGuest);
           return (
             <PressableScale
               key={player.id}
@@ -83,7 +86,7 @@ export function PresenceGrid({
                 ) : null}
               </View>
               {player.position ? <PositionTag code={player.position} /> : null}
-              {pressable ? <ChevronRight size={18} color={colors.textMuted} /> : null}
+              {pressable ? <IconAvancar size={18} color={colors.textMuted} /> : null}
             </PressableScale>
           );
         })}
@@ -94,7 +97,7 @@ export function PresenceGrid({
           <Button
             variant="grad"
             onPress={onAddGuest}
-            leftIcon={<UserPlus size={18} color={colors.surfaceDark} />}
+            leftIcon={<IconAdicionarJogador size={18} color={colors.surfaceDark} />}
             testID={testID ? `${testID}-add-guest` : undefined}
           >
             Adicionar convidado

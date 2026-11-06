@@ -15,7 +15,7 @@
  *  - No bottom tab bar.
  *
  * The profile read + send hooks are mocked at the boundary; the Zod resolver runs
- * for real. Native modules (safe-area, expo-image, lucide, Button) are stubbed
+ * for real. Native modules (safe-area, expo-image, Button) are stubbed
  * inline — the repo's tests/__mocks__ are NOT auto-applied.
  */
 import React from 'react';
@@ -37,20 +37,6 @@ jest.mock('expo-image', () => {
   const { View } = require('react-native');
   return {
     Image: (props: any) => ReactLocal.createElement(View, props),
-  };
-});
-
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    ChevronLeft: stub('chevron-left'),
-    Flame: stub('flame'),
-    Zap: stub('zap'),
-    Heart: stub('heart'),
-    Share2: stub('share-2'),
   };
 });
 

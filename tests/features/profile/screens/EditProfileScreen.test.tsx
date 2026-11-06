@@ -18,7 +18,7 @@
  * The profile read + update hooks are mocked at the boundary; expo-image-picker is
  * mocked so the permission/pick branches are deterministic. The Zod resolver runs
  * for real (the validation criterion is the contract). Native modules (reanimated,
- * safe-area, expo-image, lucide, Button) are stubbed inline — the repo's
+ * safe-area, expo-image, Button) are stubbed inline — the repo's
  * tests/__mocks__ are NOT auto-applied. The TextField/DateField/PhoneInput/
  * FilterChip primitives render for real (queried by testID).
  */
@@ -59,24 +59,6 @@ jest.mock('expo-image', () => {
   const { View } = require('react-native');
   return {
     Image: (props: any) => ReactLocal.createElement(View, props),
-  };
-});
-
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    ChevronLeft: stub('chevron-left'),
-    Pencil: stub('pencil'),
-    Calendar: stub('calendar'),
-    Check: stub('check'),
-    Share2: stub('share'),
-    ArrowUp: stub('arrow-up'),
-    Zap: stub('zap'),
-    ShieldCheck: stub('shield'),
-    Shuffle: stub('shuffle'),
   };
 });
 

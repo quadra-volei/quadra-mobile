@@ -22,13 +22,14 @@ jest.mock('expo-secure-store', () =>
 
 import * as SecureStore from 'expo-secure-store';
 
-import { useDrawTeams } from '@/features/matches/api/drawTeams';
+import { matchTeamsQueryKey, useDrawTeams, useMatchTeams } from '@/features/matches/api/drawTeams';
 import type { ApiScoreboard, ApiTeam } from '@/features/matches/api/gameApi';
 import { SUMMARY_NOT_READY, useMatchSummary } from '@/features/matches/api/getMatchSummary';
 import {
   type LiveGameData,
   gameLabel,
   toLiveGame,
+  SCORE_REQUEST_TIMEOUT_MS,
   useAddPoint,
   useLiveGame,
   useStartSet,
@@ -276,6 +277,28 @@ describe('teams and live game', () => {
     expect(teams[1]?.players.map((member) => member.name)).toEqual(['Jogador', 'Zé']);
   });
 
+  it('keeps the drawn teams: the draw writes them where the match reads them', async () => {
+    serve({ 'POST /teams/draft': { status: 200, body: { teams: apiTeams } } });
+    const roster: PresencePlayer[] = [{ id: ME, name: 'Renan', status: 'CONFIRMADO' }];
+
+    await run(() => useDrawTeams(MATCH), {
+      players: roster,
+      request: { teamCount: 3, perTeam: 2, drawMode: 'AUTO' },
+    });
+
+    expect(client.getQueryData(matchTeamsQueryKey(MATCH))).toEqual(apiTeams);
+  });
+
+  it('reads the teams drawn earlier from the backend', async () => {
+    serve({ 'GET /teams': { status: 200, body: { teams: apiTeams } } });
+    const roster: PresencePlayer[] = [{ id: ME, name: 'Renan', status: 'CONFIRMADO' }];
+
+    const { result } = await renderHook(() => useMatchTeams(MATCH, roster), { wrapper });
+
+    await waitFor(() => expect(result.current.data).toHaveLength(3));
+    expect(result.current.data?.[0]?.players.map((member) => member.name)).toEqual(['Renan']);
+  });
+
   it.each([
     ['GameStarted', 'A partida já começou. Os times não podem mais mudar.'],
     ['ConfirmationsNotOpen', 'As confirmações ainda não abriram. Os times só podem ser montados depois que elas abrirem.'],
@@ -383,6 +406,47 @@ describe('teams and live game', () => {
     // The server refuses them: the screen goes back to what the server has.
     await act(async () => release());
     await waitFor(() => expect(result.current.game.data?.scores).toEqual([a, b]));
+  });
+
+  it('a point that never answers is given up, so the taps behind it still reach the server', async () => {
+    const after = scoreboard();
+    after.sets[0]!.teamAPoints = 4;
+    serve({
+      'GET /detail': { status: 200, body: apiDetail },
+      'GET /teams': { status: 200, body: { teams: apiTeams } },
+      'GET /scoreboard': { status: 200, body: scoreboard() },
+      'POST /scoreboard/sets/1/points': { status: 200, body: after },
+    });
+    const served = fetchMock.getMockImplementation()!;
+    let posts = 0;
+    fetchMock.mockImplementation(async (url: string, init: RequestInit) => {
+      if (init.method === 'POST' && ++posts === 1) {
+        return new Promise(() => {}); // the first point hangs forever
+      }
+      return served(url, init);
+    });
+    const { result } = await renderHook(
+      () => ({ game: useLiveGame(MATCH), addPoint: useAddPoint(MATCH) }),
+      { wrapper },
+    );
+    await waitFor(() => expect(result.current.game.isSuccess).toBe(true));
+
+    jest.useFakeTimers();
+    try {
+      await act(async () => {
+        result.current.addPoint.mutate({ setNumber: 1, teamId: 'team-a' });
+        result.current.addPoint.mutate({ setNumber: 1, teamId: 'team-a' });
+      });
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(SCORE_REQUEST_TIMEOUT_MS + 100);
+      });
+    } finally {
+      jest.useRealTimers();
+    }
+
+    await waitFor(() => expect(posts).toBe(2));
+    await waitFor(() => expect(result.current.addPoint.isPending).toBe(false));
+    await waitFor(() => expect(result.current.game.data?.scores).toEqual([4, 2]));
   });
 
   it('a point writes the scoreboard the server answers with into the cache', async () => {

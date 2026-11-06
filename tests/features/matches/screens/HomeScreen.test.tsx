@@ -1,5 +1,5 @@
 jest.mock('@/components/domain/BellWithBadge', () => ({
-  BellWithBadge: () => require('react').createElement(require('react-native').View, { testID: 'icon-bell' }),
+  BellWithBadge: () => require('react').createElement(require('react-native').View, { testID: 'icon-notificacoes' }),
 }));
 /**
  * S5 — Home screen tests.
@@ -8,7 +8,7 @@ jest.mock('@/components/domain/BellWithBadge', () => ({
  *  - Header shows "INÍCIO" + bell + theme toggle — NO avatar, NO greeting.
  *  - "SEU PRÓXIMO JOGO" shows one card: the soonest confirmed match (#98).
  *  - With nothing to show, only the header and the blue hero (#98).
- *  - "Ver todas" navigates to /explore.
+ *  - "Ver todas" navigates to /matches/upcoming.
  *  - "PRÓXIMAS PARTIDAS" renders a horizontal scroll of MatchCardCompact from
  *    useUpcomingMatches; tapping a card navigates to S12 with its id.
  *  - No "JOGOS PERTO DE VOCÊ" on Home (#104).
@@ -18,7 +18,7 @@ jest.mock('@/components/domain/BellWithBadge', () => ({
  * Both read hooks are mocked at the hook boundary so the four query states
  * (pending / error / empty / populated) are controlled deterministically per
  * section, with no network and no MSW. Navigation is mocked via expo-router.
- * Native modules (gradient, safe-area, expo-image, lucide) are stubbed inline —
+ * Native modules (gradient, safe-area, expo-image) are stubbed inline —
  * the repo's tests/__mocks__ are NOT auto-applied.
  *
  * The bottom tab bar is owned by app/(tabs)/_layout.tsx (not by this screen).
@@ -63,36 +63,23 @@ jest.mock('expo-image', () => {
   };
 });
 
-// lucide icons -> inert nodes (header bell/sun, card meta icons).
-jest.mock('lucide-react-native', () => {
-  const ReactLocal = require('react');
-  const { View } = require('react-native');
-  const stub = (name: string) => (props: any) =>
-    ReactLocal.createElement(View, { ...props, testID: `icon-${name}` });
-  return {
-    Bell: stub('bell'),
-    Settings: stub('settings'),
-    Sun: stub('sun'),
-    Clock: stub('clock'),
-    MapPin: stub('map-pin'),
-    Users: stub('users'),
-    Plus: stub('plus'),
-    Search: stub('search'),
-    Volleyball: stub('volleyball'),
-    ArrowUp: stub('arrow-up'),
-    Check: stub('check'),
-    Star: stub('star'),
-  };
-});
+// Season pass (DECISIONS #194): none unless a test sets one.
+const mockPass: { data: unknown } = { data: null };
+jest.mock('@/features/pass/api/seasonPass', () => ({
+  ...jest.requireActual('@/features/pass/api/seasonPass'),
+  useSeasonPass: () => ({ data: mockPass.data, isPending: false, isError: false }),
+}));
 
 // expo-router: spyable router.push + useFocusEffect (used by
 // useRegisterNavBlurTarget) delegated to a plain effect so the screen mounts.
 const mockPush = jest.fn();
+const mockNavigate = jest.fn();
 jest.mock('expo-router', () => {
   const ReactLocal = require('react');
   return {
     router: {
       push: (...args: any[]) => mockPush(...args),
+      navigate: (...args: any[]) => mockNavigate(...args),
     },
     useFocusEffect: (cb: () => void | (() => void)) =>
       ReactLocal.useEffect(() => cb(), [cb]),
@@ -205,6 +192,16 @@ jest.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({ refetchQueries: mockRefetchQueries }),
 }));
 
+// Ads (DECISIONS #200): none on the air unless a test puts one.
+const mockServedAd: { value: { data: unknown; isSuccess: boolean } } = { value: { data: null, isSuccess: false } };
+const mockRecordAdView = jest.fn(async () => undefined);
+jest.mock('@/features/ads/api/ads', () => ({
+  ...jest.requireActual('@/features/ads/api/ads'),
+  useServedAd: () => mockServedAd.value,
+  recordAdView: (...args: unknown[]) => mockRecordAdView(...(args as [])),
+}));
+jest.mock('@/features/matches/lib/useDeviceCoords', () => ({ useDeviceCoords: () => null }));
+
 jest.mock('@/features/matches/api/getUpcoming', () => ({
   useUpcomingMatches: () => ({
     data: mockUpcoming.data,
@@ -217,6 +214,7 @@ jest.mock('@/features/matches/api/getUpcoming', () => ({
 
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
+import { seasonPassFixture } from '../../../support/seasonPass';
 import HomeScreen from '../../../../app/(tabs)/index';
 
 function resetUpcoming() {
@@ -235,6 +233,39 @@ beforeEach(() => {
   mockActivity.refetch.mockClear();
   mockRefetchQueries.mockClear();
   resetUpcoming();
+  mockPass.data = null;
+});
+
+describe('S5 — Home, season pass (DECISIONS #194)', () => {
+  it('shows the pass under the next game and opens it', async () => {
+    mockPass.data = seasonPassFixture(4);
+
+    await render(<HomeScreen />);
+
+    expect(screen.getByText('SEU PASSE')).toBeTruthy();
+    expect(screen.getByText('4 de 12 pedaços')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('pass-card'));
+    expect(mockPush).toHaveBeenCalledWith('/profile/pass');
+  });
+
+  it('tells a player without the paid track how many pieces wait for them', async () => {
+    const free = seasonPassFixture(8);
+    mockPass.data = { ...free, premium: false, rewards: free.rewards.map((r) => (r.track === 'Premium' ? { ...r, unlocked: false } : r)) };
+
+    await render(<HomeScreen />);
+
+    expect(screen.getByText('0 de 12 pedaços')).toBeTruthy();
+    expect(screen.getByText('8 pedaços esperando por você')).toBeTruthy();
+  });
+
+  it('has no pass when no season is set up or the season is over', async () => {
+    await render(<HomeScreen />);
+    expect(screen.queryByText('SEU PASSE')).toBeNull();
+
+    mockPass.data = seasonPassFixture(12, { status: 'Ended' });
+    await render(<HomeScreen />);
+    expect(screen.queryByText('SEU PASSE')).toBeNull();
+  });
 });
 
 describe('S5 — Home screen', () => {
@@ -263,13 +294,13 @@ describe('S5 — Home screen', () => {
     // bell is an accessible button
     expect(screen.getByLabelText('Notificações')).toBeTruthy();
     // the bell icon renders
-    expect(screen.getByTestId('icon-bell')).toBeTruthy();
+    expect(screen.getByTestId('icon-notificacoes')).toBeTruthy();
     // theme toggle moved to Settings — not on Home
     expect(screen.queryByLabelText('Alternar tema')).toBeNull();
     expect(screen.queryByTestId('icon-sun')).toBeNull();
     // settings affordance is present in every screen header
     expect(screen.getByLabelText('Configurações')).toBeTruthy();
-    expect(screen.getByTestId('icon-settings')).toBeTruthy();
+    expect(screen.getByTestId('icon-configuracoes')).toBeTruthy();
 
     // NO greeting / avatar (that header is S8 Profile, not Home)
     expect(screen.queryByText(/olá/i)).toBeNull();
@@ -279,14 +310,14 @@ describe('S5 — Home screen', () => {
 
   /**
    * Covers: S5 — Home
-   * Criterion: "Tapping ... 'Ver todas' navigate to S6 (/explore)."
+   * Criterion: "Tapping ... 'Ver todas' navigate to the upcoming list (/matches/upcoming)."
    */
-  it('navigates to /explore from "Ver todas"', async () => {
+  it('navigates to the upcoming list from "Ver todas"', async () => {
     await render(<HomeScreen />);
 
     fireEvent.press(screen.getByText('Ver todas'));
 
-    expect(mockPush).toHaveBeenCalledWith('/explore');
+    expect(mockPush).toHaveBeenCalledWith('/matches/upcoming');
   });
 
   // ------------------------------------------------ PRÓXIMAS PARTIDAS section
@@ -359,6 +390,7 @@ describe('S5 — Home screen', () => {
    * Criterion: "no stories/feed/weather/ads render."
    */
   it('renders no stories, feed, weather, or ad elements', async () => {
+    mockServedAd.value = { data: null, isSuccess: false };
     await render(<HomeScreen />);
 
     expect(screen.queryByTestId('stories')).toBeNull();
@@ -368,6 +400,30 @@ describe('S5 — Home screen', () => {
     expect(screen.queryByText(/stories/i)).toBeNull();
     expect(screen.queryByText(/previs[ãa]o/i)).toBeNull();
     expect(screen.queryByText(/patrocinad/i)).toBeNull();
+  });
+
+  /** An ad on the air around the player shows marked as sponsored (DECISIONS #200). */
+  it('shows the ad on the air around the player, marked as sponsored', async () => {
+    mockServedAd.value = {
+      data: { id: 'ad-1', placement: 'Home', title: 'Arena Sol', body: null, photoUrl: null, linkKind: 'None', linkValue: null },
+      isSuccess: true,
+    };
+    await render(<HomeScreen />);
+
+    expect(screen.getByTestId('home-ad')).toBeTruthy();
+    expect(screen.getByText('Patrocinado')).toBeTruthy();
+    expect(mockRecordAdView).toHaveBeenCalledWith('ad-1', 'Impression');
+    mockServedAd.value = { data: null, isSuccess: false };
+  });
+
+  /** With no ad on the air, a quiet line invites to advertise. */
+  it('invites to advertise when no ad is on the air', async () => {
+    mockServedAd.value = { data: null, isSuccess: true };
+    await render(<HomeScreen />);
+
+    await fireEvent.press(screen.getByTestId('home-ad-placeholder'));
+    expect(mockPush).toHaveBeenCalledWith('/ads/new');
+    mockServedAd.value = { data: null, isSuccess: false };
   });
 
   /** The bell opens the notification settings (the closest existing screen). */
@@ -429,8 +485,11 @@ describe('S5 — Home screen', () => {
     expect(screen.queryByText('PRÓXIMAS PARTIDAS')).toBeNull();
     expect(screen.getByTestId('home-hero-art')).toBeTruthy();
     expect(screen.getByTestId('home-hero').props.style).toEqual(
-      expect.objectContaining({ aspectRatio: 4 / 5 }),
+      expect.arrayContaining([expect.objectContaining({ aspectRatio: 4 / 5 })]),
     );
+    // The hero leads to Explorar (relatório 05/11).
+    await fireEvent.press(screen.getByTestId('home-hero'));
+    expect(mockNavigate).toHaveBeenCalledWith('/(tabs)/explore');
     expect(screen.getByText('INÍCIO')).toBeTruthy();
   });
 

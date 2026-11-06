@@ -15,9 +15,16 @@ import React from 'react';
 
 // --- Native / module mocks ------------------------------------------------
 
-// The location gate (own test: LocationGate.test.tsx) -> passthrough.
-jest.mock('@/components/domain/LocationGate',() => ({
-  LocationGate: ({ children }: any) => children,
+// The location prompt (own test: LocationPrompt.test.tsx) -> nothing.
+// The opening ad (DECISIONS #200) has its own tests.
+jest.mock('@/components/domain/OpeningAd', () => ({ OpeningAd: () => null }));
+jest.mock('@/components/domain/LocationPrompt',() => ({
+  LocationPrompt: () => null,
+}));
+
+// Recording how the tour ended goes to the API (own test: TourOverlay.test.tsx).
+jest.mock('@/features/tour/api/recordTour', () => ({
+  useRecordTour: () => ({ mutate: jest.fn() }),
 }));
 
 // Blur (native) and the "+" icon -> plain Views.
@@ -29,12 +36,6 @@ jest.mock('expo-blur', () => {
   );
   return { BlurView: Plain, BlurTargetView: Plain };
 });
-jest.mock('lucide-react-native', () => {
-  const { View } = require('react-native');
-  const ReactLocal = require('react');
-  return { Plus: (props: any) => ReactLocal.createElement(View, props) };
-});
-
 // safe-area insets -> zero (no provider under test).
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
