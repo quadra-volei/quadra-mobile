@@ -32,8 +32,9 @@ import { useTourTarget } from '@/features/tour/tourTargets';
 import { takePendingLink } from '@/lib/pendingLink';
 import { useAuthStore } from '@/stores/auth';
 import { listenToPushTaps, registerForPush } from '@/lib/push/pushNotifications';
-import { colors, HARD_SHADOW } from '@/theme/colors';
+import { colors } from '@/theme/colors';
 import { MOTION } from '@/theme/motion';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 // "Perfil" shows the signed-in user's photo, Instagram-style: a small circle
 // that gets a primary ring when the tab is active. No photo (or still loading)
@@ -44,7 +45,7 @@ function ProfileTabIcon({ focused, size }: TabIconProps) {
   return (
     <View
       testID={focused ? 'tab-profile-avatar-active' : 'tab-profile-avatar'}
-      className={`h-8 w-8 items-center justify-center rounded-full border-2 ${focused ? 'border-primary' : 'border-transparent'}`}
+      className={`h-8 w-8 items-center justify-center rounded-full border-2 ${focused ? 'border-primary-fg' : 'border-transparent'}`}
     >
       <Avatar uri={data.avatarUrl} name={data.firstName} size="xs" />
     </View>
@@ -127,6 +128,7 @@ const CENTER_OPEN_DELAY_MS = 150;
 // bounce has shown — opening at once hid the bar before either could be seen
 // (owner's 4th review, item 10; DECISIONS #172).
 function CenterButton({ onPress }: { onPress: () => void }) {
+  const theme = useThemeColors();
   const tourRef = useTourTarget('create');
   const scale = useSharedValue(1);
   const bounce = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -140,7 +142,7 @@ function CenterButton({ onPress }: { onPress: () => void }) {
     <View ref={tourRef} collapsable={false}>
     <Animated.View
       // The shadow sits on this wrapper: the button itself clips (overflow-hidden).
-      style={[bounce, { borderRadius: CENTER_SIZE / 2 }, pressed ? HARD_SHADOW : null]}
+      style={[bounce, { borderRadius: CENTER_SIZE / 2 }, pressed ? theme.hardShadow : null]}
     >
       <Pressable
         onPressIn={() => setPressed(true)}
@@ -159,7 +161,7 @@ function CenterButton({ onPress }: { onPress: () => void }) {
         }}
         accessibilityRole="button"
         accessibilityLabel="Criar"
-        className="items-center justify-center rounded-full border-2 border-surface-dark bg-accent overflow-hidden"
+        className="items-center justify-center rounded-full border-2 border-edge bg-accent overflow-hidden"
         style={{ width: CENTER_SIZE, height: CENTER_SIZE }}
         testID="tab-create"
       >
@@ -203,6 +205,7 @@ export default function TabsLayout() {
 }
 
 function SignedInTabs() {
+  const theme = useThemeColors();
   const insets = useSafeAreaInsets();
   const [sheetOpen, setSheetOpen] = useState(false);
   const closeSheet = useCallback(() => setSheetOpen(false), []);
@@ -261,7 +264,7 @@ function SignedInTabs() {
       screenOptions={{
         headerShown: false,
         animation: 'fade',
-        sceneStyle: { backgroundColor: colors.bgLight },
+        sceneStyle: { backgroundColor: theme.bg },
       }}
       tabBar={({ state, navigation }) => {
         if (keyboardOpen) return null;
@@ -318,7 +321,7 @@ function SignedInTabs() {
                 behind it (DECISIONS #46). The four tabs share the width left
                 by the central slot. */}
             <View
-              className="flex-row items-center h-16 px-2 bg-white border border-line overflow-hidden"
+              className="flex-row items-center h-16 px-2 bg-card border border-line overflow-hidden"
               style={{ borderRadius: PILL_RADIUS }}
             >
               {TABS.slice(0, 2).map(renderTab)}

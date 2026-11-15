@@ -70,7 +70,7 @@ function TeamAdRow({ item }: { item: AdminAd }) {
     ]);
 
   return (
-    <View className="gap-2 rounded-card bg-white p-4 shadow-card" testID={`team-ad-${ad.id}`}>
+    <View className="gap-2 rounded-card bg-card p-4 shadow-card" testID={`team-ad-${ad.id}`}>
       <AdBanner ad={ad} preview />
       <Text className="font-body text-caption text-text-muted">
         {PHASE_LABELS[ad.phase]} · {placement} · {ad.radiusKm} km · {shortDate(ad.startsOn)} a {shortDate(lastDay(ad))} ·{' '}

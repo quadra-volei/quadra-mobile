@@ -26,6 +26,7 @@ import { ApiError } from '@/lib/api/client';
 import { useAuthStore } from '@/stores/auth';
 import { colors, withAlpha } from '@/theme/colors';
 import { ICON_HIT_SLOP } from '@/theme/layout';
+import { ForceLightTheme } from '@/components/ui/ForceLightTheme';
 
 /** The icon of each action's row, in the designer's style. */
 const ACTION_ICON: Record<PlayerActionKey, QuadraIcon> = {
@@ -49,7 +50,7 @@ const ACTION_ICON: Record<PlayerActionKey, QuadraIcon> = {
  * the match — "Confirmar estatísticas" then goes on to the MVP vote instead of
  * back.
  */
-export default function StatsScreen() {
+function StatsScreen() {
   const { id, flow } = useLocalSearchParams<{ id?: string; flow?: string }>();
   const matchId = id ?? '';
   const endFlow = flow === 'end';
@@ -387,5 +388,14 @@ function StatRow({
         </Pressable>
       ) : null}
     </View>
+  );
+}
+
+// Drawn on navy in both themes: keeps its light-theme colors (DECISIONS #203).
+export default function StatsScreenRoute() {
+  return (
+    <ForceLightTheme>
+      <StatsScreen />
+    </ForceLightTheme>
   );
 }

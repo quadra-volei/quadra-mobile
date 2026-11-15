@@ -36,6 +36,7 @@ import {
 } from '@/features/ads/schema/newAd';
 import { useDeviceLocation } from '@/features/matches/lib/useDeviceCoords';
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 /*
  * "Anunciar" (DECISIONS #200, API DECISIONS #102): where the ad shows, around the player's
@@ -74,6 +75,7 @@ function Audience({ offer }: { offer: AdOffer }) {
 }
 
 export default function NewAdScreen() {
+  const theme = useThemeColors();
   const [headerHeight, setHeaderHeight] = useState(0);
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const location = useDeviceLocation();
@@ -167,19 +169,19 @@ export default function NewAdScreen() {
                 accessibilityLabel={`${option.label}. ${option.caption}`}
                 onPress={() => setValue('placement', option.placement)}
                 testID={`ad-placement-${option.placement}`}
-                className="flex-row items-center rounded-card bg-white px-4 py-3"
+                className="flex-row items-center rounded-card bg-card px-4 py-3"
                 style={selected ? { backgroundColor: colors.primary } : { boxShadow: SHADOW_CARD }}
               >
                 <View className="flex-1">
-                  <Text className="font-body-extrabold text-h3" style={{ color: selected ? colors.textOnDark : colors.surfaceDark }}>
+                  <Text className="font-body-extrabold text-h3" style={{ color: selected ? colors.textOnDark : theme.ink }}>
                     {option.label}
                   </Text>
-                  <Text className="font-body text-caption" style={{ color: selected ? colors.textOnDark : colors.textMuted }}>
+                  <Text className="font-body text-caption" style={{ color: selected ? colors.textOnDark : theme.muted }}>
                     {option.caption}
                   </Text>
                 </View>
                 {price != null ? (
-                  <Text className="font-num text-body" style={{ color: selected ? colors.accent : colors.primary }}>
+                  <Text className="font-num text-body" style={{ color: selected ? colors.accent : theme.primaryFg }}>
                     {formatPrice(price)}/sem
                   </Text>
                 ) : null}
@@ -327,10 +329,10 @@ export default function NewAdScreen() {
           />
         </View>
 
-        <View className="mx-4 mt-6 rounded-card bg-white p-4" style={{ boxShadow: SHADOW_CARD }}>
+        <View className="mx-4 mt-6 rounded-card bg-card p-4" style={{ boxShadow: SHADOW_CARD }}>
           <View className="flex-row items-center justify-between">
             <Text className="font-body-extrabold text-h3 text-text-primary">Total</Text>
-            <Text className="font-num text-h2 text-primary" testID="ad-total">
+            <Text className="font-num text-h2 text-primary-fg" testID="ad-total">
               {total != null ? formatPrice(total) : '—'}
             </Text>
           </View>

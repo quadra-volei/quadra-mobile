@@ -15,6 +15,7 @@ import {
 } from '@/features/matches/schema/addGuest';
 import type { PlayerPosition } from '@/features/matches/types/matchDetail';
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 // Presentational label map (token-free copy) — mirrors S12's POSITION_LABEL.
 const POSITION_LABEL: Record<PlayerPosition, string> = {
@@ -50,6 +51,7 @@ export function AddGuestSheet({
   submitting = false,
   testID,
 }: AddGuestSheetProps) {
+  const theme = useThemeColors();
   const insets = useSafeAreaInsets();
   const { control, handleSubmit, watch, setValue, reset } =
     useForm<AddGuestInput>({
@@ -109,9 +111,9 @@ export function AddGuestSheet({
               accessibilityRole="button"
               accessibilityLabel="Fechar"
               onPress={onClose}
-              className="h-9 w-9 items-center justify-center rounded-chip bg-white shadow-card"
+              className="h-9 w-9 items-center justify-center rounded-chip bg-card shadow-card"
             >
-              <IconFechar size={20} color={colors.surfaceDark} />
+              <IconFechar size={20} color={theme.ink} />
             </Pressable>
           </View>
 

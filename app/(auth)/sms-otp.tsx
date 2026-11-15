@@ -145,13 +145,13 @@ export default function SmsOtpScreen() {
       {/* The login's background, still and without the logo, dimmed like the
           login sheet's backdrop: only the white card changes (DECISIONS #165). */}
       <AuthHero lockup={false} animate={false} />
-      <View pointerEvents="none" className="absolute inset-0 bg-surface-dark/60" />
+      <View pointerEvents="none" className="absolute inset-0 bg-navy/60" />
       <SafeAreaView className="absolute inset-x-0 top-0">
         <Pressable
           onPress={goBackToLogin}
           accessibilityRole="button"
           accessibilityLabel="Voltar"
-          className="ml-4 mt-2 h-10 w-10 rounded-full bg-surface-dark/40 items-center justify-center"
+          className="ml-4 mt-2 h-10 w-10 rounded-full bg-navy/40 items-center justify-center"
           testID="otp-back"
         >
           <IconVoltar size={24} color={colors.textOnDark} />
@@ -160,7 +160,7 @@ export default function SmsOtpScreen() {
 
       {/* white card pulled up over the strip */}
       <Animated.View
-        className="absolute inset-x-0 bottom-0 bg-white shadow-modal px-6 pt-6 pb-8"
+        className="absolute inset-x-0 bottom-0 bg-card shadow-modal px-6 pt-6 pb-8"
         style={[
           {
             minHeight: SHEET_MIN_HEIGHT,
@@ -198,7 +198,7 @@ export default function SmsOtpScreen() {
         {/* polite status for screen readers when the code is wrong */}
         {isError ? (
           <Text
-            className="font-body text-caption text-danger mt-2"
+            className="font-body text-caption text-danger-fg mt-2"
             accessibilityLiveRegion="polite"
           >
             {verifyOtp.error?.message ?? "Código inválido, tente novamente"}
@@ -206,7 +206,7 @@ export default function SmsOtpScreen() {
         ) : null}
         {resendOtp.isError ? (
           <Text
-            className="font-body text-caption text-danger mt-2"
+            className="font-body text-caption text-danger-fg mt-2"
             accessibilityLiveRegion="polite"
           >
             {resendOtp.error.message}

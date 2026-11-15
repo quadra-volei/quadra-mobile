@@ -2,6 +2,7 @@ import { IconBuscar, IconFechar } from '@/components/icons/quadra';
 import { Pressable, Text, TextInput, View } from 'react-native';
 
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 export type SearchFieldProps = {
   value: string;
@@ -35,6 +36,7 @@ export function SearchField({
   onPress,
   testID,
 }: SearchFieldProps) {
+  const theme = useThemeColors();
   const showClear = value.length > 0 && Boolean(onClear);
 
   if (onPress) {
@@ -44,9 +46,9 @@ export function SearchField({
         accessibilityRole="search"
         accessibilityLabel={accessibilityLabel}
         testID={testID}
-        className="h-12 px-4 rounded-pill bg-white shadow-card flex-row items-center"
+        className="h-12 px-4 rounded-pill bg-card shadow-card flex-row items-center"
       >
-        <IconBuscar size={20} color={colors.textMuted} />
+        <IconBuscar size={20} color={theme.muted} />
         <Text className="flex-1 ml-2 font-body text-body text-text-muted" numberOfLines={1}>
           {placeholder}
         </Text>
@@ -55,13 +57,13 @@ export function SearchField({
   }
 
   return (
-    <View className="h-12 px-4 rounded-pill bg-white shadow-card flex-row items-center">
-      <IconBuscar size={20} color={colors.textMuted} />
+    <View className="h-12 px-4 rounded-pill bg-card shadow-card flex-row items-center">
+      <IconBuscar size={20} color={theme.muted} />
       <TextInput
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={theme.muted}
         testID={testID}
         accessibilityLabel={accessibilityLabel}
         autoFocus={autoFocus}
@@ -77,7 +79,7 @@ export function SearchField({
           accessibilityLabel="Limpar busca"
           className="ml-2"
         >
-          <IconFechar size={18} color={colors.textMuted} />
+          <IconFechar size={18} color={theme.muted} />
         </Pressable>
       ) : null}
     </View>

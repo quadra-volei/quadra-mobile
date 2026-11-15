@@ -38,7 +38,7 @@ export function CoverPicker({ uri, onPress, subject, testID }: CoverPickerProps)
             contentFit="cover"
             testID={testID ? `${testID}-image` : undefined}
           />
-          <View className="absolute right-3 bottom-3 h-9 w-9 items-center justify-center rounded-full bg-surface-dark/60">
+          <View className="absolute right-3 bottom-3 h-9 w-9 items-center justify-center rounded-full bg-navy/60">
             <IconEditar size={16} color={colors.textOnDark} />
           </View>
         </>

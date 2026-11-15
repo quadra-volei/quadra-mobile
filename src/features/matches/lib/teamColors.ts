@@ -43,6 +43,6 @@ export function getTeamBgColor(teamIndex: number): TeamColorClass {
  * Text color that stays readable on top of `getTeamBgColor(teamIndex)`: lime is
  * a light color, so it takes navy text; the others take white.
  */
-export function getTeamTextOnColor(teamIndex: number): 'text-surface-dark' | 'text-text-on-dark' {
-  return getTeamBgColor(teamIndex) === 'bg-accent' ? 'text-surface-dark' : 'text-text-on-dark';
+export function getTeamTextOnColor(teamIndex: number): 'text-navy' | 'text-text-on-dark' {
+  return getTeamBgColor(teamIndex) === 'bg-accent' ? 'text-navy' : 'text-text-on-dark';
 }

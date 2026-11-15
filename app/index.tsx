@@ -15,6 +15,7 @@ import { QuadraLogo } from "@/components/icons/QuadraLogo";
 import { useRiseIn } from "@/hooks/useRiseIn";
 import { useAuthStore } from "@/stores/auth";
 import { colors } from "@/theme/colors";
+import { ForceLightTheme } from '@/components/ui/ForceLightTheme';
 
 /**
  * The native splash (app.json, `expo-splash-screen`) is the mark alone on blue, at the size
@@ -48,7 +49,7 @@ const MARK_SHADOW = {
   ],
 } as const;
 
-export default function Index() {
+function Index() {
   const [ready, setReady] = useState(false);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const hasProfile = useAuthStore((s) => s.hasProfile);
@@ -149,5 +150,14 @@ export default function Index() {
         <Animated.View className="h-full rounded-full bg-accent" style={fillStyle} />
       </Animated.View>
     </View>
+  );
+}
+
+// Drawn on navy in both themes: keeps its light-theme colors (DECISIONS #203).
+export default function IndexRoute() {
+  return (
+    <ForceLightTheme>
+      <Index />
+    </ForceLightTheme>
   );
 }

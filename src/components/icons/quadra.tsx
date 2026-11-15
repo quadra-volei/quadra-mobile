@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import Svg, { Circle, G, Path, Rect } from 'react-native-svg';
 
-import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 // Quadra's icon family, from the designer's SVGs (DECISIONS #198). Fixed stroke on a 32 grid, painted
 // with currentColor, so the only knobs are size and color.
@@ -13,13 +13,17 @@ export type QuadraIconProps = {
 
 export type QuadraIcon = (props: QuadraIconProps) => ReactNode;
 
+// Without a color an icon takes the theme's `ink` (navy in light, light in dark).
 const icon =
   (shapes: ReactNode): QuadraIcon =>
-  ({ size = 24, color = colors.surfaceDark, testID }) => (
-    <Svg testID={testID} width={size} height={size} viewBox="0 0 32 32" fill="none" color={color}>
-      {shapes}
-    </Svg>
-  );
+  function QuadraIconSvg({ size = 24, color, testID }) {
+    const { ink } = useThemeColors();
+    return (
+      <Svg testID={testID} width={size} height={size} viewBox="0 0 32 32" fill="none" color={color ?? ink}>
+        {shapes}
+      </Svg>
+    );
+  };
 
 export const IconAberta = icon(
   <G fill="none" stroke="currentColor" strokeWidth="2.7" strokeLinecap="round" strokeLinejoin="round"><Path d="M7 27V6H25V27M12 27V11L25 6" strokeWidth="2.8" /></G>,

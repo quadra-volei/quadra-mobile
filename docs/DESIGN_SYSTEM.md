@@ -28,22 +28,31 @@ The brand defines a **fixed priority order** for accent colors. When a UI needs 
 
 ### Surfaces
 
+The surfaces and copy change with the theme: see **Dark theme** below for the dark value of
+each one. The hex here is the light value.
+
 | Token | Hex | Use |
 | --- | --- | --- |
-| `bg-light` | `#EFF3FC` | Default screen background (light mode) |
-| `bg-light-alt` | `#E8EEF8` | Alternate light surface (subtle cards) |
-| `surface-dark` | `#0A0A3C` | Navy — dark cards, hero areas, ranking |
-| `surface-dark-alt` | `#111145` | Mid Navy — bottom nav, secondary dark surfaces |
-| `white` | `#FFFFFF` | Always available |
+| `bg-light` | `#EFF3FC` | Default screen background |
+| `bg-light-alt` | `#E8EEF8` | Alternate light surface (skeletons, input fills, pale selected fills) |
+| `card` | `#FFFFFF` | Cards, sheets, inputs, the tab bar (`bg-card`; never `bg-white` for a surface) |
+| `surface-dark` | `#0A0A3C` | Navy — hero panels, ranking, stats |
+| `surface-dark-alt` | `#111145` | Mid Navy — secondary dark surfaces |
+| `navy` | `#0A0A3C` | The brand navy as a **fixed** color: copy on lime/orange, veils (`bg-navy/60`), card art |
+| `white` | `#FFFFFF` | Fixed white: copy on blue/navy, chips on photos |
 
 ### Text
 
 | Token | Hex | Use |
 | --- | --- | --- |
-| `text-primary` | `#1A1A2E` | Main copy on light surfaces |
-| `text-on-dark` | `#FFFFFF` | Copy on dark surfaces |
+| `text-primary` | `#1A1A2E` | Main copy |
+| `text-on-dark` | `#FFFFFF` | Copy on dark surfaces (fixed) |
 | `text-muted` | `#62628A` | Secondary metadata (timestamps, captions, hex labels) |
-| `line` | `rgba(10,10,60,0.10)` | Hairline borders/dividers on light surfaces |
+| `ink` | `#0A0A3C` | Navy as foreground on cards: display titles, labels of white buttons |
+| `primary-fg` | `#1A1AFF` | Blue as text, link, icon or selected border (`bg-primary` stays the fill) |
+| `danger-fg` / `success-fg` | `#DC2626` / `#16A34A` | Red / green as text or icon |
+| `edge` | `#0A0A3C` | The 2px border of buttons and selection cards |
+| `line` | `rgba(10,10,60,0.10)` | Hairline borders/dividers |
 
 ### Semantic (system states — not part of the brand palette)
 
@@ -191,11 +200,11 @@ The Quadra style favors **generously rounded** elements — when in doubt, lean 
 | Token | Value | Use |
 | --- | --- | --- |
 | `shadow-card` | `0 2px 12px rgba(10,10,60,.06)` | Cards (subtle, blue-tinted) |
-| `HARD_SHADOW` | `3px 3px 0 0` navy (`surface-dark`), no blur | Buttons, round buttons and selection cards (see "Buttons") |
+| hard shadow | `3px 3px 0 0` navy (brand blue in dark), no blur: `useThemeColors().hardShadow` | Buttons, round buttons and selection cards (see "Buttons") |
 | `shadow-modal` | tuned per `tailwind.config.js` | Bottom sheets and modals |
 
 Implementation: NativeWind shadow utilities, tuned in `tailwind.config.js`. Don't write raw `boxShadow` strings.
-The one exception is `HARD_SHADOW` (`src/theme/colors.ts`), always applied as `style={HARD_SHADOW}`: a
+The one exception is the hard shadow (`useThemeColors().hardShadow`), always applied as `style={theme.hardShadow}`: a
 NativeWind shadow class becomes Android elevation, which is blurred and cannot be offset.
 
 ---
@@ -205,8 +214,8 @@ NativeWind shadow class becomes Android elevation, which is blurred and cannot b
 **The rule (DECISIONS #69): every button is a flat fill + a thick navy border + a hard shadow.**
 
 - **Fill**: one flat color. No gradient, ever.
-- **Border**: 2px, navy (`border-2 border-surface-dark`).
-- **Shadow**: `HARD_SHADOW`, navy, shifted down and to the right, no blur.
+- **Border**: 2px, navy (`border-2 border-edge`).
+- **Shadow**: `theme.hardShadow`, navy (blue in dark), shifted down and to the right, no blur.
 - **Label**: DM Sans 700 (`font-body-bold`), navy on lime/white, white on blue/red.
 - Corners `rounded-btn` (18px), tap height ~48px. Disabled: grey fill (`line`), muted label, border kept, no shadow (DECISIONS #86); the transparent variants fade to 50% opacity instead.
 
@@ -224,10 +233,10 @@ The same rule covers everything that is pressed like a button:
 - **Round buttons** (map recenter, stepper +/−): flat
   fill + 2px navy border; the hard shadow from 56px up (below that it only smudges).
 - **Icon buttons in a box** (`IconButton`: the bell, settings and "+" of the tab headers): 40px
-  white square, `rounded-chip`, 2px navy border + `HARD_SHADOW`, 20px icon. The back chevron of
+  white square, `rounded-chip`, 2px navy border + the hard shadow (`theme.hardShadow`), 20px icon. The back chevron of
   `BackHeader` stays a bare icon.
 - **Selection cards** (onboarding level / modality): the **selected** card takes the
-  2px navy border + `HARD_SHADOW` and a pale lime fill (`bg-accent/20`), with a lime check
+  2px navy border + the hard shadow (`theme.hardShadow`) and a pale lime fill (`bg-accent/20`), with a lime check
   circle; unselected cards stay plain white with `shadow-card`.
 - **Position cards** (onboarding step 1, DECISIONS #85): white, `rounded-btn`, 2px `line`
   border and a soft 4px hard shadow; the **selected** card takes a blue (`primary`) border and
@@ -312,10 +321,60 @@ For agents producing screen specs, the Quadra identity has these traits:
 
 ---
 
+## Dark theme
+
+Built on 15/11/2026 (DECISIONS #203). "Aparência" in Configurações picks **Claro**, **Escuro** or
+**Automático** (follows the phone). The dark theme is the brand's navy at night, not an inverted
+light theme: the blue and the lime stay exactly as they are, the background is a deep navy,
+surfaces rise by getting lighter (a shadow cannot be seen on navy), copy is a blue-tinted white
+and blue used as text is lifted to a periwinkle that reads on navy.
+
+**Where the values live.** `src/theme/palette.ts` (`PALETTES.light` / `PALETTES.dark`) is the
+source; `global.css` repeats them as CSS variables (`--color-*`, "R G B" channels so `/60`
+opacity still works) under `:root` and `@media (prefers-color-scheme: dark)`, and
+`tests/theme/palette.test.ts` fails if the two drift apart. `tailwind.config.js` reads the
+variables (`darkMode: 'class'`), so `bg-card`, `text-text-primary` etc. switch by themselves. A
+runtime prop (icon `color`, `trackColor`, an inline selected state, the hard shadow) takes
+`useThemeColors()` (`src/theme/useThemeColors.ts`); `colors` (`src/theme/colors.ts`) is only the
+brand and never changes.
+
+| Token | Light | Dark | Dark contrast |
+| --- | --- | --- | --- |
+| `bg-light` (background) | `#EFF3FC` | `#08081F` | — |
+| `card` | `#FFFFFF` | `#17174A` | 1.18:1 over the background (elevation) |
+| `bg-light-alt` | `#E8EEF8` | `#1F1F58` | — |
+| `surface-dark` (hero panels) | `#0A0A3C` | `#1C1C6E` | white copy 14.6:1, lime 9.1:1 |
+| `surface-dark-alt` | `#111145` | `#25257E` | — |
+| `text-primary` | `#1A1A2E` | `#EEF0FF` | 15.4:1 on card, 17.4:1 on background |
+| `text-muted` | `#62628A` | `#A3A5CC` | 7.0:1 on card, 8.3:1 on background |
+| `ink` | `#0A0A3C` | `#EEF0FF` | as `text-primary` |
+| `primary-fg` | `#1A1AFF` | `#9494FF` | 6.3:1 on card (the brand blue would be 2.3:1) |
+| `danger-fg` | `#DC2626` | `#F87171` | 6.3:1 on card |
+| `success-fg` | `#16A34A` | `#4ADE80` | 10.0:1 on card |
+| `edge` | `#0A0A3C` | `#03030F` | an ink outline around the bright fills |
+| hard shadow | navy | brand blue `#1A1AFF` | decorative; navy would vanish on navy |
+| `line` | navy 10% | white 12% | — |
+
+Rules:
+
+- A surface is `bg-card`, never `bg-white`; `white` / `text-white` is only for what stays white
+  (copy on blue or navy, chips over a photo).
+- Navy copy or icons on a card are `ink`; navy copy on lime or orange (the `grad` button, the
+  MVP badge, the "+") is `navy` / `colors.surfaceDark` and does not change.
+- Blue as text or icon is `primary-fg` / `theme.primaryFg`; blue as a fill (`bg-primary`, the
+  selected chip) stays `#1A1AFF` with white copy (7:1) in both themes.
+- Veils and scrims over content are `bg-navy/NN`, never `bg-surface-dark/NN` (the dark
+  `surface-dark` is lighter than the background and would lighten the screen).
+- The screens drawn on navy in both themes (live score, MVP vote, summary, stats, "Sua carta",
+  a player's card, the pass, the splash) wrap their content in `ForceLightTheme`: they keep
+  exactly the colors they were designed with.
+- The status bar icons are light everywhere in the dark theme. Maps use `MAP_STYLE_DARK`.
+
+---
+
 ## What is NOT yet specified
 
 These will be added when relevant. Until then, agents must ask:
 
-- Dark mode tokens (the app currently designs light-first)
 - Empty-state illustrations
 - Pull-to-refresh styling

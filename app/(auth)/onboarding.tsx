@@ -39,9 +39,9 @@ import { useAuthStore } from "@/stores/auth";
 import {
   colors,
   CTA_GRADIENT,
-  HARD_SHADOW,
   HERO_GRADIENT,
 } from "@/theme/colors";
+import { useThemeColors } from '@/theme/useThemeColors';
 
 // 0 = personal data (step 0, no progress bar), 1 = position, 2 = level,
 // 3 = modality, 4 = completion. Ephemeral UI — not separate routes.
@@ -305,7 +305,7 @@ function PersonalDataStep({
             onPress={onBack}
             accessibilityRole="button"
             accessibilityLabel="Voltar"
-            className="ml-4 mt-2 h-10 w-10 items-center justify-center rounded-full bg-surface-dark/40"
+            className="ml-4 mt-2 h-10 w-10 items-center justify-center rounded-full bg-navy/40"
             testID="onboarding-back"
           >
             <IconVoltar size={24} color={colors.textOnDark} />
@@ -314,7 +314,7 @@ function PersonalDataStep({
       </LinearGradient>
 
       <Animated.ScrollView
-        className="absolute inset-x-0 bottom-0 bg-white"
+        className="absolute inset-x-0 bottom-0 bg-card"
         style={[
           {
             // top-only radius (card token = 20px); bottom stays square against
@@ -404,13 +404,13 @@ function PersonalDataStep({
                 }
                 testID="onboarding-handle"
                 leftAdornment={
-                  <Text className="font-num text-body text-primary">@</Text>
+                  <Text className="font-num text-body text-primary-fg">@</Text>
                 }
                 rightSlot={
                   <View className="shrink-0 rounded-pill bg-accent px-3 py-1">
                     <Text
                       numberOfLines={1}
-                      className="font-mono text-mono text-text-primary uppercase"
+                      className="font-mono text-mono text-navy uppercase"
                     >
                       SEU @ NA QUADRA
                     </Text>
@@ -494,6 +494,7 @@ function WizardStep({
   onContinue,
   children,
 }: WizardStepProps) {
+  const theme = useThemeColors();
   const meta = STEP_META[step];
   return (
     <View className="flex-1 bg-bg-light">
@@ -517,7 +518,7 @@ function WizardStep({
         {/* Keyed by step so each step's content rises in again */}
         <Rise key={step} className="flex-1">
           <Text
-            className="mt-6 font-display text-display text-surface-dark uppercase"
+            className="mt-6 font-display text-display text-ink uppercase"
             numberOfLines={2}
             adjustsFontSizeToFit
           >
@@ -541,7 +542,7 @@ function WizardStep({
       {/* Pinned white footer CTA */}
       <SafeAreaView
         edges={["bottom"]}
-        className="border-t border-line bg-white px-6 pb-3 pt-4"
+        className="border-t border-line bg-card px-6 pb-3 pt-4"
       >
         <Button
           variant="grad"
@@ -550,7 +551,7 @@ function WizardStep({
           leftIcon={
             <IconAvancar
               size={20}
-              color={canContinue ? colors.surfaceDark : colors.textMuted}
+              color={canContinue ? colors.surfaceDark : theme.muted}
             />
           }
           testID="onboarding-continue"
@@ -571,6 +572,7 @@ function LevelList({
   value: Level | undefined;
   onChange: (v: Level) => void;
 }) {
+  const theme = useThemeColors();
   return (
     <View>
       {LEVEL_OPTIONS.map((option) => {
@@ -585,17 +587,17 @@ function LevelList({
             testID={`level-${option.code}`}
             className={`mt-3 flex-row items-center rounded-card border-2 p-4 shadow-card ${
               selected
-                ? "border-surface-dark bg-accent/20"
-                : "border-transparent bg-white"
+                ? "border-edge bg-accent/20"
+                : "border-transparent bg-card"
             }`}
-            style={selected ? HARD_SHADOW : undefined}
+            style={selected ? theme.hardShadow : undefined}
           >
             <View
               className={`h-12 w-12 items-center justify-center rounded-chip ${
                 selected ? "bg-accent" : "bg-bg-light-alt"
               }`}
             >
-              <IconNivel size={24} color={colors.primary} />
+              <IconNivel size={24} color={theme.primaryFg} />
             </View>
             <View className="ml-4 flex-1">
               <Text className="font-body-extrabold text-h3 text-text-primary">
@@ -607,7 +609,7 @@ function LevelList({
             </View>
             <View
               className={`h-6 w-6 items-center justify-center rounded-full border-2 ${
-                selected ? "border-surface-dark bg-accent" : "border-line"
+                selected ? "border-edge bg-accent" : "border-line"
               }`}
             >
               {selected ? (
@@ -630,6 +632,7 @@ function ModalityList({
   value: Modality | undefined;
   onChange: (v: Modality) => void;
 }) {
+  const theme = useThemeColors();
   return (
     <View>
       {MODALITY_OPTIONS.map((option) => {
@@ -642,8 +645,8 @@ function ModalityList({
             accessibilityLabel={option.name}
             accessibilityState={{ selected }}
             testID={`modality-${option.code}`}
-            className="mt-4 overflow-hidden rounded-card bg-white shadow-card"
-            style={selected ? HARD_SHADOW : undefined}
+            className="mt-4 overflow-hidden rounded-card bg-card shadow-card"
+            style={selected ? theme.hardShadow : undefined}
           >
             <LinearGradient
               colors={option.gradient}
@@ -669,7 +672,7 @@ function ModalityList({
             {selected ? (
               <View
                 pointerEvents="none"
-                className="absolute inset-0 rounded-card border-2 border-surface-dark"
+                className="absolute inset-0 rounded-card border-2 border-edge"
               />
             ) : null}
           </Pressable>
@@ -781,7 +784,7 @@ function CompletionStep({
 
           {error ? (
             <Text
-              className="mb-3 text-center font-body text-caption text-danger"
+              className="mb-3 text-center font-body text-caption text-danger-fg"
               accessibilityLiveRegion="polite"
             >
               {errorMessage || "Não foi possível criar seu perfil. Tente novamente."}

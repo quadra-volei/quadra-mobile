@@ -16,7 +16,8 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PressableScale } from '@/components/ui/PressableScale';
-import { HARD_SHADOW, colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
+
 
 export type CreateSheetProps = {
   onClose: () => void;
@@ -27,7 +28,7 @@ export type CreateSheetProps = {
 };
 
 const OPTION =
-  'h-14 justify-center rounded-btn border-2 border-surface-dark px-4';
+  'h-14 justify-center rounded-btn border-2 border-edge px-4';
 
 // The card grows out of the tab bar itself: it starts with the bar's frame
 // (same sides and bottom, 64 tall, 32 corners, a hairline border) and opens
@@ -55,6 +56,8 @@ export function CreateSheet({
   onCreatePost,
   blurTarget,
 }: CreateSheetProps) {
+  const theme = useThemeColors();
+  const { line, edge } = theme;
   const insets = useSafeAreaInsets();
   const reduceMotion = useReducedMotion();
   const open = useSharedValue(reduceMotion ? 1 : 0);
@@ -95,7 +98,7 @@ export function CreateSheet({
   const card = useAnimatedStyle(() => ({
     height: interpolate(open.value, [0, 1], [MORPH.barHeight, height.value || MORPH.barHeight]),
     borderRadius: interpolate(open.value, [0, 1], [MORPH.barRadius, 20]),
-    borderColor: interpolateColor(open.value, [0, 1], [colors.line, colors.surfaceDark]),
+    borderColor: interpolateColor(open.value, [0, 1], [line, edge]),
   }));
   const content = useAnimatedStyle(() => ({
     opacity: interpolate(open.value, [0.55, 1], [0, 1], Extrapolation.CLAMP),
@@ -121,14 +124,14 @@ export function CreateSheet({
         accessibilityRole="button"
         accessibilityLabel="Fechar"
         onPress={close}
-        className="bg-surface-dark/30"
+        className="bg-navy/30"
         style={StyleSheet.absoluteFill}
       />
       </Animated.View>
 
       <Animated.View
-        className="absolute left-4 right-4 overflow-hidden rounded-card border-2 border-surface-dark bg-white"
-        style={[{ ...HARD_SHADOW, bottom: insets.bottom + 12, justifyContent: 'flex-end' }, card]}
+        className="absolute left-4 right-4 overflow-hidden rounded-card border-2 border-edge bg-card"
+        style={[{ ...theme.hardShadow, bottom: insets.bottom + 12, justifyContent: 'flex-end' }, card]}
       >
         {/* Absolute, so its own height (measured once) never follows the card's. */}
         <Animated.View
@@ -136,7 +139,7 @@ export function CreateSheet({
           className="absolute bottom-0 left-0 right-0 px-6 pt-6 pb-4"
           onLayout={onContentLayout}
         >
-          <Text className="font-display text-h3 text-surface-dark uppercase">
+          <Text className="font-display text-h3 text-ink uppercase">
             O que você quer criar?
           </Text>
 
@@ -145,9 +148,9 @@ export function CreateSheet({
             accessibilityRole="button"
             accessibilityLabel="Criar partida"
             className={`${OPTION} mt-4 bg-accent`}
-            style={HARD_SHADOW}
+            style={theme.hardShadow}
           >
-            <Text className="font-body-bold text-body-bold text-surface-dark">
+            <Text className="font-body-bold text-body-bold text-navy">
               Criar partida
             </Text>
           </PressableScale>
@@ -156,10 +159,10 @@ export function CreateSheet({
             onPress={onCreatePost}
             accessibilityRole="button"
             accessibilityLabel="Criar publicação"
-            className={`${OPTION} mt-3 bg-white`}
-            style={HARD_SHADOW}
+            className={`${OPTION} mt-3 bg-card`}
+            style={theme.hardShadow}
           >
-            <Text className="font-body-bold text-body-bold text-surface-dark">
+            <Text className="font-body-bold text-body-bold text-ink">
               Criar publicação
             </Text>
           </PressableScale>

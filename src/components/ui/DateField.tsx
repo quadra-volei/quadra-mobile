@@ -2,6 +2,7 @@ import { IconData } from '@/components/icons/quadra';
 import { Text, TextInput, View } from 'react-native';
 
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 export type DateFieldProps = {
   /** Eyebrow / overline label rendered above the field. */
@@ -14,7 +15,6 @@ export type DateFieldProps = {
   testID?: string;
 };
 
-const TEXT_MUTED = '#62628A'; // text-muted token — placeholder color
 
 /** Masks raw digits as `DD/MM/AAAA` (max 8 digits → day/month/year). */
 function maskDate(input: string): string {
@@ -45,6 +45,7 @@ export function DateField({
   error,
   testID,
 }: DateFieldProps) {
+  const theme = useThemeColors();
   const hasError = Boolean(error);
 
   return (
@@ -54,19 +55,19 @@ export function DateField({
       </Text>
 
       <View
-        className={`mt-2 h-12 flex-row items-center rounded-chip border bg-white px-4 ${
+        className={`mt-2 h-12 flex-row items-center rounded-chip border bg-card px-4 ${
           hasError ? 'border-danger' : 'border-line'
         }`}
       >
         <View className="mr-2">
-          <IconData size={20} color={colors.primary} />
+          <IconData size={20} color={theme.primaryFg} />
         </View>
         <TextInput
           testID={testID}
           value={value}
           onChangeText={(text) => onChangeText(maskDate(text))}
           placeholder="DD/MM/AAAA"
-          placeholderTextColor={TEXT_MUTED}
+          placeholderTextColor={theme.muted}
           keyboardType="number-pad"
           inputMode="numeric"
           maxLength={10}
@@ -77,7 +78,7 @@ export function DateField({
 
       {hasError ? (
         <Text
-          className="mt-2 font-body text-caption text-danger"
+          className="mt-2 font-body text-caption text-danger-fg"
           accessibilityLiveRegion="polite"
         >
           {error}

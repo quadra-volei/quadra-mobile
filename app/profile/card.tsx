@@ -21,6 +21,7 @@ import type { MyProfile } from "@/features/profile/types/profile";
 import { ActionsSummary } from "@/components/domain/ActionsSummary";
 import { BASIC_FINISH, CARD_SCREEN, isSeasonFinish, type CardFinish } from "@/theme/cardFinish";
 import { colors } from "@/theme/colors";
+import { ForceLightTheme } from '@/components/ui/ForceLightTheme';
 
 // No "Acabamento" tab (DECISIONS #199): everyone has the basic card, and the season card comes from the pass.
 const TABS = ["Título", "Coleção", "Estatísticas"] as const;
@@ -332,13 +333,13 @@ function CardBody({ profile }: { profile: MyProfile }) {
       </View>
 
       {exportMessage ? (
-        <Text className="font-body text-caption text-danger mb-3" accessibilityLiveRegion="polite">
+        <Text className="font-body text-caption text-danger-fg mb-3" accessibilityLiveRegion="polite">
           {exportMessage}
         </Text>
       ) : null}
 
       {save.error ? (
-        <Text className="font-body text-caption text-danger mb-3" accessibilityLiveRegion="polite">
+        <Text className="font-body text-caption text-danger-fg mb-3" accessibilityLiveRegion="polite">
           {save.error.message}
         </Text>
       ) : null}
@@ -389,7 +390,7 @@ function CardBody({ profile }: { profile: MyProfile }) {
   );
 }
 
-export default function CardScreen() {
+function CardScreen() {
   const { data, isPending, isError, refetch } = useMyProfile();
   const insets = useSafeAreaInsets();
 
@@ -422,5 +423,14 @@ export default function CardScreen() {
         )}
       </ScrollView>
     </View>
+  );
+}
+
+// Drawn on navy in both themes: keeps its light-theme colors (DECISIONS #203).
+export default function CardScreenRoute() {
+  return (
+    <ForceLightTheme>
+      <CardScreen />
+    </ForceLightTheme>
   );
 }

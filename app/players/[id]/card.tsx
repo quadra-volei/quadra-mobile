@@ -15,12 +15,13 @@ import { CARD_SCREEN } from '@/theme/cardFinish';
 import { colors } from '@/theme/colors';
 
 import { StatsList } from '../../profile/card';
+import { ForceLightTheme } from '@/components/ui/ForceLightTheme';
 
 /**
  * Another player's card, front and back, as they styled it (finish, title, card photo) and with
  * their public numbers (`GET /profiles/{id}`: totals only, never which match). Read-only.
  */
-export default function PlayerCardScreen() {
+function PlayerCardScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
@@ -86,5 +87,14 @@ export default function PlayerCardScreen() {
         )}
       </ScrollView>
     </View>
+  );
+}
+
+// Drawn on navy in both themes: keeps its light-theme colors (DECISIONS #203).
+export default function PlayerCardScreenRoute() {
+  return (
+    <ForceLightTheme>
+      <PlayerCardScreen />
+    </ForceLightTheme>
   );
 }

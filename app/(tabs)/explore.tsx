@@ -42,11 +42,12 @@ import { useNearbyMatches } from "@/features/matches/api/getNearby";
 import { isMapAvailable } from "@/features/matches/lib/isMapAvailable";
 import { useDeviceLocation } from "@/features/matches/lib/useDeviceCoords";
 import type { NearbyMatch } from "@/features/matches/types/match";
-import { HARD_SHADOW, colors } from "@/theme/colors";
-import { MAP_STYLE } from "@/theme/mapStyle";
+import { colors } from "@/theme/colors";
+import { MAP_STYLE, MAP_STYLE_DARK } from "@/theme/mapStyle";
 import { usePullToRefresh, useRefreshOnFocus } from "@/hooks/useRefresh";
 import { TAB_BAR_CLEARANCE } from "@/theme/layout";
 import { plural } from "@/lib/plural";
+import { useThemeColors } from '@/theme/useThemeColors';
 
 // Where Explore searches when the device location is not available: São Paulo
 // centre. Explore never prompts for location (S6 spec "Permissions"). The
@@ -113,22 +114,23 @@ function FiltersButton({
   active: number;
   onPress: () => void;
 }) {
+  const theme = useThemeColors();
   const on = active > 0;
   return (
     <PressableScale
       onPress={onPress}
       accessibilityRole="button"
       accessibilityLabel={on ? `Filtros, ${active} ativos` : "Filtros"}
-      className="h-11 px-4 rounded-pill flex-row items-center gap-2 bg-white border-2 border-surface-dark"
+      className="h-11 px-4 rounded-pill flex-row items-center gap-2 bg-card border-2 border-edge"
       style={
         on
-          ? { backgroundColor: colors.surfaceDark, ...HARD_SHADOW }
-          : HARD_SHADOW
+          ? { backgroundColor: theme.surface, ...theme.hardShadow }
+          : theme.hardShadow
       }
     >
       <IconFiltros
         size={18}
-        color={on ? colors.textOnDark : colors.surfaceDark}
+        color={on ? colors.textOnDark : theme.ink}
       />
       <Text
         className="font-body-bold text-h2 text-text-primary"
@@ -143,7 +145,7 @@ function FiltersButton({
         style={{ opacity: on ? 1 : 0 }}
         testID="explore-filters-badge"
       >
-        <Text className="font-body-bold text-caption text-text-primary">
+        <Text className="font-body-bold text-caption text-navy">
           {on ? active : 0}
         </Text>
       </View>
@@ -174,6 +176,7 @@ function MiniMap({
   /** The full map's first request (its cache): which games have no arena (API DECISIONS #93). */
   items: MapItems | undefined;
 }) {
+  const theme = useThemeColors();
   const noArena = new Set(items?.games.map((g) => g.id));
   const loose = matches.filter((m) => noArena.has(m.id)).slice(0, MINI_MAP_PINS);
   const arenas = (items?.arenas ?? []).filter((a) => a.gamesCount > 0).slice(0, MINI_MAP_PINS);
@@ -201,7 +204,7 @@ function MiniMap({
         liteMode
         // Lite mode shows Google's "directions / open in Maps" buttons over the card otherwise.
         toolbarEnabled={false}
-        customMapStyle={MAP_STYLE}
+        customMapStyle={theme.scheme === 'dark' ? MAP_STYLE_DARK : MAP_STYLE}
         style={{ flex: 1 }}
         initialRegion={{
           latitude: center.lat,
@@ -240,6 +243,7 @@ function ResultsArea({
   view: ViewMode;
   setView: (next: ViewMode) => void;
 }) {
+  const theme = useThemeColors();
   const [filters, setFilters] = useState<ExploreFilters>(DEFAULT_FILTERS);
   const [sheetOpen, setSheetOpen] = useState(false);
 
@@ -306,7 +310,7 @@ function ResultsArea({
       {/* ── Map card: mini map of the filtered results + the nearest one.
           The whole card opens the full map (S17). ── */}
       <PressableScale
-        className="mx-4 mt-4 bg-white rounded-card shadow-card overflow-hidden"
+        className="mx-4 mt-4 bg-card rounded-card shadow-card overflow-hidden"
         onPress={goMap}
         accessibilityRole="button"
         accessibilityLabel="Abrir mapa de partidas"
@@ -363,9 +367,9 @@ function ResultsArea({
           onPress={() => setView(view === "grid" ? "list" : "grid")}
           leftIcon={
             view === "grid" ? (
-              <IconGrade size={18} color={colors.primary} />
+              <IconGrade size={18} color={theme.primaryFg} />
             ) : (
-              <IconLista size={18} color={colors.primary} />
+              <IconLista size={18} color={theme.primaryFg} />
             )
           }
         >
@@ -502,6 +506,7 @@ function ResultsBody({
 }
 
 export default function ExploreScreen() {
+  const theme = useThemeColors();
   const [view, setView] = useState<ViewMode>("grid");
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
@@ -546,7 +551,7 @@ export default function ExploreScreen() {
               <BellWithBadge />
             </IconButton>
             <IconButton label="Configurações" onPress={goSettings}>
-              <IconConfiguracoes size={20} color={colors.surfaceDark} />
+              <IconConfiguracoes size={20} color={theme.ink} />
             </IconButton>
           </View>
         </View>

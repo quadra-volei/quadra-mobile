@@ -9,8 +9,9 @@ import { TOUR_LAST_PHASE, useTourStore } from '@/features/tour/tourStore';
 import { TOUR_STEPS, TOUR_VERSION } from '@/features/tour/tourSteps';
 import { measureTourTarget, type TourRect } from '@/features/tour/tourTargets';
 import { useAuthStore } from '@/stores/auth';
-import { HARD_SHADOW, colors } from '@/theme/colors';
+import { colors } from '@/theme/colors';
 import { MOTION } from '@/theme/motion';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 // Room around the highlighted item, and between the highlight and the card.
 const HOLE_PADDING = 10;
@@ -116,7 +117,7 @@ export function TourOverlay() {
       ) : (
         // Between two steps (a few frames while the next target is measured):
         // the same veil, so the screen behind never flashes or takes a tap.
-        <View className="flex-1 bg-surface-dark/70" />
+        <View className="flex-1 bg-navy/70" />
       )}
     </Animated.View>
   );
@@ -124,7 +125,7 @@ export function TourOverlay() {
 
 function WelcomeCard({ onStart, onLater }: { onStart: () => void; onLater: () => void }) {
   return (
-    <View className="flex-1 items-center justify-center bg-surface-dark/70 px-6">
+    <View className="flex-1 items-center justify-center bg-navy/70 px-6">
       <Animated.View
         entering={FadeIn.duration(MOTION.fadeIn)}
         accessibilityViewIsModal
@@ -174,6 +175,7 @@ function Spotlight({
   onNext: () => void;
   onSkip: () => void;
 }) {
+  const theme = useThemeColors();
   const { width, height } = size;
   const cx = rect.x + rect.width / 2;
   const cy = rect.y + rect.height / 2;
@@ -195,10 +197,10 @@ function Spotlight({
         entering={FadeIn.duration(MOTION.fadeIn)}
         accessibilityViewIsModal
         testID={`tour-step-${index}`}
-        className="absolute left-4 right-4 rounded-card border-2 border-surface-dark bg-white p-5"
-        style={[HARD_SHADOW, { bottom: height - (cy - r) + CARD_GAP }]}
+        className="absolute left-4 right-4 rounded-card border-2 border-edge bg-card p-5"
+        style={[theme.hardShadow, { bottom: height - (cy - r) + CARD_GAP }]}
       >
-        <Text className="font-body-bold text-eyebrow text-primary uppercase" style={{ letterSpacing: 1.5 }}>
+        <Text className="font-body-bold text-eyebrow text-primary-fg uppercase" style={{ letterSpacing: 1.5 }}>
           {index} de {TOUR_STEPS.length}
         </Text>
         <Text accessibilityRole="header" className="mt-1 font-body-extrabold text-h3 text-text-primary">

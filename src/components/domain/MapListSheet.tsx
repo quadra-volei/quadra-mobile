@@ -9,6 +9,7 @@ import { VENUE_KINDS } from '@/features/explore/api/venues';
 import { formatWhen } from '@/features/matches/lib/formatWhen';
 import type { NearbyMatch } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 /*
  * The list under the map (DECISIONS #180, D8): what the map shows, as a list in a panel dragged
@@ -41,6 +42,7 @@ export function listRows(arenas: MapArena[], games: NearbyMatch[]): Row[] {
 }
 
 function ArenaRow({ arena, onPress }: { arena: MapArena; onPress: () => void }) {
+  const theme = useThemeColors();
   const kind = VENUE_KINDS.find((k) => k.kind === arena.kind);
   const next = arena.games[0];
   const games =
@@ -55,10 +57,10 @@ function ArenaRow({ arena, onPress }: { arena: MapArena; onPress: () => void }) 
       accessibilityRole="button"
       accessibilityLabel={`${kind?.label ?? 'Arena'} a ${arena.distanceKm.toFixed(1).replace('.', ',')} km, ${games}`}
       testID={`map-list-arena-${arena.id}`}
-      className="rounded-card border-2 border-surface-dark bg-white px-4 py-3"
+      className="rounded-card border-2 border-edge bg-card px-4 py-3"
     >
       <View className="flex-row items-center gap-1">
-        {kind ? <kind.Icon size={14} color={colors.textMuted} /> : null}
+        {kind ? <kind.Icon size={14} color={theme.muted} /> : null}
         <Text className="font-mono text-mono text-text-muted uppercase">
           {kind?.label ?? 'Arena'} · {arena.distanceKm.toFixed(1).replace('.', ',')} km
         </Text>

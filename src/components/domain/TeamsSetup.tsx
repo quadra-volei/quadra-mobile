@@ -11,6 +11,7 @@ import type { TeamsSetup as TeamsSetupState } from '@/features/matches/lib/useTe
 import type { DrawMode } from '@/features/matches/types/matchDetail';
 import { colors } from '@/theme/colors';
 import { plural } from '@/lib/plural';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 // What each draw mode asks the backend for (drawTeams.ts): MANUAL is a random
 // draw, AUTO balances the teams by level.
@@ -34,10 +35,9 @@ const DRAW_MODES: {
   },
 ];
 
-const DRAW_MODE_ICON: Record<DrawMode, ReactNode> = {
-  MANUAL: <IconMontarTimes size={20} color={colors.primary} />,
-  AUTO: <IconEquilibrarTimes size={20} color={colors.primary} />,
-};
+function drawModeIcon(mode: DrawMode, color: string): ReactNode {
+  return mode === 'MANUAL' ? <IconMontarTimes size={20} color={color} /> : <IconEquilibrarTimes size={20} color={color} />;
+}
 
 export type TeamsSetupProps = {
   setup: TeamsSetupState;
@@ -53,6 +53,7 @@ export type TeamsSetupProps = {
  * Presentational: everything comes from `useTeamsSetup`.
  */
 export function TeamsSetup({ setup, testID = 'teams-setup' }: TeamsSetupProps) {
+  const theme = useThemeColors();
   const {
     confirmedCount,
     teamCount,
@@ -88,7 +89,7 @@ export function TeamsSetup({ setup, testID = 'teams-setup' }: TeamsSetupProps) {
   return (
     <View className="mt-8" testID={testID}>
       <View className="flex-row items-center">
-        <Text className="flex-1 font-display text-h2 text-surface-dark uppercase">
+        <Text className="flex-1 font-display text-h2 text-ink uppercase">
           Times
         </Text>
         {setup.drawn && !setup.redrawing ? (
@@ -142,7 +143,7 @@ export function TeamsSetup({ setup, testID = 'teams-setup' }: TeamsSetupProps) {
           ) : null}
           {tooFew ? (
             <Text
-              className="mt-1 font-body-semibold text-caption text-danger"
+              className="mt-1 font-body-semibold text-caption text-danger-fg"
               testID="too-few-hint"
             >
               {tooFewHint}
@@ -160,15 +161,15 @@ export function TeamsSetup({ setup, testID = 'teams-setup' }: TeamsSetupProps) {
               onPress={() => setup.setDrawMode(mode)}
               testID={modeTestID}
               className={`mt-2 flex-row items-center gap-3 rounded-card border p-4 ${
-                drawMode === mode ? 'border-primary bg-primary/5' : 'border-line bg-white'
+                drawMode === mode ? 'border-primary-fg bg-primary/5' : 'border-line bg-card'
               }`}
             >
-              {DRAW_MODE_ICON[mode]}
+              {drawModeIcon(mode, theme.primaryFg)}
               <View className="flex-1">
                 <Text className="font-body-extrabold text-h3 text-text-primary">{title}</Text>
                 <Text className="font-body text-caption text-text-muted">{caption}</Text>
               </View>
-              {drawMode === mode ? <IconConfirmar size={20} color={colors.primary} /> : null}
+              {drawMode === mode ? <IconConfirmar size={20} color={theme.primaryFg} /> : null}
             </Pressable>
           ))}
 

@@ -26,6 +26,7 @@ import { useAuthStore } from "@/stores/auth";
 import { colors } from "@/theme/colors";
 import { DEFAULT_AVATAR } from "@/theme/defaultAvatars";
 import { TAB_BAR_CLEARANCE } from "@/theme/layout";
+import { useThemeColors } from '@/theme/useThemeColors';
 
 function goRanking() {
   router.push("/profile/ranking");
@@ -75,6 +76,7 @@ function SectionTitleRow({
 
 // ── Header (inline; avatar + greeting variant — the one identity-carrying tab) ──
 function ProfileHeader() {
+  const theme = useThemeColors();
   const { data } = useMyProfile();
 
   return (
@@ -113,7 +115,7 @@ function ProfileHeader() {
           <BellWithBadge />
         </IconButton>
         <IconButton label="Configurações" onPress={goSettings}>
-          <IconConfiguracoes size={20} color={colors.surfaceDark} />
+          <IconConfiguracoes size={20} color={theme.ink} />
         </IconButton>
       </View>
     </View>
@@ -143,7 +145,7 @@ function ProgressSection() {
   }
   if (isError) {
     return (
-      <View className="mx-4 bg-white rounded-card shadow-card">
+      <View className="mx-4 bg-card rounded-card shadow-card">
         <StateMessage
           message="Não foi possível carregar"
           actionLabel="Tentar novamente"
@@ -154,14 +156,14 @@ function ProgressSection() {
   }
 
   return (
-    <View className="mx-4 bg-white rounded-card shadow-card p-4">
+    <View className="mx-4 bg-card rounded-card shadow-card p-4">
       {/* GERAL box (left) + 2×2 stats grid (right). */}
       <View className="flex-row gap-3">
         <View className="w-24 rounded-card bg-primary/5 items-center justify-center py-3">
           <Text className="font-mono text-mono text-text-muted uppercase">
             Geral
           </Text>
-          <Text className="font-num text-primary text-display mt-1">
+          <Text className="font-num text-primary-fg text-display mt-1">
             {data.overall}
           </Text>
         </View>
@@ -230,7 +232,7 @@ function RecentMatchesSection() {
   }
   if (isError) {
     return (
-      <View className="mx-4 mt-2 bg-white rounded-card shadow-card">
+      <View className="mx-4 mt-2 bg-card rounded-card shadow-card">
         <StateMessage
           message="Não foi possível carregar"
           actionLabel="Tentar novamente"
@@ -241,14 +243,14 @@ function RecentMatchesSection() {
   }
   if (data.items.length === 0) {
     return (
-      <View className="mx-4 mt-2 bg-white rounded-card shadow-card">
+      <View className="mx-4 mt-2 bg-card rounded-card shadow-card">
         <StateMessage message="Você ainda não jogou nenhuma partida" />
       </View>
     );
   }
 
   return (
-    <View className="mx-4 mt-2 bg-white rounded-card shadow-card overflow-hidden">
+    <View className="mx-4 mt-2 bg-card rounded-card shadow-card overflow-hidden">
       {data.items.map((m, i) => (
         <View key={m.id}>
           {i > 0 ? <View className="h-px bg-line mx-4" /> : null}
@@ -267,6 +269,7 @@ function RecentMatchesSection() {
 }
 
 function RankingPreviewRow({ row, isMe }: { row: RankingRow; isMe: boolean }) {
+  const theme = useThemeColors();
   // Prototype coloring: only the current user's row is lime (position + score);
   // everyone else is white, with a dimmed position number. The 1.5px border is
   // applied via inline style so non-"me" rows stay truly transparent (a bare
@@ -279,7 +282,7 @@ function RankingPreviewRow({ row, isMe }: { row: RankingRow; isMe: boolean }) {
       }`}
       style={{
         borderWidth: 1.5,
-        borderColor: isMe ? colors.primary : "transparent",
+        borderColor: isMe ? theme.primaryFg : "transparent",
       }}
       accessibilityLabel={isMe ? `${row.name}, você, ${row.score}` : undefined}
     >

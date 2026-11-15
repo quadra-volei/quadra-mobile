@@ -1,6 +1,6 @@
 import { Easing } from 'react-native-reanimated';
 
-import { colors } from '@/theme/colors';
+import type { ThemeColors } from '@/theme/useThemeColors';
 
 // One set of durations and curves for the whole app, so every tap, tab switch
 // and sheet moves at the same pace (DECISIONS #109). Reanimated animations
@@ -19,11 +19,13 @@ export const MOTION = {
   fadeIn: 180,
 } as const;
 
-// Every Stack: pushed screens slide in from the right with the previous one
+// Every Stack (`stackOptions(useThemeColors())`): pushed screens slide in from the right with the previous one
 // easing back (Android's iOS-like transition), over the app background so no
 // white or black frame shows between screens.
-export const STACK_OPTIONS = {
-  headerShown: false,
-  animation: 'ios_from_right',
-  contentStyle: { backgroundColor: colors.bgLight },
-} as const;
+export function stackOptions(theme: Pick<ThemeColors, 'bg'>) {
+  return {
+    headerShown: false,
+    animation: 'ios_from_right',
+    contentStyle: { backgroundColor: theme.bg },
+  } as const;
+}

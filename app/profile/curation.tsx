@@ -26,7 +26,8 @@ import { distanceKm } from '@/features/matches/lib/distanceKm';
 import { useDeviceLocation } from '@/features/matches/lib/useDeviceCoords';
 import { ApiError } from '@/lib/api/client';
 import { colors } from '@/theme/colors';
-import { MAP_STYLE } from '@/theme/mapStyle';
+import { MAP_STYLE, MAP_STYLE_DARK } from '@/theme/mapStyle';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 /*
  * Arena curation for the team (DECISIONS #181, API DECISIONS #94): the Google places of the area
@@ -59,6 +60,7 @@ function failure(error: Error): string {
 }
 
 function CandidateRow({ candidate, onPress }: { candidate: Candidate; onPress: () => void }) {
+  const theme = useThemeColors();
   const kind = kindOf(candidate.kind);
   return (
     <Pressable
@@ -66,10 +68,10 @@ function CandidateRow({ candidate, onPress }: { candidate: Candidate; onPress: (
       accessibilityRole="button"
       accessibilityLabel={`${kind.label} a ${candidate.distanceKm.toFixed(1)} km`}
       testID={`curation-row-${candidate.placeId}`}
-      className="rounded-card border-2 border-surface-dark bg-white px-4 py-3"
+      className="rounded-card border-2 border-edge bg-card px-4 py-3"
     >
       <View className="flex-row items-center gap-1">
-        <kind.Icon size={14} color={colors.textMuted} />
+        <kind.Icon size={14} color={theme.muted} />
         <Text className="font-mono text-mono text-text-muted uppercase">
           {kind.label} · {candidate.distanceKm.toFixed(1).replace('.', ',')} km
         </Text>
@@ -108,6 +110,7 @@ function CandidateCard({
   onDecide: (decision: 'Approve' | 'Reject' | { arenaId: string }, kind: VenueKind) => void;
   onClose: () => void;
 }) {
+  const theme = useThemeColors();
   const [kind, setKind] = useState<VenueKind>(candidate.kind);
   const details = useVenueDetails(candidate.placeId);
   const here = { latitude: candidate.lat, longitude: candidate.lon };
@@ -127,7 +130,7 @@ function CandidateCard({
     ]);
 
   return (
-    <View className="rounded-card border-2 border-surface-dark bg-white p-4 shadow-card" testID="curation-card">
+    <View className="rounded-card border-2 border-edge bg-card p-4 shadow-card" testID="curation-card">
       <View className="flex-row items-start gap-3">
         <View className="flex-1">
           {details.isPending ? (
@@ -149,7 +152,7 @@ function CandidateCard({
           )}
         </View>
         <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Fechar" testID="curation-close">
-          <IconFechar size={22} color={colors.surfaceDark} />
+          <IconFechar size={22} color={theme.ink} />
         </Pressable>
       </View>
 
@@ -159,8 +162,8 @@ function CandidateCard({
         className="mt-2 flex-row items-center gap-1"
         testID="curation-open-maps"
       >
-        <IconAbrirExterno size={16} color={colors.primary} />
-        <Text className="font-body-bold text-caption text-primary">Abrir no Google Maps</Text>
+        <IconAbrirExterno size={16} color={theme.primaryFg} />
+        <Text className="font-body-bold text-caption text-primary-fg">Abrir no Google Maps</Text>
       </Pressable>
 
       <View className="mt-3 flex-row gap-2">
@@ -206,6 +209,7 @@ function CandidateCard({
 }
 
 export default function CurationScreen() {
+  const theme = useThemeColors();
   const { coords, resolved } = useDeviceLocation();
   const center = coords ?? DEFAULT_CENTER;
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -319,7 +323,7 @@ export default function CurationScreen() {
         ) : (
           <MapView
             style={{ flex: 1, marginTop: 12 }}
-            customMapStyle={MAP_STYLE}
+            customMapStyle={theme.scheme === 'dark' ? MAP_STYLE_DARK : MAP_STYLE}
             initialRegion={{ ...center, latitudeDelta: 0.05, longitudeDelta: 0.05 }}
             onRegionChangeComplete={(shown) => {
               setRegion(shown);

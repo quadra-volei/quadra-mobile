@@ -22,6 +22,7 @@ import {
 import { useAuthStore } from '@/stores/auth';
 import { colors } from '@/theme/colors';
 import { ICON_HIT_SLOP } from '@/theme/layout';
+import { ForceLightTheme } from '@/components/ui/ForceLightTheme';
 
 /**
  * The navy frame every state of the screen shares: back, the "QUEM BRILHOU?"
@@ -127,7 +128,7 @@ function ErrorNote({ children, testID }: { children: ReactNode; testID?: string 
  * they sat out. Anyone else is told so and only gets the way to the summary.
  * Nobody votes for themselves; a vote can be changed while the voting is open.
  */
-export default function MvpVoteScreen() {
+function MvpVoteScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const matchId = id ?? '';
   const userId = useAuthStore((state) => state.userId);
@@ -337,14 +338,14 @@ function VoteRegistered({
         blurMethod="dimezisBlurViewSdk31Plus"
         style={StyleSheet.absoluteFill}
       />
-      <View className="bg-surface-dark/70" style={StyleSheet.absoluteFill} />
+      <View className="bg-navy/70" style={StyleSheet.absoluteFill} />
       <SafeAreaView edges={['top', 'bottom']} className="flex-1">
         <View className="flex-1 items-center justify-center px-8">
           <View>
             <View className="rounded-full border-4 border-accent p-1">
               <Avatar uri={player.avatarUrl} name={player.name} size="xl" />
             </View>
-            <View className="absolute -bottom-1 left-6 h-10 w-10 items-center justify-center rounded-full border-2 border-surface-dark bg-accent">
+            <View className="absolute -bottom-1 left-6 h-10 w-10 items-center justify-center rounded-full border-2 border-edge bg-accent">
               <IconMvp size={18} color={colors.surfaceDark} />
             </View>
           </View>
@@ -386,5 +387,14 @@ function VoteRegistered({
         <WrapUp matchId={matchId} emphasis={false} />
       </SafeAreaView>
     </View>
+  );
+}
+
+// Drawn on navy in both themes: keeps its light-theme colors (DECISIONS #203).
+export default function MvpVoteScreenRoute() {
+  return (
+    <ForceLightTheme>
+      <MvpVoteScreen />
+    </ForceLightTheme>
   );
 }

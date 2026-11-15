@@ -28,5 +28,5 @@ export default function InviteLinkScreen() {
     });
   }, [id, c]);
 
-  return <View className="flex-1 bg-surface-dark" />;
+  return <View className="flex-1 bg-navy" />;
 }

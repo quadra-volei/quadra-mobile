@@ -10,6 +10,7 @@ import Animated, {
 
 import { colors } from '@/theme/colors';
 import { MOTION } from '@/theme/motion';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 /**
  * The underline of a row of equal-width tabs (`flex-1` each), sliding to the
@@ -69,12 +70,13 @@ export function TabLabel({
   className: string;
   children: ReactNode;
 }) {
+  const { muted } = useThemeColors();
   const progress = useSharedValue(selected ? 1 : 0);
   useEffect(() => {
     progress.value = withTiming(selected ? 1 : 0, MOTION.tab);
   }, [selected, progress]);
   const color = useAnimatedStyle(() => ({
-    color: interpolateColor(progress.value, [0, 1], [colors.textMuted, activeColor]),
+    color: interpolateColor(progress.value, [0, 1], [muted, activeColor]),
   }));
 
   return (

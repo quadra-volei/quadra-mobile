@@ -22,6 +22,7 @@ import {
 } from '@/features/ads/api/ads';
 import { useRefreshOnFocus } from '@/hooks/useRefresh';
 import { colors } from '@/theme/colors';
+import { useThemeColors, type ThemeColors } from '@/theme/useThemeColors';
 
 /*
  * "Meus anúncios" (DECISIONS #200): each ad with where it is (awaiting payment, in review, on the
@@ -29,15 +30,23 @@ import { colors } from '@/theme/colors';
  * be cancelled here.
  */
 
-const PHASE_TAG: Record<AdPhase, { bg: string; color: string }> = {
-  AwaitingPayment: { bg: colors.warning, color: colors.surfaceDark },
-  InReview: { bg: colors.bgLightAlt, color: colors.surfaceDark },
-  Scheduled: { bg: colors.primary, color: colors.textOnDark },
-  Live: { bg: colors.accent, color: colors.surfaceDark },
-  Ended: { bg: colors.bgLightAlt, color: colors.textMuted },
-  Rejected: { bg: colors.danger, color: colors.textOnDark },
-  Cancelled: { bg: colors.bgLightAlt, color: colors.textMuted },
-};
+// The neutral phases (review, ended, cancelled) take the theme's pale fill.
+function phaseTag(phase: AdPhase, theme: ThemeColors): { bg: string; color: string } {
+  switch (phase) {
+    case 'AwaitingPayment':
+      return { bg: colors.warning, color: colors.surfaceDark };
+    case 'InReview':
+      return { bg: theme.bgAlt, color: theme.ink };
+    case 'Scheduled':
+      return { bg: colors.primary, color: colors.textOnDark };
+    case 'Live':
+      return { bg: colors.accent, color: colors.surfaceDark };
+    case 'Rejected':
+      return { bg: colors.danger, color: colors.textOnDark };
+    default:
+      return { bg: theme.bgAlt, color: theme.muted };
+  }
+}
 
 const PHASE_HELP: Partial<Record<AdPhase, string>> = {
   AwaitingPayment: 'Reservado. A equipe do Quadra fala com você para confirmar o pagamento.',
@@ -46,15 +55,16 @@ const PHASE_HELP: Partial<Record<AdPhase, string>> = {
 };
 
 function AdRow({ ad, onCancel }: { ad: Ad; onCancel: (ad: Ad) => void }) {
+  const theme = useThemeColors();
   const placement = PLACEMENTS.find((p) => p.placement === ad.placement)?.label ?? ad.placement;
   const help = ad.phase === 'Rejected' && ad.rejectionReason ? `Motivo: ${ad.rejectionReason}` : PHASE_HELP[ad.phase];
   return (
-    <View className="rounded-card bg-white p-4 shadow-card" testID={`my-ad-${ad.id}`}>
+    <View className="rounded-card bg-card p-4 shadow-card" testID={`my-ad-${ad.id}`}>
       <View className="flex-row items-center justify-between gap-3">
         <Text numberOfLines={1} className="flex-1 font-body-extrabold text-h3 text-text-primary">
           {ad.title}
         </Text>
-        <Tag bg={PHASE_TAG[ad.phase].bg} color={PHASE_TAG[ad.phase].color}>
+        <Tag bg={phaseTag(ad.phase, theme).bg} color={phaseTag(ad.phase, theme).color}>
           {PHASE_LABELS[ad.phase]}
         </Tag>
       </View>
@@ -64,11 +74,11 @@ function AdRow({ ad, onCancel }: { ad: Ad; onCancel: (ad: Ad) => void }) {
       {help ? <Text className="mt-2 font-body text-caption text-text-primary">{help}</Text> : null}
       <View className="mt-3 flex-row gap-6">
         <View>
-          <Text className="font-num text-h3 text-primary">{ad.impressions}</Text>
+          <Text className="font-num text-h3 text-primary-fg">{ad.impressions}</Text>
           <Text className="font-body text-caption text-text-muted">viram</Text>
         </View>
         <View>
-          <Text className="font-num text-h3 text-primary">{ad.clicks}</Text>
+          <Text className="font-num text-h3 text-primary-fg">{ad.clicks}</Text>
           <Text className="font-body text-caption text-text-muted">tocaram</Text>
         </View>
       </View>

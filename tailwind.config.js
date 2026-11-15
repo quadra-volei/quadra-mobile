@@ -1,32 +1,49 @@
+// A theme color: reads the CSS variable of global.css, keeping the opacity modifier.
+const themed = (name) => `rgb(var(--color-${name}) / <alpha-value>)`;
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  // The "Aparência" setting picks light / dark / system through nativewind's
+  // colorScheme.set, which needs the class strategy (DECISIONS #203).
+  darkMode: 'class',
   content: ['./app/**/*.{js,jsx,ts,tsx}', './src/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
   theme: {
     extend: {
       colors: {
-        // Primary palette
+        // Brand colors: the same in light and dark.
         primary: '#1A1AFF',
         'primary-dark': '#0D0D9E',
         accent: '#AADD00',
         'accent-light': '#C6F135',
         tertiary: '#FF6B00',
         quaternary: '#6B1AFF',
-
-        // Surfaces
-        'bg-light': '#EFF3FC',
-        'bg-light-alt': '#E8EEF8',
-        'surface-dark': '#0A0A3C',
-        'surface-dark-alt': '#111145',
         white: '#FFFFFF',
+        // The brand navy as a fixed color: copy on lime/orange fills, the court art.
+        navy: '#0A0A3C',
 
-        // Text
-        'text-primary': '#1A1A2E',
+        // Theme colors (DECISIONS #203): CSS variables from global.css, with a
+        // light and a dark value (src/theme/palette.ts). Keep the opacity
+        // modifier working (`bg-surface-dark/60`) through the "R G B" channels.
+        'bg-light': themed('bg'),
+        'bg-light-alt': themed('bg-alt'),
+        card: themed('card'),
+        'surface-dark': themed('surface'),
+        'surface-dark-alt': themed('surface-alt'),
+        'text-primary': themed('text'),
+        'text-muted': themed('muted'),
         'text-on-dark': '#FFFFFF',
-        'text-muted': '#62628A',
-        line: 'rgba(10,10,60,0.10)',
+        // Navy as foreground on cards (titles, icons): light copy in dark.
+        ink: themed('ink'),
+        // Blue / red / green as text, icon or border: lifted in dark to read on navy.
+        'primary-fg': themed('primary-fg'),
+        'danger-fg': themed('danger-fg'),
+        'success-fg': themed('success-fg'),
+        // The 2px border of buttons and selection cards.
+        edge: themed('edge'),
+        line: 'var(--color-line)',
 
-        // Semantic
+        // Semantic fills
         success: '#16A34A',
         warning: '#F59E0B',
         danger: '#DC2626',
