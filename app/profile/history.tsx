@@ -39,7 +39,7 @@ export default function MatchHistoryScreen() {
         )}
         renderItem={({ item, index, section }) => (
           <View
-            className={`mx-4 bg-white border-line border-x ${index === 0 ? 'rounded-t-card border-t' : ''} ${
+            className={`mx-4 bg-card border-line border-x ${index === 0 ? 'rounded-t-card border-t' : ''} ${
               index === section.data.length - 1 ? 'rounded-b-card border-b' : ''
             }`}
           >

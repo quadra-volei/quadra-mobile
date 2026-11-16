@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 import { Avatar } from '@/components/ui/Avatar';
 import type { RankingRow as RankingRowData } from '@/features/ranking/types/ranking';
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 export type RankingRowProps = {
   /** A ranking row (incl. the optional `trend`) from the shared ranking types. */
@@ -23,25 +24,26 @@ const ICON_SIZE = 14;
 
 /** Maps the trend direction to its arrow, semantic color, and a11y word. */
 function TrendBadge({ trend }: { trend: RankingRowData['trend'] }) {
+  const theme = useThemeColors();
   const direction = trend?.direction ?? 'flat';
 
   if (direction === 'up') {
     return (
       <View className="flex-row items-center gap-1">
-        <IconSubir size={ICON_SIZE} color={colors.success} />
-        <Text className="font-num text-success text-caption">{trend?.delta ?? 0}</Text>
+        <IconSubir size={ICON_SIZE} color={theme.successFg} />
+        <Text className="font-num text-success-fg text-caption">{trend?.delta ?? 0}</Text>
       </View>
     );
   }
   if (direction === 'down') {
     return (
       <View className="flex-row items-center gap-1">
-        <IconDescer size={ICON_SIZE} color={colors.danger} />
-        <Text className="font-num text-danger text-caption">{trend?.delta ?? 0}</Text>
+        <IconDescer size={ICON_SIZE} color={theme.dangerFg} />
+        <Text className="font-num text-danger-fg text-caption">{trend?.delta ?? 0}</Text>
       </View>
     );
   }
-  return <IconDiminuir size={ICON_SIZE} color={colors.textMuted} />;
+  return <IconDiminuir size={ICON_SIZE} color={theme.muted} />;
 }
 
 function trendLabel(trend: RankingRowData['trend']): string {
@@ -67,7 +69,7 @@ export function RankingRow({ row, isMe, scoreUnit = 'pontos', highlight = true, 
       <View className="flex-1 ml-3">
         <Text className="font-body-semibold text-body-bold text-text-primary">
           {row.name}
-          {isMe ? <Text className="text-primary"> · você</Text> : null}
+          {isMe ? <Text className="text-primary-fg"> · você</Text> : null}
         </Text>
         <Text numberOfLines={1} className="font-body text-caption text-text-muted">{row.subtitle}</Text>
       </View>
@@ -83,7 +85,7 @@ export function RankingRow({ row, isMe, scoreUnit = 'pontos', highlight = true, 
         isMe && highlight ? 'bg-primary/10 rounded-card' : ''
       }`}
     >
-      <Text className="font-num text-primary text-body w-8">{row.position ?? '–'}</Text>
+      <Text className="font-num text-primary-fg text-body w-8">{row.position ?? '–'}</Text>
       {onPressPlayer ? (
         <Pressable
           onPress={onPressPlayer}
@@ -98,7 +100,7 @@ export function RankingRow({ row, isMe, scoreUnit = 'pontos', highlight = true, 
         who
       )}
       <View className="items-end">
-        <Text className="font-num text-primary text-body">{row.score}</Text>
+        <Text className="font-num text-primary-fg text-body">{row.score}</Text>
         <View className="mt-1">
           <TrendBadge trend={row.trend} />
         </View>

@@ -28,8 +28,9 @@ import { useFollowState } from "@/features/network/api/postsApi";
 import { useSeasonPass } from "@/features/pass/api/seasonPass";
 import { usePullToRefresh, useRefreshOnFocus } from "@/hooks/useRefresh";
 import { useAuthStore } from "@/stores/auth";
-import { HARD_SHADOW, colors } from "@/theme/colors";
+import { colors } from "@/theme/colors";
 import { TAB_BAR_CLEARANCE } from "@/theme/layout";
+import { useThemeColors } from '@/theme/useThemeColors';
 
 function goUpcoming() {
   router.push("/matches/upcoming");
@@ -69,7 +70,7 @@ function SectionHeader({
       {/* A bare link, not the ghost Button: its px-6 pushed every action off
           the cards' right edge. */}
       <PressableScale accessibilityRole="button" onPress={onAction} hitSlop={12}>
-        <Text className="font-body-semibold text-body-bold text-primary">{actionLabel}</Text>
+        <Text className="font-body-semibold text-body-bold text-primary-fg">{actionLabel}</Text>
       </PressableScale>
     </View>
   );
@@ -158,6 +159,7 @@ function useMinuteClock(): Date {
  * below; a lime countdown on the right.
  */
 function NextGameCard({ match }: { match: UpcomingMatch }) {
+  const theme = useThemeColors();
   const now = useMinuteClock();
   const when = formatStartsAt(match.startsAt);
   const countdown = countdownLabel(match.startsAt, now);
@@ -167,8 +169,8 @@ function NextGameCard({ match }: { match: UpcomingMatch }) {
       accessibilityRole="button"
       accessibilityLabel={`Você entra em quadra: ${match.name}, ${when}, ${countdown}`}
       testID="next-game-card"
-      className="mx-4 mt-2 flex-row items-center rounded-card border-2 border-surface-dark bg-surface-dark p-4"
-      style={HARD_SHADOW}
+      className="mx-4 mt-2 flex-row items-center rounded-card border-2 border-edge bg-surface-dark p-4"
+      style={theme.hardShadow}
     >
       <View className="h-12 w-12 items-center justify-center rounded-chip bg-accent">
         <IconPartida size={24} color={colors.surfaceDark} />
@@ -310,7 +312,7 @@ function FriendsActivitySection({
   return (
     <>
       {header}
-      <View className="mx-4 mt-2 rounded-card border border-line bg-white shadow-card overflow-hidden">
+      <View className="mx-4 mt-2 rounded-card border border-line bg-card shadow-card overflow-hidden">
         {data.length === 0 ? (
           <Text className="px-4 py-4 font-body text-caption text-text-muted">
             Seus amigos ainda não jogaram esta semana
@@ -363,13 +365,14 @@ function AdSection() {
       className="mx-4 mt-6 rounded-card border border-dashed border-line px-4 py-3"
     >
       <Text className="font-body text-caption text-text-muted text-center">
-        Sua arena, aula ou loja aqui? <Text className="font-body-bold text-primary">Anuncie no Quadra</Text>
+        Sua arena, aula ou loja aqui? <Text className="font-body-bold text-primary-fg">Anuncie no Quadra</Text>
       </Text>
     </PressableScale>
   );
 }
 
 export default function HomeScreen() {
+  const theme = useThemeColors();
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
 
@@ -450,7 +453,7 @@ export default function HomeScreen() {
               <BellWithBadge />
             </IconButton>
             <IconButton label="Configurações" onPress={goSettings}>
-              <IconConfiguracoes size={20} color={colors.surfaceDark} />
+              <IconConfiguracoes size={20} color={theme.ink} />
             </IconButton>
           </View>
         </View>

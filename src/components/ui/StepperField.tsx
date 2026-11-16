@@ -2,6 +2,7 @@ import { IconAdicionar, IconDiminuir } from '@/components/icons/quadra';
 import { Pressable, Text, View } from 'react-native';
 
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 export type StepperFieldProps = {
   /** Eyebrow caption above the value (e.g. "Jogadores", "Valor / pessoa"). */
@@ -34,6 +35,7 @@ export function StepperField({
   prefix,
   testID,
 }: StepperFieldProps) {
+  const theme = useThemeColors();
   const clamp = (next: number) => Math.min(max, Math.max(min, next));
   const decrement = () => onChange(clamp(value - step));
   const increment = () => onChange(clamp(value + step));
@@ -42,7 +44,7 @@ export function StepperField({
   const atMax = value >= max;
 
   return (
-    <View className="flex-1 rounded-chip border border-line bg-white px-4 py-3">
+    <View className="flex-1 rounded-chip border border-line bg-card px-4 py-3">
       <Text
         numberOfLines={1}
         className="font-body-bold text-eyebrow text-text-muted uppercase"
@@ -57,10 +59,10 @@ export function StepperField({
           accessibilityLabel={`Diminuir ${label}`}
           accessibilityState={{ disabled: atMin }}
           testID={testID ? `${testID}-decrement` : undefined}
-          className="h-8 w-8 items-center justify-center rounded-full border-2 border-surface-dark bg-white"
+          className="h-8 w-8 items-center justify-center rounded-full border-2 border-edge bg-card"
           style={atMin ? { opacity: 0.5 } : undefined}
         >
-          <IconDiminuir size={16} color={colors.surfaceDark} />
+          <IconDiminuir size={16} color={theme.ink} />
         </Pressable>
 
         <Text
@@ -79,7 +81,7 @@ export function StepperField({
           accessibilityLabel={`Aumentar ${label}`}
           accessibilityState={{ disabled: atMax }}
           testID={testID ? `${testID}-increment` : undefined}
-          className="h-8 w-8 items-center justify-center rounded-full border-2 border-surface-dark bg-accent"
+          className="h-8 w-8 items-center justify-center rounded-full border-2 border-edge bg-accent"
           style={atMax ? { opacity: 0.5 } : undefined}
         >
           <IconAdicionar size={16} color={colors.surfaceDark} />

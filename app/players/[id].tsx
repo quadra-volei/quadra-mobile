@@ -115,7 +115,7 @@ export default function PlayerScreen() {
           />
         ) : (
           <>
-            <View className="bg-white rounded-card shadow-card p-4 items-center">
+            <View className="bg-card rounded-card shadow-card p-4 items-center">
               <Avatar
                 uri={profile.data.photoUrl ?? undefined}
                 name={profile.data.displayName}
@@ -153,7 +153,7 @@ export default function PlayerScreen() {
                   </Button>
                   {setFollow.isError ? (
                     <Text
-                      className="mt-2 text-center font-body text-caption text-danger"
+                      className="mt-2 text-center font-body text-caption text-danger-fg"
                       accessibilityLiveRegion="polite"
                     >
                       Não foi possível atualizar. Tente novamente.
@@ -163,7 +163,7 @@ export default function PlayerScreen() {
               )}
             </View>
 
-            <View className="mt-4 bg-white rounded-card shadow-card p-4 flex-row">
+            <View className="mt-4 bg-card rounded-card shadow-card p-4 flex-row">
               <Count value={profile.data.stats.matchesPlayed} label="Partidas" />
               <Count value={profile.data.stats.wins} label="Vitórias" />
               <Count value={profile.data.stats.mvpsReceived} label="MVPs" />

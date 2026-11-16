@@ -44,7 +44,7 @@ export default function BlockedPlayersScreen() {
         ) : blocked.data.length === 0 ? (
           <StateMessage message="Você não bloqueou ninguém." />
         ) : (
-          <View className="mx-4 bg-white rounded-card shadow-card overflow-hidden">
+          <View className="mx-4 bg-card rounded-card shadow-card overflow-hidden">
             {blocked.data.map((player, index) => (
               <View
                 key={player.userId}

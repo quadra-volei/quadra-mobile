@@ -53,8 +53,9 @@ import {
 } from '@/features/matches/schema/createMatch';
 import { GENDER_LABEL, SURFACE_LABEL, type MatchFormat, type MatchGender, type MatchLevel, type MatchSurface } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
-import { MAP_STYLE } from '@/theme/mapStyle';
+import { MAP_STYLE, MAP_STYLE_DARK } from '@/theme/mapStyle';
 import { useAuthStore } from '@/stores/auth';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 // ════════════════════════════════════════════════════════════
 // Conversational primitives (inlined — single-use to this flow, mirroring the
@@ -91,7 +92,7 @@ function Question({
     <View className="mb-3">
       <View className="flex-row items-center gap-2">
         {step ? (
-          <Text className="font-num text-primary" style={{ fontSize: 16 }}>
+          <Text className="font-num text-primary-fg" style={{ fontSize: 16 }}>
             {step}
           </Text>
         ) : null}
@@ -134,7 +135,7 @@ function OptionCard({
       accessibilityRole="button"
       accessibilityState={{ selected }}
       className={`flex-1 rounded-card border p-4 ${
-        selected ? 'border-primary bg-primary/5' : 'border-line bg-white'
+        selected ? 'border-primary-fg bg-primary/5' : 'border-line bg-card'
       }`}
     >
       {icon ? (
@@ -344,6 +345,7 @@ function CreatedView({ match }: { match: CreatedMatch }) {
 // CRIAR PARTIDA — formulário vivo (progressive disclosure)
 // ════════════════════════════════════════════════════════════
 export default function CreateMatchScreen() {
+  const theme = useThemeColors();
   const organizerId = useAuthStore((s) => s.userId);
 
   const createMatch = useCreateMatch();
@@ -560,9 +562,9 @@ export default function CreateMatchScreen() {
             accessibilityRole="button"
             accessibilityLabel="Voltar"
             onPress={() => router.back()}
-            className="h-10 w-10 items-center justify-center rounded-chip bg-white shadow-card"
+            className="h-10 w-10 items-center justify-center rounded-chip bg-card shadow-card"
           >
-            <IconVoltar size={24} color={colors.surfaceDark} />
+            <IconVoltar size={24} color={theme.ink} />
           </Pressable>
           <Text className="font-display text-h1 text-text-primary uppercase">
             Criar partida
@@ -596,7 +598,7 @@ export default function CreateMatchScreen() {
           <CoverPicker uri={coverUri} onPress={pickCover} testID="cover-picker" />
           {permissionDenied ? (
             <Text
-              className="mt-2 font-body text-caption text-danger"
+              className="mt-2 font-body text-caption text-danger-fg"
               accessibilityLiveRegion="polite"
             >
               Permissão de fotos negada. Ative em &quot;Permissões do app&quot;.
@@ -655,7 +657,7 @@ export default function CreateMatchScreen() {
               ) : null}
               {!placePicked && places.data && places.data.length > 0 ? (
                 <View
-                  className="mt-2 rounded-card bg-white shadow-card"
+                  className="mt-2 rounded-card bg-card shadow-card"
                   testID="place-suggestions"
                 >
                   {places.data.map((place) => (
@@ -682,10 +684,10 @@ export default function CreateMatchScreen() {
               {/* Picked place: the arena's name first, the address under it. */}
               {placePicked ? (
                 <View
-                  className="mt-3 flex-row items-center gap-3 rounded-card border-2 border-primary bg-white p-3"
+                  className="mt-3 flex-row items-center gap-3 rounded-card border-2 border-primary-fg bg-card p-3"
                   testID="place-picked"
                 >
-                  <IconLocal size={20} color={colors.primary} />
+                  <IconLocal size={20} color={theme.primaryFg} />
                   <View className="flex-1">
                     <Text className="font-body-bold text-body text-text-primary" numberOfLines={1}>
                       {splitVenue(location).name}
@@ -712,7 +714,7 @@ export default function CreateMatchScreen() {
                     <MapView
                       key={`${values.latitude},${values.longitude}`}
                       liteMode
-                      customMapStyle={MAP_STYLE}
+                      customMapStyle={theme.scheme === 'dark' ? MAP_STYLE_DARK : MAP_STYLE}
                       style={{ flex: 1 }}
                       initialRegion={{
                         latitude: values.latitude,
@@ -753,7 +755,7 @@ export default function CreateMatchScreen() {
                   icon={
                     <IconAvulso
                       size={20}
-                      color={type === 'OneOff' ? colors.textOnDark : colors.primary}
+                      color={type === 'OneOff' ? colors.textOnDark : theme.primaryFg}
                     />
                   }
                   title="Avulso"
@@ -770,7 +772,7 @@ export default function CreateMatchScreen() {
                     <IconRecorrente
                       size={20}
                       color={
-                        type === 'Recurring' ? colors.textOnDark : colors.primary
+                        type === 'Recurring' ? colors.textOnDark : theme.primaryFg
                       }
                     />
                   }
@@ -834,7 +836,7 @@ export default function CreateMatchScreen() {
 
               {/* RECORRENTE → dias, frequência, início */}
               <Reveal show={type === 'Recurring'}>
-                <View ref={anchor('when')} className="rounded-card border border-line bg-white p-4">
+                <View ref={anchor('when')} className="rounded-card border border-line bg-card p-4">
                   <MiniLabel>Dias da semana</MiniLabel>
                   <View className="flex-row justify-between gap-1.5">
                     {WEEKDAYS.map((d, i) => {
@@ -1079,7 +1081,7 @@ export default function CreateMatchScreen() {
               </View>
               <Reveal show={!!level}>
                 <View className="flex-row items-start gap-2 rounded-chip bg-primary/5 p-3">
-                  <IconNivel size={16} color={colors.primary} />
+                  <IconNivel size={16} color={theme.primaryFg} />
                   <Text className="flex-1 font-body text-caption text-text-primary">
                     {levelDesc}
                   </Text>
@@ -1168,9 +1170,9 @@ export default function CreateMatchScreen() {
                 }`}
               >
                 {isFree ? (
-                  <IconGratuito size={16} color={colors.primary} />
+                  <IconGratuito size={16} color={theme.primaryFg} />
                 ) : (
-                  <IconRateio size={16} color={colors.primary} />
+                  <IconRateio size={16} color={theme.primaryFg} />
                 )}
                 <Text className="flex-1 font-body-bold text-caption text-text-primary">
                   {isFree
@@ -1199,7 +1201,7 @@ export default function CreateMatchScreen() {
                   icon={
                     <IconAberta
                       size={20}
-                      color={privacy === 'open' ? colors.textOnDark : colors.primary}
+                      color={privacy === 'open' ? colors.textOnDark : theme.primaryFg}
                     />
                   }
                   title="Aberta"
@@ -1215,7 +1217,7 @@ export default function CreateMatchScreen() {
                   icon={
                     <IconPrivado
                       size={20}
-                      color={privacy === 'private' ? colors.textOnDark : colors.primary}
+                      color={privacy === 'private' ? colors.textOnDark : theme.primaryFg}
                     />
                   }
                   title="Privada"
@@ -1228,7 +1230,7 @@ export default function CreateMatchScreen() {
 
           {createMatch.isError ? (
             <Text
-              className="mt-4 font-body text-caption text-danger"
+              className="mt-4 font-body text-caption text-danger-fg"
               accessibilityLiveRegion="polite"
             >
               {createMatch.error?.message ??
@@ -1239,7 +1241,7 @@ export default function CreateMatchScreen() {
 
         {/* ── Sticky footer CTA ── */}
         <View
-          className="border-t border-line bg-white px-4 pt-3"
+          className="border-t border-line bg-card px-4 pt-3"
           style={{ paddingBottom: insets.bottom + 12 }}
         >
           <Button

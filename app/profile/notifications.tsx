@@ -5,9 +5,9 @@ import { BackHeader } from '@/components/ui/BackHeader';
 import { useSaveNotificationPreferences } from '@/features/notifications/api/notificationsApi';
 import { useNotificationPrefsStore } from '@/stores/notificationPrefs';
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 // Switch tinting (RN core Switch needs raw colors, not className).
-const TRACK = { false: '#E8EEF8', true: colors.primary }; // bg-light-alt / primary
 const THUMB = colors.textOnDark; // white thumb
 
 // ── Hairline divider between grouped rows ──
@@ -28,6 +28,7 @@ function ToggleRow({
   value: boolean;
   onValueChange: (value: boolean) => void;
 }) {
+  const theme = useThemeColors();
   return (
     <View className="flex-row items-center px-4 py-4">
       <View className="flex-1 pr-4">
@@ -39,7 +40,7 @@ function ToggleRow({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={TRACK}
+        trackColor={{ false: theme.bgAlt, true: colors.primary }}
         thumbColor={THUMB}
         accessibilityLabel={title}
       />
@@ -73,7 +74,7 @@ export default function NotificationsScreen() {
           <Text className="font-body-bold text-eyebrow text-text-muted uppercase px-4 mt-4 mb-2">
             Notificações push
           </Text>
-          <View className="mx-4 bg-white rounded-card shadow-card overflow-hidden">
+          <View className="mx-4 bg-card rounded-card shadow-card overflow-hidden">
             <ToggleRow
               title="Convites"
               subtitle="Quando te convidam para uma partida"

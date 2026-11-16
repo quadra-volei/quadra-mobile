@@ -3,7 +3,8 @@ import { Modal, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { openRide, rideOptions, type Destination, type RideOption } from '@/features/explore/lib/directions';
-import { HARD_SHADOW, colors } from '@/theme/colors';
+import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 export type DirectionsSheetProps = {
   /** Where to go; null keeps the sheet closed. */
@@ -14,6 +15,7 @@ export type DirectionsSheetProps = {
 };
 
 function OptionRow({ option, onPress }: { option: RideOption; onPress: () => void }) {
+  const theme = useThemeColors();
   const Icon = option.kind === 'ride' ? IconCarro : IconRota;
   return (
     <Pressable
@@ -21,13 +23,13 @@ function OptionRow({ option, onPress }: { option: RideOption; onPress: () => voi
       accessibilityRole="button"
       accessibilityLabel={option.kind === 'ride' ? `Pedir um ${option.label}` : `Abrir no ${option.label}`}
       testID={`directions-${option.id}`}
-      className="flex-row items-center gap-3 rounded-card border-2 border-surface-dark bg-white px-4 py-3"
-      style={HARD_SHADOW}
+      className="flex-row items-center gap-3 rounded-card border-2 border-edge bg-card px-4 py-3"
+      style={theme.hardShadow}
     >
       <View
         className={`h-10 w-10 items-center justify-center rounded-full ${option.kind === 'ride' ? 'bg-accent' : 'bg-bg-light'}`}
       >
-        <Icon size={20} color={colors.surfaceDark} />
+        <Icon size={20} color={option.kind === 'ride' ? colors.surfaceDark : theme.ink} />
       </View>
       <Text className="flex-1 font-body-bold text-body text-text-primary">{option.label}</Text>
       <Text className="font-body-semibold text-caption text-text-muted">
@@ -43,6 +45,7 @@ function OptionRow({ option, onPress }: { option: RideOption; onPress: () => voi
  * leaves Quadra for the chosen app and closes the sheet.
  */
 export function DirectionsSheet({ destination, distanceLabel, onClose }: DirectionsSheetProps) {
+  const theme = useThemeColors();
   const insets = useSafeAreaInsets();
   const options = destination ? rideOptions(destination) : [];
   const rides = options.filter((o) => o.kind === 'ride');
@@ -79,9 +82,9 @@ export function DirectionsSheet({ destination, distanceLabel, onClose }: Directi
               accessibilityRole="button"
               accessibilityLabel="Fechar"
               onPress={onClose}
-              className="h-9 w-9 items-center justify-center rounded-chip bg-white shadow-card"
+              className="h-9 w-9 items-center justify-center rounded-chip bg-card shadow-card"
             >
-              <IconFechar size={20} color={colors.surfaceDark} />
+              <IconFechar size={20} color={theme.ink} />
             </Pressable>
           </View>
 

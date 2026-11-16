@@ -10,6 +10,7 @@ import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
 import type { UpcomingMatch } from '@/features/matches/types/match';
 import { remoteImage } from '@/lib/remoteImage';
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 export type MatchCardCompactProps = {
   match: UpcomingMatch;
@@ -30,6 +31,7 @@ const PRICE_FREE_COLOR = '#1F8A5B';
  * fetches. Mirrors the prototype's upcoming card.
  */
 export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactProps) {
+  const theme = useThemeColors();
   const extra = match.avatarUrls.length - MAX_AVATARS;
   const visibleAvatars = match.avatarUrls.slice(0, MAX_AVATARS);
   const badge = LEVEL_BADGE[match.level];
@@ -41,7 +43,7 @@ export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactPro
       testID={testID}
       accessibilityRole="button"
       accessibilityLabel={`${match.name}, ${formatStartsAt(match.startsAt)}`}
-      className="w-[262px] bg-white rounded-card shadow-card overflow-hidden"
+      className="w-[262px] bg-card rounded-card shadow-card overflow-hidden"
     >
       {/* cover */}
       <View>
@@ -64,7 +66,7 @@ export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactPro
         </Text>
 
         <View className="flex-row items-center mt-[6px]">
-          <IconHorario size={14} color={colors.textMuted} />
+          <IconHorario size={14} color={theme.muted} />
           <Text
             className="font-body-semibold text-text-muted ml-[5px]"
             style={{ fontSize: 12.5 }}
@@ -74,19 +76,19 @@ export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactPro
         </View>
 
         {/* footer: avatar stack + vagas/price badges, above a hairline */}
-        <View className="flex-row items-center justify-between mt-[13px] pt-[13px] border-t border-[rgba(10,10,60,0.06)]">
+        <View className="flex-row items-center justify-between mt-[13px] pt-[13px] border-t border-line">
           <View className="flex-row items-center">
             {visibleAvatars.map((url, i) => (
               <Image
                 key={url}
                 source={remoteImage(url)}
-                className={`h-[26px] w-[26px] rounded-full border-2 border-white ${i > 0 ? '-ml-[9px]' : ''}`}
+                className={`h-[26px] w-[26px] rounded-full border-2 border-card ${i > 0 ? '-ml-[9px]' : ''}`}
               />
             ))}
             {extra > 0 ? (
-              <View className="h-[26px] w-[26px] rounded-full border-2 border-white bg-bg-light items-center justify-center -ml-[9px]">
+              <View className="h-[26px] w-[26px] rounded-full border-2 border-card bg-bg-light items-center justify-center -ml-[9px]">
                 <Text
-                  className="font-body-bold text-primary"
+                  className="font-body-bold text-primary-fg"
                   style={{ fontSize: 10 }}
                 >
                   +{extra}
@@ -101,7 +103,7 @@ export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactPro
               style={{ backgroundColor: 'rgba(26,26,255,0.08)' }}
             >
               <Text
-                className="font-body-bold text-primary"
+                className="font-body-bold text-primary-fg"
                 style={{ fontSize: 11.5 }}
               >
                 {match.openSlots} vagas
@@ -111,7 +113,7 @@ export function MatchCardCompact({ match, onPress, testID }: MatchCardCompactPro
             <View className="rounded-pill px-[10px] py-[5px] bg-bg-light">
               <Text
                 className="font-body-bold"
-                style={{ fontSize: 11.5, color: isFree ? PRICE_FREE_COLOR : colors.surfaceDark }}
+                style={{ fontSize: 11.5, color: isFree ? (theme.scheme === 'dark' ? theme.successFg : PRICE_FREE_COLOR) : theme.ink }}
               >
                 {match.priceLabel}
               </Text>

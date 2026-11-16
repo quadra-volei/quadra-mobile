@@ -22,6 +22,7 @@ import { POINT_RULES } from "@/features/ranking/pointRules";
 import { useAuthStore } from "@/stores/auth";
 import { CARD_SCREEN } from "@/theme/cardFinish";
 import { colors } from "@/theme/colors";
+import { ForceLightTheme } from '@/components/ui/ForceLightTheme';
 
 // The last number of pieces this phone showed the player, per account and
 // season, to play the new piece's reveal once. Non-secret (CLAUDE.md).
@@ -141,7 +142,7 @@ function LevelRow({
       testID={`pass-level-${level}`}
     >
       <View className={`h-9 w-9 items-center justify-center rounded-full ${reached ? "bg-accent-light" : "border border-white/20"}`}>
-        <Text className={`font-num text-body ${reached ? "text-surface-dark" : "text-white/60"}`}>{level}</Text>
+        <Text className={`font-num text-body ${reached ? "text-navy" : "text-white/60"}`}>{level}</Text>
       </View>
       <CardPiecesMini collected={piecesWon(pass)} highlight={pieceOfLevel(level)} width={26} />
       <View className="flex-1">
@@ -279,7 +280,7 @@ function PassBody({ pass, profile }: { pass: SeasonPass; profile: MyProfile }) {
       ) : null}
 
       {save.error ? (
-        <Text className="font-body text-caption text-danger mt-3" accessibilityLiveRegion="polite">
+        <Text className="font-body text-caption text-danger-fg mt-3" accessibilityLiveRegion="polite">
           {save.error.message}
         </Text>
       ) : null}
@@ -304,7 +305,7 @@ function PassBody({ pass, profile }: { pass: SeasonPass; profile: MyProfile }) {
       {POINT_RULES.map((rule) => (
         <View key={rule.title} className="flex-row items-center gap-3 rounded-chip border border-white/10 bg-white/5 px-3 py-3 mb-2">
           <View className={`h-11 w-11 items-center justify-center rounded-chip ${rule.mvp ? "bg-accent" : "bg-white/10"}`}>
-            <Text className={`font-num text-body ${rule.mvp ? "text-surface-dark" : "text-text-on-dark"}`}>{rule.badge}</Text>
+            <Text className={`font-num text-body ${rule.mvp ? "text-navy" : "text-text-on-dark"}`}>{rule.badge}</Text>
           </View>
           <View className="flex-1">
             <Text className="font-body-bold text-body text-text-on-dark">{rule.title}</Text>
@@ -324,7 +325,7 @@ function PassBody({ pass, profile }: { pass: SeasonPass; profile: MyProfile }) {
  * by piece, the points to the next piece and this week's, the 12 levels with
  * their rewards, and how points are earned.
  */
-export default function SeasonPassScreen() {
+function SeasonPassScreen() {
   const pass = useSeasonPass();
   const profile = useMyProfile();
   const insets = useSafeAreaInsets();
@@ -366,5 +367,14 @@ export default function SeasonPassScreen() {
         )}
       </ScrollView>
     </View>
+  );
+}
+
+// Drawn on navy in both themes: keeps its light-theme colors (DECISIONS #203).
+export default function SeasonPassScreenRoute() {
+  return (
+    <ForceLightTheme>
+      <SeasonPassScreen />
+    </ForceLightTheme>
   );
 }

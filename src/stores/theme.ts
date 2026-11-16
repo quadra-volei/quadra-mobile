@@ -3,12 +3,10 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 /**
- * Appearance preference (S10 "Aparência").
- *
- * Locked behavior: all three options are selectable and persisted; only `light`
- * actually re-themes the UI today (DESIGN_SYSTEM has no dark tokens yet).
- * `dark`/`system` persist the preference and carry an "Em breve" affordance on
- * their tiles.
+ * Appearance preference (S10 "Aparência"): light, dark or the phone's setting
+ * (`system`). The root layout hands it to nativewind's `colorScheme.set`, which
+ * switches the CSS variables of `global.css` and the `useThemeColors` values
+ * (DECISIONS #203).
  */
 export type ThemePreference = 'light' | 'dark' | 'system';
 

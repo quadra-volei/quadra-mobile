@@ -328,10 +328,9 @@ describe('S10 — Settings list screen', () => {
   /**
    * Covers: S10 — Settings
    * Criterion: "'Aparência' offers Claro / Escuro / Automático; the selected
-   *  option is visually marked; 'Escuro'/'Automático' show an 'Em breve'
-   *  affordance."
+   *  option is visually marked" (dark theme built: DECISIONS #203).
    */
-  it('renders the three appearance tiles with the selected mark and "Em breve" badges', async () => {
+  it('renders the three appearance tiles with the selected mark and no "Em breve" badge', async () => {
     await renderScreen();
 
     expect(screen.getByText('Aparência')).toBeTruthy();
@@ -350,8 +349,8 @@ describe('S10 — Settings list screen', () => {
       screen.getByLabelText('Automático').props.accessibilityState?.selected,
     ).toBe(false);
 
-    // dark + system carry an "Em breve" affordance (two badges)
-    expect(screen.getAllByText('Em breve')).toHaveLength(2);
+    // the dark theme exists now: no tile is marked "Em breve"
+    expect(screen.queryByText('Em breve')).toBeNull();
   });
 
   /**
@@ -369,12 +368,18 @@ describe('S10 — Settings list screen', () => {
     expect(useThemeStore.getState().theme).toBe('light');
   });
 
-  it('does not let an "Em breve" appearance be picked', async () => {
+  it('lets the dark appearance be picked', async () => {
     await renderScreen();
 
     fireEvent.press(screen.getByLabelText('Escuro'));
+    expect(mockSetTheme).toHaveBeenCalledWith('dark');
+  });
 
-    expect(mockSetTheme).not.toHaveBeenCalled();
+  it('lets the automatic appearance be picked', async () => {
+    await renderScreen();
+
+    fireEvent.press(screen.getByLabelText('Automático'));
+    expect(mockSetTheme).toHaveBeenCalledWith('system');
   });
 
   /**

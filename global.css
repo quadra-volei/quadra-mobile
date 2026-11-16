@@ -1,3 +1,44 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Theme colors (DECISIONS #203). The values live in src/theme/palette.ts;
+   tests/theme/palette.test.ts fails if this file drifts from it. Channels are
+   "R G B" so the Tailwind colors keep their opacity modifier (bg-card/80). The
+   dark block applies when the app's color scheme is dark: the "Aparência"
+   setting calls nativewind's colorScheme.set (light / dark / system). */
+:root {
+  --color-bg: 239 243 252;
+  --color-bg-alt: 232 238 248;
+  --color-card: 255 255 255;
+  --color-surface: 10 10 60;
+  --color-surface-alt: 17 17 69;
+  --color-text: 26 26 46;
+  --color-muted: 98 98 138;
+  --color-ink: 10 10 60;
+  --color-primary-fg: 26 26 255;
+  --color-danger-fg: 220 38 38;
+  --color-success-fg: 22 163 74;
+  --color-edge: 10 10 60;
+  --color-shadow: 10 10 60;
+  --color-line: rgba(10,10,60,0.10);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-bg: 8 8 31;
+    --color-bg-alt: 31 31 88;
+    --color-card: 23 23 74;
+    --color-surface: 28 28 110;
+    --color-surface-alt: 37 37 126;
+    --color-text: 238 240 255;
+    --color-muted: 163 165 204;
+    --color-ink: 238 240 255;
+    --color-primary-fg: 148 148 255;
+    --color-danger-fg: 248 113 113;
+    --color-success-fg: 74 222 128;
+    --color-edge: 3 3 15;
+    --color-shadow: 26 26 255;
+    --color-line: rgba(255,255,255,0.12);
+  }
+}

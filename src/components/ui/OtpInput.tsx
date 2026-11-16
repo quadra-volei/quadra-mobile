@@ -33,7 +33,7 @@ const SHAKE_DURATION = 50; // ms per oscillation leg
  * Segmented per-digit OTP field: renders `length` boxes, auto-advances focus on
  * input, moves back on backspace from an empty box, and accepts a pasted /
  * autofilled full code (iOS `oneTimeCode`, Android `sms-otp`) distributed across
- * the boxes. Empty boxes use `border-line`, filled boxes `border-primary`, and
+ * the boxes. Empty boxes use `border-line`, filled boxes `border-primary-fg`, and
  * `error` swaps to `border-danger` with a brief reanimated shake.
  */
 export function OtpInput({
@@ -130,7 +130,7 @@ export function OtpInput({
     if (error) {
       return 'border-danger';
     }
-    return digits[index] ? 'border-primary' : 'border-line';
+    return digits[index] ? 'border-primary-fg' : 'border-line';
   };
 
   return (
@@ -155,7 +155,7 @@ export function OtpInput({
           accessibilityLabel={`Dígito ${index + 1} de ${length}`}
           // flex-1 (not a fixed width): six 64px boxes would not fit a phone
           // screen, so the boxes share the row equally.
-          className={`h-16 flex-1 rounded-card border-2 bg-white text-center font-num text-num text-text-primary ${borderClass(index)}`}
+          className={`h-16 flex-1 rounded-card border-2 bg-card text-center font-num text-num text-text-primary ${borderClass(index)}`}
         />
       ))}
     </Animated.View>

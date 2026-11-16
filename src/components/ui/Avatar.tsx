@@ -59,7 +59,7 @@ function LevelBadge({ level, size }: { level: number; size: AvatarSize }) {
     <View
       testID="avatar-level-badge"
       accessibilityLabel={`Nível ${level}`}
-      className={`absolute -bottom-[2px] -right-[2px] ${box} rounded-full border-2 border-white items-center justify-center`}
+      className={`absolute -bottom-[2px] -right-[2px] ${box} rounded-full border-2 border-card items-center justify-center`}
       style={{ backgroundColor: color }}
     >
       <Text

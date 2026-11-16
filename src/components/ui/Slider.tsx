@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { PanResponder, View, type GestureResponderEvent } from 'react-native';
 
-import { HARD_SHADOW } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 export type SliderProps = {
   value: number;
@@ -25,6 +25,7 @@ const THUMB = 28;
  * Screen readers adjust it one step at a time.
  */
 export function Slider({ value, min, max, step = 1, onChange, accessibilityLabel, valueText, testID }: SliderProps) {
+  const theme = useThemeColors();
   const [width, setWidth] = useState(0);
   // The responder is created once; it reads the current props through this ref.
   const latest = useRef({ width, min, max, step, onChange, value });
@@ -72,8 +73,8 @@ export function Slider({ value, min, max, step = 1, onChange, accessibilityLabel
       </View>
       <View
         pointerEvents="none"
-        className="absolute rounded-full border-2 border-surface-dark bg-white"
-        style={{ width: THUMB, height: THUMB, left: thumbLeft, ...HARD_SHADOW }}
+        className="absolute rounded-full border-2 border-edge bg-card"
+        style={{ width: THUMB, height: THUMB, left: thumbLeft, ...theme.hardShadow }}
       />
     </View>
   );

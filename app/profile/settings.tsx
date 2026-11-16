@@ -20,6 +20,8 @@ import { logout } from '@/lib/auth/logout';
 import { LEGAL_URLS } from '@/lib/legal';
 import { useThemeStore, type ThemePreference } from '@/stores/theme';
 import { colors } from '@/theme/colors';
+import { PALETTES } from '@/theme/palette';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 import appConfig from '../../app.json';
 
@@ -68,6 +70,7 @@ function SettingsRow({
   onPress?: () => void;
   disabled?: boolean;
 }) {
+  const theme = useThemeColors();
   const a11yLabel = subtitle ? `${title}. ${subtitle}` : title;
   return (
     <Pressable
@@ -90,42 +93,41 @@ function SettingsRow({
       {rightText ? (
         <Text className="font-num text-caption text-text-muted">{rightText}</Text>
       ) : (
-        <IconAvancar size={20} color={colors.textMuted} />
+        <IconAvancar size={20} color={theme.muted} />
       )}
     </Pressable>
   );
 }
 
-// ── Appearance theme tile (preview swatch + label + selected ring + "Em breve") ──
+// ── Appearance theme tile (preview swatch + label + selected ring) ──
+// The swatches show each theme's own colors whatever the current theme. The
+// selected ring is an inline style, never a toggled className (DECISIONS #87).
 function ThemeTile({
   value,
   label,
   selected,
   onPress,
-  badge,
   swatch,
 }: {
   value: ThemePreference;
   label: string;
   selected: boolean;
   onPress: (value: ThemePreference) => void;
-  badge?: string;
   swatch: ReactNode;
 }) {
+  const theme = useThemeColors();
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
-      // A tile with a badge ("Em breve") is not built yet: it shows but cannot be picked.
-      accessibilityState={{ selected, disabled: badge != null }}
-      disabled={badge != null}
+      accessibilityState={{ selected }}
       onPress={() => onPress(value)}
-      className={`flex-1 items-center ${badge ? 'opacity-60' : ''}`}
+      className="flex-1 items-center"
+      testID={`theme-${value}`}
     >
       <View
-        className={`w-full h-16 rounded-card overflow-hidden border-2 ${
-          selected ? 'border-primary' : 'border-line'
-        }`}
+        className="w-full h-16 rounded-card overflow-hidden border-2 border-line"
+        style={selected ? { borderColor: theme.primaryFg } : undefined}
       >
         {swatch}
         {selected ? (
@@ -137,13 +139,6 @@ function ThemeTile({
       <Text className="mt-2 font-body text-caption text-text-primary">
         {label}
       </Text>
-      {badge ? (
-        <View className="mt-1 rounded-pill bg-bg-light-alt px-2 py-0.5">
-          <Text className="font-mono text-mono text-text-muted uppercase">
-            {badge}
-          </Text>
-        </View>
-      ) : null}
     </Pressable>
   );
 }
@@ -154,7 +149,7 @@ function SummaryCard() {
 
   if (isPending) {
     return (
-      <View className="mx-4 mt-2 bg-white rounded-card shadow-card p-4 flex-row items-center gap-3">
+      <View className="mx-4 mt-2 bg-card rounded-card shadow-card p-4 flex-row items-center gap-3">
         <SkeletonBlock className="h-12 w-12 rounded-full" />
         <View className="flex-1 gap-2">
           <SkeletonBlock className="h-4 w-32" />
@@ -167,7 +162,7 @@ function SummaryCard() {
   if (isError) {
     return (
       <View
-        className="mx-4 mt-2 bg-white rounded-card shadow-card p-4 items-center"
+        className="mx-4 mt-2 bg-card rounded-card shadow-card p-4 items-center"
         accessibilityLiveRegion="polite"
       >
         <Text className="font-body text-body text-text-muted text-center">
@@ -187,7 +182,7 @@ function SummaryCard() {
     .join(' · ');
 
   return (
-    <View className="mx-4 mt-2 bg-white rounded-card shadow-card p-4 flex-row items-center gap-3">
+    <View className="mx-4 mt-2 bg-card rounded-card shadow-card p-4 flex-row items-center gap-3">
       <Avatar uri={data.avatarUrl} name={data.firstName} size="md" />
       <View className="flex-1">
         <Text className="font-body-extrabold text-h3 text-text-primary">{fullName}</Text>
@@ -204,12 +199,13 @@ function SummaryCard() {
 // "Mostrar minhas atividades para quem me segue" (on by default). Follows the
 // tap while the server answers; the profile in the cache takes the result.
 function ActivitySharingToggle() {
+  const theme = useThemeColors();
   const { data } = useMyProfile();
   const setSharing = useSetActivitySharing();
   const value = setSharing.isPending ? (setSharing.variables ?? true) : (data?.shareActivity ?? true);
   return (
     <ToggleField
-      icon={<IconParticipantes size={24} color={colors.surfaceDark} />}
+      icon={<IconParticipantes size={24} color={theme.ink} />}
       title="Mostrar minhas atividades"
       caption="Quem te segue vê quando você joga, é MVP ou sobe de nível"
       value={value}
@@ -220,8 +216,9 @@ function ActivitySharingToggle() {
 }
 
 export default function SettingsScreen() {
+  const theme = useThemeColors();
   const queryClient = useQueryClient();
-  const theme = useThemeStore((s) => s.theme);
+  const themePref = useThemeStore((s) => s.theme);
   const setTheme = useThemeStore((s) => s.setTheme);
   const [headerHeight, setHeaderHeight] = useState(0);
 
@@ -269,16 +266,16 @@ export default function SettingsScreen() {
 
           {/* CONTA — editar perfil, exportar e excluir a conta (LGPD); Pagamentos = Layer 3, cut */}
           <SectionLabel>Conta</SectionLabel>
-          <View className="mx-4 bg-white rounded-card shadow-card overflow-hidden">
+          <View className="mx-4 bg-card rounded-card shadow-card overflow-hidden">
             <SettingsRow
-              icon={<IconPerfil size={24} color={colors.surfaceDark} />}
+              icon={<IconPerfil size={24} color={theme.ink} />}
               title="Editar perfil"
               subtitle="Nome, nascimento, telefone"
               onPress={() => router.push('/profile/edit')}
             />
             <Divider />
             <SettingsRow
-              icon={<IconBaixar size={24} color={colors.surfaceDark} />}
+              icon={<IconBaixar size={24} color={theme.ink} />}
               title="Exportar meus dados"
               subtitle="Tudo o que o Quadra guarda sobre você"
               onPress={onExport}
@@ -286,7 +283,7 @@ export default function SettingsScreen() {
             />
             <Divider />
             <SettingsRow
-              icon={<IconExcluir size={24} color={colors.danger} />}
+              icon={<IconExcluir size={24} color={theme.dangerFg} />}
               title="Excluir conta"
               subtitle="Apaga sua conta e seus dados"
               onPress={onDelete}
@@ -296,16 +293,16 @@ export default function SettingsScreen() {
 
           {/* ANÚNCIOS — self-service ads (DECISIONS #200) */}
           <SectionLabel>Anúncios</SectionLabel>
-          <View className="mx-4 bg-white rounded-card shadow-card overflow-hidden">
+          <View className="mx-4 bg-card rounded-card shadow-card overflow-hidden">
             <SettingsRow
-              icon={<IconDivulgar size={24} color={colors.surfaceDark} />}
+              icon={<IconDivulgar size={24} color={theme.ink} />}
               title="Anunciar no Quadra"
               subtitle="Sua arena, aula ou loja para quem joga perto"
               onPress={() => router.push('/ads/new')}
             />
             <Divider />
             <SettingsRow
-              icon={<IconEstatisticas size={24} color={colors.surfaceDark} />}
+              icon={<IconEstatisticas size={24} color={theme.ink} />}
               title="Meus anúncios"
               subtitle="Situação, quem viu e quem tocou"
               onPress={() => router.push('/ads')}
@@ -314,58 +311,56 @@ export default function SettingsScreen() {
 
           {/* PREFERÊNCIAS */}
           <SectionLabel>Preferências</SectionLabel>
-          <View className="mx-4 bg-white rounded-card shadow-card p-4">
+          <View className="mx-4 bg-card rounded-card shadow-card p-4">
             <Text className="font-body-extrabold text-h3 text-text-primary">Aparência</Text>
             <View className="flex-row gap-3 mt-3">
               <ThemeTile
                 value="light"
                 label="Claro"
-                selected={theme === 'light'}
+                selected={themePref === 'light'}
                 onPress={setTheme}
                 swatch={
-                  <View className="flex-1 bg-bg-light items-center justify-center">
-                    <View className="h-6 w-10 rounded-chip bg-white" />
+                  <View className="flex-1 items-center justify-center" style={{ backgroundColor: PALETTES.light.bg }}>
+                    <View className="h-6 w-10 rounded-chip" style={{ backgroundColor: PALETTES.light.card }} />
                   </View>
                 }
               />
               <ThemeTile
                 value="dark"
                 label="Escuro"
-                badge="Em breve"
-                selected={theme === 'dark'}
+                selected={themePref === 'dark'}
                 onPress={setTheme}
                 swatch={
-                  <View className="flex-1 bg-surface-dark items-center justify-center">
-                    <View className="h-6 w-10 rounded-chip bg-surface-dark-alt" />
+                  <View className="flex-1 items-center justify-center" style={{ backgroundColor: PALETTES.dark.bg }}>
+                    <View className="h-6 w-10 rounded-chip" style={{ backgroundColor: PALETTES.dark.card }} />
                   </View>
                 }
               />
               <ThemeTile
                 value="system"
                 label="Automático"
-                badge="Em breve"
-                selected={theme === 'system'}
+                selected={themePref === 'system'}
                 onPress={setTheme}
                 swatch={
                   <View className="flex-1 flex-row">
-                    <View className="flex-1 bg-bg-light" />
-                    <View className="flex-1 bg-surface-dark" />
+                    <View className="flex-1" style={{ backgroundColor: PALETTES.light.bg }} />
+                    <View className="flex-1" style={{ backgroundColor: PALETTES.dark.bg }} />
                   </View>
                 }
               />
             </View>
           </View>
 
-          <View className="mx-4 mt-3 bg-white rounded-card shadow-card overflow-hidden">
+          <View className="mx-4 mt-3 bg-card rounded-card shadow-card overflow-hidden">
             <SettingsRow
-              icon={<IconNotificacoes size={24} color={colors.surfaceDark} />}
+              icon={<IconNotificacoes size={24} color={theme.ink} />}
               title="Notificações"
               subtitle="Convites, lembretes, ranking"
               onPress={() => router.push('/profile/notifications')}
             />
             <Divider />
             <SettingsRow
-              icon={<IconPermissoes size={24} color={colors.surfaceDark} />}
+              icon={<IconPermissoes size={24} color={theme.ink} />}
               title="Permissões do app"
               subtitle="Localização e notificações"
               onPress={() => {
@@ -379,9 +374,9 @@ export default function SettingsScreen() {
           <View className="mx-4">
             <ActivitySharingToggle />
           </View>
-          <View className="mx-4 mt-3 bg-white rounded-card shadow-card overflow-hidden">
+          <View className="mx-4 mt-3 bg-card rounded-card shadow-card overflow-hidden">
             <SettingsRow
-              icon={<IconBloquearJogador size={24} color={colors.surfaceDark} />}
+              icon={<IconBloquearJogador size={24} color={theme.ink} />}
               title="Jogadores bloqueados"
               subtitle="Quem você bloqueou na Rede"
               onPress={() => router.push('/profile/blocked')}
@@ -392,16 +387,16 @@ export default function SettingsScreen() {
           {admin.data ? (
             <>
               <SectionLabel>Equipe</SectionLabel>
-              <View className="mx-4 bg-white rounded-card shadow-card overflow-hidden">
+              <View className="mx-4 bg-card rounded-card shadow-card overflow-hidden">
                 <SettingsRow
-                  icon={<IconCuradoria size={24} color={colors.surfaceDark} />}
+                  icon={<IconCuradoria size={24} color={theme.ink} />}
                   title="Curadoria de arenas"
                   subtitle="Aprovar os lugares que aparecem no mapa"
                   onPress={() => router.push('/profile/curation')}
                 />
                 <Divider />
                 <SettingsRow
-                  icon={<IconDivulgar size={24} color={colors.surfaceDark} />}
+                  icon={<IconDivulgar size={24} color={theme.ink} />}
                   title="Anúncios"
                   subtitle="Confirmar pagamentos e aprovar anúncios"
                   onPress={() => router.push('/profile/ads-review')}
@@ -412,35 +407,35 @@ export default function SettingsScreen() {
 
           {/* SUPORTE */}
           <SectionLabel>Suporte</SectionLabel>
-          <View className="mx-4 bg-white rounded-card shadow-card overflow-hidden">
+          <View className="mx-4 bg-card rounded-card shadow-card overflow-hidden">
             <SettingsRow
-              icon={<IconFeedback size={24} color={colors.surfaceDark} />}
+              icon={<IconFeedback size={24} color={theme.ink} />}
               title="Enviar feedback"
               subtitle="Sugestões, problemas e elogios"
               onPress={() => router.push('/profile/feedback')}
             />
             <Divider />
             <SettingsRow
-              icon={<IconTour size={24} color={colors.surfaceDark} />}
+              icon={<IconTour size={24} color={theme.ink} />}
               title="Ver o tour de novo"
               subtitle="Os atalhos do app em 4 toques"
               onPress={replayTour}
             />
             <Divider />
             <SettingsRow
-              icon={<IconTermos size={24} color={colors.surfaceDark} />}
+              icon={<IconTermos size={24} color={theme.ink} />}
               title="Termos de Uso"
               onPress={() => void Linking.openURL(LEGAL_URLS.terms)}
             />
             <Divider />
             <SettingsRow
-              icon={<IconPrivacidade size={24} color={colors.surfaceDark} />}
+              icon={<IconPrivacidade size={24} color={theme.ink} />}
               title="Política de Privacidade"
               onPress={() => void Linking.openURL(LEGAL_URLS.privacy)}
             />
             <Divider />
             <SettingsRow
-              icon={<IconSobre size={24} color={colors.surfaceDark} />}
+              icon={<IconSobre size={24} color={theme.ink} />}
               title="Sobre o Quadra"
               rightText={`v${APP_VERSION}`}
               disabled
@@ -452,10 +447,10 @@ export default function SettingsScreen() {
             accessibilityRole="button"
             accessibilityLabel="Sair da conta. Ação destrutiva."
             onPress={onLogout}
-            className="mx-4 mt-6 bg-white rounded-card shadow-card px-4 py-4 flex-row items-center"
+            className="mx-4 mt-6 bg-card rounded-card shadow-card px-4 py-4 flex-row items-center"
           >
-            <IconSair size={24} color={colors.danger} />
-            <Text className="font-body-semibold text-body-bold text-danger ml-2">
+            <IconSair size={24} color={theme.dangerFg} />
+            <Text className="font-body-semibold text-body-bold text-danger-fg ml-2">
               Sair da conta
             </Text>
           </Pressable>

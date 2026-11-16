@@ -44,6 +44,7 @@ import { useAuthStore } from '@/stores/auth';
 import { colors, COVER_SCRIM, COVER_SCRIM_LOCATIONS } from '@/theme/colors';
 import { ICON_HIT_SLOP } from '@/theme/layout';
 import { MOTION } from '@/theme/motion';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 /** Cover height; the hero bleeds under the status bar, as in the prototype. */
 const HERO_HEIGHT = 210;
@@ -129,6 +130,7 @@ function TabButton({
   children: ReactNode;
   testID: string;
 }) {
+  const theme = useThemeColors();
   return (
     <Pressable
       accessibilityRole="tab"
@@ -139,7 +141,7 @@ function TabButton({
     >
       <TabLabel
         selected={selected}
-        activeColor={colors.primary}
+        activeColor={theme.primaryFg}
         className="font-body-semibold text-body-bold text-text-muted"
       >
         {children}
@@ -166,7 +168,7 @@ function HeroAction({
       accessibilityLabel={label}
       onPress={onPress}
       testID={testID}
-      className="h-10 w-10 items-center justify-center rounded-full bg-surface-dark/35"
+      className="h-10 w-10 items-center justify-center rounded-full bg-navy/35"
     >
       {children}
     </Pressable>
@@ -176,7 +178,7 @@ function HeroAction({
 // ── Lightweight loading skeleton (neutral bg-light-alt blocks) ──
 function MatchDetailSkeleton() {
   return (
-    <View className="flex-1 bg-white" testID="match-detail-skeleton">
+    <View className="flex-1 bg-card" testID="match-detail-skeleton">
       <View className="bg-bg-light-alt" style={{ height: HERO_HEIGHT }} />
       <View className="mx-5 mt-6 h-40 rounded-card bg-bg-light-alt" />
       <View className="mx-5 mt-6 h-40 rounded-card bg-bg-light-alt" />
@@ -187,7 +189,7 @@ function MatchDetailSkeleton() {
 // ── Error state with retry ──
 function MatchDetailError({ onRetry }: { onRetry: () => void }) {
   return (
-    <View className="flex-1 bg-white" testID="match-detail-error">
+    <View className="flex-1 bg-card" testID="match-detail-error">
       <View className="flex-1 items-center justify-center px-6">
         <Text className="text-center font-body text-body text-text-primary">
           Não foi possível carregar a partida.
@@ -203,6 +205,7 @@ function MatchDetailError({ onRetry }: { onRetry: () => void }) {
 }
 
 export default function MatchDetailScreen() {
+  const theme = useThemeColors();
   const { id, c } = useLocalSearchParams<{ id: string; c?: string }>();
   const matchId = id ?? '';
   const userId = useAuthStore((s) => s.userId);
@@ -401,7 +404,7 @@ export default function MatchDetailScreen() {
     confirmPresence.isPending || declinePresence.isPending || joinMatch.isPending;
 
   return (
-    <View className="flex-1 bg-white">
+    <View className="flex-1 bg-card">
       <ScrollView
         contentContainerStyle={{ paddingBottom: insets.bottom + 148 }}
         showsVerticalScrollIndicator={false}
@@ -447,7 +450,7 @@ export default function MatchDetailScreen() {
           <View className="absolute bottom-4 left-5 right-5">
             {isOrganizer ? (
               <View className="mb-2 self-start rounded-pill bg-accent px-3 py-1">
-                <Text className="font-mono text-mono text-text-primary uppercase">
+                <Text className="font-mono text-mono text-navy uppercase">
                   Você organiza
                 </Text>
               </View>
@@ -522,7 +525,7 @@ export default function MatchDetailScreen() {
           className="px-5 pb-5 pt-3"
         >
           {/* ── Essentials: when, where, price, who organizes ── */}
-          <InfoRow icon={<IconData size={22} color={colors.primary} />}>
+          <InfoRow icon={<IconData size={22} color={theme.primaryFg} />}>
             <Text className="font-body-semibold text-body-bold text-text-primary">
               {formatWhen(match.startsAt)}
             </Text>
@@ -535,7 +538,7 @@ export default function MatchDetailScreen() {
           </InfoRow>
 
           <InfoRow
-            icon={<IconLocal size={22} color={colors.primary} />}
+            icon={<IconLocal size={22} color={theme.primaryFg} />}
             trailing={
               <PressableScale
                 onPress={() =>
@@ -551,8 +554,8 @@ export default function MatchDetailScreen() {
                 testID="match-directions"
                 className="flex-row items-center gap-2 overflow-hidden rounded-pill bg-bg-light px-3 py-2"
               >
-                <IconRota size={15} color={colors.primary} />
-                <Text className="font-body-semibold text-body-bold text-primary">
+                <IconRota size={15} color={theme.primaryFg} />
+                <Text className="font-body-semibold text-body-bold text-primary-fg">
                   Como chegar
                 </Text>
               </PressableScale>
@@ -573,19 +576,19 @@ export default function MatchDetailScreen() {
             </Text>
           </InfoRow>
 
-          <InfoRow icon={<IconValor size={22} color={colors.primary} />}>
+          <InfoRow icon={<IconValor size={22} color={theme.primaryFg} />}>
             {/* Drop-in price first; a recurring match adds the regulars' price. */}
             <Text className="font-body-semibold text-body-bold text-text-primary">
               <Text
                 testID="price-single"
-                className={match.priceLabel === 'Grátis' ? 'text-success' : ''}
+                className={match.priceLabel === 'Grátis' ? 'text-success-fg' : ''}
               >
                 {match.priceLabel}
               </Text>
               {match.priceLabel === 'Grátis' ? '' : ' avulso'}
               {isRecurring ? ' · ' : ''}
               {isRecurring ? (
-                <Text testID="price-monthly" className="text-primary">
+                <Text testID="price-monthly" className="text-primary-fg">
                   {match.priceMonthlyLabel}
                 </Text>
               ) : null}
@@ -626,7 +629,7 @@ export default function MatchDetailScreen() {
                 variant="outline"
                 onPress={onShareToFeed}
                 loading={shareMatch.isPending}
-                leftIcon={<IconDivulgar size={18} color={colors.surfaceDark} />}
+                leftIcon={<IconDivulgar size={18} color={theme.ink} />}
                 testID="share-to-feed"
               >
                 Compartilhar na Rede
@@ -645,7 +648,7 @@ export default function MatchDetailScreen() {
                     params: { scope: 'group', groupId: match.id },
                   })
                 }
-                leftIcon={<IconRanking size={18} color={colors.surfaceDark} />}
+                leftIcon={<IconRanking size={18} color={theme.ink} />}
                 testID="group-ranking"
               >
                 Ranking do grupo
@@ -662,7 +665,7 @@ export default function MatchDetailScreen() {
                   onPress={() =>
                     router.push({ pathname: '/matches/[id]/edit', params: { id: match.id } })
                   }
-                  leftIcon={<IconEditar size={18} color={colors.surfaceDark} />}
+                  leftIcon={<IconEditar size={18} color={theme.ink} />}
                   testID="edit-match"
                 >
                   Editar
@@ -673,7 +676,7 @@ export default function MatchDetailScreen() {
                   variant="outline"
                   onPress={onCancelMatch}
                   loading={cancelMatch.isPending}
-                  leftIcon={<IconCancelarPartida size={18} color={colors.surfaceDark} />}
+                  leftIcon={<IconCancelarPartida size={18} color={theme.ink} />}
                   testID="cancel-match"
                 >
                   Cancelar
@@ -714,12 +717,12 @@ export default function MatchDetailScreen() {
 
       {/* ── Sticky action bar ── */}
       <View
-        className="absolute bottom-0 left-0 right-0 border-t border-line bg-white px-5 pt-4"
+        className="absolute bottom-0 left-0 right-0 border-t border-line bg-card px-5 pt-4"
         style={{ paddingBottom: Math.max(insets.bottom, 10) + 10 }}
       >
         {actionError ? (
           <Text
-            className="mb-2 font-body text-caption text-danger"
+            className="mb-2 font-body text-caption text-danger-fg"
             accessibilityLiveRegion="polite"
             testID="action-error"
           >

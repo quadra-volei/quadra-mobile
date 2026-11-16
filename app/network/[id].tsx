@@ -20,8 +20,10 @@ import {
 } from '@/features/network/api/postsApi';
 import { colors } from '@/theme/colors';
 import { ICON_HIT_SLOP } from '@/theme/layout';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 function CommentRow({ comment, onDelete }: { comment: PostComment; onDelete: () => void }) {
+  const theme = useThemeColors();
   return (
     <View className="flex-row gap-3 px-4 py-3" testID="comment">
       <Avatar uri={comment.author.photoUrl ?? undefined} name={comment.author.displayName} size="sm" />
@@ -39,7 +41,7 @@ function CommentRow({ comment, onDelete }: { comment: PostComment; onDelete: () 
           hitSlop={ICON_HIT_SLOP}
           onPress={onDelete}
         >
-          <IconExcluir size={18} color={colors.textMuted} />
+          <IconExcluir size={18} color={theme.muted} />
         </PressableScale>
       ) : null}
     </View>
@@ -48,6 +50,7 @@ function CommentRow({ comment, onDelete }: { comment: PostComment; onDelete: () 
 
 /** The conversation of one post: comments oldest first and the field to write one. */
 export default function PostCommentsScreen() {
+  const theme = useThemeColors();
   const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const [headerHeight, setHeaderHeight] = useState(0);
@@ -98,14 +101,14 @@ export default function PostCommentsScreen() {
 
       {addComment.isError ? (
         <Text
-          className="px-4 pb-2 font-body text-caption text-danger"
+          className="px-4 pb-2 font-body text-caption text-danger-fg"
           accessibilityLiveRegion="polite"
         >
           {addComment.error.message}
         </Text>
       ) : null}
       <View
-        className="flex-row items-end gap-3 px-4 pt-3 bg-white border-t border-line"
+        className="flex-row items-end gap-3 px-4 pt-3 bg-card border-t border-line"
         style={{ paddingBottom: insets.bottom + 12 }}
       >
         <TextInput
@@ -113,7 +116,7 @@ export default function PostCommentsScreen() {
           value={text}
           onChangeText={setText}
           placeholder="Escreva um comentário…"
-          placeholderTextColor={colors.textMuted}
+          placeholderTextColor={theme.muted}
           multiline
           maxLength={COMMENT_TEXT_MAX}
           accessibilityLabel="Seu comentário"
@@ -122,7 +125,7 @@ export default function PostCommentsScreen() {
         {/* Always the same solid button: a colour that changed with the text made it vanish on
             the phone. An empty comment is simply not sent. */}
         <IconButton label="Enviar comentário" onPress={send} testID="comment-send">
-          <IconEnviar size={20} color={colors.surfaceDark} />
+          <IconEnviar size={20} color={theme.ink} />
         </IconButton>
       </View>
 

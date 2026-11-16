@@ -1,4 +1,5 @@
 import { Text, TextInput, View } from 'react-native';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 export type PhoneInputProps = {
   /** National digits only (no country code, no mask), e.g. "11999999999". */
@@ -48,6 +49,7 @@ export function PhoneInput({
   error,
   testID,
 }: PhoneInputProps) {
+  const theme = useThemeColors();
   const handleChange = (text: string) => {
     const digits = text.replace(/\D/g, '').slice(0, MAX_DIGITS);
     onChangeText(digits);
@@ -65,7 +67,7 @@ export function PhoneInput({
           accessibilityLabel={`País ${country}, código +55`}
         >
           <Text className="font-body-semibold text-body-bold text-text-primary">{country}</Text>
-          <Text className="font-body-semibold text-body-bold text-primary ml-1">+55</Text>
+          <Text className="font-body-semibold text-body-bold text-primary-fg ml-1">+55</Text>
         </View>
 
         <TextInput
@@ -73,13 +75,13 @@ export function PhoneInput({
           value={formatBR(value)}
           onChangeText={handleChange}
           placeholder="(11) 00000-0000"
-          placeholderTextColor="#62628A"
+          placeholderTextColor={theme.muted}
           keyboardType="phone-pad"
           inputMode="numeric"
           maxLength={16}
           accessibilityLabel="Número de telefone"
           accessibilityState={{ disabled: false }}
-          className={`flex-1 h-12 rounded-chip border bg-white px-4 font-body text-body text-text-primary ${
+          className={`flex-1 h-12 rounded-chip border bg-card px-4 font-body text-body text-text-primary ${
             hasError ? 'border-danger' : 'border-line'
           }`}
         />
@@ -87,7 +89,7 @@ export function PhoneInput({
 
       {hasError ? (
         <Text
-          className="font-body text-caption text-danger mt-2"
+          className="font-body text-caption text-danger-fg mt-2"
           accessibilityLiveRegion="polite"
         >
           {error}

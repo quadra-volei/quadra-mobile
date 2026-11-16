@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Switch, Text, View } from 'react-native';
 
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 export type ToggleFieldProps = {
   /** Optional leading icon (e.g. `IconPrivado`). */
@@ -14,7 +15,7 @@ export type ToggleFieldProps = {
 };
 
 // Native Switch track/thumb colors (the Switch styles via props, not className).
-const SWITCH_TRACK_OFF = '#E8EEF8'; // bg-light-alt token
+// Off track: the theme's bg-light-alt (useThemeColors().bgAlt).
 const SWITCH_TRACK_ON = colors.primary; // primary token (active track)
 const SWITCH_THUMB = colors.textOnDark; // white thumb
 
@@ -31,8 +32,9 @@ export function ToggleField({
   onValueChange,
   testID,
 }: ToggleFieldProps) {
+  const theme = useThemeColors();
   return (
-    <View className="mt-2 flex-row items-center rounded-card border border-line bg-white px-4 py-4">
+    <View className="mt-2 flex-row items-center rounded-card border border-line bg-card px-4 py-4">
       {icon ? <View className="mr-3">{icon}</View> : null}
       <View className="flex-1">
         <Text className="font-body-extrabold text-h3 text-text-primary">{title}</Text>
@@ -49,7 +51,7 @@ export function ToggleField({
         accessibilityRole="switch"
         accessibilityLabel={title}
         accessibilityState={{ checked: value }}
-        trackColor={{ false: SWITCH_TRACK_OFF, true: SWITCH_TRACK_ON }}
+        trackColor={{ false: theme.bgAlt, true: SWITCH_TRACK_ON }}
         thumbColor={SWITCH_THUMB}
       />
     </View>

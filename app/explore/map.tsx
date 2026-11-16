@@ -52,8 +52,9 @@ import { splitVenue } from '@/features/matches/lib/venueName';
 import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
 import { isMapAvailable } from '@/features/matches/lib/isMapAvailable';
 import type { NearbyMatch } from '@/features/matches/types/match';
-import { HARD_SHADOW, colors } from '@/theme/colors';
-import { MAP_STYLE } from '@/theme/mapStyle';
+import { colors } from '@/theme/colors';
+import { MAP_STYLE, MAP_STYLE_DARK } from '@/theme/mapStyle';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 // Fallback map center (São Paulo), for a device with no position fix.
 const DEFAULT_CENTER = { latitude: -23.5605, longitude: -46.6433 };
@@ -163,6 +164,7 @@ function VenueSheet({
   /** Opens "Como chegar" for this arena. */
   onDirections: () => void;
 }) {
+  const theme = useThemeColors();
   const { width } = useWindowDimensions();
   const cardWidth = Math.min(width - 64, 320);
   const items: VenueSheetItem[] = [
@@ -180,12 +182,12 @@ function VenueSheet({
   };
 
   return (
-    <View className="bg-white rounded-card border-2 border-surface-dark pt-4 pb-4" style={HARD_SHADOW} testID="map-venue-card">
+    <View className="bg-card rounded-card border-2 border-edge pt-4 pb-4" style={theme.hardShadow} testID="map-venue-card">
       <View className="px-4 flex-row items-start gap-3">
         <View className="flex-1">
           {kind ? (
             <View className="flex-row items-center gap-1">
-              <kind.Icon size={14} color={colors.textMuted} />
+              <kind.Icon size={14} color={theme.muted} />
               <Text className="font-mono text-mono text-text-muted uppercase" testID="map-venue-kind">
                 {kind.label}
               </Text>
@@ -211,10 +213,10 @@ function VenueSheet({
             accessibilityRole="button"
             accessibilityLabel="Como chegar"
             testID="map-venue-directions"
-            className="mt-2 self-start flex-row items-center gap-1 rounded-pill border-2 border-surface-dark bg-accent px-3 py-1"
+            className="mt-2 self-start flex-row items-center gap-1 rounded-pill border-2 border-edge bg-accent px-3 py-1"
           >
             <IconRota size={14} color={colors.surfaceDark} />
-            <Text className="font-body-bold text-caption text-surface-dark">Como chegar</Text>
+            <Text className="font-body-bold text-caption text-navy">Como chegar</Text>
           </Pressable>
         </View>
         {venue.gamesCount > 0 ? (
@@ -244,19 +246,19 @@ function VenueSheet({
                   accessibilityRole="button"
                   accessibilityLabel={`Próxima arena com jogos, a ${formatKm(nextKm)} daqui`}
                   testID="map-venue-next"
-                  className="rounded-card border-2 border-dashed border-primary bg-bg-light p-4 justify-between"
+                  className="rounded-card border-2 border-dashed border-primary-fg bg-bg-light p-4 justify-between"
                   style={{ width: cardWidth, minHeight: 168 }}
                 >
                   <View>
-                    <IconLocal size={20} color={colors.primary} />
+                    <IconLocal size={20} color={theme.primaryFg} />
                     <Text className="mt-2 font-body-bold text-body text-text-primary">Outra arena com jogos</Text>
                     <Text className="font-body text-caption text-text-muted">
                       {`a ${formatKm(nextKm)} daqui · ${gamesThisWeek(item.venue.gamesCount)}`}
                     </Text>
                   </View>
                   <View className="mt-3 flex-row items-center gap-2">
-                    <Text className="font-body-bold text-body text-primary">Ir para lá</Text>
-                    <IconIr size={18} color={colors.primary} />
+                    <Text className="font-body-bold text-body text-primary-fg">Ir para lá</Text>
+                    <IconIr size={18} color={theme.primaryFg} />
                   </View>
                 </Pressable>
               );
@@ -269,12 +271,12 @@ function VenueSheet({
                 accessibilityRole="button"
                 accessibilityLabel={`${game.name}, ${game.live ? 'ao vivo' : formatWhen(game.startsAt)}`}
                 testID={`map-venue-match-${game.id}`}
-                className="overflow-hidden rounded-card border-2 border-surface-dark bg-white"
+                className="overflow-hidden rounded-card border-2 border-edge bg-card"
                 style={{ width: cardWidth }}
               >
                 <CourtImage tint={colors.primary} height={88} radius={0}>
-                  <View className="absolute top-2 left-2 rounded-pill bg-white px-2 py-0.5">
-                    <Text className={`font-body-bold text-caption ${game.live ? 'text-danger' : 'text-surface-dark'}`}>
+                  <View className="absolute top-2 left-2 rounded-pill bg-card px-2 py-0.5">
+                    <Text className={`font-body-bold text-caption ${game.live ? 'text-danger-fg' : 'text-ink'}`}>
                       {game.live ? 'AO VIVO' : formatWhen(game.startsAt)}
                     </Text>
                   </View>
@@ -309,10 +311,10 @@ function MapSkeleton() {
     <View className="flex-1 bg-bg-light" testID="map-skeleton">
       <SkeletonBlock className="absolute inset-0 rounded-none" />
       <SafeAreaView edges={['top']} className="flex-row items-center gap-3 px-4 pt-2">
-        <View className="h-12 w-12 rounded-full bg-white" />
-        <View className="h-9 w-40 rounded-pill bg-white" />
+        <View className="h-12 w-12 rounded-full bg-card" />
+        <View className="h-9 w-40 rounded-pill bg-card" />
         <View className="flex-1" />
-        <View className="h-12 w-12 rounded-full bg-white" />
+        <View className="h-12 w-12 rounded-full bg-card" />
       </SafeAreaView>
     </View>
   );
@@ -331,6 +333,7 @@ function StateContainer({ children }: { children: React.ReactNode }) {
 }
 
 export default function MapScreen() {
+  const theme = useThemeColors();
   const [permission, setPermission] = useState<PermissionState>('undetermined');
   const [checkingPermission, setCheckingPermission] = useState(true);
   const [resolvingLocation, setResolvingLocation] = useState(false);
@@ -574,14 +577,14 @@ export default function MapScreen() {
       testID="map-back"
       className={`rounded-full items-center justify-center ${className}`}
     >
-      <IconVoltar size={24} color={colors.surfaceDark} />
+      <IconVoltar size={24} color={theme.ink} />
     </Pressable>
   );
 
   if (!isMapAvailable()) {
     return (
       <SafeAreaView edges={['top', 'bottom']} className="flex-1 bg-bg-light">
-        {backButton('m-4 h-10 w-10 border-2 border-surface-dark bg-white')}
+        {backButton('m-4 h-10 w-10 border-2 border-edge bg-card')}
         <ScrollView>
           <View className="px-4 pb-6 gap-4">
             <Text className="font-body text-body text-text-muted">
@@ -610,7 +613,7 @@ export default function MapScreen() {
         style={{ flex: 1 }}
         showsUserLocation
         showsMyLocationButton={false}
-        customMapStyle={MAP_STYLE}
+        customMapStyle={theme.scheme === 'dark' ? MAP_STYLE_DARK : MAP_STYLE}
         // initialRegion, not region: a controlled region snaps the map back to
         // the centre on every re-render (e.g. when a pin is selected).
         initialRegion={{ ...center, ...REGION_DELTA }}
@@ -696,7 +699,7 @@ export default function MapScreen() {
         {destination && userLocation ? (
           <Polyline
             coordinates={arcBetween(userLocation, destination)}
-            strokeColor={colors.primary}
+            strokeColor={theme.primaryFg}
             strokeWidth={3}
             lineDashPattern={[2, 8]}
             lineCap="round"
@@ -716,9 +719,9 @@ export default function MapScreen() {
         {/* Opening the map shows only the way back, a count and the recenter;
             details come with a tap on a pin. */}
         <View pointerEvents="box-none" className="flex-row items-center gap-3 px-4 pt-2">
-          {backButton('h-12 w-12 border-2 border-surface-dark bg-white')}
+          {backButton('h-12 w-12 border-2 border-edge bg-card')}
           <View className="flex-1 items-start" pointerEvents="none">
-            <View className="rounded-pill bg-white px-4 py-2 shadow-card" testID="map-count-pill">
+            <View className="rounded-pill bg-card px-4 py-2 shadow-card" testID="map-count-pill">
               <Text
                 numberOfLines={1}
                 className="font-body-bold text-caption text-text-primary"
@@ -736,10 +739,10 @@ export default function MapScreen() {
             accessibilityRole="button"
             accessibilityLabel="Centralizar na minha localização"
             testID="map-recenter"
-            className="h-12 w-12 rounded-full border-2 border-surface-dark bg-white items-center justify-center"
-            style={HARD_SHADOW}
+            className="h-12 w-12 rounded-full border-2 border-edge bg-card items-center justify-center"
+            style={theme.hardShadow}
           >
-            <IconCentralizar size={22} color={colors.surfaceDark} />
+            <IconCentralizar size={22} color={theme.ink} />
           </Pressable>
         </View>
 
@@ -780,10 +783,10 @@ export default function MapScreen() {
           ) : null}
         </ScrollView>
         {distanceOpen ? (
-          <View className="mx-4 mt-2 rounded-card border-2 border-surface-dark bg-white px-4 py-3" style={HARD_SHADOW} testID="map-distance-panel">
+          <View className="mx-4 mt-2 rounded-card border-2 border-edge bg-card px-4 py-3" style={theme.hardShadow} testID="map-distance-panel">
             <View className="flex-row items-center justify-between mb-2">
               <Text className="font-body-bold text-caption text-text-primary">Distância de você</Text>
-              <Text className="font-num text-body text-primary" testID="map-distance-value">
+              <Text className="font-num text-body text-primary-fg" testID="map-distance-value">
                 {maxKm >= MAX_KM ? 'Qualquer' : `${maxKm} km`}
               </Text>
             </View>
@@ -802,7 +805,7 @@ export default function MapScreen() {
         {/* More places than drawn: say so; moving or zooming the map brings the others. */}
         {morePlaces && !view?.tooWide ? (
           <View pointerEvents="none" className="items-center px-4 pt-3">
-            <View className="bg-white rounded-pill px-4 py-2 shadow-card" testID="map-more-places">
+            <View className="bg-card rounded-pill px-4 py-2 shadow-card" testID="map-more-places">
               <Text className="font-body text-caption text-text-primary text-center">
                 Há mais locais nesta área. Aproxime ou mova o mapa para ver.
               </Text>
@@ -813,7 +816,7 @@ export default function MapScreen() {
         {/* Empty notice — granted but no matches in radius */}
         {((shownGames === 0 && !items.isPending) || view?.tooWide) && (
           <View pointerEvents="none" className="items-center px-4 pt-3">
-            <View className="bg-white rounded-pill px-6 py-3 shadow-card">
+            <View className="bg-card rounded-pill px-6 py-3 shadow-card">
               <Text className="font-body text-body text-text-primary text-center">
                 {view?.tooWide
                   ? 'Aproxime o mapa para ver as partidas desta área'
@@ -883,7 +886,7 @@ export default function MapScreen() {
         >
           <View className="px-4 pb-4">
             <View
-              className="bg-white rounded-card shadow-card overflow-hidden"
+              className="bg-card rounded-card shadow-card overflow-hidden"
               testID="map-preview-card"
             >
               {/* Cover: the organizer's photo, or the court tinted by level. */}
@@ -906,7 +909,7 @@ export default function MapScreen() {
                   </Tag>
                 </View>
                 <View className="absolute top-3 right-3 rounded-pill bg-accent px-3 py-1">
-                  <Text className="font-body-bold text-caption text-text-primary">
+                  <Text className="font-body-bold text-caption text-navy">
                     {selected.priceLabel}
                   </Text>
                 </View>
@@ -931,14 +934,14 @@ export default function MapScreen() {
                 <View className="mt-3 flex-row flex-wrap items-center gap-x-4 gap-y-1">
                   {selected.startsAt ? (
                     <View className="flex-row items-center gap-1">
-                      <IconHorario size={14} color={colors.primary} />
+                      <IconHorario size={14} color={theme.primaryFg} />
                       <Text className="font-body-semibold text-caption text-text-primary">
                         {formatWhen(selected.startsAt)}
                       </Text>
                     </View>
                   ) : null}
                   <View className="flex-row items-center gap-1">
-                    <IconLocal size={14} color={colors.primary} />
+                    <IconLocal size={14} color={theme.primaryFg} />
                     <Text className="font-body-semibold text-caption text-text-primary">
                       {/* From the user, not from the map centre the search used. */}
                       {(userLocation
@@ -954,7 +957,7 @@ export default function MapScreen() {
                     </Text>
                   </View>
                   <View className="flex-row items-center gap-1">
-                    <IconParticipantes size={14} color={colors.primary} />
+                    <IconParticipantes size={14} color={theme.primaryFg} />
                     <Text className="font-body-semibold text-caption text-text-primary">
                       {selected.confirmed}/{selected.capacity} confirmados
                     </Text>

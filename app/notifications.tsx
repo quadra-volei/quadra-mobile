@@ -21,22 +21,26 @@ import { timeAgo } from '@/features/network/api/postsApi';
 import { pushTarget } from '@/lib/push/pushNotifications';
 import { colors, withAlpha } from '@/theme/colors';
 import { ICON_HIT_SLOP } from '@/theme/layout';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 /** "Recentes" are the last 24 h; the rest go under "Anteriores". */
 const RECENT_MS = 24 * 60 * 60 * 1000;
 
 /** The tile of each kind: reminders in blue, ranking moments in lime (priority order). */
-const KIND: Record<string, { icon: QuadraIcon; tile: string; color: string }> = {
-  WaitingListSpot: { icon: IconVaga, tile: 'bg-primary/10', color: colors.primary },
-  ConfirmPresence: { icon: IconConfirmarPresenca, tile: 'bg-primary/10', color: colors.primary },
-  MatchTomorrow: { icon: IconLembrete, tile: 'bg-primary/10', color: colors.primary },
-  MvpVotingOpen: { icon: IconMvp, tile: 'bg-accent/20', color: colors.surfaceDark },
-  SummaryReady: { icon: IconResumo, tile: 'bg-accent/20', color: colors.surfaceDark },
+const KIND: Record<string, { icon: QuadraIcon; tile: string; tone: 'blue' | 'ink' }> = {
+  WaitingListSpot: { icon: IconVaga, tile: 'bg-primary/10', tone: 'blue' },
+  ConfirmPresence: { icon: IconConfirmarPresenca, tile: 'bg-primary/10', tone: 'blue' },
+  MatchTomorrow: { icon: IconLembrete, tile: 'bg-primary/10', tone: 'blue' },
+  MvpVotingOpen: { icon: IconMvp, tile: 'bg-accent/20', tone: 'ink' },
+  SummaryReady: { icon: IconResumo, tile: 'bg-accent/20', tone: 'ink' },
 };
-const DEFAULT_KIND = { icon: IconNotificacoes, tile: 'bg-primary/10', color: colors.primary };
+const DEFAULT_KIND = { icon: IconNotificacoes, tile: 'bg-primary/10', tone: 'blue' };
 
-/** An unread row: a pale blue wash, apart from the screen's own pale blue. */
-const UNREAD_FILL = { backgroundColor: withAlpha(colors.primary, 0.06) };
+/** An unread row: a pale blue wash, apart from the screen's own pale blue (stronger on dark). */
+const UNREAD_FILL = {
+  light: { backgroundColor: withAlpha(colors.primary, 0.06) },
+  dark: { backgroundColor: withAlpha(colors.primary, 0.16) },
+} as const;
 
 function groupByAge(items: AppNotification[], now: number = Date.now()) {
   const recent = items.filter((n) => now - new Date(n.createdAt).getTime() < RECENT_MS);
@@ -51,6 +55,7 @@ function groupByAge(items: AppNotification[], now: number = Date.now()) {
 // me to its match; a swipe to the left clears it, the trash in the header clears them all
 // (API DECISIONS #96); the switches live in Configurações → Notificações (the gear).
 export default function NotificationsListScreen() {
+  const theme = useThemeColors();
   const [headerHeight, setHeaderHeight] = useState(0);
   const [onlyUnread, setOnlyUnread] = useState(false);
   const list = useNotifications();
@@ -108,7 +113,7 @@ export default function NotificationsListScreen() {
                   onPress={() => markRead.mutate(undefined)}
                   testID="mark-all-read"
                 >
-                  <Text className="font-body-semibold text-caption text-primary">Marcar todas como lidas</Text>
+                  <Text className="font-body-semibold text-caption text-primary-fg">Marcar todas como lidas</Text>
                 </PressableScale>
               ) : null}
             </View>
@@ -123,7 +128,7 @@ export default function NotificationsListScreen() {
               sections.map((section) => (
                 <View key={section.title} className="mb-6">
                   <Text className="mb-3 font-display text-h2 uppercase text-text-primary">{section.title}</Text>
-                  <View className="overflow-hidden rounded-card bg-white shadow-card">
+                  <View className="overflow-hidden rounded-card bg-card shadow-card">
                     {section.items.map((n, index) => (
                       <NotificationRow
                         key={`${n.id}:${n.read}`}
@@ -158,7 +163,7 @@ export default function NotificationsListScreen() {
           <>
             {items.length > 0 ? (
               <IconButton label="Limpar todas" onPress={clearAll} testID="clear-all">
-                <IconExcluir size={20} color={colors.surfaceDark} />
+                <IconExcluir size={20} color={theme.ink} />
               </IconButton>
             ) : null}
             <IconButton
@@ -166,7 +171,7 @@ export default function NotificationsListScreen() {
               onPress={() => router.push('/profile/notifications')}
               testID="notification-settings"
             >
-              <IconConfiguracoes size={20} color={colors.surfaceDark} />
+              <IconConfiguracoes size={20} color={theme.ink} />
             </IconButton>
           </>
         }
@@ -189,6 +194,7 @@ type NotificationRowProps = {
  * screen readers get the same as an action.
  */
 function NotificationRow({ notification: n, divider, onPress, onDelete, onOpenRow }: NotificationRowProps) {
+  const theme = useThemeColors();
   const row = useRef<SwipeableMethods>(null);
   const kind = KIND[n.type] ?? DEFAULT_KIND;
   const Icon = kind.icon;
@@ -215,7 +221,7 @@ function NotificationRow({ notification: n, divider, onPress, onDelete, onOpenRo
         )}
       >
         {/* White under the tint: the row must hide the red action behind it. */}
-        <View className="bg-white">
+        <View className="bg-card">
           <PressableScale
             accessibilityRole="button"
             accessibilityLabel={`${n.read ? '' : 'Não lida. '}${n.title}. ${n.body}. ${timeAgo(n.createdAt)}`}
@@ -223,11 +229,11 @@ function NotificationRow({ notification: n, divider, onPress, onDelete, onOpenRo
             onAccessibilityAction={(e) => (e.nativeEvent.actionName === 'delete' ? onDelete() : onPress())}
             onPress={onPress}
             className="flex-row items-start gap-3 px-4 py-3"
-            style={n.read ? undefined : UNREAD_FILL}
+            style={n.read ? undefined : UNREAD_FILL[theme.scheme]}
             testID="notification"
           >
             <View className={`h-10 w-10 items-center justify-center rounded-chip ${kind.tile}`}>
-              <Icon size={20} color={kind.color} />
+              <Icon size={20} color={kind.tone === 'blue' ? theme.primaryFg : theme.ink} />
             </View>
             <View className="flex-1">
               <Text className={`text-body text-text-primary ${n.read ? 'font-body' : 'font-body-bold'}`}>{n.title}</Text>
@@ -236,7 +242,7 @@ function NotificationRow({ notification: n, divider, onPress, onDelete, onOpenRo
             </View>
             <View
               className="mt-2 h-2 w-2 rounded-full"
-              style={{ backgroundColor: n.read ? 'transparent' : colors.primary }}
+              style={{ backgroundColor: n.read ? 'transparent' : theme.primaryFg }}
             />
           </PressableScale>
         </View>

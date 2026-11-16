@@ -2,7 +2,8 @@ import { type QuadraIcon } from '@/components/icons/quadra';
 import { Text } from 'react-native';
 
 import { PressableScale } from '@/components/ui/PressableScale';
-import { HARD_SHADOW, colors } from '@/theme/colors';
+import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 export type FilterChipProps = {
   label: string;
@@ -40,14 +41,15 @@ export function FilterChip({
   icon: Icon,
   testID,
 }: FilterChipProps) {
-  const fill = disabled ? colors.bgLightAlt : selected ? colors.primary : undefined;
+  const theme = useThemeColors();
+  const fill = disabled ? theme.bgAlt : selected ? colors.primary : undefined;
   const look = selected && !disabled
-    ? { backgroundColor: colors.primary, borderColor: colors.surfaceDark, ...HARD_SHADOW }
+    ? { backgroundColor: colors.primary, borderColor: theme.edge, ...theme.hardShadow }
     : fill
       ? { backgroundColor: fill }
       : undefined;
   const labelColor = disabled
-    ? colors.textMuted
+    ? theme.muted
     : selected
       ? colors.textOnDark
       : undefined;
@@ -59,10 +61,10 @@ export function FilterChip({
       testID={testID}
       accessibilityRole="button"
       accessibilityState={{ selected, disabled: Boolean(disabled) }}
-      className="h-11 px-5 rounded-pill flex-row items-center justify-center gap-2 bg-white border-2 border-line"
+      className="h-11 px-5 rounded-pill flex-row items-center justify-center gap-2 bg-card border-2 border-line"
       style={look}
     >
-      {Icon ? <Icon size={18} color={labelColor ?? colors.surfaceDark} /> : null}
+      {Icon ? <Icon size={18} color={labelColor ?? theme.ink} /> : null}
       <Text
         testID={testID ? `${testID}-label` : undefined}
         className="font-body-bold text-h2 text-text-primary"

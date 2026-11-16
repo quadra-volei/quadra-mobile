@@ -25,6 +25,7 @@ import { getTeamBgColor, getTeamTextOnColor } from '@/features/matches/lib/teamC
 import { useScoreSubscription } from '@/features/matches/realtime/useScoreSubscription';
 import { colors } from '@/theme/colors';
 import { ICON_HIT_SLOP } from '@/theme/layout';
+import { ForceLightTheme } from '@/components/ui/ForceLightTheme';
 
 /**
  * S13.5 + S14 — Set Team Picker → Live Scoreboard.
@@ -48,7 +49,7 @@ import { ICON_HIT_SLOP } from '@/theme/layout';
  *
  * Route param: id (match id).
  */
-export default function ScoreboardScreen() {
+function ScoreboardScreen() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const matchId = id ?? '';
 
@@ -307,7 +308,7 @@ function SetTeamPicker({ matchId, game }: { matchId: string; game: LiveGame }) {
                 {/* Selection indicator */}
                 {isSelected ? (
                   <View className="h-6 w-6 rounded-full bg-accent items-center justify-center">
-                    <Text className="font-num text-caption text-surface-dark">
+                    <Text className="font-num text-caption text-navy">
                       {selectionOrder}
                     </Text>
                   </View>
@@ -743,5 +744,14 @@ function FreeGame({ matchId, game }: { matchId: string; game: LiveGame }) {
         </View>
       </SafeAreaView>
     </View>
+  );
+}
+
+// Drawn on navy in both themes: keeps its light-theme colors (DECISIONS #203).
+export default function ScoreboardScreenRoute() {
+  return (
+    <ForceLightTheme>
+      <ScoreboardScreen />
+    </ForceLightTheme>
   );
 }

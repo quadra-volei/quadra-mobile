@@ -7,6 +7,7 @@ import { Modal, Platform, Pressable, Text, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 export type DateTimePickerFieldMode = 'date' | 'time';
 
@@ -99,6 +100,7 @@ export function DateTimePickerField({
   error,
   testID,
 }: DateTimePickerFieldProps) {
+  const theme = useThemeColors();
   const parsed = mode === 'date' ? parseBrDate(value) : parseHhMm(value);
   const fallback =
     mode === 'date' ? (minimumDate ?? new Date()) : defaultTime();
@@ -150,12 +152,12 @@ export function DateTimePickerField({
         accessibilityLabel={
           label ?? (mode === 'date' ? 'Escolher data' : 'Escolher horário')
         }
-        className={`${label ? 'mt-2 ' : ''}h-12 flex-row items-center rounded-chip border bg-white px-4 ${
+        className={`${label ? 'mt-2 ' : ''}h-12 flex-row items-center rounded-chip border bg-card px-4 ${
           hasError ? 'border-danger' : 'border-line'
         }`}
       >
         <View className="mr-2">
-          <Icon size={20} color={colors.primary} />
+          <Icon size={20} color={theme.primaryFg} />
         </View>
         <Text
           className={`flex-1 font-body text-body ${
@@ -168,7 +170,7 @@ export function DateTimePickerField({
 
       {hasError ? (
         <Text
-          className="mt-2 font-body text-caption text-danger"
+          className="mt-2 font-body text-caption text-danger-fg"
           accessibilityLiveRegion="polite"
         >
           {error}
@@ -188,7 +190,7 @@ export function DateTimePickerField({
           >
             {/* Swallow taps on the sheet so they don't dismiss the backdrop. */}
             <Pressable
-              className="rounded-t-card bg-white px-4 pb-6 pt-3"
+              className="rounded-t-card bg-card px-4 pb-6 pt-3"
               onPress={() => {}}
             >
               <DateTimePicker

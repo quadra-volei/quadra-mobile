@@ -29,7 +29,7 @@ export function UpdateGate() {
 
   return (
     <View className="absolute inset-0 items-center justify-center bg-primary px-6" testID="update-gate">
-      <View className="self-stretch rounded-card bg-white p-6 shadow-modal">
+      <View className="self-stretch rounded-card bg-card p-6 shadow-modal">
         <Text className="font-display text-h1 text-text-primary uppercase text-center">Atualize o app</Text>
         <Text className="mt-3 font-body text-body text-text-muted text-center">
           Esta versão do Quadra não funciona mais. Baixe a nova na loja para continuar jogando.
