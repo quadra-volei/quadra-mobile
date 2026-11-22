@@ -15,8 +15,8 @@ Rascunho para o Johny revisar antes de preencher o Play Console. O que está ent
 | E-mail de contato | contact@quadra-volei.app |
 | Site | https://quadra-volei.app |
 | Política de privacidade | https://quadra-volei.app/privacidade |
-| Anúncios | Não tem |
-| Compras no app | Não tem |
+| Anúncios | [Decidir: o app mostra anúncios de anunciantes locais (arenas, lojas) vendidos pela equipe, sem SDK de anúncios. A Play conta isso como "contém anúncios"; marcar **Sim** se os anúncios estiverem ligados no lançamento.] |
+| Compras no app | Sim: passe de temporada pelo Google Play, [valor a definir] (produto `passe_t1`, DECISIONS #204) |
 
 ### Descrição completa
 
@@ -38,7 +38,7 @@ Rascunho para o Johny revisar antes de preencher o Play Console. O que está ent
 >
 > **Rede**: siga amigos, veja quem jogou e quem foi MVP, poste fotos dos jogos.
 >
-> Grátis e sem anúncios.
+> Grátis para jogar. O passe de temporada é opcional e libera os pedaços da carta da temporada.
 
 ### Material gráfico (falta fazer)
 
@@ -96,7 +96,9 @@ Dados coletados (nenhum é usado para publicidade ou vendido):
 | Informações e desempenho do app → Registros de falhas | Relatórios de falha do app (Sentry, DECISIONS #142) | Obrigatório | Análise, Funcionalidade do app |
 | IDs do dispositivo ou outros IDs | Token de notificação e identificador do aparelho usado na sessão | Obrigatório | Funcionalidade do app, Prevenção de fraudes e segurança |
 
-Não coletados: dados financeiros, de saúde, contatos, agenda, mensagens SMS, arquivos,
+| Informações financeiras → Histórico de compras | Passe de temporada comprado (temporada, produto, número do pedido do Google; o pagamento é feito no Google Play, o Quadra não vê cartão) | Opcional | Funcionalidade do app, Prevenção de fraudes e segurança |
+
+Não coletados: dados de pagamento (cartão, conta), de saúde, contatos, agenda, mensagens SMS, arquivos,
 áudio, histórico de navegação, apps instalados.
 
 ## Permissões do Android e por quê
@@ -109,5 +111,6 @@ Para a declaração de permissões e para responder a revisão (DECISIONS #136):
 | Notificações | Avisos das partidas |
 | Internet / estado da rede | Falar com a API |
 | `RECEIVE_BOOT_COMPLETED`, `VIBRATE`, `WAKE_LOCK`, `FOREGROUND_SERVICE` | Entrega das notificações (Firebase / expo-notifications) |
+| `com.android.vending.BILLING` | Compra do passe de temporada pelo Google Play (DECISIONS #204) |
 
 Câmera, microfone, biometria e sobreposição de tela foram removidas: o app não usa.

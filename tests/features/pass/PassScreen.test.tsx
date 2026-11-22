@@ -66,6 +66,10 @@ jest.mock('@/features/pass/api/seasonPass', () => ({
 jest.mock('@/features/profile/api/getMyProfile', () => ({
   useMyProfile: () => ({ data: mockProfileData, isPending: false, isError: false, refetch: jest.fn() }),
 }));
+const mockPurchase: { state: { kind: string; price?: string }; buy: jest.Mock } = { state: { kind: 'unavailable' }, buy: jest.fn() };
+jest.mock('@/features/pass/billing/usePassPurchase', () => ({
+  usePassPurchase: () => mockPurchase,
+}));
 const mockMutate = jest.fn();
 jest.mock('@/features/profile/api/saveCardStyle', () => ({
   useSaveCardStyle: () => ({ mutate: mockMutate, isPending: false, error: null }),
@@ -162,6 +166,28 @@ describe('Passe da temporada', () => {
     expect(screen.getByText('Você chegou ao último nível do passe.')).toBeTruthy();
     expect(screen.queryByText('Você completou o passe. A carta é sua.')).toBeNull();
     expect(screen.queryByTestId('equip-season-card')).toBeNull();
+  });
+
+  it('offers the pass at Google Play\'s price and opens the purchase (DECISIONS #204)', async () => {
+    const free = seasonPassFixture(5);
+    mockPass.data = { ...free, premium: false, productId: 'passe_t1', purchaseAccountTag: 'tag', rewards: free.rewards.map((r) => (r.track === 'Premium' ? { ...r, unlocked: false } : r)) };
+    mockPurchase.state = { kind: 'ready', price: 'R$ 9,90' };
+    await render(<SeasonPassScreen />);
+
+    await fireEvent.press(screen.getByText('Liberar o passe por R$ 9,90'));
+    expect(mockPurchase.buy).toHaveBeenCalled();
+    mockPurchase.state = { kind: 'unavailable' };
+  });
+
+  it('says a slow payment is waiting for Google instead of offering the pass again', async () => {
+    const free = seasonPassFixture(5);
+    mockPass.data = { ...free, premium: false, productId: 'passe_t1', purchaseAccountTag: 'tag', rewards: free.rewards.map((r) => (r.track === 'Premium' ? { ...r, unlocked: false } : r)) };
+    mockPurchase.state = { kind: 'pending' };
+    await render(<SeasonPassScreen />);
+
+    expect(screen.getByTestId('pass-unlock-pending')).toBeTruthy();
+    expect(screen.queryByTestId('pass-unlock-button')).toBeNull();
+    mockPurchase.state = { kind: 'unavailable' };
   });
 
   it('has no unlock offer for a player with the paid track', async () => {

@@ -64,6 +64,12 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-iap",
+        {
+          "android": { "store": "play" }
+        }
+      ],
       "expo-image",
       "expo-font",
       [

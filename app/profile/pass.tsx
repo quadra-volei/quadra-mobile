@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
 import { dialog } from "@/components/ui/Dialog";
 import { piecesWaiting, piecesWon, seasonFinish, useSeasonPass, type SeasonPass, type SeasonReward } from "@/features/pass/api/seasonPass";
+import { usePassPurchase } from "@/features/pass/billing/usePassPurchase";
 import { PIECE_COUNT, PIECE_ORDER, missingPieces, pieceOfLevel } from "@/features/pass/lib/cardPieces";
 import { dayMonth, seasonDays, seasonStatus } from "@/features/pass/lib/seasonText";
 import { useMyProfile } from "@/features/profile/api/getMyProfile";
@@ -183,10 +184,32 @@ function LevelRow({
   );
 }
 
-// The purchase needs Google Play Billing (not built yet): until then the button
-// says so. In the closed test everyone has the paid track, so nobody sees it.
-function unlockPass() {
+// With no product on sale (billing still off on the API, as in the closed test,
+// where everyone has the paid track) the button only says so.
+function unlockSoon() {
   dialog.alert("A compra do passe chega em breve", "Durante o teste, o passe fica liberado para todo mundo.");
+}
+
+function UnlockButton({ pass }: { pass: SeasonPass }) {
+  const { state, buy } = usePassPurchase(pass, (title, message) => dialog.alert(title, message));
+  if (state.kind === "pending") {
+    return (
+      <Text className="font-body text-caption text-white/80" testID="pass-unlock-pending">
+        Pagamento em análise pelo Google Play. O passe é liberado assim que ele for confirmado.
+      </Text>
+    );
+  }
+  return (
+    <Button
+      variant="grad"
+      onPress={state.kind === "unavailable" ? unlockSoon : buy}
+      loading={state.kind === "loading"}
+      disabled={state.kind === "loading"}
+      testID="pass-unlock-button"
+    >
+      {state.kind === "ready" ? `Liberar o passe por ${state.price}` : "Liberar o passe"}
+    </Button>
+  );
 }
 
 function PassBody({ pass, profile }: { pass: SeasonPass; profile: MyProfile }) {
@@ -252,9 +275,7 @@ function PassBody({ pass, profile }: { pass: SeasonPass; profile: MyProfile }) {
               : "Seus pontos já contam: quando liberar o passe, os pedaços alcançados entram de uma vez."}
           </Text>
           <View className="mt-3">
-            <Button variant="grad" onPress={unlockPass} testID="pass-unlock-button">
-              Liberar o passe
-            </Button>
+            <UnlockButton pass={pass} />
           </View>
         </View>
       ) : null}
