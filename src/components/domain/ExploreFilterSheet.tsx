@@ -18,6 +18,7 @@ import {
 import { LEVEL_BADGE } from '@/features/matches/lib/levelBadge';
 import type { MatchFormat, MatchLevel, NearbyMatch } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 const SORTS: { id: Sort; label: string }[] = [
   { id: 'near', label: 'Mais perto' },
@@ -66,6 +67,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
  * applies until "Ver"; closing discards the draft. Search text is kept.
  */
 export function ExploreFilterSheet({ visible, value, source, onApply, onClose }: ExploreFilterSheetProps) {
+  const theme = useThemeColors();
   const insets = useSafeAreaInsets();
   const [draft, setDraft] = useState(value);
 
@@ -95,9 +97,9 @@ export function ExploreFilterSheet({ visible, value, source, onApply, onClose }:
               accessibilityRole="button"
               accessibilityLabel="Fechar filtros"
               onPress={onClose}
-              className="h-9 w-9 items-center justify-center rounded-chip bg-white shadow-card"
+              className="h-9 w-9 items-center justify-center rounded-chip bg-card shadow-card"
             >
-              <IconFechar size={20} color={colors.surfaceDark} />
+              <IconFechar size={20} color={theme.ink} />
             </Pressable>
           </View>
 
@@ -115,7 +117,7 @@ export function ExploreFilterSheet({ visible, value, source, onApply, onClose }:
             <View className="mt-5">
               <View className="flex-row items-center justify-between">
                 <Text className="font-body-bold text-eyebrow text-text-primary uppercase">Distância</Text>
-                <Text className="font-body-bold text-caption text-primary" testID="explore-filter-distance">
+                <Text className="font-body-bold text-caption text-primary-fg" testID="explore-filter-distance">
                   {distanceText(draft.maxKm ?? MAX_KM)}
                 </Text>
               </View>

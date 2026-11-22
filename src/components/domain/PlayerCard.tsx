@@ -407,7 +407,7 @@ function PieceCovers({ t, k, pieces, side }: { t: CardFinishTokens; k: number; p
 function CardLogo({ height }: { height: number }) {
   return (
     <View
-      className="self-start bg-surface-dark"
+      className="self-start bg-navy"
       style={{ borderRadius: height * 0.4, paddingHorizontal: height * 0.35, paddingVertical: height * 0.22 }}
     >
       <QuadraWordmark variant="blue" height={height} />

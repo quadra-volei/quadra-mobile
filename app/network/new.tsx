@@ -21,6 +21,7 @@ import {
 import { useRecentMatches } from '@/features/profile/api/getRecentMatches';
 import { colors } from '@/theme/colors';
 import { ICON_HIT_SLOP } from '@/theme/layout';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 function SectionLabel({ children }: { children: string }) {
   return (
@@ -31,6 +32,7 @@ function SectionLabel({ children }: { children: string }) {
 }
 
 export default function NewPostScreen() {
+  const theme = useThemeColors();
   const [headerHeight, setHeaderHeight] = useState(0);
   const [permissionDenied, setPermissionDenied] = useState(false);
   const createPost = useCreatePost();
@@ -91,7 +93,7 @@ export default function NewPostScreen() {
           name="text"
           render={({ field: { value, onChange } }) => (
             <View
-              className={`rounded-card border bg-white px-4 py-3 ${
+              className={`rounded-card border bg-card px-4 py-3 ${
                 errors.text ? 'border-danger' : 'border-line'
               }`}
             >
@@ -100,7 +102,7 @@ export default function NewPostScreen() {
                 value={value}
                 onChangeText={onChange}
                 placeholder="Conta como foi o jogo…"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={theme.muted}
                 multiline
                 textAlignVertical="top"
                 maxLength={POST_TEXT_MAX}
@@ -111,7 +113,7 @@ export default function NewPostScreen() {
           )}
         />
         {errors.text ? (
-          <Text className="mt-2 font-body text-caption text-danger" accessibilityLiveRegion="polite">
+          <Text className="mt-2 font-body text-caption text-danger-fg" accessibilityLiveRegion="polite">
             {errors.text.message}
           </Text>
         ) : null}
@@ -141,14 +143,14 @@ export default function NewPostScreen() {
             accessibilityLabel="Escolher foto"
             onPress={pickPhoto}
             testID="post-pick-photo"
-            className="h-24 rounded-card border border-line bg-white items-center justify-center overflow-hidden"
+            className="h-24 rounded-card border border-line bg-card items-center justify-center overflow-hidden"
           >
-            <IconAdicionarFoto size={24} color={colors.primary} />
+            <IconAdicionarFoto size={24} color={theme.primaryFg} />
             <Text className="mt-2 font-body text-caption text-text-primary">Escolher foto</Text>
           </PressableScale>
         )}
         {permissionDenied ? (
-          <Text className="mt-2 font-body text-caption text-danger" accessibilityLiveRegion="polite">
+          <Text className="mt-2 font-body text-caption text-danger-fg" accessibilityLiveRegion="polite">
             Libere o acesso às fotos nas configurações do celular.
           </Text>
         ) : null}
@@ -190,7 +192,7 @@ export default function NewPostScreen() {
         <View className="mt-8">
           {createPost.isError ? (
             <Text
-              className="mb-3 text-center font-body text-caption text-danger"
+              className="mb-3 text-center font-body text-caption text-danger-fg"
               accessibilityLiveRegion="polite"
             >
               {createPost.error.message}

@@ -18,8 +18,8 @@ import {
   type FeedbackType,
 } from '@/features/profile/schema/feedback';
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
-const TEXT_MUTED = '#62628A'; // text-muted token — textarea placeholder color
 
 // shadow-card token (DESIGN_SYSTEM). Applied via inline style — NOT a toggled
 // className — so flipping a tile's selected state never adds/removes a boxShadow
@@ -61,6 +61,7 @@ function TypeTile({
   onPress: () => void;
   testID?: string;
 }) {
+  const theme = useThemeColors();
   return (
     <Pressable
       accessibilityRole="button"
@@ -68,12 +69,12 @@ function TypeTile({
       accessibilityState={{ selected }}
       onPress={onPress}
       testID={testID}
-      className="flex-1 h-24 items-center justify-center rounded-card bg-white"
+      className="flex-1 h-24 items-center justify-center rounded-card bg-card"
       // Card shadow and selected colors via inline style, never a toggled
       // className (DECISIONS #87) — see SHADOW_CARD note above.
       style={selected ? { backgroundColor: colors.primary } : { boxShadow: SHADOW_CARD }}
     >
-      <Icon size={24} color={selected ? colors.textOnDark : colors.primary} />
+      <Icon size={24} color={selected ? colors.textOnDark : theme.primaryFg} />
       <Text
         className="mt-2 font-body text-caption text-text-primary"
         style={selected ? { color: colors.textOnDark } : undefined}
@@ -91,7 +92,7 @@ function SendingAsCard() {
 
   if (isPending || !data) {
     return (
-      <View className="mx-4 mt-6 bg-white rounded-card shadow-card p-4 flex-row items-center gap-3">
+      <View className="mx-4 mt-6 bg-card rounded-card shadow-card p-4 flex-row items-center gap-3">
         <View className="h-10 w-10 rounded-full bg-bg-light-alt" />
         <View className="flex-1 gap-2">
           <View className="h-3 w-24 rounded-chip bg-bg-light-alt" />
@@ -107,7 +108,7 @@ function SendingAsCard() {
     .join(' · ');
 
   return (
-    <View className="mx-4 mt-6 bg-white rounded-card shadow-card p-4 flex-row items-center gap-3">
+    <View className="mx-4 mt-6 bg-card rounded-card shadow-card p-4 flex-row items-center gap-3">
       <Avatar
         uri={data.avatarUrl}
         name={data.firstName}
@@ -127,6 +128,7 @@ function SendingAsCard() {
 }
 
 export default function FeedbackScreen() {
+  const theme = useThemeColors();
   const sendFeedback = useSendFeedback();
 
   const {
@@ -188,7 +190,7 @@ export default function FeedbackScreen() {
               name="message"
               render={({ field: { value, onChange } }) => (
                 <View
-                  className={`rounded-card border bg-white px-4 py-3 ${
+                  className={`rounded-card border bg-card px-4 py-3 ${
                     errors.message ? 'border-danger' : 'border-line'
                   }`}
                 >
@@ -197,7 +199,7 @@ export default function FeedbackScreen() {
                     value={value}
                     onChangeText={onChange}
                     placeholder="Conta pra gente o que você achou, o que faltou ou o que deu errado…"
-                    placeholderTextColor={TEXT_MUTED}
+                    placeholderTextColor={theme.muted}
                     multiline
                     textAlignVertical="top"
                     maxLength={FEEDBACK_MESSAGE_MAX}
@@ -209,7 +211,7 @@ export default function FeedbackScreen() {
             />
             {errors.message ? (
               <Text
-                className="mt-2 font-body text-caption text-danger"
+                className="mt-2 font-body text-caption text-danger-fg"
                 accessibilityLiveRegion="polite"
               >
                 {errors.message.message}
@@ -224,7 +226,7 @@ export default function FeedbackScreen() {
           <View className="px-4 mt-6">
             {sendFeedback.isError ? (
               <Text
-                className="mb-3 text-center font-body text-caption text-danger"
+                className="mb-3 text-center font-body text-caption text-danger-fg"
                 accessibilityLiveRegion="polite"
               >
                 {sendFeedback.error?.message ??

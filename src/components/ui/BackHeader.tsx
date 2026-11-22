@@ -8,6 +8,7 @@ import { PressableScale } from "@/components/ui/PressableScale";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { colors } from "@/theme/colors";
 import { ICON_HIT_SLOP } from "@/theme/layout";
+import { useThemeColors } from '@/theme/useThemeColors';
 
 type BackHeaderProps = {
   /** Screen title, rendered in the display face (uppercased by the token). */
@@ -39,7 +40,8 @@ export function BackHeader({
   onHeight,
   asTab = false,
 }: BackHeaderProps) {
-  const iconColor = tint === "dark" ? colors.textOnDark : colors.surfaceDark;
+  const theme = useThemeColors();
+  const iconColor = tint === "dark" ? colors.textOnDark : theme.ink;
   const titleColor = tint === "dark" ? "text-text-on-dark" : "text-text-primary";
 
   if (asTab) {
@@ -52,7 +54,7 @@ export function BackHeader({
           <View className="flex-row items-center gap-3">
             {right}
             <IconButton label="Fechar" onPress={() => router.back()}>
-              <IconFechar size={20} color={colors.surfaceDark} />
+              <IconFechar size={20} color={theme.ink} />
             </IconButton>
           </View>
         </View>

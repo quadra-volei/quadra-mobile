@@ -28,6 +28,7 @@ import type { PointsBreakdown, RankingRow as RankingRowData } from '@/features/r
 import { colors, HERO_GRADIENT } from '@/theme/colors';
 import { ICON_HIT_SLOP } from '@/theme/layout';
 import { MOTION } from '@/theme/motion';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 function openPlayer(id: string) {
   router.push(`/players/${id}`);
@@ -188,9 +189,9 @@ function PositionFilter({
 
 // The podium's pedestals take the palette in its order: 1º lime, 2º blue, 3º orange.
 const PEDESTAL: Record<1 | 2 | 3, { box: string; label: string; height: string }> = {
-  1: { box: 'bg-accent', label: 'text-surface-dark', height: 'h-24' },
+  1: { box: 'bg-accent', label: 'text-navy', height: 'h-24' },
   2: { box: 'bg-primary', label: 'text-text-on-dark', height: 'h-16' },
-  3: { box: 'bg-tertiary', label: 'text-surface-dark', height: 'h-12' },
+  3: { box: 'bg-tertiary', label: 'text-navy', height: 'h-12' },
 };
 
 // ── Top-3 podium (2º left, 1º center and tallest, 3º right) ──
@@ -231,7 +232,7 @@ function PodiumColumn({
           {score} {UNIT[sort].short}
         </Text>
         <View
-          className={`w-24 mt-2 items-center justify-center rounded-t-card border-2 border-b-0 border-surface-dark ${pedestal.box} ${pedestal.height}`}
+          className={`w-24 mt-2 items-center justify-center rounded-t-card border-2 border-b-0 border-edge ${pedestal.box} ${pedestal.height}`}
         >
           <Text className={`font-num ${pedestal.label}`} style={{ fontSize: place === 1 ? 32 : 22 }}>
             {row.position}º
@@ -349,7 +350,7 @@ function BreakdownBar({ breakdown, total }: { breakdown: PointsBreakdown; total:
 function Stat({ value, one, many }: { value: number; one: string; many: string }) {
   return (
     <View className="flex-1 flex-row items-center gap-2 rounded-chip bg-bg-light px-4 py-3">
-      <Text className="font-num text-primary" style={{ fontSize: 20 }}>
+      <Text className="font-num text-primary-fg" style={{ fontSize: 20 }}>
         {value}
       </Text>
       <Text className="flex-1 font-body text-caption text-text-muted" numberOfLines={2}>
@@ -377,10 +378,11 @@ function Stats({ row }: { row: RankingRowData }) {
 
 /** My standing: rank, points, the arrow, who to pass and where my points came from. */
 function MyStanding({ data, sort, isCurrent }: { data: Ranking; sort: RankingSort; isCurrent: boolean }) {
+  const theme = useThemeColors();
   const me = data.me;
   if (!me) {
     return (
-      <View className="mx-4 mt-4 rounded-card bg-white shadow-card p-4" testID="ranking-me">
+      <View className="mx-4 mt-4 rounded-card bg-card shadow-card p-4" testID="ranking-me">
         <Text className="font-body-bold text-body-bold text-text-primary">
           {isCurrent ? 'Você ainda não pontuou neste mês' : 'Você não pontuou neste mês'}
         </Text>
@@ -399,12 +401,12 @@ function MyStanding({ data, sort, isCurrent }: { data: Ranking; sort: RankingSor
   return (
     <Animated.View
       entering={FadeIn.duration(MOTION.fadeIn)}
-      className="mx-4 mt-4 rounded-card bg-white shadow-card p-4"
+      className="mx-4 mt-4 rounded-card bg-card shadow-card p-4"
       testID="ranking-me"
     >
       <View className="flex-row items-center">
         <View className="items-center w-24">
-          <Text className="font-num text-primary" style={{ fontSize: 32 }}>
+          <Text className="font-num text-primary-fg" style={{ fontSize: 32 }}>
             {me.position != null ? `${me.position}º` : '–'}
           </Text>
           <Text numberOfLines={1} className="font-body text-caption text-text-muted">sua posição</Text>
@@ -429,7 +431,7 @@ function MyStanding({ data, sort, isCurrent }: { data: Ranking; sort: RankingSor
           {me.trend && me.trend.direction !== 'flat' ? (
             <Text
               className="font-body-bold text-caption mt-1"
-              style={{ color: me.trend.direction === 'up' ? colors.success : colors.danger }}
+              style={{ color: me.trend.direction === 'up' ? theme.successFg : theme.dangerFg }}
             >
               {me.trend.direction === 'up' ? '▲ subiu' : '▼ caiu'} {me.trend.delta}{' '}
               {me.trend.delta === 1 ? 'posição' : 'posições'} na semana
@@ -454,6 +456,7 @@ const TUTORIAL: typeof POINT_RULES = [
 ];
 
 function HowToScoreSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const theme = useThemeColors();
   const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -476,9 +479,9 @@ function HowToScoreSheet({ visible, onClose }: { visible: boolean; onClose: () =
               accessibilityRole="button"
               accessibilityLabel="Fechar"
               onPress={onClose}
-              className="h-9 w-9 items-center justify-center rounded-chip bg-white shadow-card"
+              className="h-9 w-9 items-center justify-center rounded-chip bg-card shadow-card"
             >
-              <IconFechar size={20} color={colors.surfaceDark} />
+              <IconFechar size={20} color={theme.ink} />
             </Pressable>
           </View>
           <Text className="mt-1 font-body text-caption text-text-muted">
@@ -486,11 +489,11 @@ function HowToScoreSheet({ visible, onClose }: { visible: boolean; onClose: () =
           </Text>
           <View className="mt-4 gap-2">
             {TUTORIAL.map((t) => (
-              <View key={t.title} className="flex-row items-center gap-3 rounded-chip bg-white px-4 py-3 shadow-card">
+              <View key={t.title} className="flex-row items-center gap-3 rounded-chip bg-card px-4 py-3 shadow-card">
                 <View
                   className={`h-12 w-12 items-center justify-center rounded-chip ${t.mvp ? 'bg-accent' : 'bg-bg-light-alt'}`}
                 >
-                  <Text className={`font-num ${t.mvp ? 'text-surface-dark' : 'text-primary'}`} style={{ fontSize: 18 }}>
+                  <Text className={`font-num ${t.mvp ? 'text-navy' : 'text-primary-fg'}`} style={{ fontSize: 18 }}>
                     {t.badge}
                   </Text>
                 </View>
@@ -521,6 +524,7 @@ function ExpandableRow({
   onToggle: () => void;
   divider: boolean;
 }) {
+  const theme = useThemeColors();
   const Chevron = open ? IconRecolher : IconExpandir;
   return (
     <View>
@@ -543,7 +547,7 @@ function ExpandableRow({
           />
         </View>
         <View className="pr-3">
-          <Chevron size={18} color={colors.textMuted} />
+          <Chevron size={18} color={theme.muted} />
         </View>
       </Pressable>
       {open ? (
@@ -572,6 +576,7 @@ function RankingSkeleton() {
  * points, MVPs or games won. `?scope=group&groupId=` opens a group directly.
  */
 export default function RankingScreen() {
+  const theme = useThemeColors();
   const params = useLocalSearchParams<{ scope?: RankingScope; groupId?: string }>();
   const [scope, setScope] = useState<RankingScope>(params.scope ?? 'friends');
   const [pickedGroupId, setGroupId] = useState<string | undefined>(params.groupId);
@@ -667,10 +672,10 @@ export default function RankingScreen() {
             accessibilityRole="button"
             accessibilityState={{ selected: position === undefined }}
             testID="ranking-position-all"
-            className="h-8 justify-center self-center rounded-pill border-2 border-line bg-white px-3"
-            style={position === undefined ? { borderColor: colors.primary, backgroundColor: colors.bgLightAlt } : undefined}
+            className="h-8 justify-center self-center rounded-pill border-2 border-line bg-card px-3"
+            style={position === undefined ? { borderColor: theme.primaryFg, backgroundColor: theme.bgAlt } : undefined}
           >
-            <Text className="font-body-bold text-caption text-surface-dark">Todas</Text>
+            <Text className="font-body-bold text-caption text-ink">Todas</Text>
           </Pressable>
           {POSITIONS.map((p) => (
             <PositionFilter key={p} code={p} selected={position === p} onPress={() => setPosition(p)} />
@@ -716,7 +721,7 @@ export default function RankingScreen() {
             <Animated.View
               key={`${scope}-${season}-${sort}-${position ?? 'all'}`}
               entering={FadeIn.duration(MOTION.fadeIn)}
-              className="mt-3 bg-white rounded-card shadow-card overflow-hidden"
+              className="mt-3 bg-card rounded-card shadow-card overflow-hidden"
             >
               {data.rows.map((row, i) => (
                 <ExpandableRow
@@ -739,7 +744,7 @@ export default function RankingScreen() {
         onHeight={setHeaderHeight}
         right={
           <IconButton label="Como pontuar" onPress={() => setHelpOpen(true)} testID="ranking-help">
-            <IconAjuda size={20} color={colors.surfaceDark} />
+            <IconAjuda size={20} color={theme.ink} />
           </IconButton>
         }
       />

@@ -5,6 +5,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { PressableScale } from '@/components/ui/PressableScale';
 import { type Activity, type ActivityLine, describeActivity } from '@/features/activity/api/activityApi';
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 export type ActivityRowProps = {
   activity: Activity;
@@ -19,7 +20,7 @@ const ICONS = { levelUp: IconSubir, finished: IconConfirmar, live: IconPartida, 
 const PART_CLASS = {
   name: 'font-body-bold text-text-primary',
   plain: 'font-body text-text-primary',
-  object: 'font-body-bold text-primary',
+  object: 'font-body-bold text-primary-fg',
 } as const;
 
 /**
@@ -30,6 +31,7 @@ const PART_CLASS = {
  * and the dividers.
  */
 export function ActivityRow({ activity, onPress, now, testID }: ActivityRowProps) {
+  const theme = useThemeColors();
   const line = describeActivity(activity, now);
   const Icon = ICONS[line.icon];
   const sentence = line.parts.map((p) => p.text).join('');
@@ -61,7 +63,7 @@ export function ActivityRow({ activity, onPress, now, testID }: ActivityRowProps
         </Text>
       </View>
       <View className="h-9 w-9 items-center justify-center rounded-chip bg-quaternary/10">
-        <Icon size={18} color={colors.primary} />
+        <Icon size={18} color={theme.primaryFg} />
       </View>
     </PressableScale>
   );

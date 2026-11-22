@@ -12,6 +12,7 @@ import { useUpcomingMatches } from '@/features/matches/api/getUpcoming';
 import { formatStartsAt } from '@/features/matches/lib/formatWhen';
 import { splitVenue } from '@/features/matches/lib/venueName';
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 function goMatch(id: string) {
   router.push({ pathname: '/matches/[id]', params: { id } });
@@ -23,6 +24,7 @@ function goMatch(id: string) {
  * Explorar is for finding new matches; this is the user's own agenda.
  */
 export default function UpcomingMatchesScreen() {
+  const theme = useThemeColors();
   const [headerHeight, setHeaderHeight] = useState(0);
   const insets = useSafeAreaInsets();
   const upcoming = useUpcomingMatches();
@@ -43,7 +45,7 @@ export default function UpcomingMatchesScreen() {
             accessibilityRole="button"
             onPress={() => goMatch(item.id)}
             testID="upcoming-row"
-            className="mx-4 flex-row items-center gap-3 rounded-card border border-line bg-white px-4 py-3"
+            className="mx-4 flex-row items-center gap-3 rounded-card border border-line bg-card px-4 py-3"
           >
             <View className="flex-1">
               <Text className="font-body-bold text-body text-text-primary" numberOfLines={1}>
@@ -54,9 +56,9 @@ export default function UpcomingMatchesScreen() {
               </Text>
             </View>
             {item.confirmed ? (
-              <Text className="font-body-bold text-caption text-success">Confirmado</Text>
+              <Text className="font-body-bold text-caption text-success-fg">Confirmado</Text>
             ) : null}
-            <IconAvancar size={18} color={colors.textMuted} />
+            <IconAvancar size={18} color={theme.muted} />
           </PressableScale>
         )}
         ListEmptyComponent={

@@ -86,7 +86,7 @@ export function SetEndSheet({
           accessibilityRole="button"
           accessibilityLabel="Fechar"
           onPress={close}
-          className="bg-surface-dark/60"
+          className="bg-navy/60"
           style={StyleSheet.absoluteFill}
         />
       </Animated.View>
@@ -192,18 +192,18 @@ function SheetOption({
     >
       <View
         className={`h-11 w-11 items-center justify-center rounded-chip ${
-          primary ? 'bg-surface-dark/10' : 'bg-white/10'
+          primary ? 'bg-navy/10' : 'bg-white/10'
         }`}
       >
         <Icon size={20} color={ink} />
       </View>
       <View className="flex-1">
         <Text
-          className={`font-body-bold text-body-bold ${primary ? 'text-surface-dark' : 'text-text-on-dark'}`}
+          className={`font-body-bold text-body-bold ${primary ? 'text-navy' : 'text-text-on-dark'}`}
         >
           {title}
         </Text>
-        <Text className={`font-body text-caption ${primary ? 'text-surface-dark/80' : 'text-white/60'}`}>
+        <Text className={`font-body text-caption ${primary ? 'text-navy/80' : 'text-white/60'}`}>
           {hint}
         </Text>
       </View>

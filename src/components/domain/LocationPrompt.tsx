@@ -6,8 +6,9 @@ import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, ZoomIn } from 'react-native-reanimated';
 
 import { PressableScale } from '@/components/ui/PressableScale';
-import { HARD_SHADOW, colors } from '@/theme/colors';
+import { colors } from '@/theme/colors';
 import { MOTION } from '@/theme/motion';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 type PromptState = 'checking' | 'ask' | 'denied' | 'done';
 
@@ -22,7 +23,7 @@ export type LocationPromptProps = {
 
 // Same wide options as the create sheet (DECISIONS #98).
 const OPTION =
-  'h-14 flex-row items-center justify-center rounded-btn border-2 border-surface-dark px-4';
+  'h-14 flex-row items-center justify-center rounded-btn border-2 border-edge px-4';
 
 /**
  * Asks for the location permission once, when the signed-in app opens: a card
@@ -34,6 +35,7 @@ const OPTION =
  * the tabs behind it.
  */
 export function LocationPrompt({ onGranted, blurTarget, onSettled }: LocationPromptProps) {
+  const theme = useThemeColors();
   const [state, setState] = useState<PromptState>('checking');
   const [asking, setAsking] = useState(false);
 
@@ -92,7 +94,7 @@ export function LocationPrompt({ onGranted, blurTarget, onSettled }: LocationPro
           the tabs behind cannot be used before an answer. */}
       <Pressable
         accessible={false}
-        className="bg-surface-dark/30"
+        className="bg-navy/30"
         style={StyleSheet.absoluteFill}
       />
 
@@ -102,18 +104,18 @@ export function LocationPrompt({ onGranted, blurTarget, onSettled }: LocationPro
       >
         <Animated.View
           entering={ZoomIn.duration(220)}
-          className="w-full rounded-card border-2 border-surface-dark bg-white px-6 pt-6 pb-5"
-          style={HARD_SHADOW}
+          className="w-full rounded-card border-2 border-edge bg-card px-6 pt-6 pb-5"
+          style={theme.hardShadow}
         >
           <View
-            className="h-14 w-14 items-center justify-center self-center rounded-full border-2 border-surface-dark bg-accent"
+            className="h-14 w-14 items-center justify-center self-center rounded-full border-2 border-edge bg-accent"
           >
             <IconLocal size={26} color={colors.surfaceDark} />
           </View>
 
           {state === 'ask' ? (
             <>
-              <Text className="mt-4 font-display text-h3 text-surface-dark uppercase text-center">
+              <Text className="mt-4 font-display text-h3 text-ink uppercase text-center">
                 Jogos perto de você
               </Text>
               <Text className="mt-2 font-body text-body text-text-muted text-center">
@@ -126,17 +128,17 @@ export function LocationPrompt({ onGranted, blurTarget, onSettled }: LocationPro
                 accessibilityRole="button"
                 accessibilityLabel="Permitir localização"
                 className={`${OPTION} mt-5 bg-accent`}
-                style={HARD_SHADOW}
+                style={theme.hardShadow}
                 testID="location-prompt-allow"
               >
-                <Text className="font-body-bold text-body-bold text-surface-dark">
+                <Text className="font-body-bold text-body-bold text-navy">
                   Permitir localização
                 </Text>
               </PressableScale>
             </>
           ) : (
             <>
-              <Text className="mt-4 font-display text-h3 text-surface-dark uppercase text-center">
+              <Text className="mt-4 font-display text-h3 text-ink uppercase text-center">
                 Sem localização
               </Text>
               <Text className="mt-2 font-body text-body text-text-muted text-center">
@@ -149,10 +151,10 @@ export function LocationPrompt({ onGranted, blurTarget, onSettled }: LocationPro
                 accessibilityRole="button"
                 accessibilityLabel="Continuar sem localização"
                 className={`${OPTION} mt-5 bg-accent`}
-                style={HARD_SHADOW}
+                style={theme.hardShadow}
                 testID="location-prompt-continue"
               >
-                <Text className="font-body-bold text-body-bold text-surface-dark">
+                <Text className="font-body-bold text-body-bold text-navy">
                   Continuar sem localização
                 </Text>
               </PressableScale>
@@ -160,10 +162,10 @@ export function LocationPrompt({ onGranted, blurTarget, onSettled }: LocationPro
                 onPress={() => Linking.openSettings()}
                 accessibilityRole="button"
                 accessibilityLabel="Abrir configurações"
-                className={`${OPTION} mt-3 bg-white`}
-                style={HARD_SHADOW}
+                className={`${OPTION} mt-3 bg-card`}
+                style={theme.hardShadow}
               >
-                <Text className="font-body-bold text-body-bold text-surface-dark">
+                <Text className="font-body-bold text-body-bold text-ink">
                   Abrir configurações
                 </Text>
               </PressableScale>

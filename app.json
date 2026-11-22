@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "quadra",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
@@ -64,6 +64,12 @@
         }
       ],
       "expo-secure-store",
+      [
+        "expo-iap",
+        {
+          "android": { "store": "play" }
+        }
+      ],
       "expo-image",
       "expo-font",
       [

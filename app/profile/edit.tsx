@@ -30,6 +30,7 @@ import {
 import type { MyProfile } from "@/features/profile/types/profile";
 import { colors } from "@/theme/colors";
 import { DEFAULT_AVATAR, PRESET_AVATARS } from "@/theme/defaultAvatars";
+import { useThemeColors } from '@/theme/useThemeColors';
 
 // In a release APK a bundled image's `localUri` is a bare drawable name
 // ("assets_avatars_preset01"), which the photo resizer cannot open: the preset
@@ -98,6 +99,7 @@ function EditProfileForm({
   profile: MyProfile;
   headerHeight: number;
 }) {
+  const theme = useThemeColors();
   const updateProfile = useUpdateProfile();
   const insets = useSafeAreaInsets();
   // Local UI state: a polite message when media-library permission is denied.
@@ -192,7 +194,7 @@ function EditProfileForm({
           </Pressable>
           {permissionDenied ? (
             <Text
-              className="font-body text-caption text-danger text-center"
+              className="font-body text-caption text-danger-fg text-center"
               accessibilityLiveRegion="polite"
             >
               Permissão de fotos negada. Ative em &quot;Permissões do app&quot;.
@@ -219,7 +221,7 @@ function EditProfileForm({
               onPress={() => void onPickPreset(index)}
               testID={`preset-avatar-${index}`}
               className="h-16 w-16 rounded-full border-2 border-transparent"
-              style={preset === index ? { borderColor: colors.primary } : undefined}
+              style={preset === index ? { borderColor: theme.primaryFg } : undefined}
             >
               <Image source={source} contentFit="cover" style={{ flex: 1, borderRadius: 999 }} />
             </Pressable>
@@ -281,7 +283,7 @@ function EditProfileForm({
                 }
                 testID="edit-handle"
                 leftAdornment={
-                  <Text className="font-num text-body text-primary">@</Text>
+                  <Text className="font-num text-body text-primary-fg">@</Text>
                 }
               />
             )}
@@ -315,7 +317,7 @@ function EditProfileForm({
               onChangeText={() => {}}
               testID="edit-phone"
               leftAdornment={
-                <Text className="font-body-semibold text-body-bold text-primary">
+                <Text className="font-body-semibold text-body-bold text-primary-fg">
                   +55
                 </Text>
               }
@@ -340,7 +342,7 @@ function EditProfileForm({
         />
         {errors.position ? (
           <Text
-            className="mt-2 font-body text-caption text-danger"
+            className="mt-2 font-body text-caption text-danger-fg"
             accessibilityLiveRegion="polite"
           >
             Selecione sua posição
@@ -355,7 +357,7 @@ function EditProfileForm({
       >
         {updateProfile.isError ? (
           <Text
-            className="mb-3 text-center font-body text-caption text-danger"
+            className="mb-3 text-center font-body text-caption text-danger-fg"
             accessibilityLiveRegion="polite"
           >
             {updateProfile.error?.message ??

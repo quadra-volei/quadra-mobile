@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, View } from 'react-native';
 
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 type SkeletonBlockProps = {
   /** Size (and any radius override) of the placeholder, e.g. `"h-44 w-64"`. */
@@ -17,6 +18,7 @@ type SkeletonBlockProps = {
  * as "loading" rather than as empty grey boxes.
  */
 export function SkeletonBlock({ className = '', tone = 'light', testID }: SkeletonBlockProps) {
+  const theme = useThemeColors();
   const opacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export function SkeletonBlock({ className = '', tone = 'light', testID }: Skelet
         style={{
           flex: 1,
           opacity,
-          backgroundColor: tone === 'dark' ? colors.surfaceDarkAlt : colors.bgLightAlt,
+          backgroundColor: tone === 'dark' ? theme.surfaceAlt : theme.bgAlt,
         }}
       />
     </View>

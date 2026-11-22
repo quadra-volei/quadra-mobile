@@ -3,6 +3,7 @@ import { Text, View } from 'react-native';
 
 import { useUnreadCount } from '@/features/notifications/api/notificationsApi';
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 /**
  * The header bell with the unread notifications count (API DECISIONS #77), drawn inside the
@@ -11,17 +12,18 @@ import { colors } from '@/theme/colors';
  * lime; red stays for errors).
  */
 export function BellWithBadge() {
+  const theme = useThemeColors();
   const { data: count = 0 } = useUnreadCount();
   return (
     <View>
-      <IconNotificacoes size={20} color={colors.surfaceDark} />
+      <IconNotificacoes size={20} color={theme.ink} />
       {count > 0 ? (
         <View
-          className="absolute -right-3 -top-3 h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-surface-dark bg-accent px-1"
+          className="absolute -right-3 -top-3 h-5 min-w-[20px] items-center justify-center rounded-full border-2 border-edge bg-accent px-1"
           accessibilityLabel={`${count} não lidas`}
           testID="bell-badge"
         >
-          <Text className="font-num text-[10px] leading-[12px] text-surface-dark">{count > 9 ? '9+' : count}</Text>
+          <Text className="font-num text-[10px] leading-[12px] text-navy">{count > 9 ? '9+' : count}</Text>
         </View>
       ) : null}
     </View>

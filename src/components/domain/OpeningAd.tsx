@@ -11,7 +11,8 @@ import { Tag } from '@/components/ui/Tag';
 import { adLinkUrl, openAd, recordAdView, useServedAd } from '@/features/ads/api/ads';
 import { useDeviceCoords } from '@/features/matches/lib/useDeviceCoords';
 import { useTourStore } from '@/features/tour/tourStore';
-import { HARD_SHADOW, colors } from '@/theme/colors';
+import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 /** The same opening ad shows again only after a week. */
 export const OPENING_AD_EVERY_MS = 7 * 24 * 60 * 60_000;
@@ -45,6 +46,7 @@ export function openingAdDue(shownAt: Record<string, number>, adId: string, now:
  * the app opens, at most once a week per ad, never while the location prompt or the tour is up.
  */
 export function OpeningAd({ ready }: { ready: boolean }) {
+  const theme = useThemeColors();
   const ad = useServedAd('Opening', useDeviceCoords());
   const tourPhase = useTourStore((s) => s.phase);
   const { shownAt, markShown } = useOpeningAdStore();
@@ -74,8 +76,8 @@ export function OpeningAd({ ready }: { ready: boolean }) {
 
   return (
     <Modal transparent animationType="fade" visible onRequestClose={close}>
-      <View className="flex-1 items-center justify-center bg-surface-dark/70 px-6" testID="opening-ad">
-        <View className="w-full overflow-hidden rounded-card border-2 border-surface-dark bg-white" style={HARD_SHADOW}>
+      <View className="flex-1 items-center justify-center bg-navy/70 px-6" testID="opening-ad">
+        <View className="w-full overflow-hidden rounded-card border-2 border-edge bg-card" style={theme.hardShadow}>
           {data.photoUrl ? (
             <Image source={{ uri: data.photoUrl }} style={{ width: '100%', height: 180 }} contentFit="cover" />
           ) : (
@@ -88,13 +90,13 @@ export function OpeningAd({ ready }: { ready: boolean }) {
             accessibilityRole="button"
             accessibilityLabel="Fechar anúncio"
             testID="opening-ad-close"
-            className="absolute right-3 top-3 h-9 w-9 items-center justify-center rounded-full bg-white"
+            className="absolute right-3 top-3 h-9 w-9 items-center justify-center rounded-full bg-card"
           >
-            <IconFechar size={18} color={colors.surfaceDark} />
+            <IconFechar size={18} color={theme.ink} />
           </Pressable>
           <View className="p-4">
             <View className="flex-row">
-              <Tag bg={colors.bgLightAlt} color={colors.textMuted}>
+              <Tag bg={theme.bgAlt} color={theme.muted}>
                 Patrocinado
               </Tag>
             </View>

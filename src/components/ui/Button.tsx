@@ -2,7 +2,8 @@ import type { ReactNode } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 
 import { PressableScale } from "@/components/ui/PressableScale";
-import { HARD_SHADOW, colors } from "@/theme/colors";
+import { colors } from "@/theme/colors";
+import { useThemeColors, type ThemeColors } from "@/theme/useThemeColors";
 
 export type ButtonVariant =
   | "grad"
@@ -27,34 +28,40 @@ const BASE = "h-12 rounded-btn flex-row items-center justify-center px-6";
 // Fill + border per variant (DESIGN_SYSTEM "Buttons"): flat fills, never a
 // gradient. `grad` keeps its name from when it was the gradient CTA.
 const VARIANT_CLASS: Record<ButtonVariant, string> = {
-  grad: "border-2 border-surface-dark bg-accent",
-  primary: "border-2 border-surface-dark bg-primary",
-  outline: "border-2 border-surface-dark bg-white",
+  grad: "border-2 border-edge bg-accent",
+  primary: "border-2 border-edge bg-primary",
+  outline: "border-2 border-edge bg-card",
   outlineW: "border-2 border-white bg-transparent",
   outlineLime: "border-2 border-accent-light bg-transparent",
   ghost: "bg-transparent",
 };
 
 const TEXT_CLASS: Record<ButtonVariant, string> = {
-  grad: "font-body-bold text-body-bold text-surface-dark",
+  grad: "font-body-bold text-body-bold text-navy",
   primary: "font-body-bold text-body-bold text-text-on-dark",
-  outline: "font-body-bold text-body-bold text-surface-dark",
+  outline: "font-body-bold text-body-bold text-ink",
   outlineW: "font-body-bold text-body-bold text-text-on-dark",
   outlineLime: "font-body-bold text-body-bold text-accent-light",
-  ghost: "font-body-semibold text-body-bold text-primary",
+  ghost: "font-body-semibold text-body-bold text-primary-fg",
 };
 
-const INDICATOR_COLOR: Record<ButtonVariant, string> = {
-  grad: colors.surfaceDark,
-  primary: colors.textOnDark,
-  outline: colors.surfaceDark,
-  outlineW: colors.textOnDark,
-  outlineLime: colors.accentLight,
-  ghost: colors.primary,
-};
+function indicatorColor(variant: ButtonVariant, theme: ThemeColors): string {
+  switch (variant) {
+    case "grad":
+      return colors.surfaceDark; // navy on lime, in both themes
+    case "outline":
+      return theme.ink;
+    case "ghost":
+      return theme.primaryFg;
+    case "outlineLime":
+      return colors.accentLight;
+    default:
+      return colors.textOnDark;
+  }
+}
 
-// The hard shadow is navy, so only the filled variants (light surfaces) carry
-// it: it would not show on navy, where outlineW / outlineLime live.
+// Only the filled variants carry the hard shadow (navy in light, blue in dark):
+// the transparent ones live on navy, where it would not show.
 const HAS_SHADOW: Record<ButtonVariant, boolean> = {
   grad: true,
   primary: true,
@@ -88,6 +95,7 @@ export function Button({
   // A disabled filled button goes grey and keeps its border; the transparent
   // variants (and a loading button) only fade, since grey would vanish on navy.
   const greyed = Boolean(disabled) && !loading && HAS_SHADOW[variant];
+  const theme = useThemeColors();
 
   return (
     <PressableScale
@@ -101,22 +109,22 @@ export function Button({
       className={`${BASE} ${VARIANT_CLASS[variant]}`}
       style={
         greyed
-          ? { backgroundColor: colors.line }
+          ? { backgroundColor: theme.line }
           : isDisabled
             ? { opacity: 0.5 }
             : HAS_SHADOW[variant]
-              ? HARD_SHADOW
+              ? theme.hardShadow
               : undefined
       }
     >
       {loading ? (
-        <ActivityIndicator color={INDICATOR_COLOR[variant]} />
+        <ActivityIndicator color={indicatorColor(variant, theme)} />
       ) : (
         <>
           {leftIcon ? <View className="mr-2">{leftIcon}</View> : null}
           <Text
             className={TEXT_CLASS[variant]}
-            style={greyed ? { color: colors.textMuted } : undefined}
+            style={greyed ? { color: theme.muted } : undefined}
           >
             {children}
           </Text>

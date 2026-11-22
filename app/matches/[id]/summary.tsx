@@ -26,6 +26,7 @@ import { PIECE_COUNT } from '@/features/pass/lib/cardPieces';
 import { useMatchPoints } from '@/features/ranking/api/getGroupRanking';
 import { useAuthStore } from '@/stores/auth';
 import { colors } from '@/theme/colors';
+import { ForceLightTheme } from '@/components/ui/ForceLightTheme';
 
 /**
  * S16 — Match Summary
@@ -37,7 +38,7 @@ import { colors } from '@/theme/colors';
  *
  * Route param: id (match id). Summary comes from the backend (F1.6).
  */
-export default function MatchSummaryScreen() {
+function MatchSummaryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const matchId = id ?? '';
 
@@ -581,5 +582,14 @@ function SeasonPassLine() {
       </Text>
       <Text className="font-body-bold text-caption text-accent-light">Ver</Text>
     </Pressable>
+  );
+}
+
+// Drawn on navy in both themes: keeps its light-theme colors (DECISIONS #203).
+export default function MatchSummaryScreenRoute() {
+  return (
+    <ForceLightTheme>
+      <MatchSummaryScreen />
+    </ForceLightTheme>
   );
 }

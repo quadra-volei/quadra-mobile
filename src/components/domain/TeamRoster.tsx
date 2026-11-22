@@ -32,7 +32,7 @@ export function TeamRoster({
   testID,
 }: TeamRosterProps) {
   return (
-    <View className="rounded-card border border-line bg-white p-4" testID={testID}>
+    <View className="rounded-card border border-line bg-card p-4" testID={testID}>
       {/* ── Team header ── */}
       <View className="mb-3 flex-row items-center gap-2">
         <View className={`h-3 w-3 rounded-full ${colorIndex < 0 ? "bg-text-muted" : getTeamBgColor(colorIndex)}`} />

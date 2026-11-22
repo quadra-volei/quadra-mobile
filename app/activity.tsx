@@ -33,7 +33,7 @@ export default function ActivityScreen() {
         keyExtractor={(a) => a.id}
         renderItem={({ item, index }) => (
           <View
-            className={`mx-4 bg-white border-line border-x ${index === 0 ? 'rounded-t-card border-t' : ''} ${
+            className={`mx-4 bg-card border-line border-x ${index === 0 ? 'rounded-t-card border-t' : ''} ${
               index === last ? 'rounded-b-card border-b' : ''
             }`}
           >

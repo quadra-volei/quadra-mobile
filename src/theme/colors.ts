@@ -1,6 +1,11 @@
-// Mirrors tailwind.config.js theme.extend.colors — one source of truth for
-// color values needed at runtime by non-NativeWind props (icon `color`,
+// Brand colors at runtime, for non-NativeWind props (icon `color`,
 // LinearGradient `colors`). Screens NEVER inline hex; they import from here.
+//
+// These values do not follow the theme: they are the brand (blue, lime, orange,
+// white, the navy of copy on lime and of the court art) and the light-theme
+// values used by the screens drawn on navy in both themes (`ForceLightTheme`).
+// A color that must change in the dark theme (copy, icons on cards, borders,
+// the hard shadow) comes from `useThemeColors()` (DECISIONS #203).
 export const colors = {
   surfaceDark: '#0A0A3C', // surface-dark / navy (court-image gradient end)
   surfaceDarkAlt: '#111145', // surface-dark-alt (skeleton fill on navy)
@@ -19,9 +24,9 @@ export const colors = {
 } as const;
 
 // The hard offset shadow of buttons and selection cards (DESIGN_SYSTEM
-// "Buttons"): navy, no blur. Always an inline style: NativeWind turns a shadow
-// class into Android elevation, which is blurred and cannot be offset.
-export const HARD_SHADOW = { boxShadow: `3px 3px 0 0 ${colors.surfaceDark}` } as const;
+// "Buttons") is `useThemeColors().hardShadow`: navy in light, brand blue in dark,
+// no blur. Always an inline style: NativeWind turns a shadow class into Android
+// elevation, which is blurred and cannot be offset.
 
 // Level filter over a match cover photo (DECISIONS #103): the level tint over
 // the photo, fading into navy, the same direction as the no-photo court. The

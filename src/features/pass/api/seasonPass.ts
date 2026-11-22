@@ -5,7 +5,7 @@ import { authorizedApiClient } from '@/lib/api/authorizedClient';
 // Season pass (`GET /api/v1/season-pass`, quadra-api DECISIONS #98): the
 // ranking points of the season's recurring matches, at most `weeklyCap` a week,
 // fill levels of `pointsPerLevel`. Each level gives a piece of the season's card
-// (paid track, open to everyone in the closed test); some give a card title
+// (paid track: bought on Google Play, or open to everyone in the closed test); some give a card title
 // (free track); the last one the card's finish. The API decides what is
 // unlocked; the app only draws it.
 
@@ -42,6 +42,13 @@ export type SeasonPass = {
   /** The paid track is open to the player. */
   premium: boolean;
   rewards: SeasonReward[];
+  /**
+   * The Google Play product that sells this season's pass (quadra-api DECISIONS
+   * #109); null when nothing is on sale (billing off, already bought, season over).
+   */
+  productId?: string | null;
+  /** Passed to Play Billing as `obfuscatedAccountId`; null when `productId` is. */
+  purchaseAccountTag?: string | null;
 };
 
 export const seasonPassQueryKey = ['season-pass'] as const;

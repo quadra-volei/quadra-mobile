@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { Text, TextInput, View } from 'react-native';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 export type TextFieldProps = {
   /** Eyebrow / overline label rendered above the field. */
@@ -20,7 +21,6 @@ export type TextFieldProps = {
   testID?: string;
 };
 
-const TEXT_MUTED = '#62628A'; // text-muted token — placeholder color
 
 /**
  * Generic labeled text field for RHF-controlled forms (eyebrow label, optional
@@ -41,6 +41,7 @@ export function TextField({
   editable = true,
   testID,
 }: TextFieldProps) {
+  const theme = useThemeColors();
   const hasError = Boolean(error);
 
   // No `flex-1` here: inside a vertical ScrollView that would collapse the field
@@ -59,7 +60,7 @@ export function TextField({
 
       <View
         className={`mt-2 h-12 flex-row items-center rounded-chip border px-4 ${
-          editable ? 'bg-white' : 'bg-bg-light-alt'
+          editable ? 'bg-card' : 'bg-bg-light-alt'
         } ${hasError ? 'border-danger' : 'border-line'}`}
       >
         {leftAdornment ? <View className="mr-2">{leftAdornment}</View> : null}
@@ -68,7 +69,7 @@ export function TextField({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={TEXT_MUTED}
+          placeholderTextColor={theme.muted}
           autoCapitalize={autoCapitalize}
           autoCorrect={false}
           maxLength={maxLength}
@@ -83,7 +84,7 @@ export function TextField({
 
       {hasError ? (
         <Text
-          className="mt-2 font-body text-caption text-danger"
+          className="mt-2 font-body text-caption text-danger-fg"
           accessibilityLiveRegion="polite"
         >
           {error}

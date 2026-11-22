@@ -2,7 +2,7 @@ import { Modal, Pressable, Text, View } from 'react-native';
 import { create } from 'zustand';
 
 import { Button } from '@/components/ui/Button';
-import { HARD_SHADOW } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 export type DialogButton = {
   text: string;
@@ -31,6 +31,7 @@ export const dialog = {
 
 /** Renders the dialog opened by `dialog.alert`. Mounted once in `app/_layout.tsx`. */
 export function DialogHost() {
+  const theme = useThemeColors();
   const current = useDialogStore((s) => s.current);
   if (!current) return null;
 
@@ -51,7 +52,7 @@ export function DialogHost() {
       <Pressable
         onPress={dismiss}
         accessible={false}
-        className="flex-1 items-center justify-center bg-surface-dark/70 px-6"
+        className="flex-1 items-center justify-center bg-navy/70 px-6"
       >
         {/* Taps on the card must not reach the backdrop. */}
         <Pressable
@@ -59,7 +60,7 @@ export function DialogHost() {
           accessible={false}
           accessibilityViewIsModal
           testID="dialog"
-          className="self-stretch rounded-card bg-white p-6 shadow-modal"
+          className="self-stretch rounded-card bg-card p-6 shadow-modal"
         >
           <Text
             accessibilityRole="header"
@@ -80,8 +81,8 @@ export function DialogHost() {
                   key={button.text}
                   accessibilityRole="button"
                   onPress={() => press(button)}
-                  className="h-12 items-center justify-center rounded-btn border-2 border-surface-dark bg-danger px-6"
-                  style={HARD_SHADOW}
+                  className="h-12 items-center justify-center rounded-btn border-2 border-edge bg-danger px-6"
+                  style={theme.hardShadow}
                 >
                   <Text className="font-body-bold text-body-bold text-text-on-dark">
                     {button.text}

@@ -31,6 +31,7 @@ import { GAME_POINTS, MATCH_DURATIONS } from '@/features/matches/schema/createMa
 import { editMatchSchema, type EditMatchInput } from '@/features/matches/schema/editMatch';
 import { GENDER_LABEL, SURFACE_LABEL, type MatchGender, type MatchLevel, type MatchSurface } from '@/features/matches/types/match';
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 const FORMATS = ['2X2', '4X4', '6X6'] as const;
 const LEVEL_LABEL: Record<MatchLevel, string> = {
@@ -95,6 +96,7 @@ function EditMatchForm({
   isRecurring: boolean;
   coverUrl?: string;
 }) {
+  const theme = useThemeColors();
   const insets = useSafeAreaInsets();
   const editMatch = useEditMatch(id);
   const cancelMatch = useCancelMatch(id);
@@ -188,9 +190,9 @@ function EditMatchForm({
             accessibilityRole="button"
             accessibilityLabel="Voltar"
             onPress={() => router.back()}
-            className="h-10 w-10 items-center justify-center rounded-chip bg-white shadow-card"
+            className="h-10 w-10 items-center justify-center rounded-chip bg-card shadow-card"
           >
-            <IconVoltar size={24} color={colors.surfaceDark} />
+            <IconVoltar size={24} color={theme.ink} />
           </Pressable>
           <Text className="font-display text-h1 text-text-primary uppercase">Editar partida</Text>
         </View>
@@ -248,7 +250,7 @@ function EditMatchForm({
               testID="edit-location"
             />
             {!placePicked && places.data && places.data.length > 0 ? (
-              <View className="mt-2 rounded-card bg-white shadow-card">
+              <View className="mt-2 rounded-card bg-card shadow-card">
                 {places.data.map((place) => (
                   <Pressable
                     key={place.id}
@@ -271,7 +273,7 @@ function EditMatchForm({
               </Text>
             ) : null}
             {locationError ? (
-              <Text className="mt-2 font-body text-caption text-danger">{locationError}</Text>
+              <Text className="mt-2 font-body text-caption text-danger-fg">{locationError}</Text>
             ) : null}
           </Section>
 
@@ -460,7 +462,7 @@ function EditMatchForm({
           </Section>
 
           {editMatch.error ? (
-            <Text className="mt-6 font-body text-caption text-danger" accessibilityLiveRegion="polite">
+            <Text className="mt-6 font-body text-caption text-danger-fg" accessibilityLiveRegion="polite">
               {editMatch.error.message}
             </Text>
           ) : null}

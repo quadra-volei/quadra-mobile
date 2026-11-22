@@ -8,6 +8,7 @@ import {
 } from "@/features/profile/schema/onboarding";
 import { useRiseIn } from "@/hooks/useRiseIn";
 import { colors } from "@/theme/colors";
+import { useThemeColors } from '@/theme/useThemeColors';
 
 /** Fades its children up into place on mount (the prototype's `.q-rise`). */
 function Rise({
@@ -68,6 +69,7 @@ export function PositionTag({
   short?: boolean;
   testID?: string;
 }) {
+  const theme = useThemeColors();
   const name = POSITION_OPTIONS.find((option) => option.code === code)?.name ?? code;
   return (
     <View
@@ -76,9 +78,9 @@ export function PositionTag({
       testID={testID}
       // Selected colors inline, never a toggled className (DECISIONS #87).
       className={`flex-row items-center gap-1.5 self-start rounded-pill border-2 p-0.5 ${short ? '' : 'pr-2.5'} ${
-        onDark ? 'border-white/15 bg-white/10' : 'border-line bg-white'
+        onDark ? 'border-white/15 bg-white/10' : 'border-line bg-card'
       }`}
-      style={selected ? { borderColor: colors.primary, backgroundColor: colors.bgLightAlt } : undefined}
+      style={selected ? { borderColor: theme.primaryFg, backgroundColor: theme.bgAlt } : undefined}
     >
       <View
         className={`h-6 w-6 items-center justify-center rounded-full ${onDark ? 'bg-white/15' : 'bg-bg-light'}`}
@@ -87,12 +89,12 @@ export function PositionTag({
         <PositionIcon
           code={code}
           size={18}
-          color={selected || onDark ? colors.textOnDark : colors.surfaceDark}
+          color={selected || onDark ? colors.textOnDark : theme.ink}
         />
       </View>
       {short ? null : (
         <Text
-          className={`font-body-bold text-caption ${onDark ? 'text-text-on-dark' : 'text-surface-dark'}`}
+          className={`font-body-bold text-caption ${onDark ? 'text-text-on-dark' : 'text-ink'}`}
         >
           {name}
         </Text>
@@ -102,7 +104,7 @@ export function PositionTag({
 }
 
 // Position cards carry their own 4px hard shadow: soft navy at rest, blue when
-// selected (inline for the reason given at HARD_SHADOW).
+// selected (inline, like the hard shadow of `useThemeColors`).
 const POSITION_CARD_REST = { boxShadow: "4px 4px 0 0 rgba(10,10,60,0.12)" };
 const POSITION_CARD_SELECTED = {
   boxShadow: `4px 4px 0 0 ${colors.primary}`,
@@ -122,6 +124,7 @@ function PositionCard({
   onPress: () => void;
   testID: string;
 }) {
+  const theme = useThemeColors();
   return (
     <Rise delay={35 * index} className="w-[48%]">
       <Pressable
@@ -131,7 +134,7 @@ function PositionCard({
         accessibilityState={{ selected }}
         testID={testID}
         className={`min-h-[112px] rounded-btn border-2 p-3 ${
-          selected ? "border-primary bg-bg-light-alt" : "border-line bg-white"
+          selected ? "border-primary-fg bg-bg-light-alt" : "border-line bg-card"
         }`}
         style={selected ? POSITION_CARD_SELECTED : POSITION_CARD_REST}
       >
@@ -143,16 +146,16 @@ function PositionCard({
           <PositionIcon
             code={option.code}
             size={32}
-            color={selected ? colors.textOnDark : colors.surfaceDark}
+            color={selected ? colors.textOnDark : theme.ink}
           />
         </View>
         <View className="mt-2 flex-row items-center justify-between">
-          <Text className="font-body-bold text-h2 text-surface-dark">
+          <Text className="font-body-bold text-h2 text-ink">
             {option.name}
           </Text>
           <View
             className={`h-5 w-5 items-center justify-center rounded-full border ${
-              selected ? "border-accent bg-accent" : "border-line bg-white"
+              selected ? "border-accent bg-accent" : "border-line bg-card"
             }`}
           >
             {selected ? (

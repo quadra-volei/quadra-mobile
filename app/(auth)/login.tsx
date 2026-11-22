@@ -176,7 +176,7 @@ export default function LoginScreen() {
         <View className="absolute inset-0" accessibilityViewIsModal>
           {/* dimmed backdrop — tap to close */}
           <Pressable
-            className="absolute inset-0 bg-surface-dark/60"
+            className="absolute inset-0 bg-navy/60"
             onPress={closeSheet}
             accessibilityRole="button"
             accessibilityLabel="Fechar"
@@ -189,7 +189,7 @@ export default function LoginScreen() {
               onPress={closeSheet}
               accessibilityRole="button"
               accessibilityLabel="Voltar"
-              className="ml-4 mt-2 h-10 w-10 rounded-full bg-surface-dark/40 items-center justify-center"
+              className="ml-4 mt-2 h-10 w-10 rounded-full bg-navy/40 items-center justify-center"
               testID="sheet-back"
             >
               <IconVoltar size={24} color={colors.textOnDark} />
@@ -203,7 +203,7 @@ export default function LoginScreen() {
               className="absolute inset-x-0 bottom-0"
             >
               <View
-                className="bg-white shadow-modal px-6 pt-6 pb-8"
+                className="bg-card shadow-modal px-6 pt-6 pb-8"
                 style={{
                   minHeight: SHEET_MIN_HEIGHT,
                   // top-only radius (card token = 20px); bottom stays square so
@@ -280,7 +280,7 @@ export default function LoginScreen() {
                 {/* inline (no toast) status when Google sign-in fails */}
                 {googleError ? (
                   <Text
-                    className="font-body text-caption text-danger text-center mt-2"
+                    className="font-body text-caption text-danger-fg text-center mt-2"
                     accessibilityLiveRegion="polite"
                     testID="google-error"
                   >

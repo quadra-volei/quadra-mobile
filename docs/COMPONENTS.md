@@ -49,7 +49,7 @@ Each entry follows this structure:
   <Button variant="grad" onPress={openSheet}>Entrar e jogar</Button>
   <Button variant="outline" onPress={onGoogle} leftIcon={<GoogleMark />}>Entrar com Google</Button>
   ```
-- **Notes**: All DESIGN_SYSTEM variants, under the button rule (flat fill, 2px navy border, `HARD_SHADOW`; DECISIONS #69). `grad` is lime, `primary` blue, `outline` white; `outlineW` / `outlineLime` are transparent for navy surfaces (no shadow); `ghost` is a text link. `disabled` is a grey fill (`line`) with a muted label, the border and no shadow on `grad` / `primary` / `outline`, and 50% opacity on the transparent variants and while `loading`; `loading` swaps content for an `ActivityIndicator`. An icon on `grad` / `outline` is navy (`colors.surfaceDark`). Tap height ~48px (`h-12`), `rounded-btn`. Exposes `accessibilityRole="button"` and `accessibilityState` (disabled/busy).
+- **Notes**: All DESIGN_SYSTEM variants, under the button rule (flat fill, 2px navy border, the hard shadow (`theme.hardShadow`); DECISIONS #69). `grad` is lime, `primary` blue, `outline` white; `outlineW` / `outlineLime` are transparent for navy surfaces (no shadow); `ghost` is a text link. `disabled` is a grey fill (`line`) with a muted label, the border and no shadow on `grad` / `primary` / `outline`, and 50% opacity on the transparent variants and while `loading`; `loading` swaps content for an `ActivityIndicator`. An icon on `grad` is navy (`colors.surfaceDark`), on `outline` it is `theme.ink`. Tap height ~48px (`h-12`), `rounded-btn`. Exposes `accessibilityRole="button"` and `accessibilityState` (disabled/busy).
 
 ### `IconButton`
 - **Path**: `src/components/ui/IconButton.tsx`
@@ -62,7 +62,7 @@ Each entry follows this structure:
     <Settings size={20} color={colors.surfaceDark} />
   </IconButton>
   ```
-- **Notes**: Boxed header icon under the button rule (white 40px square, 2px navy border, `HARD_SHADOW`). `label` is the accessibility label. Light surfaces only.
+- **Notes**: Boxed header icon under the button rule (white 40px square, 2px navy border, the hard shadow (`theme.hardShadow`)). `label` is the accessibility label. Light surfaces only.
 
 ### `PhoneInput`
 - **Path**: `src/components/ui/PhoneInput.tsx`
@@ -138,7 +138,7 @@ Each entry follows this structure:
   <FilterChip label="Perto" selected={activeFilter === 'perto'} onPress={() => setActiveFilter('perto')} />
   <FilterChip label="Bairro" selected={false} onPress={() => {}} disabled />
   ```
-- **Notes**: Selectable filter pill — controlled and purely presentational (holds no state, never fetches). Drawn like a button (DECISIONS #148): `h-11 px-5 rounded-pill border-2` with a `font-body-bold` `text-h2` label. Selected = `primary` fill, navy border, white label and `HARD_SHADOW`; unselected = `bg-white border-line` + `text-text-primary`. `disabled` renders an inert, muted pill (`bg-bg-light-alt` + `text-text-muted`, press is no-op via `Pressable disabled`) — used by S9's "Em breve" Bairro/Geral scope tabs. Single `accessibilityRole="button"` exposing `accessibilityState={{ selected, disabled }}`. Distinct from a static tag/pill (this is interactive single/multi-select chrome). Designed for reuse by S11 (date/format/level chips) and S9/S10 (scope/position chips).
+- **Notes**: Selectable filter pill — controlled and purely presentational (holds no state, never fetches). Drawn like a button (DECISIONS #148): `h-11 px-5 rounded-pill border-2` with a `font-body-bold` `text-h2` label. Selected = `primary` fill, navy border, white label and the hard shadow (`theme.hardShadow`); unselected = `bg-white border-line` + `text-text-primary`. `disabled` renders an inert, muted pill (`bg-bg-light-alt` + `text-text-muted`, press is no-op via `Pressable disabled`) — used by S9's "Em breve" Bairro/Geral scope tabs. Single `accessibilityRole="button"` exposing `accessibilityState={{ selected, disabled }}`. Distinct from a static tag/pill (this is interactive single/multi-select chrome). Designed for reuse by S11 (date/format/level chips) and S9/S10 (scope/position chips).
 
 ### `SearchField`
 - **Path**: `src/components/ui/SearchField.tsx`
@@ -180,7 +180,18 @@ Each entry follows this structure:
 - **Category**: ui
 - **Props**: `{ value: number; min: number; max: number; step?: number; onChange: (value: number) => void; accessibilityLabel: string; valueText: (value: number) => string; testID?: string }`
 - **Used in**: `ExploreFilterSheet` (Distância, 1–50 km, 50 = any).
-- **Notes**: Single-value slider dragged along its track: blue fill on a `primary/15` track, white thumb with the navy border and `HARD_SHADOW`. A touch anywhere on the track jumps there. React Native `PanResponder` (no package; works inside a `Modal`), which keeps the gesture from the scroll view around it. `accessibilityRole="adjustable"`: screen readers step it with increment/decrement and hear `valueText`.
+- **Notes**: Single-value slider dragged along its track: blue fill on a `primary/15` track, white thumb with the navy border and the hard shadow (`theme.hardShadow`). A touch anywhere on the track jumps there. React Native `PanResponder` (no package; works inside a `Modal`), which keeps the gesture from the scroll view around it. `accessibilityRole="adjustable"`: screen readers step it with increment/decrement and hear `valueText`.
+
+### `ForceLightTheme`
+- **Path**: `src/components/ui/ForceLightTheme.tsx`
+- **Category**: ui
+- **Props**: `{ children: ReactNode }`
+- **Used in**: the screens drawn on navy in both themes: live score, MVP vote, summary, stats, "Sua carta", a player's card, the season pass, the splash.
+- **Example**:
+  ```tsx
+  <ForceLightTheme><ScoreboardScreen /></ForceLightTheme>
+  ```
+- **Notes**: Keeps a subtree in the light theme's colors whatever the app's theme (DECISIONS #203): sets the light CSS variables with NativeWind `vars()` on a `flex-1` view and forces `useThemeColors()` to the light palette through `ForcedSchemeContext`. Use it for a screen designed on navy, where the dark theme's cards and copy would replace white chips and navy labels.
 
 ### `ToggleField`
 - **Path**: `src/components/ui/ToggleField.tsx`
@@ -191,7 +202,7 @@ Each entry follows this structure:
   ```tsx
   <ToggleField icon={<Lock size={20} color={colors.primary} />} title="Partida aberta" caption="Qualquer um pode entrar nas vagas" value={value} onValueChange={onChange} testID="open-toggle" />
   ```
-- **Notes**: Boolean switch row — optional leading icon + title + caption + a native RN `Switch` on a `bg-white rounded-card border border-line` row. The `Switch` carries the accessible `role="switch"` + `accessibilityState={{ checked }}` and label (title). RN core `Switch` styles via `trackColor`/`thumbColor` props (not className) — track/thumb colors mirror the `notifications.tsx` precedent (`#E8EEF8` bg-light-alt off / `colors.primary` on / `colors.textOnDark` thumb). Controlled; never fetches. **Row-chrome precedent**: S12's inlined Manual/Automático draw-mode radio rows mirror this exact row layout (icon + title + caption on a `bg-white rounded-card border` row) but with a trailing icon instead of a `Switch` and `accessibilityRole="radio"` (single-select). That is a one-screen presentational variation — it is **inlined in `app/matches/[id].tsx`**, not extracted, and adds no `ToggleField` API change.
+- **Notes**: Boolean switch row — optional leading icon + title + caption + a native RN `Switch` on a `bg-white rounded-card border border-line` row. The `Switch` carries the accessible `role="switch"` + `accessibilityState={{ checked }}` and label (title). RN core `Switch` styles via `trackColor`/`thumbColor` props (not className) — track/thumb colors mirror the `notifications.tsx` precedent (`theme.bgAlt` off / `colors.primary` on / `colors.textOnDark` thumb). Controlled; never fetches. **Row-chrome precedent**: S12's inlined Manual/Automático draw-mode radio rows mirror this exact row layout (icon + title + caption on a `bg-white rounded-card border` row) but with a trailing icon instead of a `Switch` and `accessibilityRole="radio"` (single-select). That is a one-screen presentational variation — it is **inlined in `app/matches/[id].tsx`**, not extracted, and adds no `ToggleField` API change.
 
 ### `CourtImage`
 - **Path**: `src/components/ui/CourtImage.tsx`
@@ -366,12 +377,19 @@ More UI primitives will live here:
 - **Used in**: the bell `IconButton` of Início, Rede and Perfil
 - **Notes**: Bell icon plus the count of unread notifications (`useUnreadCount`, re-read every minute; "9+" above nine) in a lime badge with a navy border on the button's top-right corner (DECISIONS #187). Tests mock it (it needs a QueryClient).
 
+### `ThemeSync`
+- **Path**: `src/components/domain/ThemeSync.tsx`
+- **Category**: domain
+- **Props**: none
+- **Used in**: `app/_layout.tsx` (once, at the root).
+- **Notes**: Applies the "Aparência" preference (`useThemeStore`: `light` / `dark` / `system`) with nativewind's `colorScheme.set`, on start-up once AsyncStorage answers and on every change. Renders nothing (DECISIONS #203).
+
 ### `LocationPrompt`
 - **Path**: `src/components/domain/LocationPrompt.tsx`
 - **Category**: domain
 - **Props**: `{ onGranted: () => void; blurTarget?: RefObject<View | null>; onSettled?: () => void }`
 - **Used in**: `app/(tabs)/_layout.tsx` (over the tabs, next to `CreateSheet`)
-- **Notes**: Asks for the location permission once, only while it was never answered (DECISIONS #72, #188): a card centred on the screen over the tabs, blurred and dimmed behind it like `CreateSheet` (white card, 2px navy border, `HARD_SHADOW`, lime pin badge, wide options). The veil does not close it. Allowed: calls `onGranted` (the layout remounts the tabs so they read the position). Denied: explains what is lost, offers the phone settings, then lets the user in. Renders nothing otherwise. `onSettled` fires once nothing is left to ask (the first-access tour waits for it).
+- **Notes**: Asks for the location permission once, only while it was never answered (DECISIONS #72, #188): a card centred on the screen over the tabs, blurred and dimmed behind it like `CreateSheet` (white card, 2px navy border, the hard shadow (`theme.hardShadow`), lime pin badge, wide options). The veil does not close it. Allowed: calls `onGranted` (the layout remounts the tabs so they read the position). Denied: explains what is lost, offers the phone settings, then lets the user in. Renders nothing otherwise. `onSettled` fires once nothing is left to ask (the first-access tour waits for it).
 
 ### `AdBanner`
 - **Path**: `src/components/domain/AdBanner.tsx`
@@ -392,7 +410,7 @@ More UI primitives will live here:
 - **Category**: domain
 - **Props**: none (driven by `useTourStore`, `src/features/tour/tourStore.ts`)
 - **Used in**: `app/(tabs)/_layout.tsx` (over the tabs, after `LocationPrompt`)
-- **Notes**: The first-access tour (DECISIONS #190, #195), drawn over the tabs in their own window (an absolute overlay, not a `Modal`; Android back = Pular). Phase 0: a navy welcome card ("Bem-vindo ao Quadra", Começar / Agora não). Phases 1–4: the screen dimmed in navy with a round hole and a lime ring over one tab bar item, and a white card above it (2px navy border, `HARD_SHADOW`, "N de 4", title, text, Pular / Próximo, Concluir on the last). Targets mark themselves with `useTourTarget(id)` (`src/features/tour/tourTargets.ts`) on a plain `View` with `collapsable={false}` and are measured against the overlay (`measureTourTarget(id, overlay)`); a target not on screen skips its step, and with none left the tour ends. Leaving records the outcome (`useRecordTour`) and remembers it on the phone.
+- **Notes**: The first-access tour (DECISIONS #190, #195), drawn over the tabs in their own window (an absolute overlay, not a `Modal`; Android back = Pular). Phase 0: a navy welcome card ("Bem-vindo ao Quadra", Começar / Agora não). Phases 1–4: the screen dimmed in navy with a round hole and a lime ring over one tab bar item, and a white card above it (2px navy border, the hard shadow (`theme.hardShadow`), "N de 4", title, text, Pular / Próximo, Concluir on the last). Targets mark themselves with `useTourTarget(id)` (`src/features/tour/tourTargets.ts`) on a plain `View` with `collapsable={false}` and are measured against the overlay (`measureTourTarget(id, overlay)`); a target not on screen skips its step, and with none left the tour ends. Leaving records the outcome (`useRecordTour`) and remembers it on the phone.
 
 ### `UpdateGate`
 - **Path**: `src/components/domain/UpdateGate.tsx`
@@ -572,7 +590,7 @@ More UI primitives will live here:
 - **Category**: domain
 - **Props**: `{ onClose: () => void; onCreateMatch: () => void; onCreatePost: () => void; blurTarget?: RefObject<View | null> }`
 - **Used in**: `app/(tabs)/_layout.tsx` (opened by the central "+")
-- **Notes**: "O que você quer criar?" overlay (DECISIONS #98): blurred and dimmed backdrop (tap closes), white card with 2px navy border and `HARD_SHADOW`, "Criar partida" (lime) and "Criar publicação" (white) wide options, "Cancelar" link. The card grows out of the tab bar (it starts with the bar's frame and opens upward, no overshoot) and folds back into it on close; the layout hides the bar meanwhile (DECISIONS #161). An overlay rather than a `Modal` so the Android blur can read the `BlurTargetView` passed as `blurTarget`; Android back closes it. Mount it only while open.
+- **Notes**: "O que você quer criar?" overlay (DECISIONS #98): blurred and dimmed backdrop (tap closes), white card with 2px navy border and the hard shadow (`theme.hardShadow`), "Criar partida" (lime) and "Criar publicação" (white) wide options, "Cancelar" link. The card grows out of the tab bar (it starts with the bar's frame and opens upward, no overshoot) and folds back into it on close; the layout hides the bar meanwhile (DECISIONS #161). An overlay rather than a `Modal` so the Android blur can read the `BlurTargetView` passed as `blurTarget`; Android back closes it. Mount it only while open.
 
 ### `SetEndSheet`
 - **Path**: `src/components/domain/SetEndSheet.tsx`

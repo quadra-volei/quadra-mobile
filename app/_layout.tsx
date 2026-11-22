@@ -32,7 +32,9 @@ import { prefetchProfileTab } from '@/features/profile/api/prefetchProfileTab';
 import { getAccessToken } from '@/lib/auth/getAccessToken';
 import { verifySession } from '@/lib/auth/verifySession';
 import { useAuthStore } from '@/stores/auth';
-import { STACK_OPTIONS } from '@/theme/motion';
+import { ThemeSync } from '@/components/domain/ThemeSync';
+import { stackOptions } from '@/theme/motion';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 // Crashes, JS errors and a sample of traces to Sentry (project quadra-mobile). Without
 // EXPO_PUBLIC_SENTRY_DSN (local runs) nothing is sent. No PII: user IP and request bodies stay out.
@@ -146,6 +148,8 @@ function RootLayout() {
     }
   }, [signedIn]);
 
+  const theme = useThemeColors();
+
   if (!fontsLoaded) {
     return null;
   }
@@ -154,8 +158,9 @@ function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
+          <ThemeSync />
           <AppStatusBar />
-          <Stack screenOptions={STACK_OPTIONS}>
+          <Stack screenOptions={stackOptions(theme)}>
             {/* Splash → login / tabs swaps the whole app: a fade, not a push. */}
             <Stack.Screen name="index" options={{ animation: 'fade' }} />
             <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
@@ -170,9 +175,9 @@ function RootLayout() {
 }
 
 // Screens drawn on navy or blue (splash, sign-in, the live game, the card):
-// light status-bar icons there, dark everywhere else. Never "auto": it follows
-// the phone's dark mode, and the app is light-only, so the icons vanished on
-// the light screens (owner's 4th review, item 9; DECISIONS #172).
+// light status-bar icons there, dark everywhere else in the light theme. In the
+// dark theme every screen is dark, so the icons are always light. Never "auto":
+// it follows the phone, not the theme picked in the app (DECISIONS #172, #203).
 const DARK_ROUTES = [
   /^\/$/,
   /^\/(login|sms-otp|onboarding)$/,
@@ -186,7 +191,9 @@ const DARK_ROUTES = [
 
 function AppStatusBar() {
   const pathname = usePathname();
-  return <StatusBar style={DARK_ROUTES.some((route) => route.test(pathname)) ? 'light' : 'dark'} />;
+  const { scheme } = useThemeColors();
+  const light = scheme === 'dark' || DARK_ROUTES.some((route) => route.test(pathname));
+  return <StatusBar style={light ? 'light' : 'dark'} />;
 }
 
 

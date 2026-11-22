@@ -1,13 +1,13 @@
 import type { ReactNode } from "react";
 
 import { PressableScale } from "@/components/ui/PressableScale";
-import { HARD_SHADOW } from "@/theme/colors";
+import { useThemeColors } from '@/theme/useThemeColors';
 
 type IconButtonProps = {
   /** Read by assistive tech: the icon carries no text. */
   label: string;
   onPress: () => void;
-  /** A 20px icon in `colors.surfaceDark`. */
+  /** A 20px icon in `ink` (`useThemeColors`). */
   children: ReactNode;
   testID?: string;
 };
@@ -18,6 +18,7 @@ type IconButtonProps = {
  * "Buttons"). `hitSlop` grows it to Android's 48dp touch target.
  */
 export function IconButton({ label, onPress, children, testID }: IconButtonProps) {
+  const theme = useThemeColors();
   return (
     <PressableScale
       accessibilityRole="button"
@@ -25,8 +26,8 @@ export function IconButton({ label, onPress, children, testID }: IconButtonProps
       testID={testID}
       hitSlop={4}
       onPress={onPress}
-      className="h-10 w-10 items-center justify-center rounded-chip border-2 border-surface-dark bg-white"
-      style={HARD_SHADOW}
+      className="h-10 w-10 items-center justify-center rounded-chip border-2 border-edge bg-card"
+      style={theme.hardShadow}
     >
       {children}
     </PressableScale>

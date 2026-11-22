@@ -34,6 +34,7 @@ import { remoteImage } from '@/lib/remoteImage';
 import { colors } from '@/theme/colors';
 import { ICON_HIT_SLOP, TAB_BAR_CLEARANCE } from '@/theme/layout';
 import { MOTION } from '@/theme/motion';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 function goSettings() {
   router.push('/profile/settings');
@@ -107,7 +108,7 @@ function MatchInvite({
         onPress={() => goMatch(match.id)}
         className="self-end mt-3 h-10 px-6 rounded-pill bg-accent items-center justify-center overflow-hidden"
       >
-        <Text className="font-body-semibold text-body-bold text-text-primary">Participar</Text>
+        <Text className="font-body-semibold text-body-bold text-navy">Participar</Text>
       </PressableScale>
     </View>
   );
@@ -125,6 +126,7 @@ function PostCard({
   onMore: () => void;
   onToggleLike: () => void;
 }) {
+  const theme = useThemeColors();
   const match = post.match;
   // A match still to come makes the post an invite; a played one is a label.
   const invitesTo =
@@ -136,7 +138,7 @@ function PostCard({
   const when = timeAgo(post.createdAt);
 
   return (
-    <View className="mx-4 mb-4 bg-white rounded-card shadow-card overflow-hidden" testID="post">
+    <View className="mx-4 mb-4 bg-card rounded-card shadow-card overflow-hidden" testID="post">
       <View className="flex-row items-center gap-3 p-4">
         <PressableScale
           accessibilityRole="button"
@@ -150,7 +152,7 @@ function PostCard({
               <Text className="font-body text-body text-text-primary">
                 <Text className="font-body-semibold text-body-bold">{post.author.displayName}</Text>
                 {` ${activity} `}
-                <Text className="font-body-semibold text-body-bold text-primary">{match.name}</Text>
+                <Text className="font-body-semibold text-body-bold text-primary-fg">{match.name}</Text>
               </Text>
             ) : (
               <Text className="font-body-semibold text-body-bold text-text-primary" numberOfLines={1}>
@@ -169,7 +171,7 @@ function PostCard({
             hitSlop={ICON_HIT_SLOP}
             onPress={onDelete}
           >
-            <IconExcluir size={20} color={colors.textMuted} />
+            <IconExcluir size={20} color={theme.muted} />
           </PressableScale>
         ) : (
           <PressableScale
@@ -178,7 +180,7 @@ function PostCard({
             hitSlop={ICON_HIT_SLOP}
             onPress={onMore}
           >
-            <IconMaisOpcoes size={20} color={colors.textMuted} />
+            <IconMaisOpcoes size={20} color={theme.muted} />
           </PressableScale>
         )}
       </View>
@@ -200,8 +202,8 @@ function PostCard({
         <MatchInvite match={invitesTo} />
       ) : match && !activity ? (
         <View className="flex-row items-center gap-2 px-4 py-3 border-t border-line">
-          <IconPartida size={16} color={colors.primary} />
-          <Text className="flex-1 font-body-semibold text-caption text-primary" numberOfLines={1}>
+          <IconPartida size={16} color={theme.primaryFg} />
+          <Text className="flex-1 font-body-semibold text-caption text-primary-fg" numberOfLines={1}>
             {match.name}
           </Text>
         </View>
@@ -217,9 +219,9 @@ function PostCard({
           className="flex-row items-center gap-2"
         >
           {post.likedByMe ? (
-            <IconCurtirAtivo size={20} color={colors.danger} />
+            <IconCurtirAtivo size={20} color={theme.dangerFg} />
           ) : (
-            <IconCurtir size={20} color={colors.textMuted} />
+            <IconCurtir size={20} color={theme.muted} />
           )}
           <Text className="font-body-semibold text-caption text-text-muted">{post.likeCount}</Text>
         </PressableScale>
@@ -230,7 +232,7 @@ function PostCard({
           onPress={() => goComments(post.id)}
           className="flex-row items-center gap-2"
         >
-          <IconComentar size={20} color={colors.textMuted} />
+          <IconComentar size={20} color={theme.muted} />
           <Text className="font-body-semibold text-caption text-text-muted">{post.commentCount}</Text>
         </PressableScale>
       </View>
@@ -239,6 +241,7 @@ function PostCard({
 }
 
 export default function NetworkScreen() {
+  const theme = useThemeColors();
   const insets = useSafeAreaInsets();
   const [headerHeight, setHeaderHeight] = useState(0);
   const [scope, setScope] = useState<FeedScope>('all');
@@ -372,7 +375,7 @@ export default function NetworkScreen() {
               <BellWithBadge />
             </IconButton>
             <IconButton label="Configurações" onPress={goSettings}>
-              <IconConfiguracoes size={20} color={colors.surfaceDark} />
+              <IconConfiguracoes size={20} color={theme.ink} />
             </IconButton>
           </View>
         </View>
@@ -423,6 +426,7 @@ function FeedTab({
   onPress: () => void;
   testID: string;
 }) {
+  const theme = useThemeColors();
   return (
     <Pressable
       onPress={onPress}
@@ -433,7 +437,7 @@ function FeedTab({
     >
       <TabLabel
         selected={selected}
-        activeColor={colors.surfaceDark}
+        activeColor={theme.ink}
         className="font-body-bold text-body text-text-muted pb-3"
       >
         {label}

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { PressableScale } from '@/components/ui/PressableScale';
 import type { PresencePlayer } from '@/features/matches/types/matchDetail';
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 export type PresenceGridProps = {
   /** Confirmed/known players; listed in order. */
@@ -47,6 +48,7 @@ export function PresenceGrid({
   onAddGuest,
   testID,
 }: PresenceGridProps) {
+  const theme = useThemeColors();
   const openSlots = Math.max(0, capacity - players.length);
 
   return (
@@ -72,7 +74,7 @@ export function PresenceGrid({
               accessibilityLabel={displayName(player)}
               accessibilityHint={pressable ? 'Abrir perfil' : undefined}
               testID={testID ? `${testID}-player-${player.id}` : undefined}
-              className="flex-row items-center gap-3 rounded-card border border-line bg-white px-3 py-2.5"
+              className="flex-row items-center gap-3 rounded-card border border-line bg-card px-3 py-2.5"
             >
               <Avatar uri={player.avatarUrl} name={player.name} size="sm" level={player.level} />
               <View className="flex-1">
@@ -86,7 +88,7 @@ export function PresenceGrid({
                 ) : null}
               </View>
               {player.position ? <PositionTag code={player.position} /> : null}
-              {pressable ? <IconAvancar size={18} color={colors.textMuted} /> : null}
+              {pressable ? <IconAvancar size={18} color={theme.muted} /> : null}
             </PressableScale>
           );
         })}

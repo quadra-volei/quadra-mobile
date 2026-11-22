@@ -6,6 +6,7 @@ import { IconDivulgar } from '@/components/icons/quadra';
 import { Tag } from '@/components/ui/Tag';
 import { openAd, recordAdView, type ServedAd } from '@/features/ads/api/ads';
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 export type AdBannerProps = {
   ad: ServedAd;
@@ -22,6 +23,7 @@ export type AdBannerProps = {
  * counts a tap and opens the advertiser's link.
  */
 export function AdBanner({ ad, size = 'card', preview = false, testID }: AdBannerProps) {
+  const theme = useThemeColors();
   useEffect(() => {
     if (!preview) void recordAdView(ad.id, 'Impression');
   }, [ad.id, preview]);
@@ -36,7 +38,7 @@ export function AdBanner({ ad, size = 'card', preview = false, testID }: AdBanne
       onPress={preview ? undefined : () => openAd(ad)}
       disabled={preview}
       testID={testID}
-      className={`flex-row overflow-hidden rounded-card bg-white shadow-card ${compact ? 'w-64' : ''}`}
+      className={`flex-row overflow-hidden rounded-card bg-card shadow-card ${compact ? 'w-64' : ''}`}
     >
       {ad.photoUrl ? (
         <Image source={{ uri: ad.photoUrl }} style={{ width: photo, height: photo }} contentFit="cover" />
@@ -47,7 +49,7 @@ export function AdBanner({ ad, size = 'card', preview = false, testID }: AdBanne
       )}
       <View className="flex-1 justify-center px-3 py-2">
         <View className="flex-row">
-          <Tag bg={colors.bgLightAlt} color={colors.textMuted}>
+          <Tag bg={theme.bgAlt} color={theme.muted}>
             Patrocinado
           </Tag>
         </View>

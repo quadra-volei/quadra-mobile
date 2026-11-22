@@ -4,6 +4,7 @@ import { Text, View } from 'react-native';
 import { PressableScale } from '@/components/ui/PressableScale';
 import type { RecentMatch } from '@/features/profile/types/profile';
 import { colors } from '@/theme/colors';
+import { useThemeColors } from '@/theme/useThemeColors';
 
 export type MatchHistoryRowProps = {
   match: RecentMatch;
@@ -20,8 +21,8 @@ const RESULT_LABEL: Record<RecentMatch['result'], string> = {
 
 // Win → success (green), Loss → danger (red). NativeWind tokens, no inline hex.
 const RESULT_CLASS: Record<RecentMatch['result'], string> = {
-  VITORIA: 'text-success',
-  DERROTA: 'text-danger',
+  VITORIA: 'text-success-fg',
+  DERROTA: 'text-danger-fg',
   EMPATE: 'text-text-muted',
   SEM_PLACAR: 'text-text-muted',
 };
@@ -60,6 +61,7 @@ function formatPlayedAt(iso: string): string {
  * fetches. No hardcoded hex — the icon colors come from `src/theme/colors.ts`.
  */
 export function MatchHistoryRow({ match, onPress, testID }: MatchHistoryRowProps) {
+  const theme = useThemeColors();
   const subtitle = [formatPlayedAt(match.playedAt), match.format, match.actionsLine].filter(Boolean).join(' · ');
 
   return (
@@ -71,7 +73,7 @@ export function MatchHistoryRow({ match, onPress, testID }: MatchHistoryRowProps
       className="flex-row items-center px-4 py-3"
     >
       <View className="h-10 w-10 rounded-full bg-bg-light-alt items-center justify-center">
-        <IconPartida size={20} color={colors.surfaceDark} />
+        <IconPartida size={20} color={theme.ink} />
       </View>
 
       <View className="flex-1 ml-3">
@@ -82,7 +84,7 @@ export function MatchHistoryRow({ match, onPress, testID }: MatchHistoryRowProps
           {match.isMvp ? (
             <View testID="mvp-badge" className="ml-2 flex-row items-center rounded-full bg-accent px-1.5">
               <IconMvp size={12} color={colors.surfaceDark} />
-              <Text className="ml-0.5 font-mono text-mono text-surface-dark">MVP</Text>
+              <Text className="ml-0.5 font-mono text-mono text-navy">MVP</Text>
             </View>
           ) : null}
         </View>
@@ -96,7 +98,7 @@ export function MatchHistoryRow({ match, onPress, testID }: MatchHistoryRowProps
         <Text className="font-num text-text-primary text-body">{match.setScore}</Text>
       </View>
 
-      <IconAvancar size={20} color={colors.textMuted} />
+      <IconAvancar size={20} color={theme.muted} />
     </PressableScale>
   );
 }

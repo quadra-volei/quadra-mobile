@@ -46,7 +46,7 @@ export default function PlayerSearchScreen() {
           ) : search.data.length === 0 ? (
             <StateMessage message={`Ninguém com @ começando por "${query}".`} />
           ) : (
-            <View className="bg-white rounded-card shadow-card overflow-hidden">
+            <View className="bg-card rounded-card shadow-card overflow-hidden">
               {search.data.map((player, index) => (
                 <Pressable
                   key={player.userId}
