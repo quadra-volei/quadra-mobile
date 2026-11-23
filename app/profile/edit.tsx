@@ -22,6 +22,7 @@ import { PositionGrid } from "@/components/domain/PositionPicker";
 import { formatBR } from "@/components/ui/PhoneInput";
 import { TextField } from "@/components/ui/TextField";
 import { useMyProfile } from "@/features/profile/api/getMyProfile";
+import { PhotoRefusedError } from "@/features/profile/api/profileApi";
 import { useUpdateProfile } from "@/features/profile/api/updateProfile";
 import {
   editProfileSchema,
@@ -161,6 +162,13 @@ function EditProfileForm({
   const onSave = (values: EditProfileInput) => {
     updateProfile.mutate(values, {
       onSuccess: () => router.back(),
+      // The other fields stay; only the refused photo goes, so another can be picked.
+      onError: (error) => {
+        if (error instanceof PhotoRefusedError) {
+          setPreset(null);
+          setValue("avatarUri", undefined);
+        }
+      },
     });
   };
 

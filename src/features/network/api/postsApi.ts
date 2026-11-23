@@ -8,7 +8,12 @@ import {
 import { z } from 'zod';
 
 import { fetchMyMatches } from '@/features/matches/api/matchesApi';
-import { type ApiProfile, uploadProfilePhoto } from '@/features/profile/api/profileApi';
+import {
+  type ApiProfile,
+  isPhotoRefused,
+  PhotoRefusedError,
+  uploadProfilePhoto,
+} from '@/features/profile/api/profileApi';
 import type { Position } from '@/features/profile/schema/onboarding';
 import { ApiError } from '@/lib/api/client';
 import { authorizedApiClient } from '@/lib/api/authorizedClient';
@@ -121,6 +126,12 @@ async function createPost(input: NewPost): Promise<Post> {
       }),
     });
   } catch (error) {
+    // An API from before `code` answers 422 both for a refused photo and for a match the
+    // post may not tie to: only a post with no match is read as a refused photo there.
+    const legacyAndAmbiguous = error instanceof ApiError && !error.code && Boolean(input.matchId);
+    if (isPhotoRefused(error, 422, Boolean(input.photoUri) && !legacyAndAmbiguous)) {
+      throw new PhotoRefusedError();
+    }
     throw toPostError(error);
   }
 }

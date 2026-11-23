@@ -31,7 +31,7 @@ import { useCreateProfile } from '@/features/profile/api/createProfile';
 import { useMyProfile } from '@/features/profile/api/getMyProfile';
 import type { ApiProfile } from '@/features/profile/api/profileApi';
 import { useSendFeedback } from '@/features/profile/api/sendFeedback';
-import { photoContentType } from '@/features/profile/api/profileApi';
+import { PhotoRefusedError, photoContentType } from '@/features/profile/api/profileApi';
 import { useUpdateProfile } from '@/features/profile/api/updateProfile';
 import { useHandleTaken } from '@/features/profile/api/handleAvailability';
 import type { EditProfileInput } from '@/features/profile/schema/editProfile';
@@ -411,6 +411,45 @@ describe('profile photo upload failures', () => {
     expect(
       calls().some((c) => c.url.endsWith('/api/v1/profiles/me') && c.method === 'PUT'),
     ).toBe(false);
+  });
+});
+
+describe('profile photo refused by the API', () => {
+  const withUpload = (save: () => ReturnType<typeof respond>) =>
+    fetchMock.mockImplementation(async (url: string, init: RequestInit = {}) => {
+      if (url.endsWith('/photo/upload-url')) {
+        return respond(201, { uploadUrl: 'https://storage.test/put-here', objectKey: 'profiles/new.jpg' });
+      }
+      return init.method === 'PUT' ? save() : respond(200, apiProfile);
+    });
+
+  // Johny's test of 23/11: the content check refuses the photo; the screen drops only the photo.
+  it('fails with PhotoRefusedError when the API answers photo_refused', async () => {
+    withUpload(() => respond(400, { title: 'One or more validation errors occurred.', code: 'photo_refused' }));
+
+    const settled = await runMutation(useUpdateProfile, editInput);
+
+    const reason = settled.status === 'rejected' ? settled.reason : null;
+    expect(reason).toBeInstanceOf(PhotoRefusedError);
+    expect((reason as Error).message).toBe('Essa foto não pode ser publicada no Quadra. Escolha outra.');
+  });
+
+  it('reads a 400 with a photo as refused when the API sends no code', async () => {
+    withUpload(() => respond(400, { title: 'One or more validation errors occurred.' }));
+
+    const settled = await runMutation(useUpdateProfile, editInput);
+
+    expect(settled.status === 'rejected' ? settled.reason : null).toBeInstanceOf(PhotoRefusedError);
+  });
+
+  it('keeps the generic message for another 400 code', async () => {
+    withUpload(() => respond(400, { code: 'something_else' }));
+
+    const settled = await runMutation(useUpdateProfile, editInput);
+
+    const reason = settled.status === 'rejected' ? settled.reason : null;
+    expect(reason).not.toBeInstanceOf(PhotoRefusedError);
+    expect((reason as Error).message).toBe('Confira os dados informados e tente de novo.');
   });
 });
 

@@ -19,6 +19,7 @@ import {
   useInvitableMatches,
 } from '@/features/network/api/postsApi';
 import { useRecentMatches } from '@/features/profile/api/getRecentMatches';
+import { PhotoRefusedError } from '@/features/profile/api/profileApi';
 import { colors } from '@/theme/colors';
 import { ICON_HIT_SLOP } from '@/theme/layout';
 import { useThemeColors } from '@/theme/useThemeColors';
@@ -76,7 +77,15 @@ export default function NewPostScreen() {
   };
 
   const onSubmit = (values: NewPost) => {
-    createPost.mutate(values, { onSuccess: () => router.back() });
+    createPost.mutate(values, {
+      onSuccess: () => router.back(),
+      // The text and the match stay; only the refused photo goes, so another can be picked.
+      onError: (error) => {
+        if (error instanceof PhotoRefusedError) {
+          setValue('photoUri', undefined, { shouldValidate: true });
+        }
+      },
+    });
   };
 
   return (
