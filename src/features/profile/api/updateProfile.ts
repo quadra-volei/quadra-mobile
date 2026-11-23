@@ -3,13 +3,14 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { myProfileQueryKey } from '@/features/profile/api/getMyProfile';
 import {
   fetchMyProfile,
+  isPhotoRefused,
+  PhotoRefusedError,
   putMyProfile,
   toApiDate,
   toProfileError,
   uploadProfilePhoto,
 } from '@/features/profile/api/profileApi';
 import type { EditProfileInput } from '@/features/profile/schema/editProfile';
-import { ApiError } from '@/lib/api/client';
 
 export type UpdateProfileResult = {
   profile: { id: string } & EditProfileInput;
@@ -46,9 +47,9 @@ async function updateProfile(
     });
     return { profile: { ...input, id: saved.userId, handle: saved.handle ?? input.handle } };
   } catch (error) {
-    // The API checks the uploaded file (size, content filter) on save: a 400 then is the photo.
-    if (input.avatarUri && error instanceof ApiError && error.status === 400) {
-      throw new Error('Essa foto não pôde ser usada. Tente outra imagem.');
+    // The API checks the uploaded file (size, content filter) on save.
+    if (isPhotoRefused(error, 400, Boolean(input.avatarUri))) {
+      throw new PhotoRefusedError();
     }
     throw toProfileError(error);
   }

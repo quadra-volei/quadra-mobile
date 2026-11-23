@@ -223,6 +223,28 @@ export async function uploadProfilePhoto(pickedUri: string): Promise<string> {
   return target.objectKey;
 }
 
+/**
+ * The API would not keep the picked photo (content check, over 10 MB): the
+ * screen drops the photo and keeps everything else the user filled in.
+ */
+export class PhotoRefusedError extends Error {
+  constructor() {
+    super('Essa foto não pode ser publicada no Quadra. Escolha outra.');
+    this.name = 'PhotoRefusedError';
+  }
+}
+
+/**
+ * Whether a failed save refused its photo. The API says so with
+ * `code: "photo_refused"`; an API from before that code is read by the status
+ * the photo check answers with, when the request had a photo.
+ */
+export function isPhotoRefused(error: unknown, status: number, hadPhoto: boolean): boolean {
+  if (!(error instanceof ApiError) || !hadPhoto) return false;
+  if (error.code) return error.code === 'photo_refused';
+  return error.status === status;
+}
+
 /** The image type of a picked file, by extension; the picker's edited output is JPEG. */
 export function photoContentType(uri: string): 'image/jpeg' | 'image/png' | 'image/webp' {
   const extension = uri.split(/[?#]/)[0]?.split('.').pop()?.toLowerCase();

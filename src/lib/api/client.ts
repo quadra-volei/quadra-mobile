@@ -8,25 +8,32 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL ?? '';
 export class ApiError extends Error {
   readonly status: number;
   readonly detail: string | null;
+  /** The problem's machine-readable `code` (e.g. `photo_refused`), when the backend sends one. */
+  readonly code: string | null;
 
-  constructor(status: number, statusText: string, detail: string | null) {
+  constructor(status: number, statusText: string, detail: string | null, code: string | null = null) {
     super(`API error ${status}: ${statusText}`);
     this.name = 'ApiError';
     this.status = status;
     this.detail = detail;
+    this.code = code;
   }
 }
 
-async function readProblemTitle(response: Response): Promise<string | null> {
+/** The `title` and `code` of a problem-details body; null for what is missing. */
+async function readProblem(response: Response): Promise<{ title: string | null; code: string | null }> {
   try {
     const body: unknown = await response.json();
-    if (typeof body === 'object' && body !== null && 'title' in body) {
-      const title = (body as { title: unknown }).title;
-      return typeof title === 'string' ? title : null;
+    if (typeof body !== 'object' || body === null) {
+      return { title: null, code: null };
     }
-    return null;
+    const { title, code } = body as { title?: unknown; code?: unknown };
+    return {
+      title: typeof title === 'string' ? title : null,
+      code: typeof code === 'string' ? code : null,
+    };
   } catch {
-    return null; // empty or non-JSON error body
+    return { title: null, code: null }; // empty or non-JSON error body
   }
 }
 
@@ -43,11 +50,8 @@ export async function apiClient<T>(
   });
 
   if (!response.ok) {
-    throw new ApiError(
-      response.status,
-      response.statusText,
-      await readProblemTitle(response),
-    );
+    const problem = await readProblem(response);
+    throw new ApiError(response.status, response.statusText, problem.title, problem.code);
   }
 
   if (response.status === 204) {

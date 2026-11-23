@@ -1,4 +1,5 @@
 import { getAuth, getIdToken, signInWithPhoneNumber, signOut } from '@react-native-firebase/auth';
+import * as Sentry from '@sentry/react-native';
 
 /**
  * Firebase Phone Auth (API DECISIONS #78): Firebase sends the SMS and checks the code; the app
@@ -58,6 +59,12 @@ export function firebaseAuthMessage(error: unknown, fallback: string): Error {
     case 'auth/network-request-failed':
       return new Error('Sem conexão. Verifique sua internet e tente de novo.');
     default:
-      return new Error(fallback);
+      // Erro que a tela não explica (ex.: app sem autorização no Firebase, Play Integrity,
+      // chave de API restrita): vai para o Sentry só com o código do Firebase, sem o número.
+      Sentry.captureMessage(`firebase phone auth: ${code || 'sem código'}`, {
+        level: 'error',
+        tags: { firebase_code: code || 'none' },
+      });
+      return new Error(code ? `${fallback} (${code})` : fallback);
   }
 }

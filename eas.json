@@ -32,6 +32,15 @@
                 "EXPO_PUBLIC_API_URL": "https://api.quadra-volei.app",
                 "EXPO_PUBLIC_SENTRY_DSN": "https://7f636c1a71de59e543d21a2512e26d17@o4512291040985088.ingest.us.sentry.io/4512291066740736"
             }
+        },
+        "production-apk": {
+            "extends": "production",
+            "environment": "production",
+            "distribution": "internal",
+            "autoIncrement": false,
+            "android": {
+                "buildType": "apk"
+            }
         }
     },
     "submit": {
