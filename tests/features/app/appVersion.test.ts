@@ -3,7 +3,7 @@ import { compareVersions, updateStatus } from '@/features/app/api/appVersion';
 const policy = (minimumVersion: string | null, recommendedVersion: string | null) => ({
   minimumVersion,
   recommendedVersion,
-  storeUrl: 'https://play.google.com/store/apps/details?id=com.quadra.app',
+  storeUrl: 'https://play.google.com/store/apps/details?id=app.quadravolei',
 });
 
 describe('update gate', () => {
