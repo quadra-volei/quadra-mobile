@@ -36,7 +36,7 @@ import { useThemeColors } from '@/theme/useThemeColors';
 // In a release APK a bundled image's `localUri` is a bare drawable name
 // ("assets_avatars_preset01"), which the photo resizer cannot open: the preset
 // avatar never saved. As an `android.resource://` URI any Android loader reads it.
-const ANDROID_PACKAGE = "com.quadra.app";
+const ANDROID_PACKAGE = "app.quadravolei";
 function fileUriOfAsset(localUri: string): string {
   return localUri.includes(":") ? localUri : `android.resource://${ANDROID_PACKAGE}/drawable/${localUri}`;
 }
