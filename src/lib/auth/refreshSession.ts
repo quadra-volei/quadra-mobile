@@ -11,8 +11,11 @@ type RefreshResponse = {
 };
 
 let inFlight: Promise<string> | null = null;
+// Bumped when the session ends: a refresh started before that must not store its tokens.
+let generation = 0;
 
 async function runRefresh(): Promise<string> {
+  const startedIn = generation;
   const refreshToken = await getRefreshToken();
   if (!refreshToken) {
     throw new Error('No refresh token stored.');
@@ -23,6 +26,11 @@ async function runRefresh(): Promise<string> {
       method: 'POST',
       body: JSON.stringify({ refreshToken }),
     });
+    if (startedIn !== generation) {
+      // Logout ran while this request was in flight: storing the pair would sign the
+      // account back in on the next launch (audit 2026-11-24, logout-refresh-race).
+      throw new Error('Session ended during refresh.');
+    }
     // The backend rotates the refresh token on every use: the one just sent is
     // now dead, so the new pair must be stored before anything else runs.
     await saveTokens(tokens);
@@ -49,4 +57,14 @@ export function refreshSession(): Promise<string> {
     });
   }
   return inFlight;
+}
+
+/**
+ * Ends the current session for refreshing: a refresh already in flight will not
+ * store its tokens. Resolves once that refresh has settled, so the caller can then
+ * revoke and clear whatever is stored.
+ */
+export async function endRefreshSession(): Promise<void> {
+  generation += 1;
+  await inFlight?.catch(() => undefined);
 }

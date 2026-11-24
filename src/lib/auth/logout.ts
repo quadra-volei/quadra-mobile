@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 
 import { apiClient } from '@/lib/api/client';
+import { endRefreshSession } from '@/lib/auth/refreshSession';
 import { clearTokens, getRefreshToken } from '@/lib/auth/tokenStorage';
 import { unregisterPush } from '@/lib/push/pushNotifications';
 import { disconnectConnection } from '@/lib/realtime/connection';
@@ -43,6 +44,8 @@ export async function logout(queryClient: QueryClient): Promise<void> {
   await unregisterPush();
   // The live-score connection carries this account's token: drop it with the session.
   await disconnectConnection();
+  // A refresh still in flight must not write the tokens back after they are cleared.
+  await endRefreshSession();
   await revokeRemoteSession();
   await clearTokens();
   useAuthStore.getState().clearAuth();
