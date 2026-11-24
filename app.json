@@ -10,10 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.quadra.app"
+      "bundleIdentifier": "app.quadravolei"
     },
     "android": {
-      "package": "com.quadra.app",
+      "package": "app.quadravolei",
       "softwareKeyboardLayoutMode": "resize",
       "adaptiveIcon": {
         "backgroundColor": "#EFF3FC",

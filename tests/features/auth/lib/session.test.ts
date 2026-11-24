@@ -15,7 +15,7 @@ jest.mock('expo-secure-store', () =>
 
 import * as SecureStore from 'expo-secure-store';
 
-import { refreshSession } from '@/lib/auth/refreshSession';
+import { endRefreshSession, refreshSession } from '@/lib/auth/refreshSession';
 import { saveTokens } from '@/lib/auth/tokenStorage';
 import { verifySession } from '@/lib/auth/verifySession';
 
@@ -55,6 +55,25 @@ beforeEach(async () => {
 });
 
 describe('refreshSession', () => {
+  it('does not store the pair of a refresh that finishes after the session ended', async () => {
+    let release: (value: unknown) => void = () => undefined;
+    fetchMock.mockReturnValue(new Promise((resolve) => {
+      release = resolve;
+    }));
+
+    const pending = refreshSession();
+    await new Promise((resolve) => setTimeout(resolve, 0)); // the request is on the wire
+    const ended = endRefreshSession();
+    await SecureStore.deleteItemAsync('quadra.accessToken');
+    await SecureStore.deleteItemAsync('quadra.refreshToken');
+    release(respond(200, { accessToken: 'late-access', refreshToken: 'late-refresh' }));
+
+    await expect(pending).rejects.toThrow('Session ended during refresh.');
+    await ended;
+    expect(await SecureStore.getItemAsync('quadra.accessToken')).toBeNull();
+    expect(await SecureStore.getItemAsync('quadra.refreshToken')).toBeNull();
+  });
+
   it('exchanges the stored refresh token and stores the rotated pair', async () => {
     fetchMock.mockResolvedValue(
       respond(200, { accessToken: 'new-access', refreshToken: 'new-refresh' }),
