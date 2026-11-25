@@ -28,12 +28,24 @@ export async function confirmFirebaseCode(phone: string, code: string): Promise<
     throw Object.assign(new Error('No code was sent to this number.'), { code: 'auth/session-expired' });
   }
 
-  const credential = await pending.confirmation.confirm(code);
-  if (!credential?.user) {
+  let user;
+  try {
+    user = (await pending.confirmation.confirm(code))?.user;
+  } catch (error) {
+    // No Android o Firebase pode ler o SMS sozinho (verificação automática) e já entrar com o
+    // número antes de a pessoa digitar; aí o código já foi usado e o confirm responde
+    // session-expired / code-expired. Se o Firebase já entrou com este número, segue com ele.
+    const current = getAuth().currentUser;
+    if (!current || current.phoneNumber !== phone) {
+      throw error;
+    }
+    user = current;
+  }
+  if (!user) {
     throw Object.assign(new Error('Firebase did not sign in.'), { code: 'auth/session-expired' });
   }
 
-  const idToken = await getIdToken(credential.user, true);
+  const idToken = await getIdToken(user, true);
   pending = null;
   await signOut(getAuth()).catch(() => undefined);
   return idToken;

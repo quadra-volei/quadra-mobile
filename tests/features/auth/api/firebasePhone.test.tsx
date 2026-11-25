@@ -42,6 +42,49 @@ describe('Firebase phone login', () => {
     expect(result.user.id).toBe('u1');
   });
 
+  it('logs in when Android already verified the number by itself and the code is spent', async () => {
+    const confirm = jest.fn(async () => {
+      throw Object.assign(new Error('expired'), { code: 'auth/session-expired' });
+    });
+    const autoUser = { uid: 'fb', phoneNumber: PHONE };
+    (firebase.signInWithPhoneNumber as jest.Mock).mockResolvedValue({ confirm });
+    (firebase.getAuth as jest.Mock).mockReturnValue({ currentUser: autoUser });
+    (firebase.getIdToken as jest.Mock).mockResolvedValue('firebase-id-token');
+    const fetchMock = jest.fn(async () => new Response(JSON.stringify(TOKENS), { status: 200 }));
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    try {
+      await sendOtp(PHONE);
+      const result = await verifyOtp({ phone: PHONE, code: '123456' });
+
+      expect(firebase.getIdToken).toHaveBeenCalledWith(autoUser, true);
+      expect(JSON.parse(String((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body))).toEqual({
+        idToken: 'firebase-id-token',
+      });
+      expect(result.user.id).toBe('u1');
+    } finally {
+      (firebase.getAuth as jest.Mock).mockReturnValue({});
+    }
+  });
+
+  it('keeps "O código expirou" when Firebase is signed in with another number', async () => {
+    const confirm = jest.fn(async () => {
+      throw Object.assign(new Error('expired'), { code: 'auth/session-expired' });
+    });
+    (firebase.signInWithPhoneNumber as jest.Mock).mockResolvedValue({ confirm });
+    (firebase.getAuth as jest.Mock).mockReturnValue({ currentUser: { uid: 'x', phoneNumber: '+5511888880000' } });
+    const fetchMock = jest.fn();
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    try {
+      await sendOtp(PHONE);
+      await expect(verifyOtp({ phone: PHONE, code: '123456' })).rejects.toThrow('O código expirou');
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally {
+      (firebase.getAuth as jest.Mock).mockReturnValue({});
+    }
+  });
+
   it('shows a wrong code as "Código inválido" without calling the API', async () => {
     const confirm = jest.fn(async () => {
       throw Object.assign(new Error('bad'), { code: 'auth/invalid-verification-code' });
